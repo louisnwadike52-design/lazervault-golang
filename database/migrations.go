@@ -6,14 +6,15 @@ import (
 	"gorm.io/gorm"
 )
 
-func AutoMigrateDB(db *gorm.DB) error {
-	return db.AutoMigrate(
+func DropAllTables(db *gorm.DB) error {
+	return db.Migrator().DropTable(
 		&models.User{},
 	)
 }
 
-func DropAllTables(db *gorm.DB) error {
-	return db.Migrator().DropTable(
+func AutoMigrateDB(db *gorm.DB) error {
+	return db.AutoMigrate(
 		&models.User{},
+		// Add other models here
 	)
 }

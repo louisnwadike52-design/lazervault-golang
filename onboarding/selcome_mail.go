@@ -1,8 +1,9 @@
 package onboarding
 
-import "fmt"
+import "lazervaultGo/mail"
 
 func SendWelcomeEmail(email, subject, body string) error {
-	fmt.Println("not implemented")
+	sender := mail.NewGmailSender("Lazervault", "lazervault@gmail.com", "lazervault123")
+	sender.SendEmail(subject, body, []string{email}, []string{}, []string{}, []string{})
 	return nil
 }

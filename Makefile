@@ -44,10 +44,9 @@ db-reset: db-drop db-create
 # Development setup
 .PHONY: setup install-air
 
-setup: install-air
+setup:
 	@echo "Setting up development environment..."
-	@go mod tidy
-	@go mod verify
+	@./scripts/setup.sh
 
 install-air:
 	@echo "Installing air..."
@@ -69,3 +68,18 @@ help:
 	@echo "  make db-drop    - Drop database"
 	@echo "  make db-reset   - Reset database"
 	@echo "  make setup      - Setup development environment"
+
+.PHONY: proto
+proto:
+	protoc --proto_path=proto \
+		--go_out=pb --go_opt=paths=source_relative \
+		--go-grpc_out=pb --go-grpc_opt=paths=source_relative \
+		proto/*.proto
+
+.PHONY: evans
+evans:
+	evans --host localhost --port 50051 -r repl
+
+.PHONY: dev
+dev:
+	nodemon

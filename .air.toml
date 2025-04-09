@@ -5,11 +5,9 @@ tmp_dir = "tmp"
   # Main build command
   cmd = "go build -o ./tmp/main ."
   bin = "./tmp/main"
-  delay = 1000 # ms
   
-  # Watch everything including main.go
-  include_dir = ["."]
-  include_file = ["main.go", "app.env"]  # Explicitly watch main.go
+  # Watch everything in all directories
+  include_dir = ["./"]
   
   # Watch all relevant file extensions
   include_ext = ["go", "tpl", "tmpl", "html", "env", "yml", "yaml", "json"]
@@ -17,21 +15,12 @@ tmp_dir = "tmp"
   # Exclude unnecessary directories
   exclude_dir = ["tmp", "vendor", ".git", "node_modules"]
   
-  # Exclude specific files
-  exclude_file = ["docs.go"]
-  exclude_regex = ["_test.go"]
-  
-  # Environment variables
-  env_vars = [
-    "DB_HOST=localhost",
-    "DB_PORT=5432"
-  ]
   
   # Build arguments
   args_bin = ["--port", "8080"]
   
   # Full rebuild on main.go changes
-  full_bin = "go run main.go"
+  # full_bin = "go run main.go"
   
   # Error handling
   stop_on_error = true

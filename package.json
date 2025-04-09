@@ -1,0 +1,14 @@
+{
+  "name": "lazervault",
+  "scripts": {
+    "dev": "nodemon",
+    "setup": "chmod +x scripts/setup.sh && ./scripts/setup.sh && yarn run proto",
+    "clean": "rm go.sum && go mod tidy",
+    "install": "go mod tidy",
+    "build": "go build -o lazervaultGo main.go",
+    "proto": "make proto"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.9"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "watch": ["./"],
+  "ext": "go",
+  "ignore": ["./tmp/*", ".git", "vendor"],
+  "exec": "go run main.go",
+  "verbose": false,
+  "quiet": true,
+  "signal": "SIGTERM",
+  "delay": "500",
+  "events": {
+    "restart": "kill-port 8080",
+    "crash": "kill-port 8080"
+  }
+} 

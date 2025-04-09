@@ -1,35 +1,66 @@
 package main
 
 import (
-	"log"
-
+	"fmt"
 	"lazervaultGo/configs"
 	"lazervaultGo/database"
+	grpcServer "lazervaultGo/grpcApi"
+	"lazervaultGo/restApi"
+	"log"
+	"net"
 )
 
 func main() {
-
-	// load config
+	// Load configuration
 	config, err := configs.LoadConfig(".")
 	if err != nil {
 		log.Fatal("Cannot load config:", err)
 	}
 
-	// Debug print
-	log.Printf("Loaded config: %+v", config)
-
-	// connect to database
+	// Initialize database
 	db, err := database.ConnectDB(config)
 	if err != nil {
-		log.Fatal("Cannot connect to database: ", err)
+		log.Fatal("Cannot connect to db:", err)
 	}
 
-	// auto migrate
-	err = database.AutoMigrateDB(db)
-	if err != nil {
-		log.Fatal("Cannot auto migrate database: ", err)
+	// Auto migrate database
+	if err := database.AutoMigrateDB(db); err != nil {
+		log.Fatal("Cannot auto migrate db:", err)
 	}
 
-	log.Println("Successfully connected to database")
+	errChan := make(chan error, 2)
 
+	// gRPC server goroutine
+	go func() {
+		listener, err := net.Listen("tcp", fmt.Sprintf(":%s", config.GRPCServerPort))
+		if err != nil {
+			errChan <- fmt.Errorf("gRPC server error: %v", err)
+			return
+		}
+
+		log.Printf("Starting gRPC server on port %s", config.GRPCServerPort)
+		if err := grpcServer.RunGRPCServer(db, listener); err != nil {
+			errChan <- fmt.Errorf("gRPC server error: %v", err)
+		}
+	}()
+
+	// REST server goroutine
+	go func() {
+		server := restApi.Server{
+			DB: db,
+		}
+		if _, err := server.Serve(); err != nil {
+			errChan <- fmt.Errorf("REST server error: %v", err)
+		}
+	}()
+
+	// Wait for any errors
+	// select {
+	// case err := <-errChan:
+	// 	log.Fatal(err)
+	// }
+
+	if err := <-errChan; err != nil {
+		log.Fatal(err)
+	}
 }
