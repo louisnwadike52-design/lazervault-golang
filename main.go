@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"lazervaultGo/configs"
 	"lazervaultGo/database"
-	grpcServer "lazervaultGo/grpcApi"
+	"lazervaultGo/grpcApi"
 	"lazervaultGo/restApi"
 	"log"
 	"net"
@@ -39,7 +39,7 @@ func main() {
 		}
 
 		log.Printf("Starting gRPC server on port %s", config.GRPCServerPort)
-		if err := grpcServer.RunGRPCServer(db, listener); err != nil {
+		if err := grpcApi.RunGRPCServer(db, listener); err != nil {
 			errChan <- fmt.Errorf("gRPC server error: %v", err)
 		}
 	}()

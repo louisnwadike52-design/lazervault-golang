@@ -1,8 +1,10 @@
 package restApi
 
 import (
+	"fmt"
 	"lazervaultGo/models"
 	"lazervaultGo/services"
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -17,7 +19,7 @@ func (c *UserController) CreateUser(ctx *gin.Context) {
 	if err := ctx.ShouldBindJSON(&user); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
-			"message": "Invalid request format",
+			"msg":     "Invalid request format",
 			"error":   err.Error(),
 		})
 		return
@@ -32,37 +34,16 @@ func (c *UserController) CreateUser(ctx *gin.Context) {
 	// Success response
 	ctx.JSON(http.StatusCreated, gin.H{
 		"success": true,
-		"message": "User created successfully",
+		"msg":     "User created successfully",
 		"data":    user.ToJson(),
 	})
 }
 
 func handleUserError(ctx *gin.Context, err error) {
-	switch err {
-	case models.ErrDuplicateEmail:
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"message": "Email already exists",
-		})
-	case models.ErrDuplicatePhone:
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"message": "Phone number already exists",
-		})
-	default:
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"message": "Failed to create user",
-		})
-	case models.ErrInvalidNameLength:
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"message": "Invalid name length",
-		})
-	case models.ErrInvalidEmail:
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"success": false,
-			"message": "Invalid email",
-		})
-	}
+	fmt.Println("Error: ", err)
+	log.Println("Error: ", err)
+	ctx.JSON(http.StatusBadRequest, gin.H{
+		"success": false,
+		"msg":     err.Error(),
+	})
 }

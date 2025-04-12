@@ -2,6 +2,7 @@ package grpcApi
 
 import (
 	"context"
+	"fmt"
 	"lazervaultGo/models"
 	"lazervaultGo/pb"
 	"lazervaultGo/services"
@@ -22,38 +23,9 @@ func (s *GRPCServer) CreateUser(ctx context.Context, req *pb.CreateUserRequest) 
 		Role:        req.Role,
 	}
 
-	// // Validate input
-	// if validationErrors := validators.ValidateStruct(user); validationErrors != nil {
-	// 	return nil, status.Errorf(codes.InvalidArgument, "Validation failed: %v", validationErrors)
-	// }
-
-	// validate user
-	// if err := validators.ValidateUser(user); err != nil {
-	// 	return nil, status.Errorf(codes.InvalidArgument, "Validation failed: %v", err)
-	// }
-
-	// Create user in database
-	// if err := s.db.Create(user).Error; err != nil {
-	// 	switch err {
-	// 	case models.ErrDuplicateEmail:
-	// 		return nil, status.Errorf(codes.AlreadyExists, "Email already exists")
-	// 	case models.ErrDuplicatePhone:
-	// 		return nil, status.Errorf(codes.AlreadyExists, "Phone number already exists")
-	// 	default:
-	// 		return nil, status.Errorf(codes.Internal, "Failed to create user: %v", err)
-	// 	}
-	// }
-
 	// Create user in database
 	if err := services.CreateUser(s.db, user); err != nil {
-		switch err {
-		case models.ErrDuplicateEmail:
-			return s.createErrorResponse(codes.AlreadyExists, "Email already exists")
-		case models.ErrDuplicatePhone:
-			return s.createErrorResponse(codes.AlreadyExists, "Phone number already exists")
-		default:
-			return s.createErrorResponse(codes.Internal, "Failed to create user")
-		}
+		return s.createErrorResponse(codes.InvalidArgument, err.Error())
 	}
 
 	// Convert to protobuf response
@@ -75,6 +47,7 @@ func (s *GRPCServer) CreateUser(ctx context.Context, req *pb.CreateUserRequest) 
 }
 
 func (s *GRPCServer) createErrorResponse(errorCode codes.Code, errorMessage string) (*pb.CreateUserResponse, error) {
+	fmt.Println("grpc error: ", errorMessage)
 	return &pb.CreateUserResponse{
 		Success: false,
 		Message: errorMessage,
