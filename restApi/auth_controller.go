@@ -1,7 +1,6 @@
 package restApi
 
 import (
-	"lazervaultGo/pb"
 	"lazervaultGo/services"
 	"net/http"
 
@@ -12,8 +11,13 @@ type AuthController struct {
 	authService *services.AuthService
 }
 
+type LoginRequest struct {
+	Email    string `json:"email" validate:"required,email"`
+	Password string `json:"password" validate:"required,min=6"`
+}
+
 func (c *AuthController) Login(ctx *gin.Context) {
-	var loginRequest pb.LoginRequest
+	var loginRequest LoginRequest
 	if err := ctx.ShouldBindJSON(&loginRequest); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
@@ -22,7 +26,10 @@ func (c *AuthController) Login(ctx *gin.Context) {
 		return
 	}
 
-	loginResponse, err := c.authService.Login(&loginRequest)
+	loginResponse, err := c.authService.Login(&services.LoginRequest{
+		Email:    loginRequest.Email,
+		Password: loginRequest.Password,
+	})
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,

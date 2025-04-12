@@ -3,7 +3,6 @@ package services
 import (
 	"lazervaultGo/configs"
 	"lazervaultGo/models"
-	"lazervaultGo/pb"
 	"lazervaultGo/token"
 	"lazervaultGo/validators"
 	"time"
@@ -17,6 +16,23 @@ type AuthService struct {
 	tokenMaker token.Maker
 }
 
+type LoginRequest struct {
+	Email    string `json:"email" validate:"required,email"`
+	Password string `json:"password" validate:"required,min=6"`
+}
+
+type Metadata struct {
+	AccessToken string `json:"access_token"`
+	ExpiresAt   string `json:"expires_at"`
+}
+
+type LoginResponse struct {
+	User     models.User `json:"user"`
+	Metadata Metadata    `json:"metadata"`
+	Success  bool        `json:"success"`
+	Msg      string      `json:"msg"`
+}
+
 func NewAuthService(db *gorm.DB, config *configs.Config, tokenMaker token.Maker) *AuthService {
 	return &AuthService{
 		db:         db,
@@ -25,7 +41,7 @@ func NewAuthService(db *gorm.DB, config *configs.Config, tokenMaker token.Maker)
 	}
 }
 
-func (s *AuthService) Login(req *pb.LoginRequest) (*pb.LoginResponse, error) {
+func (s *AuthService) Login(req *LoginRequest) (*LoginResponse, error) {
 	// validate request
 	if err := validators.ValidateLoginUser(&models.User{Email: req.Email, Password: req.Password}); err != nil {
 		return nil, err
@@ -48,14 +64,18 @@ func (s *AuthService) Login(req *pb.LoginRequest) (*pb.LoginResponse, error) {
 		return nil, err
 	}
 
-	return &pb.LoginResponse{
-		User: &pb.User{
-			Id:        uint64(user.ID),
-			Email:     user.Email,
-			FirstName: user.FirstName,
-			LastName:  user.LastName,
+	return &LoginResponse{
+		User: models.User{
+			Email:       user.Email,
+			FirstName:   user.FirstName,
+			LastName:    user.LastName,
+			PhoneNumber: user.PhoneNumber,
+			Role:        user.Role,
+			Verified:    user.Verified,
+			CreatedAt:   user.CreatedAt,
+			UpdatedAt:   user.UpdatedAt,
 		},
-		Metadata: &pb.Metadata{
+		Metadata: Metadata{
 			AccessToken: accessToken,
 			ExpiresAt:   payload.ExpiredAt.Format(time.RFC3339),
 		},

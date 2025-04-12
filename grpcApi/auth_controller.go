@@ -7,6 +7,7 @@ import (
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type AuthController struct {
@@ -21,7 +22,7 @@ func NewAuthController(authService *services.AuthService) *AuthController {
 }
 
 func (c *AuthController) Login(ctx context.Context, req *pb.LoginRequest) (*pb.LoginResponse, error) {
-	loginReq := &pb.LoginRequest{
+	loginReq := &services.LoginRequest{
 		Email:    req.Email,
 		Password: req.Password,
 	}
@@ -33,10 +34,14 @@ func (c *AuthController) Login(ctx context.Context, req *pb.LoginRequest) (*pb.L
 
 	return &pb.LoginResponse{
 		User: &pb.User{
-			Id:        result.User.Id,
-			Email:     result.User.Email,
-			FirstName: result.User.FirstName,
-			LastName:  result.User.LastName,
+			Email:       result.User.Email,
+			FirstName:   result.User.FirstName,
+			LastName:    result.User.LastName,
+			PhoneNumber: result.User.PhoneNumber,
+			Role:        result.User.Role,
+			Verified:    result.User.Verified,
+			CreatedAt:   timestamppb.New(result.User.CreatedAt),
+			UpdatedAt:   timestamppb.New(result.User.UpdatedAt),
 		},
 		Metadata: &pb.Metadata{
 			AccessToken: result.Metadata.AccessToken,
