@@ -44,10 +44,12 @@ func requiresAuth(method string) bool {
 	// List of public endpoints that don't require authentication
 	publicEndpoints := map[string]bool{
 		// Auth Service public endpoints
-		"/pb.AuthService/Login": false,
+		"/pb.AuthService/Login":        false,
+		"/pb.AuthService/Logout":       true,
+		"/pb.AuthService/RefreshToken": false,
 
 		// User Service public endpoints
-		"/pb.UserService/CreateUser": false,
+		"/pb.UserService/CreateUser": true,
 
 		// Add more public endpoints as needed
 	}

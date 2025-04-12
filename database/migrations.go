@@ -6,15 +6,27 @@ import (
 	"gorm.io/gorm"
 )
 
-func DropAllTables(db *gorm.DB) error {
-	return db.Migrator().DropTable(
+type Migrator struct {
+	db *gorm.DB
+}
+
+func NewMigrator(db *gorm.DB) *Migrator {
+	return &Migrator{db: db}
+}
+
+func (m *Migrator) DropAllTables() error {
+	return m.db.Migrator().DropTable(
 		&models.User{},
 	)
 }
 
-func AutoMigrateDB(db *gorm.DB) error {
-	return db.AutoMigrate(
+func (m *Migrator) AutoMigrateDB() error {
+	return m.db.AutoMigrate(
 		&models.User{},
-		// Add other models here
+		&models.Session{},
 	)
+}
+
+func (m *Migrator) CreateSessionsTable() error {
+	return m.db.AutoMigrate(&models.Session{})
 }

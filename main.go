@@ -24,7 +24,8 @@ func main() {
 	}
 
 	// Auto migrate database
-	if err := database.AutoMigrateDB(db); err != nil {
+	migrator := database.NewMigrator(db)
+	if err := migrator.AutoMigrateDB(); err != nil {
 		log.Fatal("Cannot auto migrate db:", err)
 	}
 

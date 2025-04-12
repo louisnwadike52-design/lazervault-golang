@@ -9,6 +9,9 @@ import "user.proto";
 message Metadata {
   string AccessToken = 1;
   string ExpiresAt = 2;
+  string RefreshToken = 3;
+  string RefreshTokenExpiresAt = 4;
+  string SessionId = 5;
 }
 
 message LoginRequest {
@@ -23,6 +26,26 @@ message LoginResponse {
   string msg = 4;
 }
 
+message RefreshTokenRequest {
+  string refresh_token = 1;
+}
+
+message RefreshTokenResponse {
+  Metadata metadata = 1;
+}   
+
+message LogoutRequest {
+  string session_id = 1;
+}
+
+message LogoutResponse {
+  bool success = 1;
+  string msg = 2;
+}
+
+
 service AuthService {
   rpc Login(LoginRequest) returns (LoginResponse) {}
+  rpc RefreshToken(RefreshTokenRequest) returns (RefreshTokenResponse) {}
+  rpc Logout(LogoutRequest) returns (LogoutResponse) {}
 } 

@@ -26,10 +26,13 @@ func (c *AuthController) Login(ctx *gin.Context) {
 		return
 	}
 
+	userAgent := ctx.Request.UserAgent()
+	clientIP := ctx.ClientIP()
+
 	loginResponse, err := c.authService.Login(&services.LoginRequest{
 		Email:    loginRequest.Email,
 		Password: loginRequest.Password,
-	})
+	}, userAgent, clientIP)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
