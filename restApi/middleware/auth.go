@@ -1,4 +1,4 @@
-package restApi
+package middleware
 
 import (
 	"errors"
@@ -18,7 +18,7 @@ const (
 )
 
 // AuthMiddleware creates a gin middleware for authorization
-func authMiddleware(tokenMaker token.Maker) gin.HandlerFunc {
+func AuthMiddleware(tokenMaker token.Maker) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		authorizationHeader := ctx.GetHeader(authorizationHeaderKey)
 
@@ -49,7 +49,7 @@ func authMiddleware(tokenMaker token.Maker) gin.HandlerFunc {
 			return
 		}
 
-		ctx.Set(authorizationPayloadKey, payload)
+		ctx.Set("user_email", payload.Email)
 		ctx.Next()
 	}
 }

@@ -2,28 +2,37 @@ package validators
 
 import (
 	"lazervaultGo/models"
-
-	"gorm.io/gorm"
+	"lazervaultGo/utils"
 )
 
-func ValidateUser(user *models.User, db *gorm.DB) error {
+func ValidateUser(user *models.User) error {
 	if user.FirstName == "" {
 		return models.ErrFirstNameRequired
 	}
 	if user.LastName == "" {
 		return models.ErrLastNameRequired
 	}
-	if user.Email == "" {
-		return models.ErrEmailRequired
+	if user.Email == "" || !utils.IsValidEmail(user.Email) {
+		return models.ErrInvalidEmail
 	}
-	if user.Password == "" {
-		return models.ErrPasswordRequired
+	if !utils.IsValidPassword(user.Password) {
+		return models.ErrInvalidPassword
 	}
-	if user.PhoneNumber == "" {
-		return models.ErrPhoneNumberRequired
+	if user.PhoneNumber == "" || !utils.IsValidPhoneNumber(user.PhoneNumber) {
+		return models.ErrInvalidPhone
 	}
 	if user.Role == "" {
 		return models.ErrRoleRequired
+	}
+	return nil
+}
+
+func ValidateLoginUser(user *models.User) error {
+	if user.Email == "" || !utils.IsValidEmail(user.Email) {
+		return models.ErrInvalidEmail
+	}
+	if !utils.IsValidPassword(user.Password) {
+		return models.ErrInvalidPassword
 	}
 	return nil
 }

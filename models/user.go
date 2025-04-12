@@ -13,20 +13,22 @@ import (
 
 var (
 	// GORM specific errors
-	ErrDuplicateEmail      = errors.New("email already exists")
-	ErrDuplicatePhone      = errors.New("phone number already exists")
-	ErrInvalidNameLength   = errors.New("name must be between 2 and 255 characters")
-	ErrInvalidEmail        = errors.New("invalid email format")
-	ErrInvalidPassword     = errors.New("password must be at least 8 characters")
-	ErrInvalidPhone        = errors.New("invalid phone number format")
-	ErrInvalidRole         = errors.New("role must be either 'admin' or 'user'")
-	ErrFirstNameRequired   = errors.New("first name is required")
-	ErrLastNameRequired    = errors.New("last name is required")
-	ErrEmailRequired       = errors.New("email is required")
-	ErrPasswordRequired    = errors.New("password is required")
-	ErrPhoneNumberRequired = errors.New("phone number is required")
-	ErrRoleRequired        = errors.New("role is required")
-	ErrInvalidPhoneNumber  = errors.New("invalid phone number")
+	ErrDuplicateEmail        = errors.New("email already exists")
+	ErrDuplicatePhone        = errors.New("phone number already exists")
+	ErrInvalidNameLength     = errors.New("name must be between 2 and 255 characters")
+	ErrInvalidEmail          = errors.New("invalid email format")
+	ErrInvalidPassword       = errors.New("invalid password")
+	ErrInvalidPasswordFormat = errors.New("password must be at least 8 characters long")
+	ErrPasswordMismatch      = errors.New("password mismatch")
+	ErrInvalidPhone          = errors.New("invalid phone number format")
+	ErrInvalidRole           = errors.New("role must be either 'admin' or 'user'")
+	ErrFirstNameRequired     = errors.New("first name is required")
+	ErrLastNameRequired      = errors.New("last name is required")
+	ErrEmailRequired         = errors.New("email is required")
+	ErrPasswordRequired      = errors.New("password is required")
+	ErrPhoneNumberRequired   = errors.New("phone number is required")
+	ErrRoleRequired          = errors.New("role is required")
+	ErrInvalidPhoneNumber    = errors.New("invalid phone number")
 )
 
 type User struct {
@@ -185,7 +187,7 @@ func (u *User) AfterCreate(tx *gorm.DB) error {
 func (u *User) ComparePassword(password string) (bool, error) {
 	err := bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(password))
 	if err != nil {
-		return false, err
+		return false, ErrPasswordMismatch
 	}
 	return true, nil
 }
@@ -193,6 +195,14 @@ func (u *User) ComparePassword(password string) (bool, error) {
 func (User) FindById(db *gorm.DB, id uint) (*User, error) {
 	var user User
 	if err := db.Where("id = ?", id).First(&user).Error; err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
+func (User) GetUserByEmail(db *gorm.DB, email string) (*User, error) {
+	var user User
+	if err := db.Where("email = ?", email).First(&user).Error; err != nil {
 		return nil, err
 	}
 	return &user, nil

@@ -8,7 +8,7 @@ import (
 )
 
 func CreateUser(db *gorm.DB, user *models.User) error {
-	err := validators.ValidateUser(user, db)
+	err := validators.ValidateUser(user)
 	if err != nil {
 		return err
 	}

@@ -7,17 +7,20 @@ import (
 )
 
 type Config struct {
-	DBDriver       string `mapstructure:"DB_DRIVER"`
-	DBSource       string `mapstructure:"DB_SOURCE"`
-	ServerAddress  string `mapstructure:"SERVER_ADDRESS"`
-	DBHost         string `mapstructure:"DB_HOST"`
-	DBPort         string `mapstructure:"DB_PORT"`
-	DBUser         string `mapstructure:"DB_USER"`
-	DBPassword     string `mapstructure:"DB_PASSWORD"`
-	DBName         string `mapstructure:"DB_NAME"`
-	DBSSLMode      string `mapstructure:"DB_SSLMODE"`
-	ServerPort     string `mapstructure:"SERVER_PORT"`
-	GRPCServerPort string `mapstructure:"GRPC_SERVER_PORT"`
+	DBDriver             string `mapstructure:"DB_DRIVER"`
+	DBSource             string `mapstructure:"DB_SOURCE"`
+	ServerAddress        string `mapstructure:"SERVER_ADDRESS"`
+	DBHost               string `mapstructure:"DB_HOST"`
+	DBPort               string `mapstructure:"DB_PORT"`
+	DBUser               string `mapstructure:"DB_USER"`
+	DBPassword           string `mapstructure:"DB_PASSWORD"`
+	DBName               string `mapstructure:"DB_NAME"`
+	DBSSLMode            string `mapstructure:"DB_SSLMODE"`
+	ServerPort           string `mapstructure:"SERVER_PORT"`
+	GRPCServerPort       string `mapstructure:"GRPC_SERVER_PORT"`
+	TokenSymmetricKey    string `mapstructure:"TOKEN_SYMMETRIC_KEY"`
+	AccessTokenDuration  string `mapstructure:"ACCESS_TOKEN_DURATION"`
+	RefreshTokenDuration string `mapstructure:"REFRESH_TOKEN_DURATION"`
 }
 
 func LoadConfig(path string) (config Config, err error) {

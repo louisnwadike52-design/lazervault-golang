@@ -6,8 +6,8 @@ import (
 	"lazervaultGo/database"
 	"lazervaultGo/grpcApi"
 	"lazervaultGo/restApi"
+	"lazervaultGo/token"
 	"log"
-	"net"
 )
 
 func main() {
@@ -28,18 +28,18 @@ func main() {
 		log.Fatal("Cannot auto migrate db:", err)
 	}
 
+	// Initialize token maker
+	tokenMaker, err := token.NewJWTMaker(config.TokenSymmetricKey)
+	if err != nil {
+		log.Fatal("cannot create token maker:", err)
+	}
+
 	errChan := make(chan error, 2)
 
 	// gRPC server goroutine
 	go func() {
-		listener, err := net.Listen("tcp", fmt.Sprintf(":%s", config.GRPCServerPort))
-		if err != nil {
-			errChan <- fmt.Errorf("gRPC server error: %v", err)
-			return
-		}
-
 		log.Printf("Starting gRPC server on port %s", config.GRPCServerPort)
-		if err := grpcApi.RunGRPCServer(db, listener); err != nil {
+		if err := grpcApi.RunGRPCServer(db, tokenMaker, &config); err != nil {
 			errChan <- fmt.Errorf("gRPC server error: %v", err)
 		}
 	}()
