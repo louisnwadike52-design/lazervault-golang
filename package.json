@@ -3,9 +3,9 @@
   "scripts": {
     "dev": "nodemon",
     "setup": "chmod +x scripts/setup.sh && ./scripts/setup.sh && yarn run proto",
-    "clean": "rm go.sum && go mod tidy",
-    "install": "go mod tidy",
-    "build": "go build -o lazervaultGo main.go",
+    "clean": "rm go.sum && go mod tidy && make clean",
+    "install": "go mod tidy && make install-tools",
+    "build": "go build -o lazervaultGolang main.go",
     "proto": "make proto"
   },
   "devDependencies": {

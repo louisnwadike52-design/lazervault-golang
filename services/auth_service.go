@@ -23,7 +23,12 @@ type LoginRequest struct {
 	Password string `json:"password" validate:"required,min=6"`
 }
 
-type Metadata struct {
+type Data struct {
+	User    models.User `json:"user"`
+	Session *Session    `json:"session"`
+}
+
+type Session struct {
 	AccessToken           string    `json:"access_token"`
 	RefreshToken          string    `json:"refresh_token"`
 	AccessTokenExpiresAt  time.Time `json:"access_token_expires_at"`
@@ -32,10 +37,9 @@ type Metadata struct {
 }
 
 type LoginResponse struct {
-	User     models.User `json:"user"`
-	Metadata Metadata    `json:"metadata"`
-	Success  bool        `json:"success"`
-	Msg      string      `json:"msg"`
+	Data    Data   `json:"data"`
+	Success bool   `json:"success"`
+	Msg     string `json:"msg"`
 }
 
 type RefreshTokenRequest struct {
@@ -107,13 +111,15 @@ func (s *AuthService) Login(req *LoginRequest, userAgent, clientIP string) (*Log
 	}
 
 	return &LoginResponse{
-		User: user,
-		Metadata: Metadata{
-			AccessToken:           accessToken,
-			RefreshToken:          refreshToken,
-			AccessTokenExpiresAt:  accessPayload.ExpiredAt,
-			RefreshTokenExpiresAt: refreshPayload.ExpiredAt,
-			SessionID:             session.ID,
+		Data: Data{
+			User: user,
+			Session: &Session{
+				AccessToken:           accessToken,
+				RefreshToken:          refreshToken,
+				AccessTokenExpiresAt:  accessPayload.ExpiredAt,
+				RefreshTokenExpiresAt: refreshPayload.ExpiredAt,
+				SessionID:             session.ID,
+			},
 		},
 		Success: true,
 		Msg:     "Login successful",

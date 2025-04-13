@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+package pb;
+option go_package = "lazervaultGolang/pb";
+
+import "google/protobuf/timestamp.proto";
+
+// Base user type
+message User {
+    uint64 id = 1;
+    string first_name = 2;
+    string last_name = 3;
+    string email = 4;
+    string phone_number = 5;
+    string role = 6;
+    bool verified = 7;
+    bool is_email_verified = 8;
+    google.protobuf.Timestamp created_at = 9;
+    google.protobuf.Timestamp updated_at = 10;
+  }
+  
+  
+  message Data {
+    optional User user = 1;
+    optional Session session = 2;
+  }
+
+
+message Session {
+    string id = 1;
+    uint64 user_id = 2;
+    string access_token = 3;
+    string refresh_token = 4;
+    google.protobuf.Timestamp access_token_expires_at = 5;
+    google.protobuf.Timestamp refresh_token_expires_at = 6;
+}

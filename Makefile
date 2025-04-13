@@ -69,12 +69,38 @@ help:
 	@echo "  make db-reset   - Reset database"
 	@echo "  make setup      - Setup development environment"
 
-.PHONY: proto
-proto:
-	protoc --proto_path=proto \
-		--go_out=pb --go_opt=paths=source_relative \
-		--go-grpc_out=pb --go-grpc_opt=paths=source_relative \
+.PHONY: proto proto-deps clean install-tools
+
+# Install all required protoc plugins #install these manually one by one
+install-tools:
+	go install \
+		github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-grpc-gateway@latest \
+		github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2@latest \
+		google.golang.org/protobuf/cmd/protoc-gen-go@latest \
+		google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+
+# Download proto dependencies
+proto-deps:
+	./scripts/proto-deps.sh
+
+# Generate proto files
+proto: create-dirs
+	protoc \
+		--proto_path=proto \
+		--proto_path=proto/google/api \
+		--proto_path=proto/protoc-gen-openapiv2/options \
+		--go_out=./pb --go_opt=paths=source_relative \
+		--go-grpc_out=./pb --go-grpc_opt=paths=source_relative \
+		--grpc-gateway_out=./pb --grpc-gateway_opt=paths=source_relative \
+		--grpc-gateway_opt=allow_repeated_fields_in_body=true \
+		--openapiv2_out=swagger \
+		--openapiv2_opt=allow_merge=true,merge_file_name=api \
 		proto/*.proto
+
+# Clean generated files
+clean:
+	rm -rf pb/*.go
+	rm -rf swagger/*.json
 
 .PHONY: evans
 evans:
@@ -83,3 +109,8 @@ evans:
 .PHONY: dev
 dev:
 	nodemon
+
+.PHONY: create-dirs
+create-dirs:
+	mkdir -p pb
+	mkdir -p swagger

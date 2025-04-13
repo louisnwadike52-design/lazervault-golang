@@ -5,7 +5,6 @@ import (
 	"lazervaultGo/pb"
 	"lazervaultGo/services"
 	"strings"
-	"time"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -41,22 +40,25 @@ func (c *AuthController) Login(ctx context.Context, req *pb.LoginRequest) (*pb.L
 	}
 
 	return &pb.LoginResponse{
-		User: &pb.User{
-			Id:              uint64(result.User.ID),
-			Email:           result.User.Email,
-			FirstName:       result.User.FirstName,
-			LastName:        result.User.LastName,
-			PhoneNumber:     result.User.PhoneNumber,
-			IsEmailVerified: result.User.Verified,
-			CreatedAt:       timestamppb.New(result.User.CreatedAt),
-			UpdatedAt:       timestamppb.New(result.User.UpdatedAt),
-		},
-		Metadata: &pb.Metadata{
-			AccessToken:           result.Metadata.AccessToken,
-			RefreshToken:          result.Metadata.RefreshToken,
-			ExpiresAt:             result.Metadata.AccessTokenExpiresAt.Format(time.RFC3339),
-			RefreshTokenExpiresAt: result.Metadata.RefreshTokenExpiresAt.Format(time.RFC3339),
-			SessionId:             result.Metadata.SessionID,
+		Data: &pb.Data{
+			User: &pb.User{
+				Id:              uint64(result.Data.User.ID),
+				Email:           result.Data.User.Email,
+				FirstName:       result.Data.User.FirstName,
+				LastName:        result.Data.User.LastName,
+				PhoneNumber:     result.Data.User.PhoneNumber,
+				IsEmailVerified: result.Data.User.Verified,
+				CreatedAt:       timestamppb.New(result.Data.User.CreatedAt),
+				UpdatedAt:       timestamppb.New(result.Data.User.UpdatedAt),
+			},
+			Session: &pb.Session{
+				Id:                    result.Data.Session.SessionID,
+				UserId:                uint64(result.Data.User.ID),
+				AccessToken:           result.Data.Session.AccessToken,
+				RefreshToken:          result.Data.Session.RefreshToken,
+				AccessTokenExpiresAt:  timestamppb.New(result.Data.Session.AccessTokenExpiresAt),
+				RefreshTokenExpiresAt: timestamppb.New(result.Data.Session.RefreshTokenExpiresAt),
+			},
 		},
 		Success: result.Success,
 		Msg:     result.Msg,
@@ -74,11 +76,13 @@ func (c *AuthController) RefreshToken(ctx context.Context, req *pb.RefreshTokenR
 	}
 
 	return &pb.RefreshTokenResponse{
-		Metadata: &pb.Metadata{
-			AccessToken:           result.AccessToken,
-			RefreshToken:          result.RefreshToken,
-			ExpiresAt:             result.AccessTokenExpiresAt.Format(time.RFC3339),
-			RefreshTokenExpiresAt: result.RefreshTokenExpiresAt.Format(time.RFC3339),
+		Data: &pb.Data{
+			Session: &pb.Session{
+				AccessToken:           result.AccessToken,
+				RefreshToken:          result.RefreshToken,
+				AccessTokenExpiresAt:  timestamppb.New(result.AccessTokenExpiresAt),
+				RefreshTokenExpiresAt: timestamppb.New(result.RefreshTokenExpiresAt),
+			},
 		},
 	}, nil
 }

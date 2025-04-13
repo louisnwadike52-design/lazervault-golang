@@ -20,7 +20,7 @@ func (m *Migrator) DropAllTables() error {
 	)
 }
 
-func (m *Migrator) AutoMigrateDB() error {
+func (m *Migrator) RunMigrations() error {
 	return m.db.AutoMigrate(
 		&models.User{},
 		&models.Session{},

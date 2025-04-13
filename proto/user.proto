@@ -1,22 +1,13 @@
 syntax = "proto3";
 
 package pb;
-option go_package = "lazervaultGo/pb";
+option go_package = "lazervaultGolang/pb";
 
-import "google/protobuf/timestamp.proto";
+import "google/api/annotations.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+import "common.proto";
 
-message User {
-  uint64 id = 1;
-  string first_name = 2;
-  string last_name = 3;
-  string email = 4;
-  string phone_number = 5;
-  string role = 6;
-  bool verified = 7;
-  bool isEmailVerified = 8;
-  google.protobuf.Timestamp created_at = 9;
-  google.protobuf.Timestamp updated_at = 10;
-}
+
 
 message CreateUserRequest {
   string first_name = 1;
@@ -27,12 +18,24 @@ message CreateUserRequest {
   string role = 6;
 }
 
+
+
 message CreateUserResponse {
-  User user = 1;
+  bool success = 1;
   string message = 2;
-  bool success = 3;
+  Data data = 3;
 }
 
 service UserService {
-  rpc CreateUser(CreateUserRequest) returns (CreateUserResponse) {}
+  rpc CreateUser(CreateUserRequest) returns (CreateUserResponse) {
+    option (google.api.http) = {
+      post: "/v1/users"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Create a new user"
+      description: "Creates a new user with the provided details"
+      tags: "users"
+    };
+  }
 } 

@@ -49,7 +49,7 @@ func requiresAuth(method string) bool {
 		"/pb.AuthService/RefreshToken": false,
 
 		// User Service public endpoints
-		"/pb.UserService/CreateUser": true,
+		"/pb.UserService/CreateUser": false,
 
 		// Add more public endpoints as needed
 	}

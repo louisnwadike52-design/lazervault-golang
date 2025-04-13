@@ -11,7 +11,8 @@ import (
 )
 
 type UserController struct {
-	server *Server
+	server      *Server
+	userService *services.UserService
 }
 
 func (c *UserController) CreateUser(ctx *gin.Context) {
@@ -26,7 +27,7 @@ func (c *UserController) CreateUser(ctx *gin.Context) {
 	}
 
 	// Create user in database
-	if err := services.CreateUser(c.server.DB, &user); err != nil {
+	if err := c.userService.CreateUser(&user); err != nil {
 		handleUserError(ctx, err)
 		return
 	}
