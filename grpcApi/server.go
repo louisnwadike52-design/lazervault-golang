@@ -8,6 +8,7 @@ import (
 	"lazervaultGo/pb"
 	"lazervaultGo/services"
 	"lazervaultGo/token"
+	"lazervaultGo/worker"
 	"net"
 	"net/http"
 
@@ -19,18 +20,20 @@ import (
 )
 
 type Server struct {
-	config     *configs.Config
-	db         *gorm.DB
-	tokenMaker token.Maker
-	grpcServer *grpc.Server
-	httpServer *http.Server
+	config      *configs.Config
+	db          *gorm.DB
+	tokenMaker  token.Maker
+	grpcServer  *grpc.Server
+	httpServer  *http.Server
+	redisWorker *worker.RedisWorker
 }
 
-func NewServer(db *gorm.DB, config *configs.Config, tokenMaker token.Maker) *Server {
+func NewServer(db *gorm.DB, config *configs.Config, tokenMaker token.Maker, redisWorker *worker.RedisWorker) *Server {
 	server := &Server{
-		config:     config,
-		db:         db,
-		tokenMaker: tokenMaker,
+		config:      config,
+		db:          db,
+		tokenMaker:  tokenMaker,
+		redisWorker: redisWorker,
 	}
 
 	// Create gRPC server with interceptors
