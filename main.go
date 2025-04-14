@@ -40,19 +40,19 @@ func main() {
 
 	mailer := mail.NewGmailSender(config.EmailSenderName, config.EmailSenderAddress, config.EmailSenderPassword)
 
-	redisStorage := worker.NewRedisStorage(asynq.RedisClientOpt{
-		Addr:     config.RedisServerAddr,
-		Password: "",
-		DB:       0,
-	})
+	// No need for redisStorage here if worker manages it internally
+	// redisStorage := worker.NewRedisStorage(asynq.RedisClientOpt{...
 
-	redisWorker := worker.NewRedisWorker(asynq.RedisClientOpt{
+	// Create Redis Worker (Distributor + Processor)
+	redisOpt := asynq.RedisClientOpt{
 		Addr:     config.RedisServerAddr,
-		Password: "",
-		DB:       0,
-	}, db, mailer, redisStorage)
+		Password: "", // Add password if needed
+		DB:       0,  // Use default DB
+	}
+	// Pass config to NewRedisWorker
+	redisWorker := worker.NewRedisWorker(redisOpt, db, mailer, &config)
 
-	// Create and start server
+	// Pass the distributor interface to the gRPC server
 	server := grpcApi.NewServer(db, &config, tokenMaker, redisWorker)
 
 	// Handle graceful shutdown

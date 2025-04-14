@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"lazervaultGo/configs"
 	"lazervaultGo/models"
 	"lazervaultGo/token"
@@ -23,14 +24,14 @@ func NewUserService(db *gorm.DB, config *configs.Config, tokenMaker token.Maker)
 	}
 }
 
-func (s *UserService) CreateUser(user *models.User) error {
+func (s *UserService) CreateUser(ctx context.Context, user *models.User) error {
 	err := validators.ValidateUser(user)
 	if err != nil {
 		return err
 	}
-	return s.db.Create(user).Error
+	return s.db.WithContext(ctx).Create(user).Error
 }
 
-func (s *UserService) GetUser(user *models.User) error {
-	return s.db.Where("id = ?", user.ID).First(user).Error
+func (s *UserService) GetUser(ctx context.Context, userID uint) (*models.User, error) {
+	return models.User{}.FindById(s.db.WithContext(ctx), userID)
 }

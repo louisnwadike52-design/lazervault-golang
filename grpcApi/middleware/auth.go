@@ -11,6 +11,12 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+// Define a custom type for the context key to avoid collisions
+type contextKey string
+
+// Exported context key for authorization payload
+const AuthorizationPayloadKey contextKey = "authorization_payload"
+
 const (
 	authorizationHeader = "authorization"
 	authorizationBearer = "bearer"
@@ -33,8 +39,8 @@ func AuthInterceptor(tokenMaker token.Maker) grpc.UnaryServerInterceptor {
 			return nil, err
 		}
 
-		// Add user info to context
-		ctx = context.WithValue(ctx, "user_email", payload.Email)
+		// Add user info to context using the exported key
+		ctx = context.WithValue(ctx, AuthorizationPayloadKey, payload)
 		return handler(ctx, req)
 	}
 }

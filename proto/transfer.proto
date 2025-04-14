@@ -1,0 +1,55 @@
+syntax = "proto3";
+
+package pb;
+option go_package = "lazervaultGolang/pb";
+
+import "google/api/annotations.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+import "google/protobuf/timestamp.proto";
+
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+    info: {
+        title: "LazerVault API"
+        version: "1.0"
+        description: "LazerVault Transfer API"
+    }
+    schemes: HTTP
+    schemes: HTTPS
+    consumes: "application/json"
+    produces: "application/json"
+};
+
+// Request message for initiating a transfer
+message InitiateTransferRequest {
+    uint64 to_user_id = 1; 
+    double amount = 2;
+    string category = 3;
+    string reference = 4; // Optional reference
+    google.protobuf.Timestamp scheduled_at = 5; // Optional schedule time
+}
+
+// Response message for initiating a transfer
+message InitiateTransferResponse {
+    uint64 transfer_id = 1;
+    string status = 2;
+    double amount = 3;
+    double fee = 4;
+    double total_amount = 5;
+    google.protobuf.Timestamp created_at = 6;
+}
+
+// Service definition for transfers
+service TransferService {
+    // Initiates a new transfer
+    rpc InitiateTransfer(InitiateTransferRequest) returns (InitiateTransferResponse) {
+        option (google.api.http) = {
+            post: "/v1/transfers"
+            body: "*"
+        };
+        option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            summary: "Initiate a new transfer"
+            description: "Initiates a new transfer with the provided details"
+            tags: "transfers"
+        };      
+    };
+} 

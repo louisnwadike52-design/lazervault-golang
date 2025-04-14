@@ -36,7 +36,7 @@ func (c *UserController) CreateUser(ctx context.Context, req *pb.CreateUserReque
 
 	userService := services.NewUserService(c.server.db, c.server.config, c.server.tokenMaker)
 	// Create user in database
-	if err := userService.CreateUser(user); err != nil {
+	if err := userService.CreateUser(ctx, user); err != nil {
 		return c.createErrorResponse(codes.InvalidArgument, err.Error())
 	}
 

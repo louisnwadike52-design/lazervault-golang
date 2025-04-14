@@ -10,6 +10,9 @@
       "name": "AuthService"
     },
     {
+      "name": "TransferService"
+    },
+    {
       "name": "UserService"
     }
   ],
@@ -120,6 +123,40 @@
         ]
       }
     },
+    "/v1/transfers": {
+      "post": {
+        "summary": "Initiate a new transfer",
+        "description": "Initiates a new transfer with the provided details",
+        "operationId": "TransferService_InitiateTransfer",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbInitiateTransferResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/pbInitiateTransferRequest"
+            }
+          }
+        ],
+        "tags": [
+          "transfers"
+        ]
+      }
+    },
     "/v1/users": {
       "post": {
         "summary": "Create a new user",
@@ -203,6 +240,61 @@
           "$ref": "#/definitions/pbSession"
         }
       }
+    },
+    "pbInitiateTransferRequest": {
+      "type": "object",
+      "properties": {
+        "toUserId": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "amount": {
+          "type": "number",
+          "format": "double"
+        },
+        "category": {
+          "type": "string"
+        },
+        "reference": {
+          "type": "string",
+          "title": "Optional reference"
+        },
+        "scheduledAt": {
+          "type": "string",
+          "format": "date-time",
+          "title": "Optional schedule time"
+        }
+      },
+      "title": "Request message for initiating a transfer"
+    },
+    "pbInitiateTransferResponse": {
+      "type": "object",
+      "properties": {
+        "transferId": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "status": {
+          "type": "string"
+        },
+        "amount": {
+          "type": "number",
+          "format": "double"
+        },
+        "fee": {
+          "type": "number",
+          "format": "double"
+        },
+        "totalAmount": {
+          "type": "number",
+          "format": "double"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "title": "Response message for initiating a transfer"
     },
     "pbLoginRequest": {
       "type": "object",

@@ -2,6 +2,7 @@ package models
 
 import (
 	"errors"
+	"fmt"
 	"lazervaultGo/onboarding"
 	"lazervaultGo/utils"
 	"time"
@@ -41,6 +42,7 @@ type User struct {
 	Role        string     `json:"role" gorm:"size:255;check:role IN ('admin', 'user')"`
 	Verified    bool       `json:"verified" gorm:"default:false"`
 	VerifiedAt  *time.Time `json:"verified_at"`
+	Balance     Balance    `gorm:"foreignKey:UserID"` // One-to-one relationship with Balance
 	CreatedAt   time.Time  `json:"created_at" gorm:"autoCreateTime"`
 	UpdatedAt   time.Time  `json:"updated_at" gorm:"autoUpdateTime"`
 }
@@ -58,6 +60,7 @@ func (u *User) ToJson() gin.H {
 		"phone_number": u.PhoneNumber,
 		"role":         u.Role,
 		"verified":     u.Verified,
+		"balance":      u.Balance.Amount, // Include balance amount
 		"created_at":   u.CreatedAt,
 		"updated_at":   u.UpdatedAt,
 	}
@@ -115,6 +118,9 @@ func (u *User) BeforeCreate(tx *gorm.DB) error {
 	if u.Role == "" {
 		u.Role = "user"
 	}
+
+	// Initialize balance for the user
+	u.Balance = Balance{Amount: 0} // Initialize with 0 balance
 
 	return nil
 }
@@ -180,6 +186,10 @@ func (u *User) BeforeUpdate(tx *gorm.DB) error {
 
 // AfterCreate hook for GORM
 func (u *User) AfterCreate(tx *gorm.DB) error {
+	// Create the initial balance record after user is created
+	if err := tx.Create(&u.Balance).Error; err != nil {
+		return fmt.Errorf("failed to create balance record for user %d: %w", u.ID, err)
+	}
 	return onboarding.SendWelcomeEmail(u.Email, "Welcome to Lazervault", "Welcome to Lazervault")
 }
 
@@ -194,7 +204,7 @@ func (u *User) ComparePassword(password string) (bool, error) {
 
 func (User) FindById(db *gorm.DB, id uint) (*User, error) {
 	var user User
-	if err := db.Where("id = ?", id).First(&user).Error; err != nil {
+	if err := db.Preload("Balance").Where("id = ?", id).First(&user).Error; err != nil {
 		return nil, err
 	}
 	return &user, nil
@@ -202,7 +212,7 @@ func (User) FindById(db *gorm.DB, id uint) (*User, error) {
 
 func (User) GetUserByEmail(db *gorm.DB, email string) (*User, error) {
 	var user User
-	if err := db.Where("email = ?", email).First(&user).Error; err != nil {
+	if err := db.Preload("Balance").Where("email = ?", email).First(&user).Error; err != nil {
 		return nil, err
 	}
 	return &user, nil

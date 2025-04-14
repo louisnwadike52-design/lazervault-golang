@@ -36,17 +36,18 @@ func NewServer(db *gorm.DB, config *configs.Config, tokenMaker token.Maker, redi
 		redisWorker: redisWorker,
 	}
 
-	// Create gRPC server with interceptors
 	grpcServer := grpc.NewServer(
 		grpc.UnaryInterceptor(middleware.AuthInterceptor(tokenMaker)),
 	)
 
-	// Initialize services and controllers
+	// Initialize services
 	authService := services.NewAuthService(db, config, tokenMaker)
+	transferService := services.NewTransferService(db, config, redisWorker.GetDistributor())
 
 	// Register gRPC services
 	pb.RegisterAuthServiceServer(grpcServer, NewAuthController(authService))
 	pb.RegisterUserServiceServer(grpcServer, NewUserController(server))
+	pb.RegisterTransferServiceServer(grpcServer, NewTransferController(transferService, db))
 
 	server.grpcServer = grpcServer
 	return server
@@ -76,13 +77,11 @@ func (s *Server) startHTTPServer() error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	// Create a new ServeMux for gRPC-Gateway
 	gwmux := runtime.NewServeMux(
 		runtime.WithIncomingHeaderMatcher(customHeaderMatcher),
 		runtime.WithOutgoingHeaderMatcher(customHeaderMatcher),
 	)
 
-	// Dial the gRPC server
 	grpcAddr := fmt.Sprintf("localhost:%s", s.config.GRPCServerPort)
 	opts := []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())}
 
@@ -90,9 +89,11 @@ func (s *Server) startHTTPServer() error {
 	if err := pb.RegisterAuthServiceHandlerFromEndpoint(ctx, gwmux, grpcAddr, opts); err != nil {
 		return fmt.Errorf("failed to register auth gateway: %w", err)
 	}
-
 	if err := pb.RegisterUserServiceHandlerFromEndpoint(ctx, gwmux, grpcAddr, opts); err != nil {
 		return fmt.Errorf("failed to register user gateway: %w", err)
+	}
+	if err := pb.RegisterTransferServiceHandlerFromEndpoint(ctx, gwmux, grpcAddr, opts); err != nil {
+		return fmt.Errorf("failed to register transfer gateway: %w", err)
 	}
 
 	// Create main HTTP mux
