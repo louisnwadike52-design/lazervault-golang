@@ -6,7 +6,10 @@
     "clean": "rm go.sum && go mod tidy && make clean",
     "install": "go mod tidy && make install-tools",
     "build": "go build -o lazervaultGolang main.go",
-    "proto": "make proto"
+    "proto": "make proto",
+    "start:redis": "redis-server --daemonize yes --port 6379",
+    "start:redis:background": "brew services start redis",
+    "stop:redis": "brew services stop redis"
   },
   "devDependencies": {
     "nodemon": "^3.1.9"
