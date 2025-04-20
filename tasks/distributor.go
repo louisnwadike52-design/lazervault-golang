@@ -6,6 +6,7 @@ import (
 	"github.com/hibiken/asynq"
 )
 
+// TaskDistributor defines the interface for enqueuing tasks.
 type TaskDistributor interface {
 	DistributeTaskSendVerifyEmail(
 		ctx context.Context,
@@ -15,6 +16,11 @@ type TaskDistributor interface {
 	DistributeTaskProcessTransfer(
 		ctx context.Context,
 		payload *PayloadProcessTransfer,
+		opts ...asynq.Option,
+	) error
+	DistributeTaskSendPasswordResetOTP(
+		ctx context.Context,
+		payload *PayloadSendPasswordResetOTP,
 		opts ...asynq.Option,
 	) error
 }

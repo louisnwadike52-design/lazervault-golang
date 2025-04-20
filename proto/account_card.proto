@@ -1,0 +1,139 @@
+syntax = "proto3";
+
+package pb;
+
+option go_package = "lazervaultGolang/pb";
+
+import "google/api/annotations.proto"; // This import will likely cause issues
+import "protoc-gen-openapiv2/options/annotations.proto"; // This import will likely cause issues
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto"; // Needed for Delete response
+
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+    info: {
+        title: "LazerVault API";
+        version: "1.0";
+        description: "LazerVault Account Card API";
+    };
+    schemes: HTTP;
+    schemes: HTTPS;
+    consumes: "application/json";
+    produces: "application/json";
+};
+
+
+// Represents a specific card linked to an account
+message AccountCard {
+    uint64 id = 1;
+    uint64 account_id = 2;
+    string card_holder_name = 3;
+    string brand = 4; // e.g., Visa, Mastercard
+    string last4 = 5; // Last 4 digits for display
+    string card_expiry = 6; // MM/YY
+    bool is_active = 7;
+    bool is_default = 8;
+    google.protobuf.Timestamp created_at = 9;
+    google.protobuf.Timestamp updated_at = 10;
+    string card_type = 11; // "Virtual", "Disposable", "Permanent"
+}
+
+// Request to add a new card to an account
+message AddAccountCardRequest {
+    uint64 account_id = 1;       // Required: ID of the account to link the card to
+    string card_holder_name = 2; // Required
+    string card_number = 3;      // Required: Full card number (will be handled securely on backend)
+    string card_expiry = 4;      // Required: MM/YY format
+    string card_type = 5;        // Required: "Virtual", "Disposable", "Permanent"
+    bool make_default = 6;     // Optional: Set this new card as the default for the account
+    // string cvv = 7;           // Optional & Highly Sensitive: Consider security implications
+}
+
+// Response after adding a card
+message AddAccountCardResponse {
+    AccountCard card = 1; // Return the newly added card (with sensitive data masked)
+}
+
+// Request to get all cards for a specific account
+message GetAccountCardsRequest {
+    uint64 account_id = 1; // Required: ID of the account whose cards to fetch
+    // Optional filter by card_type could be added later
+    // string card_type_filter = 2;
+}
+
+// Response containing the list of cards for an account
+message GetAccountCardsResponse {
+    repeated AccountCard cards = 1;
+}
+
+// --- Update Default Status --- 
+message UpdateAccountCardDefaultStatusRequest {
+    uint64 account_id = 1; // Required for context/URL binding
+    uint64 card_id = 2;    // Required: ID of the card to set as default
+}
+
+message UpdateAccountCardDefaultStatusResponse {
+    AccountCard card = 1; // Return the updated card
+}
+
+// --- Delete Card --- 
+message DeleteAccountCardRequest {
+    uint64 account_id = 1; // Required for context/URL binding
+    uint64 card_id = 2;    // Required: ID of the card to delete
+}
+
+// Using Empty for Delete response as no data needs to be returned on success
+// message DeleteAccountCardResponse {} 
+
+// --- AccountCard Service Definition ---
+
+service AccountCardService {
+    // Adds a new card to a specific account owned by the authenticated user
+    rpc AddAccountCard(AddAccountCardRequest) returns (AddAccountCardResponse) {
+        option (google.api.http) = {
+            post: "/v1/accounts/{account_id}/cards"; // Nested under accounts
+            body: "*";
+        };
+        // Add OpenAPI options
+        option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            summary: "Add Account Card";
+            description: "Adds a new debit/credit card (Virtual, Disposable, Permanent) to a specified account owned by the authenticated user.";
+        };
+    }
+
+    // Gets all cards linked to a specific account owned by the authenticated user
+    rpc GetAccountCards(GetAccountCardsRequest) returns (GetAccountCardsResponse) {
+        option (google.api.http) = {
+            get: "/v1/accounts/{account_id}/cards"; // Nested under accounts
+        };
+        // Add OpenAPI options
+        option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            summary: "Get Account Cards";
+            description: "Retrieves all cards associated with a specific account owned by the authenticated user.";
+        };
+    }
+
+    // Sets a specific card as the default for an account
+    rpc UpdateAccountCardDefaultStatus(UpdateAccountCardDefaultStatusRequest) returns (UpdateAccountCardDefaultStatusResponse) {
+        // Use PUT or PATCH. PUT implies replacing the default status resource.
+        option (google.api.http) = {
+             put: "/v1/accounts/{account_id}/cards/{card_id}/default"; // No body needed, action is implicit
+        };
+         option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+             summary: "Set Default Account Card";
+             description: "Marks a specific card as the default payment method for the associated account.";
+         };
+    }
+
+    // Deletes a specific card from an account
+    rpc DeleteAccountCard(DeleteAccountCardRequest) returns (google.protobuf.Empty) { // Return Empty
+        option (google.api.http) = {
+            delete: "/v1/accounts/{account_id}/cards/{card_id}";
+        };
+        option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            summary: "Delete Account Card";
+            description: "Removes a specific card associated with an account.";
+        };
+    }
+}
+
+// No changes needed to service definition itself 

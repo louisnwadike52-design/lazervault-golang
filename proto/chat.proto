@@ -1,0 +1,207 @@
+syntax = "proto3";
+
+package pb;
+
+import "google/protobuf/timestamp.proto";
+// import "google/protobuf/empty.proto"; // Removed unused import
+import "google/api/annotations.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+
+option go_package = "lazervaultGo/pb"; // Corrected go_package path
+
+
+// OpenAPI documentation definition
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+	info: {
+		title: "LazerVault Chat Service";
+		version: "1.0";
+		contact: {
+			name: "LazerVault";
+			url: "https://github.com/LazerVault";
+			// email: ""; // Add contact email if available
+		};
+	};
+    // schemes: HTTP; // Default: HTTPS
+    // consumes: "application/json"; // Default
+    // produces: "application/json"; // Default
+	// external_docs: { // Optional: Add external documentation link
+	// 	url: "https://example.com/docs";
+	// 	description: "More about LazerVault Chat API";
+	// }
+    responses: {
+		key: "404";
+		value: {
+			description: "Returned when the resource does not exist.";
+			schema: {
+				json_schema: {
+					type: STRING; // Example type
+				}
+			}
+		}
+	}
+};
+
+
+// Enum for different message types
+enum MessageType {
+  TEXT = 0;
+  IMAGE = 1;
+  VIDEO = 2;
+  FILE = 3;
+  // Add other types if needed, e.g., AUDIO, PAYMENT_REQUEST
+}
+
+// Represents a single chat message
+message ChatMessage {
+  string message_id = 1;
+  string sender_user_id = 2;
+  string receiver_user_id = 3; // Could be a group ID later
+  string content = 4; // Text content or file name/description for attachments
+  google.protobuf.Timestamp timestamp = 5;
+  MessageType message_type = 6;
+  string attachment_url = 7; // URL or identifier for the attachment
+  string reply_to_message_id = 8; // ID of the message being replied to (optional)
+  // bool is_read = 9; // Future enhancement
+}
+
+// Request to send a new message
+message SendMessageRequest {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+		json_schema: {
+			title: "Send Message Request";
+			description: "Payload for sending a new chat message.";
+			required: ["receiver_user_id", "content", "message_type"];
+		}
+	};
+
+  string receiver_user_id = 1 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {description: "The user ID of the recipient."}];
+  string content = 2 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {description: "The text content of the message, or a description/filename if it's an attachment."}];
+  MessageType message_type = 3 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {description: "The type of the message (TEXT, IMAGE, VIDEO, FILE)."}];
+  string attachment_url = 4 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {description: "URL or identifier for the attachment, if message_type is not TEXT. Optional."}]; // Simplified: Client provides URL/path for now
+  string reply_to_message_id = 5 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {description: "The ID of the message this is a reply to. Optional."}];
+  // Consider adding attachment data directly (bytes) or using a separate upload RPC later
+}
+
+// Response after sending a message (contains the created message)
+message SendMessageResponse {
+   option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+		json_schema: {
+			title: "Send Message Response";
+			description: "Contains the details of the successfully sent message.";
+		}
+	};
+  ChatMessage message = 1;
+}
+
+// Request to get chat history between two users
+message GetChatHistoryRequest {
+   option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+		json_schema: {
+			title: "Get Chat History Request";
+			description: "Payload for retrieving the chat history with another user.";
+			required: ["peer_user_id"];
+		}
+	};
+  string peer_user_id = 1 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {description: "The user ID of the other participant in the chat."}];
+  int32 page_size = 2 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {description: "Number of messages to return per page. Default: 50."}]; // Pagination
+  string page_token = 3 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {description: "Token for fetching the next page of results. Optional."}]; // For fetching next page (e.g., last message ID or timestamp)
+}
+
+// Response containing a list of chat messages
+message GetChatHistoryResponse {
+   option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+		json_schema: {
+			title: "Get Chat History Response";
+			description: "Contains a list of messages and pagination info.";
+		}
+	};
+  repeated ChatMessage messages = 1;
+  string next_page_token = 2 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {description: "Token to use in the next request to get the following page. Empty if no more results."}]; // Token for next page
+}
+
+// Request to initiate streaming for chat history
+message StreamChatHistoryRequest {
+   option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+		json_schema: {
+			title: "Stream Chat History Request";
+			description: "Payload to initiate streaming chat messages with another user.";
+			required: ["peer_user_id"];
+		}
+	};
+  string peer_user_id = 1 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {description: "The user ID of the other participant in the chat."}];
+  // google.protobuf.Timestamp since_timestamp = 2; // Optional: Stream messages since a specific time
+}
+
+// Service definition for chat operations
+service ChatService {
+  // Send a new chat message
+  rpc SendMessage (SendMessageRequest) returns (SendMessageResponse) {
+    option (google.api.http) = {
+      post: "/v1/chats/messages"
+      body: "*"
+    };
+     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+			description: "Sends a new chat message to a specified user.";
+			summary: "Send Chat Message";
+            tags: ["Chat"];
+            responses: {
+                key: "200";
+                value: {
+                    description: "OK";
+                    schema: {
+                        json_schema: {
+                           ref: "#/definitions/pbSendMessageResponse"; // Reference the response message
+                        }
+                    }
+                }
+            }
+            // Add other responses like 400, 401, 404, 500 if needed
+		};
+  }
+
+  // Get the chat history with another user (paginated)
+  rpc GetChatHistory (GetChatHistoryRequest) returns (GetChatHistoryResponse) {
+    option (google.api.http) = {
+      get: "/v1/chats/history/{peer_user_id}"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+			description: "Retrieves the message history between the authenticated user and the specified peer user.";
+			summary: "Get Chat History";
+            tags: ["Chat"];
+             responses: {
+                key: "200";
+                value: {
+                    description: "OK";
+                    schema: {
+                        json_schema: {
+                           ref: "#/definitions/pbGetChatHistoryResponse"; // Reference the response message
+                        }
+                    }
+                }
+            }
+		};
+  }
+
+  // Stream new chat messages in real-time
+  rpc StreamChatMessages (StreamChatHistoryRequest) returns (stream ChatMessage) {
+     // No HTTP mapping typically for bidirectional/server streams via gateway
+     // Clients usually connect directly via gRPC for streaming.
+     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+			description: "Initiates a stream to receive new chat messages in real-time between the authenticated user and the specified peer user. This is a server-streaming RPC and typically requires a direct gRPC connection.";
+			summary: "Stream Chat Messages";
+            tags: ["Chat"];
+            // parameters: { ... } // Add parameters if needed
+             responses: {
+                key: "200"; // Represents the stream itself
+                value: {
+                    description: "A stream of ChatMessage objects.";
+                    schema: {
+                        json_schema: {
+                           ref: "#/definitions/pbChatMessage";
+                        }
+                    }
+                }
+            }
+		};
+  }
+} 

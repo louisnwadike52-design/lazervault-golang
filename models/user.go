@@ -45,6 +45,13 @@ type User struct {
 	Balance     Balance    `gorm:"foreignKey:UserID"` // One-to-one relationship with Balance
 	CreatedAt   time.Time  `json:"created_at" gorm:"autoCreateTime"`
 	UpdatedAt   time.Time  `json:"updated_at" gorm:"autoUpdateTime"`
+
+	// Fields for Password Reset
+	ResetPasswordToken          *string    `json:"-" gorm:"index"` // Use pointer to allow NULL, index for lookup
+	ResetPasswordTokenExpiresAt *time.Time `json:"-"`
+
+	// Field for Transaction PIN (Store Hashed)
+	TransactionPin *string `json:"-" gorm:"size:255"` // Nullable if PIN is not set
 }
 
 func (User) TableName() string {

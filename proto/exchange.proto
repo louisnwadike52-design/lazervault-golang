@@ -1,0 +1,203 @@
+syntax = "proto3";
+
+package pb;
+
+import "google/protobuf/timestamp.proto";
+import "google/api/annotations.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+
+option go_package = "lazervaultGo/pb";
+
+// --- OpenAPI Definitions (Similar structure as chat.proto) ---
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+	info: {
+		title: "LazerVault Exchange Service";
+		version: "1.0";
+		contact: {
+			name: "LazerVault";
+			url: "https://github.com/LazerVault";
+		};
+	};
+  // Define responses map using standard text format for maps
+  responses: { key: "400", value: {description: "Invalid request parameters."} }
+  responses: { key: "401", value: {description: "Authentication required."} }
+  responses: { key: "404", value: {description: "Resource not found."} }
+  responses: { key: "500", value: {description: "Internal server error."} }
+};
+
+// --- Messages --- 
+
+// Request to get the current exchange rate
+message GetExchangeRateRequest {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+		json_schema: {
+			title: "Get Exchange Rate Request";
+			description: "Payload to request the exchange rate between two currencies.";
+			required: ["from_currency", "to_currency"];
+		}
+	};
+  string from_currency = 1 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {description: "The currency code to convert from (e.g., GBP)."}]; // e.g., GBP, USD
+  string to_currency = 2   [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {description: "The currency code to convert to (e.g., USD)."}]; // e.g., USD, EUR
+}
+
+// Response containing the exchange rate
+message GetExchangeRateResponse {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+		json_schema: {
+			title: "Get Exchange Rate Response";
+			description: "Contains the current exchange rate.";
+		}
+	};
+  string from_currency = 1;
+  string to_currency = 2;
+  double rate = 3;
+  google.protobuf.Timestamp timestamp = 4; // Time when the rate was fetched/valid
+}
+
+// Represents receiver details for an international transfer
+message ReceiverDetails {
+  string full_name = 1;
+  string account_number = 2;
+  string bank_name = 3;
+  string swift_bic_code = 4;
+  // Optional fields
+  // string address = 5;
+  // string country = 6;
+}
+
+// Request to initiate an international currency transfer
+message InitiateInternationalTransferRequest {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+		json_schema: {
+			title: "Initiate International Transfer Request";
+			description: "Payload to start an international currency exchange and transfer.";
+			required: ["from_currency", "to_currency", "amount_from", "receiver_details"];
+		}
+	};
+  string from_currency = 1 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {description: "The currency code to send from (e.g., GBP)."}];
+  string to_currency = 2 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {description: "The currency code the receiver gets (e.g., USD)."}];
+  double amount_from = 3 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {description: "The amount to be sent in the 'from_currency'."}];
+  ReceiverDetails receiver_details = 4 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {description: "Details of the recipient."}];
+  // string purpose_of_payment = 5; // Optional
+}
+
+// Enum for transaction status
+enum ExchangeStatus {
+  PENDING = 0;
+  PROCESSING = 1;
+  COMPLETED = 2;
+  FAILED = 3;
+  CANCELLED = 4;
+}
+
+// Represents a recorded exchange transaction
+message ExchangeTransaction {
+  string transaction_id = 1;
+  string user_id = 2; // ID of the user initiating the transfer
+  string from_currency = 3;
+  string to_currency = 4;
+  double amount_from = 5;
+  double amount_to = 6; // Amount received after conversion and fees
+  double exchange_rate = 7;
+  double fees = 8; // Optional: Applicable fees
+  ReceiverDetails receiver_details = 9;
+  ExchangeStatus status = 10;
+  google.protobuf.Timestamp created_at = 11;
+  google.protobuf.Timestamp updated_at = 12;
+  // google.protobuf.Timestamp estimated_delivery = 13; // Optional
+}
+
+// Response after initiating a transfer
+message InitiateInternationalTransferResponse {
+   option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+		json_schema: {
+			title: "Initiate International Transfer Response";
+			description: "Contains details of the initiated transfer.";
+		}
+	};
+  ExchangeTransaction transaction = 1;
+}
+
+// Request to get recent exchange transactions
+message GetRecentExchangesRequest {
+   option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+		json_schema: {
+			title: "Get Recent Exchanges Request";
+			description: "Payload for retrieving recent international exchange transactions.";
+		}
+	};
+  int32 page_size = 1 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {description: "Number of transactions per page. Default: 20."}];
+  string page_token = 2 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {description: "Token for fetching the next page (e.g., last transaction ID). Optional."}];
+}
+
+// Response containing recent exchange transactions
+message GetRecentExchangesResponse {
+   option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+		json_schema: {
+			title: "Get Recent Exchanges Response";
+			description: "List of recent international exchange transactions.";
+		}
+	};
+  repeated ExchangeTransaction transactions = 1;
+  string next_page_token = 2;
+}
+
+
+// --- Service Definition ---
+service ExchangeService {
+
+  // Get the current exchange rate between two currencies
+  rpc GetExchangeRate (GetExchangeRateRequest) returns (GetExchangeRateResponse) {
+    option (google.api.http) = {
+      get: "/v1/exchange/rates"
+      // from_currency and to_currency will be query parameters
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+			description: "Gets the current exchange rate between two specified currencies.";
+			summary: "Get Exchange Rate";
+            tags: ["Exchange"];
+            responses: {
+                key: "200"; value: {
+                    description: "OK"; schema: { json_schema: { ref: "#/definitions/pbGetExchangeRateResponse"; }}
+                }
+            }
+		};
+  }
+
+  // Initiate an international currency transfer
+  rpc InitiateInternationalTransfer (InitiateInternationalTransferRequest) returns (InitiateInternationalTransferResponse) {
+    option (google.api.http) = {
+      post: "/v1/exchange/transfers"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+			description: "Initiates a new international transfer, converting currency and sending to the specified receiver.";
+			summary: "Initiate International Transfer";
+            tags: ["Exchange"];
+            responses: {
+                key: "200"; value: {
+                    description: "Transfer Initiated Successfully"; schema: { json_schema: { ref: "#/definitions/pbInitiateInternationalTransferResponse"; }}
+                }
+                // Add 400, 401, 500 responses
+            }
+		};
+  }
+
+  // Get recent exchange transactions for the authenticated user
+  rpc GetRecentExchanges (GetRecentExchangesRequest) returns (GetRecentExchangesResponse) {
+     option (google.api.http) = {
+      get: "/v1/exchange/transfers/history"
+      // page_size and page_token will be query parameters
+    };
+     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+			description: "Retrieves a paginated list of recent international exchange transactions for the authenticated user.";
+			summary: "Get Recent Exchanges";
+            tags: ["Exchange"];
+            responses: {
+                key: "200"; value: {
+                    description: "OK"; schema: { json_schema: { ref: "#/definitions/pbGetRecentExchangesResponse"; }}
+                }
+            }
+		};
+  }
+} 

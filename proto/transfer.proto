@@ -19,13 +19,36 @@ option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
     produces: "application/json"
 };
 
+// Transfer Type Enum
+enum TransferType {
+  TRANSFER_TYPE_UNSPECIFIED = 0;
+  TRANSFER_TYPE_INCOME = 1;      // Incoming transfer (e.g., deposit, received payment)
+  TRANSFER_TYPE_EXPENSE = 2;     // Outgoing transfer (e.g., payment, withdrawal)
+  TRANSFER_TYPE_INTERNAL = 3;    // Transfer between user's own accounts
+}
+
+// Main Transfer Transaction message
+message TransferTransaction {
+  string transaction_id = 1;          // Unique ID for the transfer
+  uint64 from_account_id = 2;         // Source LazerVault account ID
+  uint64 to_account_id = 3;           // Destination LazerVault account ID (if internal)
+  string to_recipient_id = 4;         // Destination Recipient ID (if external)
+  double amount = 5;                  // Amount transferred
+  string currency = 6;                // Currency code (e.g., "GBP")
+  TransferType transfer_type = 7;     // Type of transfer (Income/Expense/Internal)
+  string category = 8;                // User-defined or system-assigned category (e.g., "Shopping", "Salary")
+  string description = 9;             // Optional description/note for the transfer
+  google.protobuf.Timestamp created_at = 10;
+}
+
 // Request message for initiating a transfer
 message InitiateTransferRequest {
-    uint64 to_user_id = 1; 
+    uint64 to_user_id = 1;
     double amount = 2;
     string category = 3;
     string reference = 4; // Optional reference
     google.protobuf.Timestamp scheduled_at = 5; // Optional schedule time
+    string description = 6; // Added description field
 }
 
 // Response message for initiating a transfer
@@ -36,6 +59,106 @@ message InitiateTransferResponse {
     double fee = 4;
     double total_amount = 5;
     google.protobuf.Timestamp created_at = 6;
+}
+
+// Time Period Enum for Statistics
+enum TimePeriod {
+  TIME_PERIOD_UNSPECIFIED = 0;
+  TIME_PERIOD_WEEK = 1;
+  TIME_PERIOD_MONTH = 2;
+  TIME_PERIOD_QUARTER = 3;
+  TIME_PERIOD_YEAR = 4;
+  TIME_PERIOD_ALL = 5; // Or use start/end dates
+}
+
+// Represents a single point in a time series chart
+message TimeSeriesPoint {
+  google.protobuf.Timestamp timestamp = 1;
+  double amount = 2;
+}
+
+// Represents summary data for a specific category
+message CategorySummary {
+  string category = 1;
+  // string subcategory = 2; // Optional: Add if subcategory breakdown is needed
+  double amount = 3;
+  double percentage = 4; // Percentage of total income/expense for the period
+}
+
+// Represents aggregated data for a single month
+message MonthlyData {
+  string month = 1; // e.g., "Jan", "Feb" or "YYYY-MM"
+  double income = 2;
+  double expenses = 3;
+}
+
+// Represents data for month-over-month comparison
+message ComparisonData {
+  double current_income = 1;
+  double previous_income = 2;
+  double current_expenses = 3;
+  double previous_expenses = 4;
+  double current_savings = 5; // Calculated: current_income - current_expenses
+  double previous_savings = 6; // Calculated: previous_income - previous_expenses
+}
+
+// Request message for fetching statistics
+message GetStatisticsRequest {
+   option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+      required: ["time_period"]
+    }
+  };
+  TimePeriod time_period = 1;
+  // google.protobuf.Timestamp start_date = 2; // Alternative to TimePeriod
+  // google.protobuf.Timestamp end_date = 3;   // Alternative to TimePeriod
+  string currency = 4; // Optional: Filter by currency
+}
+
+// Response message containing calculated statistics
+message GetStatisticsResponse {
+  double total_income = 1;
+  double total_expenses = 2;
+  repeated TimeSeriesPoint expense_timeseries = 3;     // For expense line chart
+  repeated CategorySummary expense_breakdown = 4;    // For expense pie chart/list
+  repeated CategorySummary income_breakdown = 5;     // For income pie chart/list
+  repeated MonthlyData monthly_overview = 6;        // For monthly bar chart (e.g., last 6 months)
+  ComparisonData comparison_metrics = 7;           // For MoM comparison
+}
+
+// --- Transaction History ---
+
+message PaginationInfo {
+  int32 current_page = 1;
+  int32 page_size = 2;
+  int32 total_pages = 3;
+  int64 total_items = 4;
+}
+
+// Request message for fetching transaction history
+message GetTransactionsRequest {
+   option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+      // Define required/optional fields if needed for OpenAPI
+    }
+  };
+  // Filtering Options
+  uint64 account_id = 1;            // Optional: Filter by specific account ID
+  string card_id = 2;               // Optional: Filter by specific card ID (will lookup linked account)
+  google.protobuf.Timestamp start_date = 3; // Optional: Start of date range
+  google.protobuf.Timestamp end_date = 4;   // Optional: End of date range
+  TransferType transfer_type = 5;   // Optional: Filter by type (INCOME, EXPENSE, INTERNAL)
+  string category = 6;              // Optional: Filter by category
+
+  // Pagination Options
+  int32 page_number = 10;           // Defaults to 1 if not provided
+  int32 page_size = 11;             // Defaults to a server-defined size (e.g., 20) if not provided
+}
+
+// Response message containing transaction history
+message GetTransactionsResponse {
+  repeated TransferTransaction transactions = 1;
+  PaginationInfo pagination = 2;
 }
 
 // Service definition for transfers
@@ -52,4 +175,40 @@ service TransferService {
             tags: "transfers"
         };      
     };
+
+    // Fetches aggregated financial statistics based on transfer history.
+    rpc GetStatistics (GetStatisticsRequest) returns (GetStatisticsResponse) {
+        option (google.api.http) = {
+            get: "/v1/transfers/statistics"
+            // query parameters will be mapped from GetStatisticsRequest fields
+        };
+        option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            summary: "Get Financial Statistics"
+            description: "Retrieves aggregated income, expense, and categorized statistics based on transfer history for a given time period."
+            tags: ["Transfers"]
+            security: [{ // Requires authentication
+                security_requirement: {
+                    key: "bearer" value: {}
+                }
+            }]
+        };
+    }
+
+    // Fetches a paginated list of transactions based on filter criteria.
+    rpc GetTransactions (GetTransactionsRequest) returns (GetTransactionsResponse) {
+      option (google.api.http) = {
+        get: "/v1/transactions" // Changed path for clarity
+        // Query parameters mapped from GetTransactionsRequest fields
+      };
+      option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+        summary: "Get Transaction History"
+        description: "Retrieves a paginated list of user transactions, allowing filtering by account, card, date range, type, and category."
+        tags: ["Transactions"] // Changed tag
+        security: [{ // Requires authentication
+          security_requirement: {
+            key: "bearer" value: {}
+          }
+        }]
+      };
+    }
 } 

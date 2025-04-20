@@ -1,0 +1,103 @@
+syntax = "proto3";
+
+package pb;
+
+import "google/protobuf/timestamp.proto";
+import "google/api/annotations.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+
+option go_package = "lazervaultGo/pb"; // Adjust if your go_package path is different
+
+// OpenAPI v2 documentation options
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+  info: {
+    title: "LazerVault Deposit Service";
+    version: "1.0";
+    contact: {
+      name: "LazerVault Support";
+      url: "https://github.com/LazerVault";
+      email: "support@lazervault.example";
+    };
+  };
+  // Inherit security definitions from auth.proto or define here if needed
+  security_definitions: {
+    security: {
+      key: "bearer"
+      value: {
+        type: TYPE_API_KEY
+        in: IN_HEADER
+        name: "Authorization"
+        description: "Authentication token, prefixed by Bearer: Bearer <token>"
+      }
+    }
+  }
+  security: {
+    security_requirement: {
+      key: "bearer"
+    }
+  }
+};
+
+// Represents the status of a deposit transaction
+enum DepositStatus {
+  DEPOSIT_STATUS_UNSPECIFIED = 0;
+  DEPOSIT_STATUS_PENDING = 1;
+  DEPOSIT_STATUS_COMPLETED = 2;
+  DEPOSIT_STATUS_FAILED = 3;
+}
+
+// Represents a deposit transaction record
+message DepositTransaction {
+  string transaction_id = 1; // Unique ID for the deposit
+  uint64 target_account_id = 2; // LazerVault account receiving funds
+  double amount = 3; // Amount deposited
+  string currency = 4; // Currency code (e.g., "GBP")
+  string source_bank_name = 5; // Name of the bank funds came from
+  DepositStatus status = 6; // Current status of the deposit
+  google.protobuf.Timestamp created_at = 7;
+  google.protobuf.Timestamp completed_at = 8; // Null if not completed/failed
+  google.protobuf.Timestamp failed_at = 9;    // Null if not failed
+  string failure_reason = 10; // Optional reason for failure
+}
+
+// Request to initiate a deposit
+message InitiateDepositRequest {
+   option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+      required: ["target_account_id", "amount", "currency", "source_bank_name"]
+    }
+  };
+  uint64 target_account_id = 1; // LazerVault account ID to deposit into
+  double amount = 2;            // Amount to deposit
+  string currency = 3;          // Currency of the deposit (e.g., "GBP")
+  string source_bank_name = 4;  // Name of the source bank
+}
+
+// Response after initiating a deposit
+message InitiateDepositResponse {
+  bool success = 1;
+  string message = 2;                   // e.g., "Deposit initiated successfully"
+  DepositTransaction transaction = 3; // Details of the created deposit record
+}
+
+// Service for handling deposits
+service DepositService {
+  // Initiates a deposit into a LazerVault account.
+  // In a real system, this might trigger an external payment flow.
+  rpc InitiateDeposit (InitiateDepositRequest) returns (InitiateDepositResponse) {
+    option (google.api.http) = {
+      post: "/v1/deposits"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Initiate Deposit"
+      description: "Initiates a deposit from a specified source bank into a target LazerVault account."
+      tags: ["Deposits"]
+      security: [{ // Requires authentication
+        security_requirement: {
+          key: "bearer" value: {}
+        }
+      }]
+    };
+  }
+} 

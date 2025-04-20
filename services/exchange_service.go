@@ -1,0 +1,227 @@
+package services
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"lazervaultGo/models" // Correct path
+	"lazervaultGo/pb"     // Correct path
+	"math/rand"
+	"time"
+
+	"gorm.io/datatypes"
+	"gorm.io/gorm"
+)
+
+var (
+	ErrInvalidCurrency     = errors.New("invalid or unsupported currency code")
+	ErrInvalidAmount       = errors.New("invalid transfer amount")
+	ErrRateNotFound        = errors.New("exchange rate not available for the currency pair")
+	ErrTransferFailed      = errors.New("failed to initiate transfer")
+	ErrInvalidReceiver     = errors.New("invalid receiver details")
+	ErrTransactionNotFound = errors.New("exchange transaction not found")
+	ErrInsufficientFunds   = errors.New("insufficient funds") // Placeholder for later
+)
+
+// Mock rates - Replace with a real rate provider service
+var mockRates = map[string]map[string]float64{
+	"GBP": {"USD": 1.25, "EUR": 1.17, "JPY": 190.50},
+	"USD": {"GBP": 0.80, "EUR": 0.93, "JPY": 152.00},
+	"EUR": {"GBP": 0.85, "USD": 1.07, "JPY": 164.00},
+}
+
+const DefaultExchangePageSize = 20
+
+// IExchangeService defines the interface for exchange operations
+type IExchangeService interface {
+	GetExchangeRate(ctx context.Context, fromCurrency, toCurrency string) (float64, error)
+	InitiateInternationalTransfer(ctx context.Context, req *InitiateTransferServiceRequest) (*models.ExchangeTransaction, error)
+	GetRecentExchanges(ctx context.Context, req *GetRecentExchangesServiceRequest) ([]models.ExchangeTransaction, string, error)
+}
+
+// ExchangeService implements the IExchangeService
+type ExchangeService struct {
+	db *gorm.DB
+	// Add dependencies like AccountService or a RateProvider later
+}
+
+// NewExchangeService creates a new ExchangeService
+func NewExchangeService(db *gorm.DB) IExchangeService {
+	return &ExchangeService{db: db}
+}
+
+// GetExchangeRate fetches the current exchange rate (mocked)
+func (s *ExchangeService) GetExchangeRate(ctx context.Context, fromCurrency, toCurrency string) (float64, error) {
+	if fromCurrency == toCurrency {
+		return 1.0, nil
+	}
+
+	// Basic validation
+	if fromCurrency == "" || toCurrency == "" {
+		return 0, ErrInvalidCurrency
+	}
+
+	// Mock fetching rate
+	if rateMap, ok := mockRates[fromCurrency]; ok {
+		if rate, ok := rateMap[toCurrency]; ok {
+			// Simulate slight variations
+			rate += (rand.Float64() - 0.5) * 0.01 // +/- 0.5%
+			return rate, nil
+		}
+	}
+	return 0, ErrRateNotFound
+}
+
+// InitiateTransferServiceRequest contains parameters for initiating a transfer
+type InitiateTransferServiceRequest struct {
+	UserID          string // ID of the user initiating
+	FromCurrency    string
+	ToCurrency      string
+	AmountFrom      float64
+	ReceiverDetails models.ReceiverDetails // Use the model struct directly
+}
+
+// InitiateInternationalTransfer handles validating, calculating, and recording a new transfer
+func (s *ExchangeService) InitiateInternationalTransfer(ctx context.Context, req *InitiateTransferServiceRequest) (*models.ExchangeTransaction, error) {
+	// Validate input
+	if req.UserID == "" {
+		return nil, ErrInvalidUserID // Re-use from chat service or define new
+	}
+	if req.FromCurrency == "" || req.ToCurrency == "" {
+		return nil, ErrInvalidCurrency
+	}
+	if req.AmountFrom <= 0 {
+		return nil, ErrInvalidAmount
+	}
+	if req.ReceiverDetails.FullName == "" || req.ReceiverDetails.AccountNumber == "" || req.ReceiverDetails.BankName == "" || req.ReceiverDetails.SwiftBicCode == "" {
+		return nil, ErrInvalidReceiver
+	}
+
+	// --- Transactional Block Start (Recommended) ---
+	tx := s.db.WithContext(ctx).Begin()
+	if tx.Error != nil {
+		return nil, fmt.Errorf("failed to begin transaction: %w", tx.Error)
+	}
+	// Defer rollback in case of errors
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+			panic(r) // Re-panic after rollback
+		} else if tx.Error != nil {
+			tx.Rollback() // Rollback if any error occurred
+		}
+	}()
+
+	// 1. Fetch the current exchange rate
+	rate, err := s.GetExchangeRate(ctx, req.FromCurrency, req.ToCurrency)
+	if err != nil {
+		tx.Rollback() // Ensure rollback on rate fetch error
+		return nil, err
+	}
+
+	// 2. Calculate received amount (simple calculation, no fees yet)
+	amountTo := req.AmountFrom * rate
+	fees := 0.0 // Placeholder for fee calculation
+
+	// 3. TODO: Check user balance & Debit funds (Requires AccountService interaction)
+	// Example placeholder (replace with actual service call):
+	// err = accountService.DebitAccount(ctx, tx, req.UserID, req.FromCurrency, req.AmountFrom + fees)
+	// if err != nil {
+	// 	 return nil, fmt.Errorf("failed to debit account: %w", err) // Error already wrapped by service
+	// }
+	// For now, we skip this critical step.
+
+	// 4. Create the transaction record
+	receiverDetailsJSON, err := json.Marshal(req.ReceiverDetails)
+	if err != nil {
+		// tx.Rollback() handled by defer
+		return nil, fmt.Errorf("failed to marshal receiver details: %w", err)
+	}
+
+	transaction := &models.ExchangeTransaction{
+		UserID:          req.UserID,
+		FromCurrency:    req.FromCurrency,
+		ToCurrency:      req.ToCurrency,
+		AmountFrom:      req.AmountFrom,
+		AmountTo:        amountTo,
+		ExchangeRate:    rate,
+		Fees:            fees,
+		ReceiverDetails: datatypes.JSON(receiverDetailsJSON), // Use marshaled JSON
+		Status:          pb.ExchangeStatus_PENDING.String(),  // Start as PENDING (will error until proto generated)
+		CreatedAt:       time.Now().UTC(),
+	}
+
+	if err := tx.Create(transaction).Error; err != nil {
+		// tx.Rollback() is handled by defer
+		return nil, fmt.Errorf("failed to save exchange transaction: %w", err)
+	}
+
+	// 5. TODO: Enqueue a background task to process the actual transfer (e.g., call external API)
+	// Example placeholder (replace with actual task enqueuing):
+	// taskPayload := worker.PayloadSendInternationalTransfer{TransactionID: transaction.ID}
+	// _, err = taskDistributor.DistributeTaskSendInternationalTransfer(ctx, &taskPayload)
+	// if err != nil {
+	// 	 // Rollback or handle compensation logic if task enqueue fails critically
+	// 	 return nil, fmt.Errorf("failed to enqueue transfer task: %w", err)
+	// }
+
+	// Commit the transaction
+	if err := tx.Commit().Error; err != nil {
+		return nil, fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	return transaction, nil
+}
+
+// GetRecentExchangesServiceRequest contains parameters for fetching history
+type GetRecentExchangesServiceRequest struct {
+	UserID    string
+	PageSize  int
+	PageToken string // Use transaction ID as page token
+}
+
+// GetRecentExchanges retrieves recent transactions for a user
+func (s *ExchangeService) GetRecentExchanges(ctx context.Context, req *GetRecentExchangesServiceRequest) ([]models.ExchangeTransaction, string, error) {
+	if req.UserID == "" {
+		return nil, "", ErrInvalidUserID
+	}
+
+	pageSize := req.PageSize
+	if pageSize <= 0 {
+		pageSize = DefaultExchangePageSize
+	}
+
+	var transactions []models.ExchangeTransaction
+	query := s.db.WithContext(ctx).Model(&models.ExchangeTransaction{}).
+		Where("user_id = ?", req.UserID)
+
+	// Keyset Pagination using CreatedAt and ID
+	if req.PageToken != "" {
+		var lastTx models.ExchangeTransaction
+		err := s.db.WithContext(ctx).Select("created_at").First(&lastTx, "id = ? AND user_id = ?", req.PageToken, req.UserID).Error
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return []models.ExchangeTransaction{}, "", fmt.Errorf("invalid page token: %w", err)
+			}
+			return nil, "", fmt.Errorf("failed to query page token transaction: %w", err)
+		}
+		// Fetch transactions older than the one identified by the token
+		query = query.Where("(created_at, id) < (?, ?)", lastTx.CreatedAt, req.PageToken)
+	}
+
+	// Order by creation time descending (most recent first), ID secondary for stable order
+	err := query.Order("created_at desc, id desc").Limit(pageSize + 1).Find(&transactions).Error
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, "", fmt.Errorf("failed to retrieve exchange history: %w", err)
+	}
+
+	// Determine next page token
+	nextPageToken := ""
+	if len(transactions) > pageSize {
+		nextPageToken = transactions[pageSize-1].ID
+		transactions = transactions[:pageSize] // Trim the extra message
+	}
+
+	return transactions, nextPageToken, nil
+}

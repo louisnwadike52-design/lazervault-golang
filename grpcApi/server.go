@@ -41,13 +41,30 @@ func NewServer(db *gorm.DB, config *configs.Config, tokenMaker token.Maker, redi
 	)
 
 	// Initialize services
-	authService := services.NewAuthService(db, config, tokenMaker)
+	authService := services.NewAuthService(db, config, tokenMaker, redisWorker.GetDistributor())
 	transferService := services.NewTransferService(db, config, redisWorker.GetDistributor())
+	accountService := services.NewAccountService(db)
+	accountCardService := services.NewAccountCardService(db, config)
+	recipientService := services.NewRecipientService(db)
+	chatService := services.NewChatService(db)
+	userService := services.NewUserService(db, config, tokenMaker)
+	exchangeService := services.NewExchangeService(db)
+	invoiceService := services.NewInvoiceService(db)
+	depositService := services.NewDepositService(db)
+	withdrawalService := services.NewWithdrawalService(db)
 
 	// Register gRPC services
 	pb.RegisterAuthServiceServer(grpcServer, NewAuthController(authService))
 	pb.RegisterUserServiceServer(grpcServer, NewUserController(server))
 	pb.RegisterTransferServiceServer(grpcServer, NewTransferController(transferService, db))
+	pb.RegisterAccountServiceServer(grpcServer, NewAccountController(accountService, userService))
+	pb.RegisterAccountCardServiceServer(grpcServer, NewAccountCardController(accountCardService, userService))
+	pb.RegisterRecipientServiceServer(grpcServer, NewRecipientController(recipientService, userService))
+	pb.RegisterChatServiceServer(grpcServer, NewChatController(chatService))
+	pb.RegisterExchangeServiceServer(grpcServer, NewExchangeController(exchangeService, userService))
+	pb.RegisterInvoiceServiceServer(grpcServer, NewInvoiceController(invoiceService, userService))
+	pb.RegisterDepositServiceServer(grpcServer, NewDepositController(depositService, userService))
+	pb.RegisterWithdrawServiceServer(grpcServer, NewWithdrawalController(withdrawalService, userService))
 
 	server.grpcServer = grpcServer
 	return server
@@ -94,6 +111,30 @@ func (s *Server) startHTTPServer() error {
 	}
 	if err := pb.RegisterTransferServiceHandlerFromEndpoint(ctx, gwmux, grpcAddr, opts); err != nil {
 		return fmt.Errorf("failed to register transfer gateway: %w", err)
+	}
+	if err := pb.RegisterAccountServiceHandlerFromEndpoint(ctx, gwmux, grpcAddr, opts); err != nil {
+		return fmt.Errorf("failed to register account gateway: %w", err)
+	}
+	if err := pb.RegisterAccountCardServiceHandlerFromEndpoint(ctx, gwmux, grpcAddr, opts); err != nil {
+		return fmt.Errorf("failed to register account card gateway: %w", err)
+	}
+	if err := pb.RegisterRecipientServiceHandlerFromEndpoint(ctx, gwmux, grpcAddr, opts); err != nil {
+		return fmt.Errorf("failed to register recipient gateway: %w", err)
+	}
+	if err := pb.RegisterChatServiceHandlerFromEndpoint(ctx, gwmux, grpcAddr, opts); err != nil {
+		return fmt.Errorf("failed to register chat gateway: %w", err)
+	}
+	if err := pb.RegisterExchangeServiceHandlerFromEndpoint(ctx, gwmux, grpcAddr, opts); err != nil {
+		return fmt.Errorf("failed to register exchange gateway: %w", err)
+	}
+	if err := pb.RegisterInvoiceServiceHandlerFromEndpoint(ctx, gwmux, grpcAddr, opts); err != nil {
+		return fmt.Errorf("failed to register invoice gateway: %w", err)
+	}
+	if err := pb.RegisterDepositServiceHandlerFromEndpoint(ctx, gwmux, grpcAddr, opts); err != nil {
+		return fmt.Errorf("failed to register deposit gateway: %w", err)
+	}
+	if err := pb.RegisterWithdrawServiceHandlerFromEndpoint(ctx, gwmux, grpcAddr, opts); err != nil {
+		return fmt.Errorf("failed to register withdraw gateway: %w", err)
 	}
 
 	// Create main HTTP mux

@@ -82,7 +82,7 @@ func (s *TransferService) InitiateTransfer(ctx context.Context, fromUserID uint,
 
 	// Queue the transfer task
 	payload := &tasks.PayloadProcessTransfer{
-		TransferID: transfer.ID,
+		TransferID: fmt.Sprint(transfer.ID),
 	}
 
 	// If scheduled, set the process time

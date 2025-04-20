@@ -19,7 +19,6 @@ option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
 };
 
 
-
 message LoginRequest {
   string email = 1;
   string password = 2;
@@ -51,9 +50,91 @@ message LogoutResponse {
   string msg = 2;
 }
 
+// --- Email Verification Messages ---
 
+// Request to send a verification email to the authenticated user.
+// No parameters needed as user is identified via auth token.
+message RequestEmailVerificationRequest {}
 
+// Response for requesting email verification.
+message RequestEmailVerificationResponse {
+  bool success = 1; // Indicates if the request was accepted (email sending enqueued)
+  string msg = 2;   // User-facing message (e.g., "Verification email sent")
+}
 
+// Request to verify an email using a received code.
+message VerifyEmailRequest {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+      required: ["verification_code"]
+    }
+  };
+  string verification_code = 1; // The verification code sent to the user's email
+}
+
+// Response for verifying an email.
+message VerifyEmailResponse {
+  bool success = 1; // Indicates if the email was successfully verified
+  string msg = 2;   // User-facing message (e.g., "Email verified successfully")
+}
+
+// --- End Email Verification Messages ---
+
+// --- Password Reset Messages (Email/Token Based) ---
+
+// Request to initiate password reset process via email.
+message RequestPasswordResetRequest {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+      required: ["email"]
+    }
+  };
+  // User provides their email to initiate reset.
+  string email = 1;
+}
+
+// Response for requesting password reset.
+message RequestPasswordResetResponse {
+  bool success = 1;
+  string msg = 2; // e.g., "Password reset instructions sent to your email."
+}
+
+// Request to reset password using the email token.
+message ResetPasswordRequest {
+ option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+      required: ["email", "token", "new_password"]
+    }
+  };
+  string email = 1;        // Email used in the initial request
+  string token = 2;        // The reset token received via email
+  string new_password = 3; // The desired new password
+}
+
+// Response for resetting password.
+message ResetPasswordResponse {
+  bool success = 1;
+  string msg = 2; // e.g., "Password reset successfully."
+}
+
+// --- End Password Reset Messages ---
+
+// --- PIN Verification ---
+message VerifyPinRequest {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+      required: ["pin"]
+    }
+  };
+  string pin = 1; // The 4-digit transaction PIN entered by the user
+}
+
+message VerifyPinResponse {
+  bool success = 1; // Indicates if the PIN was correct
+  string msg = 2;   // e.g., "PIN verified successfully."
+}
+
+// Service Definition
 service AuthService {
   rpc Login(LoginRequest) returns (LoginResponse) {
     option (google.api.http) = {
@@ -71,6 +152,91 @@ rpc RefreshToken(RefreshTokenRequest) returns (RefreshTokenResponse) {
     option (google.api.http) = {
       post: "/v1/auth/logout"
       body: "*"
+    };
+  }
+
+  // --- Email Verification RPCs ---
+
+  // Request sending a verification email to the authenticated user.
+  rpc RequestEmailVerification(RequestEmailVerificationRequest) returns (RequestEmailVerificationResponse) {
+    option (google.api.http) = {
+      post: "/v1/auth/request-verification-email"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Request Email Verification"
+      description: "Initiates the process to send a verification email to the authenticated user's registered email address."
+      tags: ["Auth"]
+      security: [{
+        security_requirement: {
+          key: "bearer" value: {}
+        }
+      }]
+    };
+  }
+
+  // Verify the user's email address using a verification code.
+  rpc VerifyEmail(VerifyEmailRequest) returns (VerifyEmailResponse) {
+    option (google.api.http) = {
+      post: "/v1/auth/verify-email"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Verify Email"
+      description: "Verifies the user's email address using the provided verification code."
+      tags: ["Auth"]
+      // No explicit security requirement here, as the code itself implies user action.
+      // However, the backend service MUST validate the code properly.
+    };
+  }
+
+  // --- End Email Verification RPCs ---
+
+  // --- Password Reset RPCs (Email/Token Based) ---
+
+  // Initiate password reset by sending an email token.
+  rpc RequestPasswordReset(RequestPasswordResetRequest) returns (RequestPasswordResetResponse) {
+    option (google.api.http) = {
+      post: "/v1/auth/request-password-reset"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Request Password Reset (Email)"
+      description: "Initiates the password reset process by sending an email with a reset link/token to the user's registered email address."
+      tags: ["Auth"]
+    };
+  }
+
+  // Reset the user's password using the email token.
+  rpc ResetPassword(ResetPasswordRequest) returns (ResetPasswordResponse) {
+    option (google.api.http) = {
+      post: "/v1/auth/reset-password"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Reset Password (Email Token)"
+      description: "Resets the user's password after verifying the email and the reset token received via email."
+      tags: ["Auth"]
+    };
+  }
+
+  // --- End Password Reset RPCs ---
+
+  // Verify the user's transaction PIN.
+  rpc VerifyPin(VerifyPinRequest) returns (VerifyPinResponse) {
+    option (google.api.http) = {
+      post: "/v1/auth/verify-pin"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Verify Transaction PIN"
+      description: "Verifies the authenticated user's transaction PIN."
+      tags: ["Auth"]
+      security: [{ // Requires authentication
+        security_requirement: {
+          key: "bearer" value: {}
+        }
+      }]
     };
   }
 } 

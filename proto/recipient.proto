@@ -1,0 +1,105 @@
+syntax = "proto3";
+
+package pb;
+
+option go_package = "lazervaultGolang/pb";
+
+import "google/api/annotations.proto"; // Potential issue
+import "protoc-gen-openapiv2/options/annotations.proto"; // Potential issue
+import "google/protobuf/timestamp.proto";
+
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+    info: {
+        title: "LazerVault API";
+        version: "1.0";
+        description: "LazerVault Recipient API"; // Specific description
+    };
+    schemes: HTTP;
+    schemes: HTTPS;
+    consumes: "application/json";
+    produces: "application/json";
+};
+
+
+// --- Recipient Messages ---
+
+message Recipient {
+    uint64 id = 1;
+    string name = 2;
+    string account_number = 3;
+    string sort_code = 4;
+    string bank_name = 5;
+    bool is_favorite = 6; // Field exists
+    google.protobuf.Timestamp created_at = 7;
+    google.protobuf.Timestamp updated_at = 8;
+}
+
+message AddRecipientRequest {
+    string name = 1;
+    string account_number = 2;
+    string sort_code = 3;
+    string bank_name = 4;
+    bool is_favorite = 5; // Can set favorite on add
+}
+
+message AddRecipientResponse {
+    Recipient recipient = 1;
+}
+
+// Updated GetRecipientsRequest with filter
+message GetRecipientsRequest {
+    bool only_favorites = 1; // Optional: If true, return only favorite recipients
+}
+
+message GetRecipientsResponse {
+    repeated Recipient recipients = 1;
+}
+
+// --- Add Update Request/Response --- 
+message UpdateRecipientFavoriteStatusRequest {
+    uint64 id = 1;         // Required: ID of the recipient to update
+    bool is_favorite = 2;  // Required: The new favorite status (true or false)
+}
+
+message UpdateRecipientFavoriteStatusResponse {
+    Recipient recipient = 1; // Return the updated recipient
+}
+
+// --- Recipient Service Definition ---
+
+service RecipientService {
+    // Adds a new recipient for the authenticated user
+    rpc AddRecipient(AddRecipientRequest) returns (AddRecipientResponse) {
+        option (google.api.http) = { post: "/v1/recipients"; body: "*"; };
+        // Add OpenAPI options
+        option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            summary: "Add Recipient";
+            description: "Adds a new bank account recipient for the authenticated user.";
+        };
+    }
+
+    // Gets recipients for the authenticated user (optionally filtered by favorite status)
+    rpc GetRecipients(GetRecipientsRequest) returns (GetRecipientsResponse) {
+        option (google.api.http) = { get: "/v1/recipients"; };
+        // Add OpenAPI options
+        option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            summary: "Get Recipients";
+            description: "Retrieves a list of saved recipients for the authenticated user. Can be filtered to show only favorites.";
+        };
+    }
+
+    // Updates the favorite status of a specific recipient
+    rpc UpdateRecipientFavoriteStatus(UpdateRecipientFavoriteStatusRequest) returns (UpdateRecipientFavoriteStatusResponse) {
+        // Use PATCH for partial updates like toggling a boolean
+        option (google.api.http) = {
+            patch: "/v1/recipients/{id}/favorite"; 
+            body: "*"; // Body contains { "is_favorite": true/false }
+        };
+         option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+             summary: "Update Recipient Favorite Status";
+             description: "Marks or unmarks a specific recipient as a favorite.";
+         };
+    }
+    
+    // Removed previous generic UpdateRecipient/DeleteRecipient if they existed from prior examples
+} 

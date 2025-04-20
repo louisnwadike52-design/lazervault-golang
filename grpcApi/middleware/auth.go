@@ -53,6 +53,9 @@ func requiresAuth(method string) bool {
 		"/pb.AuthService/Login":        false,
 		"/pb.AuthService/Logout":       true,
 		"/pb.AuthService/RefreshToken": false,
+		"/pb.AuthService/Register":     false,
+		"/pb.AuthService/VerifyEmail":  false,
+		"/pb.AuthService/ResendEmail":  false,
 
 		// User Service public endpoints
 		"/pb.UserService/CreateUser": false,

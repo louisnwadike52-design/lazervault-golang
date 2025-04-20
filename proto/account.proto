@@ -1,0 +1,104 @@
+syntax = "proto3";
+
+package pb;
+
+import "google/protobuf/timestamp.proto";
+import "google/api/annotations.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+
+option go_package = "lazervaultGo/pb";
+
+// OpenAPI v2 documentation options
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+  info: {
+    title: "LazerVault Account Service";
+    version: "1.0";
+    contact: {
+      name: "LazerVault Support";
+      url: "https://github.com/LazerVault"; // Replace with actual URL if available
+      email: "support@lazervault.example"; // Replace with actual email
+    };
+  };
+  // Define security definitions (e.g., Bearer token)
+  security_definitions: {
+    security: {
+      key: "bearer"
+      value: {
+        type: TYPE_API_KEY
+        in: IN_HEADER
+        name: "Authorization"
+        description: "Authentication token, prefixed by Bearer: Bearer <token>"
+      }
+    }
+  }
+  security: {
+    security_requirement: {
+      key: "bearer"
+    }
+  }
+};
+
+// The Account message represents a user's financial account.
+message Account {
+  uint64 id = 1; // Unique identifier for the account
+  string account_type = 2; // Type of account (e.g., "Checking", "Savings")
+  string currency = 3; // Currency code (e.g., "USD", "EUR")
+  double balance = 4; // Current balance of the account
+  string account_number = 5; // Unique account number
+  bool is_active = 6; // Whether the account is currently active
+  google.protobuf.Timestamp created_at = 7; // Timestamp when the account was created
+  google.protobuf.Timestamp updated_at = 8; // Timestamp when the account was last updated
+}
+
+// Request message for creating a new account.
+message CreateAccountRequest {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+      required: ["account_type", "currency"]
+    }
+  };
+
+  string account_type = 1 [json_name = "account_type"]; // Type of account to create
+  string currency = 2; // Currency for the new account
+}
+
+// Response message after creating an account.
+message CreateAccountResponse {
+  Account account = 1; // The newly created account details
+}
+
+// Request message for retrieving accounts (currently no parameters needed).
+message GetAccountsRequest {}
+
+// Response message containing a list of accounts.
+message GetAccountsResponse {
+  repeated Account accounts = 1; // List of accounts belonging to the user
+}
+
+// The AccountService provides methods for managing user accounts.
+service AccountService {
+  // Creates a new account for the authenticated user.
+  rpc CreateAccount (CreateAccountRequest) returns (CreateAccountResponse) {
+    option (google.api.http) = {
+      post: "/v1/accounts"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Create Account"
+      description: "Creates a new financial account for the authenticated user based on the provided type and currency."
+      tags: ["Accounts"]
+    };
+  }
+
+  // Retrieves all accounts associated with the authenticated user.
+  rpc GetAccounts (GetAccountsRequest) returns (GetAccountsResponse) {
+    option (google.api.http) = {
+      get: "/v1/accounts"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Get Accounts"
+      description: "Retrieves a list of all financial accounts belonging to the authenticated user."
+      tags: ["Accounts"]
+    };
+  }
+}

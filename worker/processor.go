@@ -9,11 +9,14 @@ import (
 	"lazervaultGo/mail"
 	"lazervaultGo/models"
 	"lazervaultGo/tasks"
+	"strconv"
 	"time"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/hibiken/asynq"
 	"github.com/rs/zerolog/log"
+	"github.com/twilio/twilio-go"
+	twilioApi "github.com/twilio/twilio-go/rest/api/v2010"
 	"gorm.io/gorm"
 )
 
@@ -26,6 +29,7 @@ type TaskProcessor interface {
 	Start() error
 	ProcessTaskSendVerifyEmail(ctx context.Context, task *asynq.Task) error
 	ProcessTaskProcessTransfer(ctx context.Context, task *asynq.Task) error
+	ProcessTaskSendPasswordResetOTP(ctx context.Context, task *asynq.Task) error
 }
 
 type RedisTaskProcessor struct {
@@ -68,6 +72,7 @@ func (processor *RedisTaskProcessor) Start() error {
 
 	mux.HandleFunc(tasks.TaskSendVerifyEmail, processor.ProcessTaskSendVerifyEmail)
 	mux.HandleFunc(tasks.TaskProcessTransfer, processor.ProcessTaskProcessTransfer)
+	mux.HandleFunc(tasks.TaskSendPasswordResetOTP, processor.ProcessTaskSendPasswordResetOTP)
 
 	log.Info().Msg("starting task processor server")
 	return processor.server.Start(mux)
@@ -79,7 +84,14 @@ func (processor *RedisTaskProcessor) ProcessTaskProcessTransfer(ctx context.Cont
 		return fmt.Errorf("failed to unmarshal payload: %w", asynq.SkipRetry)
 	}
 
-	transferID := payload.TransferID
+	transferIDStr := payload.TransferID
+	transferIDUint64, err := strconv.ParseUint(transferIDStr, 10, 64)
+	if err != nil {
+		log.Error().Err(err).Str("transfer_id_str", transferIDStr).Msg("failed to parse transfer ID string to uint64")
+		return fmt.Errorf("invalid transfer ID format: %w", asynq.SkipRetry)
+	}
+	transferID := uint(transferIDUint64)
+
 	log.Info().Uint("transfer_id", transferID).Msg("processing transfer task")
 
 	if err := processor.ProcessTransferLogic(ctx, transferID); err != nil {
@@ -201,5 +213,36 @@ func (processor *RedisTaskProcessor) ProcessTaskSendVerifyEmail(ctx context.Cont
 
 	log.Info().Str("type", task.Type()).Bytes("payload", task.Payload()).
 		Str("email", user.Email).Msg("processed task: send_verify_email")
+	return nil
+}
+
+func (processor *RedisTaskProcessor) ProcessTaskSendPasswordResetOTP(ctx context.Context, task *asynq.Task) error {
+	var payload tasks.PayloadSendPasswordResetOTP
+	if err := json.Unmarshal(task.Payload(), &payload); err != nil {
+		return fmt.Errorf("failed to unmarshal payload: %w", asynq.SkipRetry)
+	}
+
+	log.Info().
+		Str("type", task.Type()).
+		Str("phone", payload.PhoneNumber).
+		Msg("processing password reset OTP task")
+
+	twilioClient := twilio.NewRestClientWithParams(twilio.ClientParams{
+		Username: processor.config.TwilioAccountSID,
+		Password: processor.config.TwilioAuthToken,
+	})
+
+	params := &twilioApi.CreateMessageParams{}
+	params.SetTo(payload.PhoneNumber)
+	params.SetFrom(processor.config.TwilioFromNumber)
+	params.SetBody(fmt.Sprintf("Your LazerVault password reset code is: %s", payload.OTPCode))
+
+	_, err := twilioClient.Api.CreateMessage(params)
+	if err != nil {
+		log.Error().Err(err).Msg("failed to send password reset OTP via Twilio")
+		return fmt.Errorf("twilio API error: %w", err)
+	}
+
+	log.Info().Str("phone", payload.PhoneNumber).Msg("password reset OTP sent successfully via Twilio")
 	return nil
 }

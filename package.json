@@ -3,7 +3,7 @@
   "scripts": {
     "dev": "nodemon",
     "setup": "chmod +x scripts/setup.sh && ./scripts/setup.sh && yarn run proto",
-    "clean": "rm go.sum && go mod tidy && make clean",
+    "clean": "rm go.sum && go clean -modcache && go mod tidy && make clean",
     "install": "go mod tidy && make install-tools",
     "build": "go build -o lazervaultGolang main.go",
     "proto": "make proto",

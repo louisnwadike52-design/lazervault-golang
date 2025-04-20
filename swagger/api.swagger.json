@@ -1,24 +1,48 @@
 {
   "swagger": "2.0",
   "info": {
-    "title": "LazerVault API",
-    "description": "LazerVault Authentication API",
-    "version": "1.0"
+    "title": "LazerVault Account Service",
+    "version": "1.0",
+    "contact": {
+      "name": "LazerVault Support",
+      "url": "https://github.com/LazerVault",
+      "email": "support@lazervault.example"
+    }
   },
   "tags": [
     {
+      "name": "AccountService"
+    },
+    {
+      "name": "AccountCardService"
+    },
+    {
       "name": "AuthService"
+    },
+    {
+      "name": "ChatService"
+    },
+    {
+      "name": "DepositService"
+    },
+    {
+      "name": "ExchangeService"
+    },
+    {
+      "name": "InvoiceService"
+    },
+    {
+      "name": "RecipientService"
     },
     {
       "name": "TransferService"
     },
     {
       "name": "UserService"
+    },
+    {
+      "name": "WithdrawService"
     }
-  ],
-  "schemes": [
-    "http",
-    "https"
   ],
   "consumes": [
     "application/json"
@@ -27,6 +51,222 @@
     "application/json"
   ],
   "paths": {
+    "/v1/accounts": {
+      "get": {
+        "summary": "Get Accounts",
+        "description": "Retrieves a list of all financial accounts belonging to the authenticated user.",
+        "operationId": "AccountService_GetAccounts",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbGetAccountsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "Accounts"
+        ]
+      },
+      "post": {
+        "summary": "Create Account",
+        "description": "Creates a new financial account for the authenticated user based on the provided type and currency.",
+        "operationId": "AccountService_CreateAccount",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbCreateAccountResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "Request message for creating a new account.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/pbCreateAccountRequest"
+            }
+          }
+        ],
+        "tags": [
+          "Accounts"
+        ]
+      }
+    },
+    "/v1/accounts/{accountId}/cards": {
+      "get": {
+        "summary": "Get Account Cards",
+        "description": "Retrieves all cards associated with a specific account owned by the authenticated user.",
+        "operationId": "AccountCardService_GetAccountCards",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbGetAccountCardsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "accountId",
+            "description": "Required: ID of the account whose cards to fetch",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "format": "uint64"
+          }
+        ],
+        "tags": [
+          "AccountCardService"
+        ]
+      },
+      "post": {
+        "summary": "Add Account Card",
+        "description": "Adds a new debit/credit card (Virtual, Disposable, Permanent) to a specified account owned by the authenticated user.",
+        "operationId": "AccountCardService_AddAccountCard",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbAddAccountCardResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "accountId",
+            "description": "Required: ID of the account to link the card to",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "format": "uint64"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/AccountCardServiceAddAccountCardBody"
+            }
+          }
+        ],
+        "tags": [
+          "AccountCardService"
+        ]
+      }
+    },
+    "/v1/accounts/{accountId}/cards/{cardId}": {
+      "delete": {
+        "summary": "Delete Account Card",
+        "description": "Removes a specific card associated with an account.",
+        "operationId": "AccountCardService_DeleteAccountCard",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "type": "object",
+              "properties": {}
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "accountId",
+            "description": "Required for context/URL binding",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "format": "uint64"
+          },
+          {
+            "name": "cardId",
+            "description": "Required: ID of the card to delete",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "format": "uint64"
+          }
+        ],
+        "tags": [
+          "AccountCardService"
+        ]
+      }
+    },
+    "/v1/accounts/{accountId}/cards/{cardId}/default": {
+      "put": {
+        "summary": "Set Default Account Card",
+        "description": "Marks a specific card as the default payment method for the associated account.",
+        "operationId": "AccountCardService_UpdateAccountCardDefaultStatus",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbUpdateAccountCardDefaultStatusResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "accountId",
+            "description": "Required for context/URL binding",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "format": "uint64"
+          },
+          {
+            "name": "cardId",
+            "description": "Required: ID of the card to set as default",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "format": "uint64"
+          }
+        ],
+        "tags": [
+          "AccountCardService"
+        ]
+      }
+    },
     "/v1/auth/login": {
       "post": {
         "operationId": "AuthService_Login",
@@ -123,6 +363,756 @@
         ]
       }
     },
+    "/v1/auth/request-password-reset": {
+      "post": {
+        "summary": "Request Password Reset (Email)",
+        "description": "Initiates the password reset process by sending an email with a reset link/token to the user's registered email address.",
+        "operationId": "AuthService_RequestPasswordReset",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbRequestPasswordResetResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "Request to initiate password reset process via email.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/pbRequestPasswordResetRequest"
+            }
+          }
+        ],
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/v1/auth/request-verification-email": {
+      "post": {
+        "summary": "Request Email Verification",
+        "description": "Initiates the process to send a verification email to the authenticated user's registered email address.",
+        "operationId": "AuthService_RequestEmailVerification",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbRequestEmailVerificationResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "Request to send a verification email to the authenticated user.\nNo parameters needed as user is identified via auth token.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/pbRequestEmailVerificationRequest"
+            }
+          }
+        ],
+        "tags": [
+          "Auth"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/v1/auth/reset-password": {
+      "post": {
+        "summary": "Reset Password (Email Token)",
+        "description": "Resets the user's password after verifying the email and the reset token received via email.",
+        "operationId": "AuthService_ResetPassword",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbResetPasswordResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "Request to reset password using the email token.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/pbResetPasswordRequest"
+            }
+          }
+        ],
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/v1/auth/verify-email": {
+      "post": {
+        "summary": "Verify Email",
+        "description": "Verifies the user's email address using the provided verification code.",
+        "operationId": "AuthService_VerifyEmail",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbVerifyEmailResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "Request to verify an email using a received code.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/pbVerifyEmailRequest"
+            }
+          }
+        ],
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/v1/auth/verify-pin": {
+      "post": {
+        "summary": "Verify Transaction PIN",
+        "description": "Verifies the authenticated user's transaction PIN.",
+        "operationId": "AuthService_VerifyPin",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbVerifyPinResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/pbVerifyPinRequest"
+            }
+          }
+        ],
+        "tags": [
+          "Auth"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/v1/chats/history/{peerUserId}": {
+      "get": {
+        "summary": "Get Chat History",
+        "description": "Retrieves the message history between the authenticated user and the specified peer user.",
+        "operationId": "ChatService_GetChatHistory",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/pbGetChatHistoryResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "peerUserId",
+            "description": "The user ID of the other participant in the chat.",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "pageSize",
+            "description": "Pagination\n\nNumber of messages to return per page. Default: 50.",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "pageToken",
+            "description": "For fetching next page (e.g., last message ID or timestamp)\n\nToken for fetching the next page of results. Optional.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "Chat"
+        ]
+      }
+    },
+    "/v1/chats/messages": {
+      "post": {
+        "summary": "Send Chat Message",
+        "description": "Sends a new chat message to a specified user.",
+        "operationId": "ChatService_SendMessage",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/pbSendMessageResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "Payload for sending a new chat message.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/pbSendMessageRequest"
+            }
+          }
+        ],
+        "tags": [
+          "Chat"
+        ]
+      }
+    },
+    "/v1/deposits": {
+      "post": {
+        "summary": "Initiate Deposit",
+        "description": "Initiates a deposit from a specified source bank into a target LazerVault account.",
+        "operationId": "DepositService_InitiateDeposit",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbInitiateDepositResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/pbInitiateDepositRequest"
+            }
+          }
+        ],
+        "tags": [
+          "Deposits"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/v1/exchange/rates": {
+      "get": {
+        "summary": "Get Exchange Rate",
+        "description": "Gets the current exchange rate between two specified currencies.",
+        "operationId": "ExchangeService_GetExchangeRate",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/pbGetExchangeRateResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "fromCurrency",
+            "description": "e.g., GBP, USD\n\nThe currency code to convert from (e.g., GBP).",
+            "in": "query",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "toCurrency",
+            "description": "e.g., USD, EUR\n\nThe currency code to convert to (e.g., USD).",
+            "in": "query",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "Exchange"
+        ]
+      }
+    },
+    "/v1/exchange/transfers": {
+      "post": {
+        "summary": "Initiate International Transfer",
+        "description": "Initiates a new international transfer, converting currency and sending to the specified receiver.",
+        "operationId": "ExchangeService_InitiateInternationalTransfer",
+        "responses": {
+          "200": {
+            "description": "Transfer Initiated Successfully",
+            "schema": {
+              "$ref": "#/definitions/pbInitiateInternationalTransferResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "Payload to start an international currency exchange and transfer.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/pbInitiateInternationalTransferRequest"
+            }
+          }
+        ],
+        "tags": [
+          "Exchange"
+        ]
+      }
+    },
+    "/v1/exchange/transfers/history": {
+      "get": {
+        "summary": "Get Recent Exchanges",
+        "description": "Retrieves a paginated list of recent international exchange transactions for the authenticated user.",
+        "operationId": "ExchangeService_GetRecentExchanges",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/pbGetRecentExchangesResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "pageSize",
+            "description": "Number of transactions per page. Default: 20.",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "pageToken",
+            "description": "Token for fetching the next page (e.g., last transaction ID). Optional.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "Exchange"
+        ]
+      }
+    },
+    "/v1/invoices": {
+      "get": {
+        "summary": "List Invoices",
+        "description": "Retrieves a paginated list of invoices for the authenticated user, optionally filtered by status.",
+        "operationId": "InvoiceService_ListInvoices",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/pbListInvoicesResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "pageSize",
+            "description": "Number of invoices per page. Default: 20.",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "pageToken",
+            "description": "Token for fetching the next page. Optional.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "statusFilter",
+            "description": "Optional filter\n\nOptional filter by invoice status.",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "DRAFT",
+              "SENT",
+              "PAID",
+              "VOID",
+              "OVERDUE"
+            ],
+            "default": "DRAFT"
+          }
+        ],
+        "tags": [
+          "Invoice"
+        ]
+      },
+      "post": {
+        "summary": "Create Invoice",
+        "description": "Creates a new invoice for the authenticated user.",
+        "operationId": "InvoiceService_CreateInvoice",
+        "responses": {
+          "200": {
+            "description": "Invoice Created Successfully",
+            "schema": {
+              "$ref": "#/definitions/pbCreateInvoiceResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "Payload to create a new invoice.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/pbCreateInvoiceRequest"
+            }
+          }
+        ],
+        "tags": [
+          "Invoice"
+        ]
+      }
+    },
+    "/v1/invoices/{invoiceId}": {
+      "get": {
+        "summary": "Get Invoice",
+        "description": "Retrieves the details of a specific invoice by its ID.",
+        "operationId": "InvoiceService_GetInvoice",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/pbInvoice"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "invoiceId",
+            "description": "The unique ID of the invoice to retrieve.",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "Invoice"
+        ]
+      }
+    },
+    "/v1/recipients": {
+      "get": {
+        "summary": "Get Recipients",
+        "description": "Retrieves a list of saved recipients for the authenticated user. Can be filtered to show only favorites.",
+        "operationId": "RecipientService_GetRecipients",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbGetRecipientsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "onlyFavorites",
+            "description": "Optional: If true, return only favorite recipients",
+            "in": "query",
+            "required": false,
+            "type": "boolean"
+          }
+        ],
+        "tags": [
+          "RecipientService"
+        ]
+      },
+      "post": {
+        "summary": "Add Recipient",
+        "description": "Adds a new bank account recipient for the authenticated user.",
+        "operationId": "RecipientService_AddRecipient",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbAddRecipientResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/pbAddRecipientRequest"
+            }
+          }
+        ],
+        "tags": [
+          "RecipientService"
+        ]
+      }
+    },
+    "/v1/recipients/{id}/favorite": {
+      "patch": {
+        "summary": "Update Recipient Favorite Status",
+        "description": "Marks or unmarks a specific recipient as a favorite.",
+        "operationId": "RecipientService_UpdateRecipientFavoriteStatus",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbUpdateRecipientFavoriteStatusResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "description": "Required: ID of the recipient to update",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "format": "uint64"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/RecipientServiceUpdateRecipientFavoriteStatusBody"
+            }
+          }
+        ],
+        "tags": [
+          "RecipientService"
+        ]
+      }
+    },
+    "/v1/transactions": {
+      "get": {
+        "summary": "Get Transaction History",
+        "description": "Retrieves a paginated list of user transactions, allowing filtering by account, card, date range, type, and category.",
+        "operationId": "TransferService_GetTransactions",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbGetTransactionsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "accountId",
+            "description": "Filtering Options\n\nOptional: Filter by specific account ID",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "uint64"
+          },
+          {
+            "name": "cardId",
+            "description": "Optional: Filter by specific card ID (will lookup linked account)",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "startDate",
+            "description": "Optional: Start of date range",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "date-time"
+          },
+          {
+            "name": "endDate",
+            "description": "Optional: End of date range",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "date-time"
+          },
+          {
+            "name": "transferType",
+            "description": "Optional: Filter by type (INCOME, EXPENSE, INTERNAL)\n\n - TRANSFER_TYPE_INCOME: Incoming transfer (e.g., deposit, received payment)\n - TRANSFER_TYPE_EXPENSE: Outgoing transfer (e.g., payment, withdrawal)\n - TRANSFER_TYPE_INTERNAL: Transfer between user's own accounts",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "TRANSFER_TYPE_UNSPECIFIED",
+              "TRANSFER_TYPE_INCOME",
+              "TRANSFER_TYPE_EXPENSE",
+              "TRANSFER_TYPE_INTERNAL"
+            ],
+            "default": "TRANSFER_TYPE_UNSPECIFIED"
+          },
+          {
+            "name": "category",
+            "description": "Optional: Filter by category",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "pageNumber",
+            "description": "Pagination Options\n\nDefaults to 1 if not provided",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "pageSize",
+            "description": "Defaults to a server-defined size (e.g., 20) if not provided",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "tags": [
+          "Transactions"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/v1/transfers": {
       "post": {
         "summary": "Initiate a new transfer",
@@ -154,6 +1144,60 @@
         ],
         "tags": [
           "transfers"
+        ]
+      }
+    },
+    "/v1/transfers/statistics": {
+      "get": {
+        "summary": "Get Financial Statistics",
+        "description": "Retrieves aggregated income, expense, and categorized statistics based on transfer history for a given time period.",
+        "operationId": "TransferService_GetStatistics",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbGetStatisticsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "timePeriod",
+            "description": " - TIME_PERIOD_ALL: Or use start/end dates",
+            "in": "query",
+            "required": true,
+            "type": "string",
+            "enum": [
+              "TIME_PERIOD_UNSPECIFIED",
+              "TIME_PERIOD_WEEK",
+              "TIME_PERIOD_MONTH",
+              "TIME_PERIOD_QUARTER",
+              "TIME_PERIOD_YEAR",
+              "TIME_PERIOD_ALL"
+            ],
+            "default": "TIME_PERIOD_UNSPECIFIED"
+          },
+          {
+            "name": "currency",
+            "description": "google.protobuf.Timestamp start_date = 2; // Alternative to TimePeriod\ngoogle.protobuf.Timestamp end_date = 3;   // Alternative to TimePeriod\n\nOptional: Filter by currency",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "Transfers"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
         ]
       }
     },
@@ -190,9 +1234,381 @@
           "users"
         ]
       }
+    },
+    "/v1/withdrawals": {
+      "post": {
+        "summary": "Initiate Withdrawal",
+        "description": "Initiates a withdrawal from a specified LazerVault account to an external bank account.",
+        "operationId": "WithdrawService_InitiateWithdrawal",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbInitiateWithdrawalResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/pbInitiateWithdrawalRequest"
+            }
+          }
+        ],
+        "tags": [
+          "Withdrawals"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
     }
   },
   "definitions": {
+    "AccountCardServiceAddAccountCardBody": {
+      "type": "object",
+      "properties": {
+        "cardHolderName": {
+          "type": "string",
+          "title": "Required"
+        },
+        "cardNumber": {
+          "type": "string",
+          "title": "Required: Full card number (will be handled securely on backend)"
+        },
+        "cardExpiry": {
+          "type": "string",
+          "title": "Required: MM/YY format"
+        },
+        "cardType": {
+          "type": "string",
+          "title": "Required: \"Virtual\", \"Disposable\", \"Permanent\""
+        },
+        "makeDefault": {
+          "type": "boolean",
+          "title": "Optional: Set this new card as the default for the account"
+        }
+      },
+      "title": "Request to add a new card to an account"
+    },
+    "RecipientServiceUpdateRecipientFavoriteStatusBody": {
+      "type": "object",
+      "properties": {
+        "isFavorite": {
+          "type": "boolean",
+          "title": "Required: The new favorite status (true or false)"
+        }
+      },
+      "title": "--- Add Update Request/Response ---"
+    },
+    "pbAccount": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uint64",
+          "title": "Unique identifier for the account"
+        },
+        "accountType": {
+          "type": "string",
+          "title": "Type of account (e.g., \"Checking\", \"Savings\")"
+        },
+        "currency": {
+          "type": "string",
+          "title": "Currency code (e.g., \"USD\", \"EUR\")"
+        },
+        "balance": {
+          "type": "number",
+          "format": "double",
+          "title": "Current balance of the account"
+        },
+        "accountNumber": {
+          "type": "string",
+          "title": "Unique account number"
+        },
+        "isActive": {
+          "type": "boolean",
+          "title": "Whether the account is currently active"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "title": "Timestamp when the account was created"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "title": "Timestamp when the account was last updated"
+        }
+      },
+      "description": "The Account message represents a user's financial account."
+    },
+    "pbAccountCard": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "accountId": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "cardHolderName": {
+          "type": "string"
+        },
+        "brand": {
+          "type": "string",
+          "title": "e.g., Visa, Mastercard"
+        },
+        "last4": {
+          "type": "string",
+          "title": "Last 4 digits for display"
+        },
+        "cardExpiry": {
+          "type": "string",
+          "title": "MM/YY"
+        },
+        "isActive": {
+          "type": "boolean"
+        },
+        "isDefault": {
+          "type": "boolean"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "cardType": {
+          "type": "string",
+          "title": "\"Virtual\", \"Disposable\", \"Permanent\""
+        }
+      },
+      "title": "Represents a specific card linked to an account"
+    },
+    "pbAddAccountCardResponse": {
+      "type": "object",
+      "properties": {
+        "card": {
+          "$ref": "#/definitions/pbAccountCard",
+          "title": "Return the newly added card (with sensitive data masked)"
+        }
+      },
+      "title": "Response after adding a card"
+    },
+    "pbAddRecipientRequest": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "accountNumber": {
+          "type": "string"
+        },
+        "sortCode": {
+          "type": "string"
+        },
+        "bankName": {
+          "type": "string"
+        },
+        "isFavorite": {
+          "type": "boolean",
+          "title": "Can set favorite on add"
+        }
+      }
+    },
+    "pbAddRecipientResponse": {
+      "type": "object",
+      "properties": {
+        "recipient": {
+          "$ref": "#/definitions/pbRecipient"
+        }
+      }
+    },
+    "pbCategorySummary": {
+      "type": "object",
+      "properties": {
+        "category": {
+          "type": "string"
+        },
+        "amount": {
+          "type": "number",
+          "format": "double",
+          "title": "string subcategory = 2; // Optional: Add if subcategory breakdown is needed"
+        },
+        "percentage": {
+          "type": "number",
+          "format": "double",
+          "title": "Percentage of total income/expense for the period"
+        }
+      },
+      "title": "Represents summary data for a specific category"
+    },
+    "pbChatMessage": {
+      "type": "object",
+      "properties": {
+        "messageId": {
+          "type": "string"
+        },
+        "senderUserId": {
+          "type": "string"
+        },
+        "receiverUserId": {
+          "type": "string",
+          "title": "Could be a group ID later"
+        },
+        "content": {
+          "type": "string",
+          "title": "Text content or file name/description for attachments"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "messageType": {
+          "$ref": "#/definitions/pbMessageType"
+        },
+        "attachmentUrl": {
+          "type": "string",
+          "title": "URL or identifier for the attachment"
+        },
+        "replyToMessageId": {
+          "type": "string",
+          "title": "ID of the message being replied to (optional)"
+        }
+      },
+      "title": "Represents a single chat message"
+    },
+    "pbComparisonData": {
+      "type": "object",
+      "properties": {
+        "currentIncome": {
+          "type": "number",
+          "format": "double"
+        },
+        "previousIncome": {
+          "type": "number",
+          "format": "double"
+        },
+        "currentExpenses": {
+          "type": "number",
+          "format": "double"
+        },
+        "previousExpenses": {
+          "type": "number",
+          "format": "double"
+        },
+        "currentSavings": {
+          "type": "number",
+          "format": "double",
+          "title": "Calculated: current_income - current_expenses"
+        },
+        "previousSavings": {
+          "type": "number",
+          "format": "double",
+          "title": "Calculated: previous_income - previous_expenses"
+        }
+      },
+      "title": "Represents data for month-over-month comparison"
+    },
+    "pbCreateAccountRequest": {
+      "type": "object",
+      "properties": {
+        "account_type": {
+          "type": "string",
+          "title": "Type of account to create"
+        },
+        "currency": {
+          "type": "string",
+          "title": "Currency for the new account"
+        }
+      },
+      "description": "Request message for creating a new account.",
+      "required": [
+        "account_type",
+        "currency"
+      ]
+    },
+    "pbCreateAccountResponse": {
+      "type": "object",
+      "properties": {
+        "account": {
+          "$ref": "#/definitions/pbAccount",
+          "title": "The newly created account details"
+        }
+      },
+      "description": "Response message after creating an account."
+    },
+    "pbCreateInvoiceRequest": {
+      "type": "object",
+      "properties": {
+        "customerDetails": {
+          "$ref": "#/definitions/pbCustomerDetails",
+          "description": "Details of the customer being invoiced.",
+          "title": "invoice_number can be auto-generated or provided\nstring invoice_number = 1 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {description: \"Optional custom invoice number.\"}];"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbInvoiceItem"
+          },
+          "description": "Line items for the invoice."
+        },
+        "tax": {
+          "type": "number",
+          "format": "double",
+          "description": "Optional tax amount."
+        },
+        "currencyCode": {
+          "type": "string",
+          "description": "3-letter currency code (e.g., USD)."
+        },
+        "dueDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Payment due date."
+        },
+        "notes": {
+          "type": "string",
+          "description": "Optional notes or terms.",
+          "title": "Status usually starts as DRAFT or SENT"
+        }
+      },
+      "description": "Payload to create a new invoice.",
+      "title": "Create Invoice Request",
+      "required": [
+        "customerDetails",
+        "items",
+        "currencyCode",
+        "dueDate"
+      ]
+    },
+    "pbCreateInvoiceResponse": {
+      "type": "object",
+      "properties": {
+        "invoice": {
+          "$ref": "#/definitions/pbInvoice"
+        }
+      },
+      "description": "Contains the details of the newly created invoice.",
+      "title": "Create Invoice Response"
+    },
     "pbCreateUserRequest": {
       "type": "object",
       "properties": {
@@ -230,6 +1646,23 @@
         }
       }
     },
+    "pbCustomerDetails": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string",
+          "title": "Optional"
+        },
+        "address": {
+          "type": "string",
+          "title": "Optional"
+        }
+      },
+      "title": "Represents customer details associated with an invoice"
+    },
     "pbData": {
       "type": "object",
       "properties": {
@@ -240,6 +1673,382 @@
           "$ref": "#/definitions/pbSession"
         }
       }
+    },
+    "pbDepositStatus": {
+      "type": "string",
+      "enum": [
+        "DEPOSIT_STATUS_UNSPECIFIED",
+        "DEPOSIT_STATUS_PENDING",
+        "DEPOSIT_STATUS_COMPLETED",
+        "DEPOSIT_STATUS_FAILED"
+      ],
+      "default": "DEPOSIT_STATUS_UNSPECIFIED",
+      "title": "Represents the status of a deposit transaction"
+    },
+    "pbDepositTransaction": {
+      "type": "object",
+      "properties": {
+        "transactionId": {
+          "type": "string",
+          "title": "Unique ID for the deposit"
+        },
+        "targetAccountId": {
+          "type": "string",
+          "format": "uint64",
+          "title": "LazerVault account receiving funds"
+        },
+        "amount": {
+          "type": "number",
+          "format": "double",
+          "title": "Amount deposited"
+        },
+        "currency": {
+          "type": "string",
+          "title": "Currency code (e.g., \"GBP\")"
+        },
+        "sourceBankName": {
+          "type": "string",
+          "title": "Name of the bank funds came from"
+        },
+        "status": {
+          "$ref": "#/definitions/pbDepositStatus",
+          "title": "Current status of the deposit"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "completedAt": {
+          "type": "string",
+          "format": "date-time",
+          "title": "Null if not completed/failed"
+        },
+        "failedAt": {
+          "type": "string",
+          "format": "date-time",
+          "title": "Null if not failed"
+        },
+        "failureReason": {
+          "type": "string",
+          "title": "Optional reason for failure"
+        }
+      },
+      "title": "Represents a deposit transaction record"
+    },
+    "pbExchangeStatus": {
+      "type": "string",
+      "enum": [
+        "PENDING",
+        "PROCESSING",
+        "COMPLETED",
+        "FAILED",
+        "CANCELLED"
+      ],
+      "default": "PENDING",
+      "title": "Enum for transaction status"
+    },
+    "pbExchangeTransaction": {
+      "type": "object",
+      "properties": {
+        "transactionId": {
+          "type": "string"
+        },
+        "userId": {
+          "type": "string",
+          "title": "ID of the user initiating the transfer"
+        },
+        "fromCurrency": {
+          "type": "string"
+        },
+        "toCurrency": {
+          "type": "string"
+        },
+        "amountFrom": {
+          "type": "number",
+          "format": "double"
+        },
+        "amountTo": {
+          "type": "number",
+          "format": "double",
+          "title": "Amount received after conversion and fees"
+        },
+        "exchangeRate": {
+          "type": "number",
+          "format": "double"
+        },
+        "fees": {
+          "type": "number",
+          "format": "double",
+          "title": "Optional: Applicable fees"
+        },
+        "receiverDetails": {
+          "$ref": "#/definitions/pbReceiverDetails"
+        },
+        "status": {
+          "$ref": "#/definitions/pbExchangeStatus"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "title": "google.protobuf.Timestamp estimated_delivery = 13; // Optional"
+        }
+      },
+      "title": "Represents a recorded exchange transaction"
+    },
+    "pbGetAccountCardsResponse": {
+      "type": "object",
+      "properties": {
+        "cards": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbAccountCard"
+          }
+        }
+      },
+      "title": "Response containing the list of cards for an account"
+    },
+    "pbGetAccountsResponse": {
+      "type": "object",
+      "properties": {
+        "accounts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbAccount"
+          },
+          "title": "List of accounts belonging to the user"
+        }
+      },
+      "description": "Response message containing a list of accounts."
+    },
+    "pbGetChatHistoryResponse": {
+      "type": "object",
+      "properties": {
+        "messages": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbChatMessage"
+          }
+        },
+        "nextPageToken": {
+          "type": "string",
+          "description": "Token to use in the next request to get the following page. Empty if no more results.",
+          "title": "Token for next page"
+        }
+      },
+      "description": "Contains a list of messages and pagination info.",
+      "title": "Get Chat History Response"
+    },
+    "pbGetExchangeRateResponse": {
+      "type": "object",
+      "properties": {
+        "fromCurrency": {
+          "type": "string"
+        },
+        "toCurrency": {
+          "type": "string"
+        },
+        "rate": {
+          "type": "number",
+          "format": "double"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "title": "Time when the rate was fetched/valid"
+        }
+      },
+      "description": "Contains the current exchange rate.",
+      "title": "Get Exchange Rate Response"
+    },
+    "pbGetRecentExchangesResponse": {
+      "type": "object",
+      "properties": {
+        "transactions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbExchangeTransaction"
+          }
+        },
+        "nextPageToken": {
+          "type": "string"
+        }
+      },
+      "description": "List of recent international exchange transactions.",
+      "title": "Get Recent Exchanges Response"
+    },
+    "pbGetRecipientsResponse": {
+      "type": "object",
+      "properties": {
+        "recipients": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbRecipient"
+          }
+        }
+      }
+    },
+    "pbGetStatisticsResponse": {
+      "type": "object",
+      "properties": {
+        "totalIncome": {
+          "type": "number",
+          "format": "double"
+        },
+        "totalExpenses": {
+          "type": "number",
+          "format": "double"
+        },
+        "expenseTimeseries": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbTimeSeriesPoint"
+          },
+          "title": "For expense line chart"
+        },
+        "expenseBreakdown": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbCategorySummary"
+          },
+          "title": "For expense pie chart/list"
+        },
+        "incomeBreakdown": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbCategorySummary"
+          },
+          "title": "For income pie chart/list"
+        },
+        "monthlyOverview": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbMonthlyData"
+          },
+          "title": "For monthly bar chart (e.g., last 6 months)"
+        },
+        "comparisonMetrics": {
+          "$ref": "#/definitions/pbComparisonData",
+          "title": "For MoM comparison"
+        }
+      },
+      "title": "Response message containing calculated statistics"
+    },
+    "pbGetTransactionsResponse": {
+      "type": "object",
+      "properties": {
+        "transactions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbTransferTransaction"
+          }
+        },
+        "pagination": {
+          "$ref": "#/definitions/pbPaginationInfo"
+        }
+      },
+      "title": "Response message containing transaction history"
+    },
+    "pbInitiateDepositRequest": {
+      "type": "object",
+      "properties": {
+        "targetAccountId": {
+          "type": "string",
+          "format": "uint64",
+          "title": "LazerVault account ID to deposit into"
+        },
+        "amount": {
+          "type": "number",
+          "format": "double",
+          "title": "Amount to deposit"
+        },
+        "currency": {
+          "type": "string",
+          "title": "Currency of the deposit (e.g., \"GBP\")"
+        },
+        "sourceBankName": {
+          "type": "string",
+          "title": "Name of the source bank"
+        }
+      },
+      "title": "Request to initiate a deposit",
+      "required": [
+        "targetAccountId",
+        "amount",
+        "currency",
+        "sourceBankName"
+      ]
+    },
+    "pbInitiateDepositResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "message": {
+          "type": "string",
+          "title": "e.g., \"Deposit initiated successfully\""
+        },
+        "transaction": {
+          "$ref": "#/definitions/pbDepositTransaction",
+          "title": "Details of the created deposit record"
+        }
+      },
+      "title": "Response after initiating a deposit"
+    },
+    "pbInitiateInternationalTransferRequest": {
+      "type": "object",
+      "properties": {
+        "fromCurrency": {
+          "type": "string",
+          "description": "The currency code to send from (e.g., GBP)."
+        },
+        "toCurrency": {
+          "type": "string",
+          "description": "The currency code the receiver gets (e.g., USD)."
+        },
+        "amountFrom": {
+          "type": "number",
+          "format": "double",
+          "description": "The amount to be sent in the 'from_currency'."
+        },
+        "receiverDetails": {
+          "$ref": "#/definitions/pbReceiverDetails",
+          "description": "Details of the recipient.",
+          "title": "string purpose_of_payment = 5; // Optional"
+        }
+      },
+      "description": "Payload to start an international currency exchange and transfer.",
+      "title": "Initiate International Transfer Request",
+      "required": [
+        "fromCurrency",
+        "toCurrency",
+        "amountFrom",
+        "receiverDetails"
+      ]
+    },
+    "pbInitiateInternationalTransferResponse": {
+      "type": "object",
+      "properties": {
+        "transaction": {
+          "$ref": "#/definitions/pbExchangeTransaction"
+        }
+      },
+      "description": "Contains details of the initiated transfer.",
+      "title": "Initiate International Transfer Response"
     },
     "pbInitiateTransferRequest": {
       "type": "object",
@@ -263,6 +2072,10 @@
           "type": "string",
           "format": "date-time",
           "title": "Optional schedule time"
+        },
+        "description": {
+          "type": "string",
+          "title": "Added description field"
         }
       },
       "title": "Request message for initiating a transfer"
@@ -295,6 +2108,187 @@
         }
       },
       "title": "Response message for initiating a transfer"
+    },
+    "pbInitiateWithdrawalRequest": {
+      "type": "object",
+      "properties": {
+        "sourceAccountId": {
+          "type": "string",
+          "format": "uint64",
+          "title": "LazerVault account ID to withdraw from"
+        },
+        "amount": {
+          "type": "number",
+          "format": "double",
+          "title": "Amount to withdraw"
+        },
+        "currency": {
+          "type": "string",
+          "title": "Currency of the withdrawal (e.g., \"GBP\")"
+        },
+        "targetBankName": {
+          "type": "string",
+          "title": "Name of the destination bank"
+        },
+        "targetAccountNumber": {
+          "type": "string",
+          "title": "Destination account number"
+        },
+        "targetSortCode": {
+          "type": "string",
+          "title": "Destination sort code (optional)"
+        }
+      },
+      "title": "Request to initiate a withdrawal",
+      "required": [
+        "sourceAccountId",
+        "amount",
+        "currency",
+        "targetBankName",
+        "targetAccountNumber"
+      ]
+    },
+    "pbInitiateWithdrawalResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "message": {
+          "type": "string",
+          "title": "e.g., \"Withdrawal initiated successfully\""
+        },
+        "transaction": {
+          "$ref": "#/definitions/pbWithdrawalTransaction",
+          "title": "Details of the created withdrawal record"
+        }
+      },
+      "title": "Response after initiating a withdrawal"
+    },
+    "pbInvoice": {
+      "type": "object",
+      "properties": {
+        "invoiceId": {
+          "type": "string"
+        },
+        "userId": {
+          "type": "string",
+          "title": "ID of the user/business issuing the invoice"
+        },
+        "invoiceNumber": {
+          "type": "string",
+          "title": "User-friendly invoice number (e.g., INV-001)"
+        },
+        "customerDetails": {
+          "$ref": "#/definitions/pbCustomerDetails"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbInvoiceItem"
+          }
+        },
+        "subtotal": {
+          "type": "number",
+          "format": "double",
+          "title": "Sum of item totals"
+        },
+        "tax": {
+          "type": "number",
+          "format": "double",
+          "title": "Optional tax amount"
+        },
+        "totalAmount": {
+          "type": "number",
+          "format": "double",
+          "title": "subtotal + tax"
+        },
+        "currencyCode": {
+          "type": "string",
+          "title": "e.g., USD, GBP"
+        },
+        "issueDate": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "dueDate": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "status": {
+          "$ref": "#/definitions/pbInvoiceStatus"
+        },
+        "notes": {
+          "type": "string",
+          "title": "Optional notes"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "title": "google.protobuf.Timestamp paid_date = 16; // Optional"
+        }
+      },
+      "title": "Represents an invoice"
+    },
+    "pbInvoiceItem": {
+      "type": "object",
+      "properties": {
+        "itemId": {
+          "type": "string",
+          "title": "Optional: ID if linked to a product catalog"
+        },
+        "description": {
+          "type": "string"
+        },
+        "quantity": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "unitPrice": {
+          "type": "number",
+          "format": "double"
+        },
+        "totalPrice": {
+          "type": "number",
+          "format": "double",
+          "title": "quantity * unit_price (calculated or provided)"
+        }
+      },
+      "title": "Represents a single line item in an invoice"
+    },
+    "pbInvoiceStatus": {
+      "type": "string",
+      "enum": [
+        "DRAFT",
+        "SENT",
+        "PAID",
+        "VOID",
+        "OVERDUE"
+      ],
+      "default": "DRAFT",
+      "title": "Enum for invoice status"
+    },
+    "pbListInvoicesResponse": {
+      "type": "object",
+      "properties": {
+        "invoices": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbInvoice"
+          }
+        },
+        "nextPageToken": {
+          "type": "string"
+        }
+      },
+      "description": "Contains a list of invoices and pagination info.",
+      "title": "List Invoices Response"
     },
     "pbLoginRequest": {
       "type": "object",
@@ -340,6 +2334,109 @@
         }
       }
     },
+    "pbMessageType": {
+      "type": "string",
+      "enum": [
+        "TEXT",
+        "IMAGE",
+        "VIDEO",
+        "FILE"
+      ],
+      "default": "TEXT",
+      "description": "- FILE: Add other types if needed, e.g., AUDIO, PAYMENT_REQUEST",
+      "title": "Enum for different message types"
+    },
+    "pbMonthlyData": {
+      "type": "object",
+      "properties": {
+        "month": {
+          "type": "string",
+          "title": "e.g., \"Jan\", \"Feb\" or \"YYYY-MM\""
+        },
+        "income": {
+          "type": "number",
+          "format": "double"
+        },
+        "expenses": {
+          "type": "number",
+          "format": "double"
+        }
+      },
+      "title": "Represents aggregated data for a single month"
+    },
+    "pbPaginationInfo": {
+      "type": "object",
+      "properties": {
+        "currentPage": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "pageSize": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "totalPages": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "totalItems": {
+          "type": "string",
+          "format": "int64"
+        }
+      }
+    },
+    "pbReceiverDetails": {
+      "type": "object",
+      "properties": {
+        "fullName": {
+          "type": "string"
+        },
+        "accountNumber": {
+          "type": "string"
+        },
+        "bankName": {
+          "type": "string"
+        },
+        "swiftBicCode": {
+          "type": "string",
+          "title": "Optional fields\n string address = 5;\n string country = 6;"
+        }
+      },
+      "title": "Represents receiver details for an international transfer"
+    },
+    "pbRecipient": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "name": {
+          "type": "string"
+        },
+        "accountNumber": {
+          "type": "string"
+        },
+        "sortCode": {
+          "type": "string"
+        },
+        "bankName": {
+          "type": "string"
+        },
+        "isFavorite": {
+          "type": "boolean",
+          "title": "Field exists"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
     "pbRefreshTokenRequest": {
       "type": "object",
       "properties": {
@@ -361,6 +2458,130 @@
           "type": "string"
         }
       }
+    },
+    "pbRequestEmailVerificationRequest": {
+      "type": "object",
+      "description": "Request to send a verification email to the authenticated user.\nNo parameters needed as user is identified via auth token."
+    },
+    "pbRequestEmailVerificationResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "title": "Indicates if the request was accepted (email sending enqueued)"
+        },
+        "msg": {
+          "type": "string",
+          "title": "User-facing message (e.g., \"Verification email sent\")"
+        }
+      },
+      "description": "Response for requesting email verification."
+    },
+    "pbRequestPasswordResetRequest": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "description": "User provides their email to initiate reset."
+        }
+      },
+      "description": "Request to initiate password reset process via email.",
+      "required": [
+        "email"
+      ]
+    },
+    "pbRequestPasswordResetResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "msg": {
+          "type": "string",
+          "title": "e.g., \"Password reset instructions sent to your email.\""
+        }
+      },
+      "description": "Response for requesting password reset."
+    },
+    "pbResetPasswordRequest": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "title": "Email used in the initial request"
+        },
+        "token": {
+          "type": "string",
+          "title": "The reset token received via email"
+        },
+        "newPassword": {
+          "type": "string",
+          "title": "The desired new password"
+        }
+      },
+      "description": "Request to reset password using the email token.",
+      "required": [
+        "email",
+        "token",
+        "newPassword"
+      ]
+    },
+    "pbResetPasswordResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "msg": {
+          "type": "string",
+          "title": "e.g., \"Password reset successfully.\""
+        }
+      },
+      "description": "Response for resetting password."
+    },
+    "pbSendMessageRequest": {
+      "type": "object",
+      "properties": {
+        "receiverUserId": {
+          "type": "string",
+          "description": "The user ID of the recipient."
+        },
+        "content": {
+          "type": "string",
+          "description": "The text content of the message, or a description/filename if it's an attachment."
+        },
+        "messageType": {
+          "$ref": "#/definitions/pbMessageType",
+          "description": "The type of the message (TEXT, IMAGE, VIDEO, FILE)."
+        },
+        "attachmentUrl": {
+          "type": "string",
+          "description": "URL or identifier for the attachment, if message_type is not TEXT. Optional.",
+          "title": "Simplified: Client provides URL/path for now"
+        },
+        "replyToMessageId": {
+          "type": "string",
+          "description": "The ID of the message this is a reply to. Optional.",
+          "title": "Consider adding attachment data directly (bytes) or using a separate upload RPC later"
+        }
+      },
+      "description": "Payload for sending a new chat message.",
+      "title": "Send Message Request",
+      "required": [
+        "receiverUserId",
+        "content",
+        "messageType"
+      ]
+    },
+    "pbSendMessageResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "$ref": "#/definitions/pbChatMessage"
+        }
+      },
+      "description": "Contains the details of the successfully sent message.",
+      "title": "Send Message Response"
     },
     "pbSession": {
       "type": "object",
@@ -385,6 +2606,113 @@
         "refreshTokenExpiresAt": {
           "type": "string",
           "format": "date-time"
+        }
+      }
+    },
+    "pbTimePeriod": {
+      "type": "string",
+      "enum": [
+        "TIME_PERIOD_UNSPECIFIED",
+        "TIME_PERIOD_WEEK",
+        "TIME_PERIOD_MONTH",
+        "TIME_PERIOD_QUARTER",
+        "TIME_PERIOD_YEAR",
+        "TIME_PERIOD_ALL"
+      ],
+      "default": "TIME_PERIOD_UNSPECIFIED",
+      "description": "- TIME_PERIOD_ALL: Or use start/end dates",
+      "title": "Time Period Enum for Statistics"
+    },
+    "pbTimeSeriesPoint": {
+      "type": "object",
+      "properties": {
+        "timestamp": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "amount": {
+          "type": "number",
+          "format": "double"
+        }
+      },
+      "title": "Represents a single point in a time series chart"
+    },
+    "pbTransferTransaction": {
+      "type": "object",
+      "properties": {
+        "transactionId": {
+          "type": "string",
+          "title": "Unique ID for the transfer"
+        },
+        "fromAccountId": {
+          "type": "string",
+          "format": "uint64",
+          "title": "Source LazerVault account ID"
+        },
+        "toAccountId": {
+          "type": "string",
+          "format": "uint64",
+          "title": "Destination LazerVault account ID (if internal)"
+        },
+        "toRecipientId": {
+          "type": "string",
+          "title": "Destination Recipient ID (if external)"
+        },
+        "amount": {
+          "type": "number",
+          "format": "double",
+          "title": "Amount transferred"
+        },
+        "currency": {
+          "type": "string",
+          "title": "Currency code (e.g., \"GBP\")"
+        },
+        "transferType": {
+          "$ref": "#/definitions/pbTransferType",
+          "title": "Type of transfer (Income/Expense/Internal)"
+        },
+        "category": {
+          "type": "string",
+          "title": "User-defined or system-assigned category (e.g., \"Shopping\", \"Salary\")"
+        },
+        "description": {
+          "type": "string",
+          "title": "Optional description/note for the transfer"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "title": "Main Transfer Transaction message"
+    },
+    "pbTransferType": {
+      "type": "string",
+      "enum": [
+        "TRANSFER_TYPE_UNSPECIFIED",
+        "TRANSFER_TYPE_INCOME",
+        "TRANSFER_TYPE_EXPENSE",
+        "TRANSFER_TYPE_INTERNAL"
+      ],
+      "default": "TRANSFER_TYPE_UNSPECIFIED",
+      "description": "- TRANSFER_TYPE_INCOME: Incoming transfer (e.g., deposit, received payment)\n - TRANSFER_TYPE_EXPENSE: Outgoing transfer (e.g., payment, withdrawal)\n - TRANSFER_TYPE_INTERNAL: Transfer between user's own accounts",
+      "title": "Transfer Type Enum"
+    },
+    "pbUpdateAccountCardDefaultStatusResponse": {
+      "type": "object",
+      "properties": {
+        "card": {
+          "$ref": "#/definitions/pbAccountCard",
+          "title": "Return the updated card"
+        }
+      }
+    },
+    "pbUpdateRecipientFavoriteStatusResponse": {
+      "type": "object",
+      "properties": {
+        "recipient": {
+          "$ref": "#/definitions/pbRecipient",
+          "title": "Return the updated recipient"
         }
       }
     },
@@ -427,6 +2755,131 @@
       },
       "title": "Base user type"
     },
+    "pbVerifyEmailRequest": {
+      "type": "object",
+      "properties": {
+        "verificationCode": {
+          "type": "string",
+          "title": "The verification code sent to the user's email"
+        }
+      },
+      "description": "Request to verify an email using a received code.",
+      "required": [
+        "verificationCode"
+      ]
+    },
+    "pbVerifyEmailResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "title": "Indicates if the email was successfully verified"
+        },
+        "msg": {
+          "type": "string",
+          "title": "User-facing message (e.g., \"Email verified successfully\")"
+        }
+      },
+      "description": "Response for verifying an email."
+    },
+    "pbVerifyPinRequest": {
+      "type": "object",
+      "properties": {
+        "pin": {
+          "type": "string",
+          "title": "The 4-digit transaction PIN entered by the user"
+        }
+      },
+      "title": "--- PIN Verification ---",
+      "required": [
+        "pin"
+      ]
+    },
+    "pbVerifyPinResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "title": "Indicates if the PIN was correct"
+        },
+        "msg": {
+          "type": "string",
+          "title": "e.g., \"PIN verified successfully.\""
+        }
+      }
+    },
+    "pbWithdrawalStatus": {
+      "type": "string",
+      "enum": [
+        "WITHDRAWAL_STATUS_UNSPECIFIED",
+        "WITHDRAWAL_STATUS_PENDING",
+        "WITHDRAWAL_STATUS_PROCESSING",
+        "WITHDRAWAL_STATUS_COMPLETED",
+        "WITHDRAWAL_STATUS_FAILED"
+      ],
+      "default": "WITHDRAWAL_STATUS_UNSPECIFIED",
+      "description": "- WITHDRAWAL_STATUS_PENDING: Request received, validation pending\n - WITHDRAWAL_STATUS_PROCESSING: Funds deducted, payout in progress (if async)\n - WITHDRAWAL_STATUS_COMPLETED: Payout successful\n - WITHDRAWAL_STATUS_FAILED: Withdrawal failed",
+      "title": "Represents the status of a withdrawal transaction"
+    },
+    "pbWithdrawalTransaction": {
+      "type": "object",
+      "properties": {
+        "transactionId": {
+          "type": "string",
+          "title": "Unique ID for the withdrawal"
+        },
+        "sourceAccountId": {
+          "type": "string",
+          "format": "uint64",
+          "title": "LazerVault account funds came from"
+        },
+        "amount": {
+          "type": "number",
+          "format": "double",
+          "title": "Amount withdrawn (excluding fees)"
+        },
+        "currency": {
+          "type": "string",
+          "description": "Currency code (e.g., \"GBP\")",
+          "title": "double fee = 4;                // Optional withdrawal fee\ndouble total_amount = 5;       // Amount + Fee deducted"
+        },
+        "targetBankName": {
+          "type": "string",
+          "title": "Name of the destination bank"
+        },
+        "targetAccountNumber": {
+          "type": "string",
+          "title": "Destination account number (masked?)"
+        },
+        "targetSortCode": {
+          "type": "string",
+          "title": "Destination sort code (if applicable)"
+        },
+        "status": {
+          "$ref": "#/definitions/pbWithdrawalStatus",
+          "title": "Current status of the withdrawal"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "completedAt": {
+          "type": "string",
+          "format": "date-time",
+          "title": "Null if not completed/failed"
+        },
+        "failedAt": {
+          "type": "string",
+          "format": "date-time",
+          "title": "Null if not failed"
+        },
+        "failureReason": {
+          "type": "string",
+          "title": "Optional reason for failure"
+        }
+      },
+      "title": "Represents a withdrawal transaction record"
+    },
     "protobufAny": {
       "type": "object",
       "properties": {
@@ -455,5 +2908,18 @@
         }
       }
     }
-  }
+  },
+  "securityDefinitions": {
+    "bearer": {
+      "type": "apiKey",
+      "description": "Authentication token, prefixed by Bearer: Bearer \u003ctoken\u003e",
+      "name": "Authorization",
+      "in": "header"
+    }
+  },
+  "security": [
+    {
+      "bearer": []
+    }
+  ]
 }

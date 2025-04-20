@@ -1,0 +1,108 @@
+syntax = "proto3";
+
+package pb;
+
+import "google/protobuf/timestamp.proto";
+import "google/api/annotations.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+
+option go_package = "lazervaultGo/pb"; // Adjust if your go_package path is different
+
+// OpenAPI v2 documentation options
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+  info: {
+    title: "LazerVault Withdraw Service";
+    version: "1.0";
+    contact: {
+      name: "LazerVault Support";
+      url: "https://github.com/LazerVault";
+      email: "support@lazervault.example";
+    };
+  };
+  security_definitions: {
+    security: {
+      key: "bearer"
+      value: {
+        type: TYPE_API_KEY
+        in: IN_HEADER
+        name: "Authorization"
+        description: "Authentication token, prefixed by Bearer: Bearer <token>"
+      }
+    }
+  }
+  security: {
+    security_requirement: {
+      key: "bearer"
+    }
+  }
+};
+
+// Represents the status of a withdrawal transaction
+enum WithdrawalStatus {
+  WITHDRAWAL_STATUS_UNSPECIFIED = 0;
+  WITHDRAWAL_STATUS_PENDING = 1;     // Request received, validation pending
+  WITHDRAWAL_STATUS_PROCESSING = 2;  // Funds deducted, payout in progress (if async)
+  WITHDRAWAL_STATUS_COMPLETED = 3;   // Payout successful
+  WITHDRAWAL_STATUS_FAILED = 4;      // Withdrawal failed
+}
+
+// Represents a withdrawal transaction record
+message WithdrawalTransaction {
+  string transaction_id = 1;        // Unique ID for the withdrawal
+  uint64 source_account_id = 2;     // LazerVault account funds came from
+  double amount = 3;                // Amount withdrawn (excluding fees)
+  // double fee = 4;                // Optional withdrawal fee
+  // double total_amount = 5;       // Amount + Fee deducted
+  string currency = 6;              // Currency code (e.g., "GBP")
+  string target_bank_name = 7;      // Name of the destination bank
+  string target_account_number = 8; // Destination account number (masked?)
+  string target_sort_code = 9;      // Destination sort code (if applicable)
+  WithdrawalStatus status = 10;       // Current status of the withdrawal
+  google.protobuf.Timestamp created_at = 11;
+  google.protobuf.Timestamp completed_at = 12; // Null if not completed/failed
+  google.protobuf.Timestamp failed_at = 13;    // Null if not failed
+  string failure_reason = 14;       // Optional reason for failure
+}
+
+// Request to initiate a withdrawal
+message InitiateWithdrawalRequest {
+   option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+      required: ["source_account_id", "amount", "currency", "target_bank_name", "target_account_number"]
+    }
+  };
+  uint64 source_account_id = 1;     // LazerVault account ID to withdraw from
+  double amount = 2;                // Amount to withdraw
+  string currency = 3;              // Currency of the withdrawal (e.g., "GBP")
+  string target_bank_name = 4;      // Name of the destination bank
+  string target_account_number = 5; // Destination account number
+  string target_sort_code = 6;      // Destination sort code (optional)
+}
+
+// Response after initiating a withdrawal
+message InitiateWithdrawalResponse {
+  bool success = 1;
+  string message = 2;                   // e.g., "Withdrawal initiated successfully"
+  WithdrawalTransaction transaction = 3; // Details of the created withdrawal record
+}
+
+// Service for handling withdrawals
+service WithdrawService {
+  // Initiates a withdrawal from a LazerVault account to an external bank account.
+  rpc InitiateWithdrawal (InitiateWithdrawalRequest) returns (InitiateWithdrawalResponse) {
+    option (google.api.http) = {
+      post: "/v1/withdrawals"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Initiate Withdrawal"
+      description: "Initiates a withdrawal from a specified LazerVault account to an external bank account."
+      tags: ["Withdrawals"]
+      security: [{ // Requires authentication
+        security_requirement: {
+          key: "bearer" value: {}
+        }
+      }]
+    };
+  }
+} 
