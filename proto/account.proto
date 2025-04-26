@@ -75,6 +75,100 @@ message GetAccountsResponse {
   repeated Account accounts = 1; // List of accounts belonging to the user
 }
 
+// --- Account Messages ---
+
+// AccountSummary: Used for listing accounts (e.g., in the carousel)
+message AccountSummary {
+    uint64 id = 1;
+    string account_type = 2;      // e.g., "personal", "savings"
+    string currency = 3;          // e.g., "GBP", "USD"
+    double balance = 4;
+    string masked_account_number = 5; // e.g., "•••• 7890"
+    string status = 6;            // e.g., "active", "blocked_temporary"
+}
+
+// AccountDetails: Used for the detailed view
+message AccountDetails {
+    uint64 id = 1;
+    string account_type = 2;
+    string currency = 3;
+    double balance = 4;
+    string status = 6;
+    string card_holder_name = 7;
+    string card_type = 8;         // e.g., "debit"
+    string expiry_date = 9;       // e.g., "12/25"
+    double daily_limit = 10;
+    double monthly_limit = 11;
+    bool enable_3d_secure = 12;
+    bool enable_contactless = 13;
+    bool enable_online_payments = 14;
+    string account_number = 15;    // Full account number/IBAN for details view
+    string iban = 16;              // Specific field for IBAN if different from account_number
+    string bic_swift = 17;         // Specific field for BIC/SWIFT
+    google.protobuf.Timestamp created_at = 18;
+    google.protobuf.Timestamp updated_at = 19;
+}
+
+// SecuritySettings: Used for updating security flags
+message SecuritySettings {
+    bool enable_3d_secure = 1;
+    bool enable_contactless = 2;
+    bool enable_online_payments = 3;
+}
+
+// --- RPC Requests/Responses ---
+
+// ListUserAccounts
+message ListUserAccountsRequest {
+    // User ID will be inferred from context/auth token on the server
+}
+
+message ListUserAccountsResponse {
+    repeated AccountSummary accounts = 1;
+}
+
+// GetAccountDetails
+message GetAccountDetailsRequest {
+    uint64 account_id = 1;
+}
+
+message GetAccountDetailsResponse {
+    AccountDetails account = 1;
+}
+
+// UpdateAccountStatus
+message UpdateAccountStatusRequest {
+    uint64 account_id = 1;
+    string status = 2;     // Target status: "active", "blocked_temporary", "blocked_permanent", "blocked_stolen"
+    string reason = 3;     // Optional reason, especially for blocking
+}
+
+message UpdateAccountStatusResponse {
+    AccountDetails account = 1; // Return updated details
+}
+
+// UpdateSecuritySettings
+message UpdateSecuritySettingsRequest {
+    uint64 account_id = 1;
+    SecuritySettings settings = 2;
+}
+
+message UpdateSecuritySettingsResponse {
+    AccountDetails account = 1; // Return updated details
+}
+
+// RevealPIN (Placeholder - requires security review)
+message RevealPINRequest {
+    uint64 account_id = 1; // Maybe just UserID is needed if PIN is per-user
+    // Add fields for authentication confirmation (e.g., password, OTP)
+}
+
+message RevealPINResponse {
+    string pin = 1;
+}
+
+// --- Account Service Definition ---
+
 // The AccountService provides methods for managing user accounts.
 service AccountService {
   // Creates a new account for the authenticated user.
@@ -101,4 +195,10 @@ service AccountService {
       tags: ["Accounts"]
     };
   }
+
+  rpc ListUserAccounts(ListUserAccountsRequest) returns (ListUserAccountsResponse) {}
+  rpc GetAccountDetails(GetAccountDetailsRequest) returns (GetAccountDetailsResponse) {}
+  rpc UpdateAccountStatus(UpdateAccountStatusRequest) returns (UpdateAccountStatusResponse) {}
+  rpc UpdateSecuritySettings(UpdateSecuritySettingsRequest) returns (UpdateSecuritySettingsResponse) {}
+  // rpc RevealPIN(RevealPINRequest) returns (RevealPINResponse) {} // Uncomment when ready
 }

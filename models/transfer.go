@@ -19,6 +19,8 @@ type Transfer struct {
 	gorm.Model
 	FromUserID    uint           `json:"from_user_id"`
 	ToUserID      uint           `json:"to_user_id"`
+	FromAccountID uint           `json:"from_account_id" gorm:"index"`
+	ToAccountID   uint           `json:"to_account_id" gorm:"index"`
 	Amount        float64        `json:"amount"`
 	Fee           float64        `json:"fee"`
 	TotalAmount   float64        `json:"total_amount"`
@@ -31,6 +33,8 @@ type Transfer struct {
 	FailureReason string         `json:"failure_reason"`
 	FromUser      User           `json:"from_user" gorm:"foreignKey:FromUserID"`
 	ToUser        User           `json:"to_user" gorm:"foreignKey:ToUserID"`
+	FromAccount   Account        `json:"from_account" gorm:"foreignKey:FromAccountID"`
+	ToAccount     Account        `json:"to_account" gorm:"foreignKey:ToAccountID"`
 }
 
 type FailedTransfer struct {
@@ -38,6 +42,8 @@ type FailedTransfer struct {
 	TransferID    uint       `json:"transfer_id"`
 	FromUserID    uint       `json:"from_user_id"`
 	ToUserID      uint       `json:"to_user_id"`
+	FromAccountID uint       `json:"from_account_id"`
+	ToAccountID   uint       `json:"to_account_id"`
 	Amount        float64    `json:"amount"`
 	Fee           float64    `json:"fee"`
 	TotalAmount   float64    `json:"total_amount"`

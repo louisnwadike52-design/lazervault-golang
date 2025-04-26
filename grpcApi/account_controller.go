@@ -11,123 +11,154 @@ import (
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-// AccountController handles gRPC requests for the AccountService.
+// AccountController handles gRPC requests related to accounts.
 type AccountController struct {
-	pb.UnimplementedAccountServiceServer                          // Embed for forward compatibility
-	accountService                       services.IAccountService // Use interface type
-	userService                          services.IUserService    // Inject userService
-	// db                                   *gorm.DB // Remove db if only used for user lookup
+	pb.UnimplementedAccountServiceServer // Embed for forward compatibility
+	accountService                       services.IAccountService
+	userService                          services.IUserService // Added userService dependency
 }
 
 // NewAccountController creates a new AccountController.
-func NewAccountController(accountService services.IAccountService, userService services.IUserService) *AccountController { // Accept interfaces
+func NewAccountController(accountService services.IAccountService, userService services.IUserService) *AccountController {
 	return &AccountController{
 		accountService: accountService,
-		userService:    userService,
-		// db:             db,
+		userService:    userService, // Store userService
 	}
 }
 
-// convertAccount converts a models.Account to a pb.Account.
-func convertAccount(account *models.Account) *pb.Account {
-	if account == nil {
-		return nil
-	}
-	return &pb.Account{
-		Id:            uint64(account.ID),
-		AccountType:   account.AccountType,
-		Currency:      account.Currency,
-		Balance:       account.Balance,
-		AccountNumber: account.AccountNumber,
-		IsActive:      account.IsActive,
-		CreatedAt:     timestamppb.New(account.CreatedAt),
-		UpdatedAt:     timestamppb.New(account.UpdatedAt),
-	}
-}
-
-// CreateAccount handles the RPC for creating a new user account.
-func (c *AccountController) CreateAccount(ctx context.Context, req *pb.CreateAccountRequest) (*pb.CreateAccountResponse, error) {
-	// 1. Get Owner User ID from context using userService
+// getUserFromContext retrieves the user model based on the auth payload in the context.
+func (c *AccountController) getUserFromContext(ctx context.Context) (*models.User, error) {
 	authPayload, ok := ctx.Value(middleware.AuthorizationPayloadKey).(*token.Payload)
-	if !ok {
-		return nil, status.Errorf(codes.Unauthenticated, "missing authorization payload")
+	if !ok || authPayload == nil {
+		return nil, status.Error(codes.Unauthenticated, "missing authentication payload")
 	}
-	// Fetch user via userService
+
 	user, err := c.userService.GetUserByEmail(ctx, authPayload.Email)
 	if err != nil {
 		if errors.Is(err, services.ErrUserNotFound) {
-			return nil, status.Errorf(codes.Unauthenticated, "user associated with token not found")
+			return nil, status.Errorf(codes.Unauthenticated, "user from token not found: %v", err)
 		}
-		return nil, status.Errorf(codes.Internal, "failed to retrieve user details: %v", err)
+		return nil, status.Errorf(codes.Internal, "failed to retrieve user: %v", err)
 	}
-	ownerUserID := user.ID // Use uint ID
-
-	// 2. Validate Request
-	if req.GetAccountType() == "" {
-		return nil, status.Errorf(codes.InvalidArgument, "account_type is required")
-	}
-	if req.GetCurrency() == "" { // TODO: Add proper currency code validation (e.g., check against a list)
-		return nil, status.Errorf(codes.InvalidArgument, "currency is required")
-	}
-
-	// 3. Prepare Service Request (Service expects uint OwnerUserID)
-	serviceReq := services.CreateAccountRequest{
-		OwnerUserID: ownerUserID, // Pass uint ID directly
-		AccountType: req.GetAccountType(),
-		Currency:    req.GetCurrency(),
-	}
-
-	// 4. Call Service
-	newAccount, err := c.accountService.CreateAccount(ctx, serviceReq)
-	if err != nil {
-		if errors.Is(err, services.ErrInvalidAccountType) {
-			return nil, status.Errorf(codes.InvalidArgument, "invalid account_type: %v", req.GetAccountType())
-		}
-		// Handle other potential service errors
-		return nil, status.Errorf(codes.Internal, "failed to create account: %v", err)
-	}
-
-	// 5. Convert and Return Response
-	resp := &pb.CreateAccountResponse{
-		Account: convertAccount(newAccount),
-	}
-	return resp, nil
+	return user, nil
 }
 
-// GetAccounts handles the RPC for retrieving all accounts for the authenticated user.
-func (c *AccountController) GetAccounts(ctx context.Context, req *pb.GetAccountsRequest) (*pb.GetAccountsResponse, error) {
-	// 1. Get Owner User ID from context using userService
-	authPayload, ok := ctx.Value(middleware.AuthorizationPayloadKey).(*token.Payload)
-	if !ok {
-		return nil, status.Errorf(codes.Unauthenticated, "missing authorization payload")
-	}
-	// Fetch user via userService
-	user, err := c.userService.GetUserByEmail(ctx, authPayload.Email)
+// ListUserAccounts retrieves accounts for the authenticated user.
+func (c *AccountController) ListUserAccounts(ctx context.Context, req *pb.ListUserAccountsRequest) (*pb.ListUserAccountsResponse, error) {
+	user, err := c.getUserFromContext(ctx)
 	if err != nil {
-		if errors.Is(err, services.ErrUserNotFound) {
-			return nil, status.Errorf(codes.Unauthenticated, "user associated with token not found")
-		}
-		return nil, status.Errorf(codes.Internal, "failed to retrieve user details: %v", err)
+		return nil, err // Error already includes status code
 	}
-	ownerUserID := user.ID // Use uint ID
 
-	// 2. Call Service (Service expects uint ownerUserID)
-	accounts, err := c.accountService.GetAccounts(ctx, ownerUserID)
+	// Call the service layer with user ID
+	summaries, err := c.accountService.GetAccountsByUserID(ctx, user.ID)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to retrieve accounts: %v", err)
 	}
 
-	// 3. Convert and Return Response
-	pbAccounts := make([]*pb.Account, 0, len(accounts))
-	for i := range accounts {
-		pbAccounts = append(pbAccounts, convertAccount(&accounts[i]))
-	}
-
-	resp := &pb.GetAccountsResponse{
-		Accounts: pbAccounts,
+	// Construct and return the response
+	resp := &pb.ListUserAccountsResponse{
+		Accounts: summaries,
 	}
 	return resp, nil
 }
+
+// GetAccountDetails retrieves detailed information for a specific account.
+func (c *AccountController) GetAccountDetails(ctx context.Context, req *pb.GetAccountDetailsRequest) (*pb.GetAccountDetailsResponse, error) {
+	user, err := c.getUserFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	accountID := uint(req.GetAccountId())
+
+	// Call the service layer with user ID
+	details, err := c.accountService.GetAccountDetails(ctx, user.ID, accountID)
+	if err != nil {
+		if errors.Is(err, services.ErrSvcAccountNotFound) {
+			return nil, status.Errorf(codes.NotFound, "account not found")
+		} else if errors.Is(err, services.ErrSvcAccountAccessDenied) {
+			return nil, status.Errorf(codes.PermissionDenied, "you do not have permission to access this account")
+		}
+		return nil, status.Errorf(codes.Internal, "failed to retrieve account details: %v", err)
+	}
+
+	// Construct and return the response
+	resp := &pb.GetAccountDetailsResponse{
+		Account: details,
+	}
+	return resp, nil
+}
+
+// UpdateAccountStatus handles requests to update an account's status.
+func (c *AccountController) UpdateAccountStatus(ctx context.Context, req *pb.UpdateAccountStatusRequest) (*pb.UpdateAccountStatusResponse, error) {
+	user, err := c.getUserFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	accountID := uint(req.GetAccountId())
+	newStatus := req.GetStatus()
+	reason := req.GetReason()
+
+	// Call the service layer with user ID
+	updatedAccountModel, err := c.accountService.UpdateAccountStatus(ctx, user.ID, accountID, newStatus, reason)
+	if err != nil {
+		if errors.Is(err, services.ErrSvcAccountNotFound) {
+			return nil, status.Errorf(codes.NotFound, "account not found")
+		} else if errors.Is(err, services.ErrSvcAccountAccessDenied) {
+			return nil, status.Errorf(codes.PermissionDenied, "permission denied")
+		} else if errors.Is(err, services.ErrSvcInvalidAccountStatus) {
+			return nil, status.Errorf(codes.InvalidArgument, "invalid status provided: %s", newStatus)
+		}
+		return nil, status.Errorf(codes.Internal, "failed to update account status: %v", err)
+	}
+
+	// Convert the updated GORM model back to Protobuf details
+	updatedDetails := services.ConvertAccountToProtoDetails(updatedAccountModel)
+
+	resp := &pb.UpdateAccountStatusResponse{
+		Account: updatedDetails,
+	}
+	return resp, nil
+}
+
+// UpdateSecuritySettings handles requests to update account security flags.
+func (c *AccountController) UpdateSecuritySettings(ctx context.Context, req *pb.UpdateSecuritySettingsRequest) (*pb.UpdateSecuritySettingsResponse, error) {
+	user, err := c.getUserFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	accountID := uint(req.GetAccountId())
+	settings := req.GetSettings()
+
+	if settings == nil {
+		return nil, status.Error(codes.InvalidArgument, "security settings payload is required")
+	}
+
+	// Call the service layer with user ID
+	updatedAccountModel, err := c.accountService.UpdateSecuritySettings(ctx, user.ID, accountID, settings)
+	if err != nil {
+		if errors.Is(err, services.ErrSvcAccountNotFound) {
+			return nil, status.Errorf(codes.NotFound, "account not found")
+		} else if errors.Is(err, services.ErrSvcAccountAccessDenied) {
+			return nil, status.Errorf(codes.PermissionDenied, "permission denied")
+		}
+		return nil, status.Errorf(codes.Internal, "failed to update security settings: %v", err)
+	}
+
+	// Convert the updated GORM model back to Protobuf details
+	updatedDetails := services.ConvertAccountToProtoDetails(updatedAccountModel)
+
+	resp := &pb.UpdateSecuritySettingsResponse{
+		Account: updatedDetails,
+	}
+	return resp, nil
+}
+
+// Note: CreateAccount and RevealPIN gRPC methods are not implemented here yet.
+// CreateAccount might be better handled within UserService during signup.
+// RevealPIN needs careful security implementation (e.g., password check, OTP).

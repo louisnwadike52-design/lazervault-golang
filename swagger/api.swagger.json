@@ -1469,6 +1469,107 @@
       },
       "title": "Represents a specific card linked to an account"
     },
+    "pbAccountDetails": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "accountType": {
+          "type": "string"
+        },
+        "currency": {
+          "type": "string"
+        },
+        "balance": {
+          "type": "number",
+          "format": "double"
+        },
+        "status": {
+          "type": "string"
+        },
+        "cardHolderName": {
+          "type": "string"
+        },
+        "cardType": {
+          "type": "string",
+          "title": "e.g., \"debit\""
+        },
+        "expiryDate": {
+          "type": "string",
+          "title": "e.g., \"12/25\""
+        },
+        "dailyLimit": {
+          "type": "number",
+          "format": "double"
+        },
+        "monthlyLimit": {
+          "type": "number",
+          "format": "double"
+        },
+        "enable3dSecure": {
+          "type": "boolean"
+        },
+        "enableContactless": {
+          "type": "boolean"
+        },
+        "enableOnlinePayments": {
+          "type": "boolean"
+        },
+        "accountNumber": {
+          "type": "string",
+          "title": "Full account number/IBAN for details view"
+        },
+        "iban": {
+          "type": "string",
+          "title": "Specific field for IBAN if different from account_number"
+        },
+        "bicSwift": {
+          "type": "string",
+          "title": "Specific field for BIC/SWIFT"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "title": "AccountDetails: Used for the detailed view"
+    },
+    "pbAccountSummary": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "accountType": {
+          "type": "string",
+          "title": "e.g., \"personal\", \"savings\""
+        },
+        "currency": {
+          "type": "string",
+          "title": "e.g., \"GBP\", \"USD\""
+        },
+        "balance": {
+          "type": "number",
+          "format": "double"
+        },
+        "maskedAccountNumber": {
+          "type": "string",
+          "title": "e.g., \"•••• 7890\""
+        },
+        "status": {
+          "type": "string",
+          "title": "e.g., \"active\", \"blocked_temporary\""
+        }
+      },
+      "title": "AccountSummary: Used for listing accounts (e.g., in the carousel)"
+    },
     "pbAddAccountCardResponse": {
       "type": "object",
       "properties": {
@@ -1879,6 +1980,14 @@
         }
       },
       "title": "Response containing the list of cards for an account"
+    },
+    "pbGetAccountDetailsResponse": {
+      "type": "object",
+      "properties": {
+        "account": {
+          "$ref": "#/definitions/pbAccountDetails"
+        }
+      }
     },
     "pbGetAccountsResponse": {
       "type": "object",
@@ -2358,6 +2467,18 @@
       "description": "Contains a list of invoices and pagination info.",
       "title": "List Invoices Response"
     },
+    "pbListUserAccountsResponse": {
+      "type": "object",
+      "properties": {
+        "accounts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbAccountSummary"
+          }
+        }
+      }
+    },
     "pbLoginRequest": {
       "type": "object",
       "properties": {
@@ -2607,6 +2728,21 @@
       },
       "description": "Response for resetting password."
     },
+    "pbSecuritySettings": {
+      "type": "object",
+      "properties": {
+        "enable3dSecure": {
+          "type": "boolean"
+        },
+        "enableContactless": {
+          "type": "boolean"
+        },
+        "enableOnlinePayments": {
+          "type": "boolean"
+        }
+      },
+      "title": "SecuritySettings: Used for updating security flags"
+    },
     "pbSendMessageRequest": {
       "type": "object",
       "properties": {
@@ -2817,12 +2953,30 @@
         }
       }
     },
+    "pbUpdateAccountStatusResponse": {
+      "type": "object",
+      "properties": {
+        "account": {
+          "$ref": "#/definitions/pbAccountDetails",
+          "title": "Return updated details"
+        }
+      }
+    },
     "pbUpdateRecipientFavoriteStatusResponse": {
       "type": "object",
       "properties": {
         "recipient": {
           "$ref": "#/definitions/pbRecipient",
           "title": "Return the updated recipient"
+        }
+      }
+    },
+    "pbUpdateSecuritySettingsResponse": {
+      "type": "object",
+      "properties": {
+        "account": {
+          "$ref": "#/definitions/pbAccountDetails",
+          "title": "Return updated details"
         }
       }
     },

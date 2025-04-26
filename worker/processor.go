@@ -117,9 +117,22 @@ func (processor *RedisTaskProcessor) ProcessTransferLogic(ctx context.Context, t
 	}()
 
 	var transfer models.Transfer
-	if err := tx.Preload("FromUser.Balance").Preload("ToUser.Balance").First(&transfer, transferID).Error; err != nil {
+	if err := tx.Preload("FromAccount").Preload("ToAccount").First(&transfer, transferID).Error; err != nil {
 		tx.Rollback()
-		return fmt.Errorf("failed to get transfer with users and balances: %w", err)
+		return fmt.Errorf("failed to get transfer with accounts: %w", err)
+	}
+
+	if transfer.FromAccount.ID == 0 || transfer.ToAccount.ID == 0 {
+		transfer.Status = models.TransferStatusFailed
+		now := time.Now()
+		transfer.FailedAt = &now
+		transfer.FailureReason = "invalid source or destination account"
+		if err := tx.Save(&transfer).Error; err != nil {
+			tx.Rollback()
+			return err
+		}
+		tx.Rollback()
+		return fmt.Errorf("transfer %d links to non-existent account(s)", transferID)
 	}
 
 	if transfer.Status != models.TransferStatusPending {
@@ -127,7 +140,7 @@ func (processor *RedisTaskProcessor) ProcessTransferLogic(ctx context.Context, t
 		return nil
 	}
 
-	if transfer.FromUser.Balance.Amount < int64(transfer.TotalAmount) {
+	if transfer.FromAccount.Balance < transfer.TotalAmount {
 		transfer.Status = models.TransferStatusFailed
 		now := time.Now()
 		transfer.FailedAt = &now
@@ -137,6 +150,8 @@ func (processor *RedisTaskProcessor) ProcessTransferLogic(ctx context.Context, t
 			TransferID:    transfer.ID,
 			FromUserID:    transfer.FromUserID,
 			ToUserID:      transfer.ToUserID,
+			FromAccountID: transfer.FromAccountID,
+			ToAccountID:   transfer.ToAccountID,
 			Amount:        transfer.Amount,
 			Fee:           transfer.Fee,
 			TotalAmount:   transfer.TotalAmount,
@@ -157,17 +172,17 @@ func (processor *RedisTaskProcessor) ProcessTransferLogic(ctx context.Context, t
 		return tx.Commit().Error
 	}
 
-	transfer.FromUser.Balance.Amount -= int64(transfer.TotalAmount)
-	transfer.ToUser.Balance.Amount += int64(transfer.Amount)
+	transfer.FromAccount.Balance -= transfer.TotalAmount
+	transfer.ToAccount.Balance += transfer.Amount
 
-	if err := tx.Save(&transfer.FromUser.Balance).Error; err != nil {
+	if err := tx.Save(&transfer.FromAccount).Error; err != nil {
 		tx.Rollback()
-		return fmt.Errorf("failed to update sender balance: %w", err)
+		return fmt.Errorf("failed to update sender account balance: %w", err)
 	}
 
-	if err := tx.Save(&transfer.ToUser.Balance).Error; err != nil {
+	if err := tx.Save(&transfer.ToAccount).Error; err != nil {
 		tx.Rollback()
-		return fmt.Errorf("failed to update recipient balance: %w", err)
+		return fmt.Errorf("failed to update recipient account balance: %w", err)
 	}
 
 	transfer.Status = models.TransferStatusCompleted

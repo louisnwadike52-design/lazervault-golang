@@ -2,7 +2,6 @@ package models
 
 import (
 	"errors"
-	"fmt"
 	"lazervaultGo/onboarding"
 	"lazervaultGo/utils"
 	"time"
@@ -57,7 +56,7 @@ type User struct {
 	// Field for Transaction PIN (Store Hashed)
 	TransactionPin *string `json:"-" gorm:"size:255"` // Nullable if PIN is not set
 
-	Balance Balance // GORM infers "Has One" relationship
+	Accounts []Account `gorm:"foreignKey:OwnerUserID"` // Has Many relationship
 }
 
 func (User) TableName() string {
@@ -205,14 +204,11 @@ func (u *User) BeforeUpdate(tx *gorm.DB) error {
 
 // AfterCreate hook for GORM
 func (u *User) AfterCreate(tx *gorm.DB) error {
-	u.Balance.UserID = u.ID // Explicitly set it for clarity if preferred
-	if err := tx.Create(&u.Balance).Error; err != nil {
-		return fmt.Errorf("failed to create balance record for user %d: %w", u.ID, err)
-	}
+	// Send welcome email (assuming this is desired after user creation)
 	return onboarding.SendWelcomeEmail(u.Email, "Welcome to Lazervault", "Welcome to Lazervault")
 }
 
-// ComparePassword compares the provided password with the hashed password
+// ComparePassword compares the provided password with the user's hashed password
 func (u *User) ComparePassword(password string) (bool, error) {
 	if u.Password == nil || *u.Password == "" {
 		// No password set (e.g., social sign-in user)
@@ -229,15 +225,18 @@ func (u *User) ComparePassword(password string) (bool, error) {
 
 func (User) FindById(db *gorm.DB, id uint) (*User, error) {
 	var user User
-	if err := db.Preload("Balance").Where("id = ?", id).First(&user).Error; err != nil {
+	// Preload Accounts when finding by ID
+	if err := db.Preload("Accounts").Where("id = ?", id).First(&user).Error; err != nil {
 		return nil, err
 	}
 	return &user, nil
 }
 
+// GetUserByEmail retrieves a user by their email address
 func (User) GetUserByEmail(db *gorm.DB, email string) (*User, error) {
 	var user User
-	if err := db.Preload("Balance").Where("email = ?", email).First(&user).Error; err != nil {
+	// Preload Accounts when finding by email
+	if err := db.Preload("Accounts").Where("email = ?", email).First(&user).Error; err != nil {
 		return nil, err
 	}
 	return &user, nil
