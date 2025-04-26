@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package pb;
 option go_package = "lazervaultGolang/pb";
+
 import "google/api/annotations.proto";
 import "protoc-gen-openapiv2/options/annotations.proto";
 import "common.proto";
@@ -119,6 +120,42 @@ message ResetPasswordResponse {
 
 // --- End Password Reset Messages ---
 
+// --- Social Sign-In Messages ---
+message SignInWithGoogleRequest {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+      required: ["id_token"]
+    }
+  };
+  // The ID token received from Google Sign-In on the client.
+  string id_token = 1;
+}
+
+message SignInWithAppleRequest {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+      required: ["identity_token", "user_identifier"]
+      // Optional: Include email and name if you want the client to send them
+      // when first available from Apple. The backend should prioritize
+      // verification via identity_token.
+    }
+  };
+  // The identity token received from Sign in with Apple on the client.
+  string identity_token = 1;
+  // The unique user identifier received from Apple.
+  string user_identifier = 2;
+  // Optional: Email provided by Apple (usually only on first sign-in).
+  string email = 3;
+  // Optional: Given name provided by Apple.
+  string given_name = 4;
+  // Optional: Family name provided by Apple.
+  string family_name = 5;
+}
+
+// We can reuse LoginResponse for social sign-in success.
+
+// --- End Social Sign-In Messages ---
+
 // --- PIN Verification ---
 message VerifyPinRequest {
   option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
@@ -167,11 +204,11 @@ rpc RefreshToken(RefreshTokenRequest) returns (RefreshTokenResponse) {
       summary: "Request Email Verification"
       description: "Initiates the process to send a verification email to the authenticated user's registered email address."
       tags: ["Auth"]
-      security: [{
+      security: {
         security_requirement: {
           key: "bearer" value: {}
         }
-      }]
+      }
     };
   }
 
@@ -222,6 +259,32 @@ rpc RefreshToken(RefreshTokenRequest) returns (RefreshTokenResponse) {
 
   // --- End Password Reset RPCs ---
 
+  // --- Social Sign-In RPCs ---
+  rpc SignInWithGoogle(SignInWithGoogleRequest) returns (LoginResponse) {
+     option (google.api.http) = {
+       post: "/v1/auth/google/signin"
+       body: "*"
+     };
+     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+       summary: "Sign In/Up with Google"
+       description: "Authenticates a user using a Google ID token. Creates an account if one doesn't exist for the Google user."
+       tags: ["Auth"]
+     };
+  }
+
+  rpc SignInWithApple(SignInWithAppleRequest) returns (LoginResponse) {
+     option (google.api.http) = {
+       post: "/v1/auth/apple/signin"
+       body: "*"
+     };
+     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+       summary: "Sign In/Up with Apple"
+       description: "Authenticates a user using Apple credentials. Creates an account if one doesn't exist for the Apple user."
+       tags: ["Auth"]
+     };
+  }
+  // --- End Social Sign-In RPCs ---
+
   // Verify the user's transaction PIN.
   rpc VerifyPin(VerifyPinRequest) returns (VerifyPinResponse) {
     option (google.api.http) = {
@@ -232,11 +295,11 @@ rpc RefreshToken(RefreshTokenRequest) returns (RefreshTokenResponse) {
       summary: "Verify Transaction PIN"
       description: "Verifies the authenticated user's transaction PIN."
       tags: ["Auth"]
-      security: [{ // Requires authentication
+      security: { // Requires authentication
         security_requirement: {
           key: "bearer" value: {}
         }
-      }]
+      }
     };
   }
 } 

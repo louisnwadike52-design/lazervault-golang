@@ -29,7 +29,7 @@ func (c *UserController) CreateUser(ctx context.Context, req *pb.CreateUserReque
 		FirstName:   req.FirstName,
 		LastName:    req.LastName,
 		Email:       req.Email,
-		Password:    req.Password,
+		Password:    &req.Password,
 		PhoneNumber: req.PhoneNumber,
 		Role:        req.Role,
 	}

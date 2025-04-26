@@ -113,7 +113,7 @@ func NewAuthService(db *gorm.DB, config *configs.Config, tokenMaker token.Maker,
 
 func (s *AuthService) Login(req *LoginRequest, userAgent, clientIP string) (*LoginResponse, error) {
 	// Validate request
-	if err := validators.ValidateLoginUser(&models.User{Email: req.Email, Password: req.Password}); err != nil {
+	if err := validators.ValidateLoginUser(&models.User{Email: req.Email, Password: &req.Password}); err != nil {
 		return nil, err
 	}
 

@@ -127,7 +127,7 @@ func (processor *RedisTaskProcessor) ProcessTransferLogic(ctx context.Context, t
 		return nil
 	}
 
-	if transfer.FromUser.Balance.Amount < transfer.TotalAmount {
+	if transfer.FromUser.Balance.Amount < int64(transfer.TotalAmount) {
 		transfer.Status = models.TransferStatusFailed
 		now := time.Now()
 		transfer.FailedAt = &now
@@ -157,8 +157,8 @@ func (processor *RedisTaskProcessor) ProcessTransferLogic(ctx context.Context, t
 		return tx.Commit().Error
 	}
 
-	transfer.FromUser.Balance.Amount -= transfer.TotalAmount
-	transfer.ToUser.Balance.Amount += transfer.Amount
+	transfer.FromUser.Balance.Amount -= int64(transfer.TotalAmount)
+	transfer.ToUser.Balance.Amount += int64(transfer.Amount)
 
 	if err := tx.Save(&transfer.FromUser.Balance).Error; err != nil {
 		tx.Rollback()

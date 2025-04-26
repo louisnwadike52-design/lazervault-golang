@@ -37,14 +37,18 @@ type User struct {
 	FirstName   string     `json:"first_name" gorm:"size:255;not null;check:length(first_name) >= 2"`
 	LastName    string     `json:"last_name" gorm:"size:255;not null;check:length(last_name) >= 2"`
 	Email       string     `json:"email" gorm:"size:255;not null;unique;index:idx_email,priority:1"`
-	Password    string     `json:"password" gorm:"size:255;not null;check:length(password) >= 8"`
+	Password    *string    `json:"password,omitempty" gorm:"size:255;check:length(password) >= 8"` // Made nullable for social sign-in
 	PhoneNumber string     `json:"phone_number" gorm:"size:255;not null;unique;index:idx_phone_number,priority:1"`
 	Role        string     `json:"role" gorm:"size:255;check:role IN ('admin', 'user')"`
 	Verified    bool       `json:"verified" gorm:"default:false"`
 	VerifiedAt  *time.Time `json:"verified_at"`
-	Balance     Balance    `gorm:"foreignKey:UserID"` // One-to-one relationship with Balance
-	CreatedAt   time.Time  `json:"created_at" gorm:"autoCreateTime"`
-	UpdatedAt   time.Time  `json:"updated_at" gorm:"autoUpdateTime"`
+
+	// Social Login Fields
+	GoogleID *string `json:"google_id,omitempty" gorm:"size:255;uniqueIndex:idx_google_id"` // Nullable, unique
+	AppleID  *string `json:"apple_id,omitempty" gorm:"size:255;uniqueIndex:idx_apple_id"`   // Nullable, unique
+
+	CreatedAt time.Time `json:"created_at" gorm:"autoCreateTime"`
+	UpdatedAt time.Time `json:"updated_at" gorm:"autoUpdateTime"`
 
 	// Fields for Password Reset
 	ResetPasswordToken          *string    `json:"-" gorm:"index"` // Use pointer to allow NULL, index for lookup
@@ -52,6 +56,8 @@ type User struct {
 
 	// Field for Transaction PIN (Store Hashed)
 	TransactionPin *string `json:"-" gorm:"size:255"` // Nullable if PIN is not set
+
+	Balance Balance // GORM infers "Has One" relationship
 }
 
 func (User) TableName() string {
@@ -67,7 +73,6 @@ func (u *User) ToJson() gin.H {
 		"phone_number": u.PhoneNumber,
 		"role":         u.Role,
 		"verified":     u.Verified,
-		"balance":      u.Balance.Amount, // Include balance amount
 		"created_at":   u.CreatedAt,
 		"updated_at":   u.UpdatedAt,
 	}
@@ -96,15 +101,20 @@ func (u *User) BeforeCreate(tx *gorm.DB) error {
 	}
 
 	// Validate password
-	if len(u.Password) < 8 {
-		return ErrInvalidPassword
+	if u.Password != nil && *u.Password != "" { // Check if password is provided
+		if len(*u.Password) < 8 {
+			return ErrInvalidPasswordFormat // Use specific error
+		}
+		// Hash password
+		hashedPassword, err := utils.HashPassword(*u.Password)
+		if err != nil {
+			return err
+		}
+		*u.Password = hashedPassword
+	} else if u.GoogleID == nil && u.AppleID == nil {
+		// If not a social sign-up, password is required
+		return ErrPasswordRequired
 	}
-	// Hash password
-	hashedPassword, err := utils.HashPassword(u.Password)
-	if err != nil {
-		return err
-	}
-	u.Password = hashedPassword
 
 	// Validate phone number
 	if !utils.IsValidPhoneNumber(u.PhoneNumber) {
@@ -125,9 +135,6 @@ func (u *User) BeforeCreate(tx *gorm.DB) error {
 	if u.Role == "" {
 		u.Role = "user"
 	}
-
-	// Initialize balance for the user
-	u.Balance = Balance{Amount: 0} // Initialize with 0 balance
 
 	return nil
 }
@@ -159,14 +166,19 @@ func (u *User) BeforeUpdate(tx *gorm.DB) error {
 	}
 
 	if tx.Statement.Changed("Password") {
-		if len(u.Password) < 8 {
-			return ErrInvalidPassword
+		if u.Password != nil && *u.Password != "" {
+			if len(*u.Password) < 8 {
+				return ErrInvalidPasswordFormat
+			}
+			hashedPassword, err := utils.HashPassword(*u.Password)
+			if err != nil {
+				return err
+			}
+			*u.Password = hashedPassword
+		} else {
+			// Allowing password to be set to null/empty during update might be intended
+			// If password MUST exist after initial creation, add validation here.
 		}
-		hashedPassword, err := utils.HashPassword(u.Password)
-		if err != nil {
-			return err
-		}
-		u.Password = hashedPassword
 	}
 
 	if tx.Statement.Changed("PhoneNumber") {
@@ -193,7 +205,7 @@ func (u *User) BeforeUpdate(tx *gorm.DB) error {
 
 // AfterCreate hook for GORM
 func (u *User) AfterCreate(tx *gorm.DB) error {
-	// Create the initial balance record after user is created
+	u.Balance.UserID = u.ID // Explicitly set it for clarity if preferred
 	if err := tx.Create(&u.Balance).Error; err != nil {
 		return fmt.Errorf("failed to create balance record for user %d: %w", u.ID, err)
 	}
@@ -202,9 +214,15 @@ func (u *User) AfterCreate(tx *gorm.DB) error {
 
 // ComparePassword compares the provided password with the hashed password
 func (u *User) ComparePassword(password string) (bool, error) {
-	err := bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(password))
+	if u.Password == nil || *u.Password == "" {
+		// No password set (e.g., social sign-in user)
+		return false, ErrPasswordMismatch // Or a more specific error like ErrNoPasswordSet
+	}
+	err := bcrypt.CompareHashAndPassword([]byte(*u.Password), []byte(password))
 	if err != nil {
-		return false, ErrPasswordMismatch
+		// Log the bcrypt error for debugging if needed
+		// log.Printf("bcrypt compare error: %v", err)
+		return false, ErrPasswordMismatch // Return generic mismatch for security
 	}
 	return true, nil
 }

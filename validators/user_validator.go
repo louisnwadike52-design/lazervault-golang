@@ -15,7 +15,7 @@ func ValidateUser(user *models.User) error {
 	if user.Email == "" || !utils.IsValidEmail(user.Email) {
 		return models.ErrInvalidEmail
 	}
-	if !utils.IsValidPassword(user.Password) {
+	if user.Password != nil && !utils.IsValidPassword(*user.Password) {
 		return models.ErrInvalidPassword
 	}
 	if user.PhoneNumber == "" || !utils.IsValidPhoneNumber(user.PhoneNumber) {
@@ -31,7 +31,7 @@ func ValidateLoginUser(user *models.User) error {
 	if user.Email == "" || !utils.IsValidEmail(user.Email) {
 		return models.ErrInvalidEmail
 	}
-	if !utils.IsValidPassword(user.Password) {
+	if user.Password != nil && !utils.IsValidPassword(*user.Password) {
 		return models.ErrInvalidPassword
 	}
 	return nil

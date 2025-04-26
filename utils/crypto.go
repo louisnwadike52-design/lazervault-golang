@@ -73,3 +73,23 @@ func Decrypt(encryptedHexString string, key []byte) ([]byte, error) {
 
 	return plaintext, nil
 }
+
+// GenerateSecureRandomString generates a cryptographically secure random string
+// of the specified length, encoded in hex.
+func GenerateSecureRandomString(length int) (string, error) {
+	// Number of bytes needed is half the hex string length
+	numBytes := length / 2
+	if length%2 != 0 {
+		numBytes++ // Ensure enough bytes for odd lengths
+	}
+
+	b := make([]byte, numBytes)
+	_, err := rand.Read(b)
+	if err != nil {
+		return "", fmt.Errorf("failed to read random bytes: %w", err)
+	}
+
+	// Encode bytes to hex string and return the required length
+	hexString := hex.EncodeToString(b)
+	return hexString[:length], nil
+}

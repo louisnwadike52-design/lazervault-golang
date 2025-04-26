@@ -267,6 +267,74 @@
         ]
       }
     },
+    "/v1/auth/apple/signin": {
+      "post": {
+        "summary": "Sign In/Up with Apple",
+        "description": "Authenticates a user using Apple credentials. Creates an account if one doesn't exist for the Apple user.",
+        "operationId": "AuthService_SignInWithApple",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbLoginResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/pbSignInWithAppleRequest"
+            }
+          }
+        ],
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/v1/auth/google/signin": {
+      "post": {
+        "summary": "Sign In/Up with Google",
+        "description": "Authenticates a user using a Google ID token. Creates an account if one doesn't exist for the Google user.",
+        "operationId": "AuthService_SignInWithGoogle",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbLoginResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/pbSignInWithGoogleRequest"
+            }
+          }
+        ],
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
     "/v1/auth/login": {
       "post": {
         "operationId": "AuthService_Login",
@@ -2608,6 +2676,48 @@
           "format": "date-time"
         }
       }
+    },
+    "pbSignInWithAppleRequest": {
+      "type": "object",
+      "properties": {
+        "identityToken": {
+          "type": "string",
+          "description": "The identity token received from Sign in with Apple on the client."
+        },
+        "userIdentifier": {
+          "type": "string",
+          "description": "The unique user identifier received from Apple."
+        },
+        "email": {
+          "type": "string",
+          "description": "Optional: Email provided by Apple (usually only on first sign-in)."
+        },
+        "givenName": {
+          "type": "string",
+          "description": "Optional: Given name provided by Apple."
+        },
+        "familyName": {
+          "type": "string",
+          "description": "Optional: Family name provided by Apple."
+        }
+      },
+      "required": [
+        "identityToken",
+        "userIdentifier"
+      ]
+    },
+    "pbSignInWithGoogleRequest": {
+      "type": "object",
+      "properties": {
+        "idToken": {
+          "type": "string",
+          "description": "The ID token received from Google Sign-In on the client."
+        }
+      },
+      "title": "--- Social Sign-In Messages ---",
+      "required": [
+        "idToken"
+      ]
     },
     "pbTimePeriod": {
       "type": "string",
