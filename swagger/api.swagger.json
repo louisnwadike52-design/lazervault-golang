@@ -23,7 +23,8 @@
       "name": "ChatService"
     },
     {
-      "name": "DepositService"
+      "name": "DepositService",
+      "description": "Handles asynchronous fund deposits into user accounts."
     },
     {
       "name": "ExchangeService"
@@ -32,7 +33,8 @@
       "name": "InvoiceService"
     },
     {
-      "name": "RecipientService"
+      "name": "RecipientService",
+      "description": "Manages saved external transfer recipients."
     },
     {
       "name": "TransferService"
@@ -53,14 +55,14 @@
   "paths": {
     "/v1/accounts": {
       "get": {
-        "summary": "Get Accounts",
-        "description": "Retrieves a list of all financial accounts belonging to the authenticated user.",
-        "operationId": "AccountService_GetAccounts",
+        "summary": "Get User Accounts Summary",
+        "description": "Retrieves a summary list of all financial accounts belonging to the authenticated user.",
+        "operationId": "AccountService_GetUserAccounts",
         "responses": {
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/pbGetAccountsResponse"
+              "$ref": "#/definitions/pbGetUserAccountsResponse"
             }
           },
           "default": {
@@ -72,11 +74,16 @@
         },
         "tags": [
           "Accounts"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
         ]
       },
       "post": {
         "summary": "Create Account",
-        "description": "Creates a new financial account for the authenticated user based on the provided type and currency.",
+        "description": "Creates a new financial account for the authenticated user based on the provided type and currency. An optional PIN can be set.",
         "operationId": "AccountService_CreateAccount",
         "responses": {
           "200": {
@@ -700,8 +707,8 @@
     },
     "/v1/deposits": {
       "post": {
-        "summary": "Initiate Deposit",
-        "description": "Initiates a deposit from a specified source bank into a target LazerVault account.",
+        "summary": "Initiate Deposit (Async)",
+        "description": "Initiates the process of depositing funds. The actual balance update occurs asynchronously. Amount should be provided in the smallest currency unit (e.g., cents).",
         "operationId": "DepositService_InitiateDeposit",
         "responses": {
           "200": {
@@ -725,6 +732,44 @@
             "schema": {
               "$ref": "#/definitions/pbInitiateDepositRequest"
             }
+          }
+        ],
+        "tags": [
+          "Deposits"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/v1/deposits/{deposit_id}": {
+      "get": {
+        "summary": "Get Deposit Details",
+        "description": "Retrieves the current status and details of a specific deposit transaction by its ID.",
+        "operationId": "DepositService_GetDepositDetails",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbGetDepositDetailsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "deposit_id",
+            "description": "The UUID of the deposit to retrieve",
+            "in": "path",
+            "required": true,
+            "type": "string"
           }
         ],
         "tags": [
@@ -977,14 +1022,13 @@
     },
     "/v1/recipients": {
       "get": {
-        "summary": "Get Recipients",
-        "description": "Retrieves a list of saved recipients for the authenticated user. Can be filtered to show only favorites.",
-        "operationId": "RecipientService_GetRecipients",
+        "summary": "List Recipients",
+        "operationId": "RecipientService_ListRecipients",
         "responses": {
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/pbGetRecipientsResponse"
+              "$ref": "#/definitions/pbListRecipientsResponse"
             }
           },
           "default": {
@@ -994,28 +1038,23 @@
             }
           }
         },
-        "parameters": [
-          {
-            "name": "onlyFavorites",
-            "description": "Optional: If true, return only favorite recipients",
-            "in": "query",
-            "required": false,
-            "type": "boolean"
-          }
-        ],
         "tags": [
-          "RecipientService"
+          "Recipients"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
         ]
       },
       "post": {
-        "summary": "Add Recipient",
-        "description": "Adds a new bank account recipient for the authenticated user.",
-        "operationId": "RecipientService_AddRecipient",
+        "summary": "Create Recipient",
+        "operationId": "RecipientService_CreateRecipient",
         "responses": {
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/pbAddRecipientResponse"
+              "$ref": "#/definitions/pbCreateRecipientResponse"
             }
           },
           "default": {
@@ -1031,25 +1070,29 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/pbAddRecipientRequest"
+              "$ref": "#/definitions/pbCreateRecipientRequest"
             }
           }
         ],
         "tags": [
-          "RecipientService"
+          "Recipients"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
         ]
       }
     },
-    "/v1/recipients/{id}/favorite": {
-      "patch": {
-        "summary": "Update Recipient Favorite Status",
-        "description": "Marks or unmarks a specific recipient as a favorite.",
-        "operationId": "RecipientService_UpdateRecipientFavoriteStatus",
+    "/v1/recipients/{recipient_id}": {
+      "delete": {
+        "summary": "Delete Recipient",
+        "operationId": "RecipientService_DeleteRecipient",
         "responses": {
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/pbUpdateRecipientFavoriteStatusResponse"
+              "$ref": "#/definitions/pbDeleteRecipientResponse"
             }
           },
           "default": {
@@ -1061,8 +1104,42 @@
         },
         "parameters": [
           {
-            "name": "id",
-            "description": "Required: ID of the recipient to update",
+            "name": "recipient_id",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "format": "uint64"
+          }
+        ],
+        "tags": [
+          "Recipients"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "put": {
+        "summary": "Update Recipient",
+        "operationId": "RecipientService_UpdateRecipient2",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbUpdateRecipientResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "recipient_id",
             "in": "path",
             "required": true,
             "type": "string",
@@ -1073,12 +1150,60 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/RecipientServiceUpdateRecipientFavoriteStatusBody"
+              "$ref": "#/definitions/RecipientServiceUpdateRecipientBody"
             }
           }
         ],
         "tags": [
-          "RecipientService"
+          "Recipients"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "patch": {
+        "summary": "Update Recipient",
+        "operationId": "RecipientService_UpdateRecipient",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbUpdateRecipientResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "recipient_id",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "format": "uint64"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/RecipientServiceUpdateRecipientBody"
+            }
+          }
+        ],
+        "tags": [
+          "Recipients"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
         ]
       }
     },
@@ -1269,6 +1394,45 @@
         ]
       }
     },
+    "/v1/transfers/{transfer_id}": {
+      "get": {
+        "summary": "Get Transfer Details",
+        "description": "Retrieves the details of a specific transfer transaction by its ID.",
+        "operationId": "TransferService_GetTransferDetails",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbGetTransferDetailsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "transfer_id",
+            "description": "ID of the transfer to retrieve",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "format": "uint64"
+          }
+        ],
+        "tags": [
+          "Transfers"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/v1/users": {
       "post": {
         "summary": "Create a new user",
@@ -1341,6 +1505,44 @@
           }
         ]
       }
+    },
+    "/v1/withdrawals/{withdrawal_id}": {
+      "get": {
+        "summary": "Get Withdrawal Details",
+        "description": "Retrieves the current status and details of a specific withdrawal transaction by its ID.",
+        "operationId": "WithdrawService_GetWithdrawalDetails",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbGetWithdrawalDetailsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "withdrawal_id",
+            "description": "The UUID of the withdrawal to retrieve",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "Withdrawals"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
     }
   },
   "definitions": {
@@ -1370,57 +1572,26 @@
       },
       "title": "Request to add a new card to an account"
     },
-    "RecipientServiceUpdateRecipientFavoriteStatusBody": {
+    "RecipientServiceUpdateRecipientBody": {
       "type": "object",
       "properties": {
-        "isFavorite": {
-          "type": "boolean",
-          "title": "Required: The new favorite status (true or false)"
-        }
-      },
-      "title": "--- Add Update Request/Response ---"
-    },
-    "pbAccount": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string",
-          "format": "uint64",
-          "title": "Unique identifier for the account"
-        },
-        "accountType": {
-          "type": "string",
-          "title": "Type of account (e.g., \"Checking\", \"Savings\")"
-        },
-        "currency": {
-          "type": "string",
-          "title": "Currency code (e.g., \"USD\", \"EUR\")"
-        },
-        "balance": {
-          "type": "number",
-          "format": "double",
-          "title": "Current balance of the account"
+        "name": {
+          "type": "string"
         },
         "accountNumber": {
-          "type": "string",
-          "title": "Unique account number"
+          "type": "string"
         },
-        "isActive": {
-          "type": "boolean",
-          "title": "Whether the account is currently active"
+        "sortCode": {
+          "type": "string"
         },
-        "createdAt": {
-          "type": "string",
-          "format": "date-time",
-          "title": "Timestamp when the account was created"
+        "bankName": {
+          "type": "string"
         },
-        "updatedAt": {
-          "type": "string",
-          "format": "date-time",
-          "title": "Timestamp when the account was last updated"
+        "isFavorite": {
+          "type": "boolean"
         }
       },
-      "description": "The Account message represents a user's financial account."
+      "title": "Request to update a recipient"
     },
     "pbAccountCard": {
       "type": "object",
@@ -1483,8 +1654,9 @@
           "type": "string"
         },
         "balance": {
-          "type": "number",
-          "format": "double"
+          "type": "string",
+          "format": "uint64",
+          "title": "Changed to uint64 (minor units)"
         },
         "status": {
           "type": "string"
@@ -1501,12 +1673,14 @@
           "title": "e.g., \"12/25\""
         },
         "dailyLimit": {
-          "type": "number",
-          "format": "double"
+          "type": "string",
+          "format": "uint64",
+          "title": "Changed to uint64 (minor units)"
         },
         "monthlyLimit": {
-          "type": "number",
-          "format": "double"
+          "type": "string",
+          "format": "uint64",
+          "title": "Changed to uint64 (minor units)"
         },
         "enable3dSecure": {
           "type": "boolean"
@@ -1556,8 +1730,9 @@
           "title": "e.g., \"GBP\", \"USD\""
         },
         "balance": {
-          "type": "number",
-          "format": "double"
+          "type": "string",
+          "format": "uint64",
+          "title": "Changed to uint64 (minor units)"
         },
         "maskedAccountNumber": {
           "type": "string",
@@ -1579,35 +1754,6 @@
         }
       },
       "title": "Response after adding a card"
-    },
-    "pbAddRecipientRequest": {
-      "type": "object",
-      "properties": {
-        "name": {
-          "type": "string"
-        },
-        "accountNumber": {
-          "type": "string"
-        },
-        "sortCode": {
-          "type": "string"
-        },
-        "bankName": {
-          "type": "string"
-        },
-        "isFavorite": {
-          "type": "boolean",
-          "title": "Can set favorite on add"
-        }
-      }
-    },
-    "pbAddRecipientResponse": {
-      "type": "object",
-      "properties": {
-        "recipient": {
-          "$ref": "#/definitions/pbRecipient"
-        }
-      }
     },
     "pbCategorySummary": {
       "type": "object",
@@ -1705,6 +1851,10 @@
         "currency": {
           "type": "string",
           "title": "Currency for the new account"
+        },
+        "pin": {
+          "type": "string",
+          "title": "Optional 4-digit PIN for the account"
         }
       },
       "description": "Request message for creating a new account.",
@@ -1717,7 +1867,7 @@
       "type": "object",
       "properties": {
         "account": {
-          "$ref": "#/definitions/pbAccount",
+          "$ref": "#/definitions/pbAccountDetails",
           "title": "The newly created account details"
         }
       },
@@ -1777,6 +1927,43 @@
       },
       "description": "Contains the details of the newly created invoice.",
       "title": "Create Invoice Response"
+    },
+    "pbCreateRecipientRequest": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "accountNumber": {
+          "type": "string"
+        },
+        "sortCode": {
+          "type": "string",
+          "title": "Optional"
+        },
+        "bankName": {
+          "type": "string"
+        },
+        "isFavorite": {
+          "type": "boolean",
+          "title": "Optional, defaults to false"
+        }
+      },
+      "title": "Request to create a new recipient",
+      "required": [
+        "name",
+        "accountNumber",
+        "bankName"
+      ]
+    },
+    "pbCreateRecipientResponse": {
+      "type": "object",
+      "properties": {
+        "recipient": {
+          "$ref": "#/definitions/pbRecipient"
+        }
+      },
+      "title": "Response after creating a recipient"
     },
     "pbCreateUserRequest": {
       "type": "object",
@@ -1843,66 +2030,28 @@
         }
       }
     },
+    "pbDeleteRecipientResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string",
+          "title": "e.g., \"Recipient deleted successfully\""
+        }
+      },
+      "title": "Response after deleting a recipient (can be empty)"
+    },
     "pbDepositStatus": {
       "type": "string",
       "enum": [
         "DEPOSIT_STATUS_UNSPECIFIED",
         "DEPOSIT_STATUS_PENDING",
+        "DEPOSIT_STATUS_PROCESSING",
         "DEPOSIT_STATUS_COMPLETED",
         "DEPOSIT_STATUS_FAILED"
       ],
       "default": "DEPOSIT_STATUS_UNSPECIFIED",
+      "description": "- DEPOSIT_STATUS_FAILED: Note: This represents final failure *after* processing attempt",
       "title": "Represents the status of a deposit transaction"
-    },
-    "pbDepositTransaction": {
-      "type": "object",
-      "properties": {
-        "transactionId": {
-          "type": "string",
-          "title": "Unique ID for the deposit"
-        },
-        "targetAccountId": {
-          "type": "string",
-          "format": "uint64",
-          "title": "LazerVault account receiving funds"
-        },
-        "amount": {
-          "type": "number",
-          "format": "double",
-          "title": "Amount deposited"
-        },
-        "currency": {
-          "type": "string",
-          "title": "Currency code (e.g., \"GBP\")"
-        },
-        "sourceBankName": {
-          "type": "string",
-          "title": "Name of the bank funds came from"
-        },
-        "status": {
-          "$ref": "#/definitions/pbDepositStatus",
-          "title": "Current status of the deposit"
-        },
-        "createdAt": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "completedAt": {
-          "type": "string",
-          "format": "date-time",
-          "title": "Null if not completed/failed"
-        },
-        "failedAt": {
-          "type": "string",
-          "format": "date-time",
-          "title": "Null if not failed"
-        },
-        "failureReason": {
-          "type": "string",
-          "title": "Optional reason for failure"
-        }
-      },
-      "title": "Represents a deposit transaction record"
     },
     "pbExchangeStatus": {
       "type": "string",
@@ -1989,20 +2138,6 @@
         }
       }
     },
-    "pbGetAccountsResponse": {
-      "type": "object",
-      "properties": {
-        "accounts": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/pbAccount"
-          },
-          "title": "List of accounts belonging to the user"
-        }
-      },
-      "description": "Response message containing a list of accounts."
-    },
     "pbGetChatHistoryResponse": {
       "type": "object",
       "properties": {
@@ -2021,6 +2156,64 @@
       },
       "description": "Contains a list of messages and pagination info.",
       "title": "Get Chat History Response"
+    },
+    "pbGetDepositDetailsResponse": {
+      "type": "object",
+      "properties": {
+        "deposit_id": {
+          "type": "string"
+        },
+        "target_account_id": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "amount": {
+          "type": "string",
+          "format": "uint64",
+          "title": "Amount represented in the smallest currency unit (e.g., cents)"
+        },
+        "currency": {
+          "type": "string"
+        },
+        "source_bank_name": {
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/definitions/pbDepositStatus"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "processing_at": {
+          "type": "string",
+          "format": "date-time",
+          "title": "Null if not yet processed"
+        },
+        "completed_at": {
+          "type": "string",
+          "format": "date-time",
+          "title": "Null if not completed"
+        },
+        "failed_at": {
+          "type": "string",
+          "format": "date-time",
+          "title": "Null if not failed"
+        },
+        "failure_reason": {
+          "type": "string",
+          "title": "Empty if not failed"
+        },
+        "external_transaction_id": {
+          "type": "string",
+          "title": "Optional ID from provider"
+        },
+        "updated_account": {
+          "$ref": "#/definitions/pbAccountDetails",
+          "description": "Updated account details are included only if the deposit status is COMPLETED."
+        }
+      },
+      "title": "Response containing details of a specific deposit transaction"
     },
     "pbGetExchangeRateResponse": {
       "type": "object",
@@ -2060,18 +2253,6 @@
       },
       "description": "List of recent international exchange transactions.",
       "title": "Get Recent Exchanges Response"
-    },
-    "pbGetRecipientsResponse": {
-      "type": "object",
-      "properties": {
-        "recipients": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/pbRecipient"
-          }
-        }
-      }
     },
     "pbGetStatisticsResponse": {
       "type": "object",
@@ -2139,52 +2320,206 @@
       },
       "title": "Response message containing transaction history"
     },
-    "pbInitiateDepositRequest": {
+    "pbGetTransferDetailsResponse": {
       "type": "object",
       "properties": {
-        "targetAccountId": {
+        "transfer_id": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "from_account_id": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "to_account_id": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "from_user_id": {
           "type": "string",
           "format": "uint64",
-          "title": "LazerVault account ID to deposit into"
+          "title": "Added for context"
+        },
+        "to_user_id": {
+          "type": "string",
+          "format": "uint64",
+          "title": "Added for context"
         },
         "amount": {
-          "type": "number",
-          "format": "double",
-          "title": "Amount to deposit"
+          "type": "string",
+          "format": "uint64",
+          "title": "Amount in minor units"
+        },
+        "fee": {
+          "type": "string",
+          "format": "uint64",
+          "title": "Fee in minor units"
+        },
+        "totalAmount": {
+          "type": "string",
+          "format": "uint64",
+          "title": "Total amount in minor units"
         },
         "currency": {
           "type": "string",
-          "title": "Currency of the deposit (e.g., \"GBP\")"
+          "title": "Added currency"
         },
-        "sourceBankName": {
+        "status": {
           "type": "string",
-          "title": "Name of the source bank"
+          "title": "Status string (e.g., \"pending\", \"completed\")"
+        },
+        "reference": {
+          "type": "string"
+        },
+        "category": {
+          "type": "string"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "scheduled_at": {
+          "type": "string",
+          "format": "date-time",
+          "title": "Null if not scheduled"
+        },
+        "completed_at": {
+          "type": "string",
+          "format": "date-time",
+          "title": "Null if not completed"
+        },
+        "failed_at": {
+          "type": "string",
+          "format": "date-time",
+          "title": "Null if not failed"
+        },
+        "failure_reason": {
+          "type": "string",
+          "title": "Empty if not failed"
+        }
+      },
+      "title": "Response message containing transfer details"
+    },
+    "pbGetUserAccountsResponse": {
+      "type": "object",
+      "properties": {
+        "accounts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbAccountSummary"
+          }
+        }
+      }
+    },
+    "pbGetWithdrawalDetailsResponse": {
+      "type": "object",
+      "properties": {
+        "withdrawal_id": {
+          "type": "string"
+        },
+        "source_account_id": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "amount": {
+          "type": "string",
+          "format": "uint64",
+          "title": "Amount represented in the smallest currency unit (e.g., cents)"
+        },
+        "currency": {
+          "type": "string"
+        },
+        "target_bank_name": {
+          "type": "string"
+        },
+        "target_account_number": {
+          "type": "string",
+          "title": "Consider masking response"
+        },
+        "target_sort_code": {
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/definitions/pbWithdrawalStatus"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "processing_at": {
+          "type": "string",
+          "format": "date-time",
+          "title": "Null if not yet processed"
+        },
+        "completed_at": {
+          "type": "string",
+          "format": "date-time",
+          "title": "Null if not completed"
+        },
+        "failed_at": {
+          "type": "string",
+          "format": "date-time",
+          "title": "Null if not failed"
+        },
+        "failure_reason": {
+          "type": "string",
+          "title": "Empty if not failed"
+        },
+        "external_transaction_id": {
+          "type": "string",
+          "title": "Optional ID from provider"
+        }
+      },
+      "title": "Response containing details of a specific withdrawal transaction"
+    },
+    "pbInitiateDepositRequest": {
+      "type": "object",
+      "properties": {
+        "target_account_id": {
+          "type": "string",
+          "format": "uint64",
+          "title": "Account to deposit into"
+        },
+        "amount": {
+          "type": "string",
+          "format": "uint64",
+          "title": "Amount represented in the smallest currency unit (e.g., cents for GBP/USD)"
+        },
+        "currency": {
+          "type": "string",
+          "title": "Currency code (e.g., GBP) - must match account"
+        },
+        "source_bank_name": {
+          "type": "string",
+          "title": "Name of the originating bank"
         }
       },
       "title": "Request to initiate a deposit",
       "required": [
-        "targetAccountId",
+        "target_account_id",
         "amount",
         "currency",
-        "sourceBankName"
+        "source_bank_name"
       ]
     },
     "pbInitiateDepositResponse": {
       "type": "object",
       "properties": {
-        "success": {
-          "type": "boolean"
+        "deposit_id": {
+          "type": "string",
+          "title": "The unique ID of the initiated deposit record"
+        },
+        "status": {
+          "$ref": "#/definitions/pbDepositStatus",
+          "title": "Initial status (should be PENDING)"
         },
         "message": {
           "type": "string",
-          "title": "e.g., \"Deposit initiated successfully\""
-        },
-        "transaction": {
-          "$ref": "#/definitions/pbDepositTransaction",
-          "title": "Details of the created deposit record"
+          "title": "Confirmation message (e.g., \"Deposit initiated, processing asynchronously.\")"
         }
       },
-      "title": "Response after initiating a deposit"
+      "title": "Response after initiating a deposit (acknowledgement)"
     },
     "pbInitiateInternationalTransferRequest": {
       "type": "object",
@@ -2230,13 +2565,21 @@
     "pbInitiateTransferRequest": {
       "type": "object",
       "properties": {
-        "toUserId": {
+        "from_account_id": {
           "type": "string",
-          "format": "uint64"
+          "format": "uint64",
+          "description": "Added",
+          "title": "uint64 to_user_id = 1; // Removed"
+        },
+        "to_account_id": {
+          "type": "string",
+          "format": "uint64",
+          "title": "Added"
         },
         "amount": {
-          "type": "number",
-          "format": "double"
+          "type": "string",
+          "format": "uint64",
+          "title": "Changed to uint64 (minor units)"
         },
         "category": {
           "type": "string"
@@ -2268,16 +2611,19 @@
           "type": "string"
         },
         "amount": {
-          "type": "number",
-          "format": "double"
+          "type": "string",
+          "format": "uint64",
+          "title": "Changed to uint64 (minor units)"
         },
         "fee": {
-          "type": "number",
-          "format": "double"
+          "type": "string",
+          "format": "uint64",
+          "title": "Changed to uint64 (minor units)"
         },
         "totalAmount": {
-          "type": "number",
-          "format": "double"
+          "type": "string",
+          "format": "uint64",
+          "title": "Changed to uint64 (minor units)"
         },
         "createdAt": {
           "type": "string",
@@ -2295,9 +2641,9 @@
           "title": "LazerVault account ID to withdraw from"
         },
         "amount": {
-          "type": "number",
-          "format": "double",
-          "title": "Amount to withdraw"
+          "type": "string",
+          "format": "uint64",
+          "title": "Changed to uint64 (minor units)"
         },
         "currency": {
           "type": "string",
@@ -2328,19 +2674,20 @@
     "pbInitiateWithdrawalResponse": {
       "type": "object",
       "properties": {
-        "success": {
-          "type": "boolean"
+        "withdrawal_id": {
+          "type": "string",
+          "title": "The unique ID of the initiated withdrawal record"
+        },
+        "status": {
+          "$ref": "#/definitions/pbWithdrawalStatus",
+          "title": "Initial status (should be PENDING)"
         },
         "message": {
           "type": "string",
-          "title": "e.g., \"Withdrawal initiated successfully\""
-        },
-        "transaction": {
-          "$ref": "#/definitions/pbWithdrawalTransaction",
-          "title": "Details of the created withdrawal record"
+          "title": "Confirmation message (e.g., \"Withdrawal initiated, processing asynchronously.\")"
         }
       },
-      "title": "Response after initiating a withdrawal"
+      "title": "Response after initiating a withdrawal (Acknowledgement)"
     },
     "pbInvoice": {
       "type": "object",
@@ -2467,17 +2814,18 @@
       "description": "Contains a list of invoices and pagination info.",
       "title": "List Invoices Response"
     },
-    "pbListUserAccountsResponse": {
+    "pbListRecipientsResponse": {
       "type": "object",
       "properties": {
-        "accounts": {
+        "recipients": {
           "type": "array",
           "items": {
             "type": "object",
-            "$ref": "#/definitions/pbAccountSummary"
+            "$ref": "#/definitions/pbRecipient"
           }
         }
-      }
+      },
+      "title": "Response containing a list of recipients"
     },
     "pbLoginRequest": {
       "type": "object",
@@ -2601,20 +2949,22 @@
           "format": "uint64"
         },
         "name": {
-          "type": "string"
+          "type": "string",
+          "title": "Nickname (e.g., \"Landlord\")"
         },
         "accountNumber": {
-          "type": "string"
+          "type": "string",
+          "title": "External bank account number (masked?)"
         },
         "sortCode": {
-          "type": "string"
+          "type": "string",
+          "title": "Optional sort code"
         },
         "bankName": {
           "type": "string"
         },
         "isFavorite": {
-          "type": "boolean",
-          "title": "Field exists"
+          "type": "boolean"
         },
         "createdAt": {
           "type": "string",
@@ -2624,7 +2974,8 @@
           "type": "string",
           "format": "date-time"
         }
-      }
+      },
+      "title": "Represents a saved recipient for transfers"
     },
     "pbRefreshTokenRequest": {
       "type": "object",
@@ -2962,14 +3313,14 @@
         }
       }
     },
-    "pbUpdateRecipientFavoriteStatusResponse": {
+    "pbUpdateRecipientResponse": {
       "type": "object",
       "properties": {
         "recipient": {
-          "$ref": "#/definitions/pbRecipient",
-          "title": "Return the updated recipient"
+          "$ref": "#/definitions/pbRecipient"
         }
-      }
+      },
+      "title": "Response after updating a recipient"
     },
     "pbUpdateSecuritySettingsResponse": {
       "type": "object",
@@ -3084,65 +3435,6 @@
       "default": "WITHDRAWAL_STATUS_UNSPECIFIED",
       "description": "- WITHDRAWAL_STATUS_PENDING: Request received, validation pending\n - WITHDRAWAL_STATUS_PROCESSING: Funds deducted, payout in progress (if async)\n - WITHDRAWAL_STATUS_COMPLETED: Payout successful\n - WITHDRAWAL_STATUS_FAILED: Withdrawal failed",
       "title": "Represents the status of a withdrawal transaction"
-    },
-    "pbWithdrawalTransaction": {
-      "type": "object",
-      "properties": {
-        "transactionId": {
-          "type": "string",
-          "title": "Unique ID for the withdrawal"
-        },
-        "sourceAccountId": {
-          "type": "string",
-          "format": "uint64",
-          "title": "LazerVault account funds came from"
-        },
-        "amount": {
-          "type": "number",
-          "format": "double",
-          "title": "Amount withdrawn (excluding fees)"
-        },
-        "currency": {
-          "type": "string",
-          "description": "Currency code (e.g., \"GBP\")",
-          "title": "double fee = 4;                // Optional withdrawal fee\ndouble total_amount = 5;       // Amount + Fee deducted"
-        },
-        "targetBankName": {
-          "type": "string",
-          "title": "Name of the destination bank"
-        },
-        "targetAccountNumber": {
-          "type": "string",
-          "title": "Destination account number (masked?)"
-        },
-        "targetSortCode": {
-          "type": "string",
-          "title": "Destination sort code (if applicable)"
-        },
-        "status": {
-          "$ref": "#/definitions/pbWithdrawalStatus",
-          "title": "Current status of the withdrawal"
-        },
-        "createdAt": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "completedAt": {
-          "type": "string",
-          "format": "date-time",
-          "title": "Null if not completed/failed"
-        },
-        "failedAt": {
-          "type": "string",
-          "format": "date-time",
-          "title": "Null if not failed"
-        },
-        "failureReason": {
-          "type": "string",
-          "title": "Optional reason for failure"
-        }
-      },
-      "title": "Represents a withdrawal transaction record"
     },
     "protobufAny": {
       "type": "object",

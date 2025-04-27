@@ -33,13 +33,14 @@ type TaskProcessor interface {
 }
 
 type RedisTaskProcessor struct {
-	server *asynq.Server
-	db     *gorm.DB
-	mailer mail.EmailSender
-	config *configs.Config
+	server      *asynq.Server
+	db          *gorm.DB
+	mailer      mail.EmailSender
+	config      *configs.Config
+	distributor tasks.TaskDistributor
 }
 
-func NewRedisTaskProcessor(redisOpt asynq.RedisClientOpt, db *gorm.DB, mailer mail.EmailSender, config *configs.Config) TaskProcessor {
+func NewRedisTaskProcessor(redisOpt asynq.RedisClientOpt, db *gorm.DB, mailer mail.EmailSender, config *configs.Config, distributor tasks.TaskDistributor) TaskProcessor {
 	logger := NewLogger()
 	redis.SetLogger(logger)
 
@@ -60,19 +61,47 @@ func NewRedisTaskProcessor(redisOpt asynq.RedisClientOpt, db *gorm.DB, mailer ma
 	)
 
 	return &RedisTaskProcessor{
-		server: server,
-		db:     db,
-		mailer: mailer,
-		config: config,
+		server:      server,
+		db:          db,
+		mailer:      mailer,
+		config:      config,
+		distributor: distributor,
 	}
 }
 
 func (processor *RedisTaskProcessor) Start() error {
 	mux := asynq.NewServeMux()
 
-	mux.HandleFunc(tasks.TaskSendVerifyEmail, processor.ProcessTaskSendVerifyEmail)
-	mux.HandleFunc(tasks.TaskProcessTransfer, processor.ProcessTaskProcessTransfer)
+	// Register handlers using closures to pass dependencies
+	mux.HandleFunc(tasks.TaskSendVerifyEmail, func(ctx context.Context, task *asynq.Task) error {
+		// HandleEmailSendVerifyUserTask is defined in task_send_email.go (worker package)
+		return HandleEmailSendVerifyUserTask(ctx, task, processor.mailer)
+	})
+	mux.HandleFunc(tasks.TaskProcessTransfer, processor.ProcessTaskProcessTransfer) // Keep existing method if needed
+	// Point password reset task type to the correct processor method
 	mux.HandleFunc(tasks.TaskSendPasswordResetOTP, processor.ProcessTaskSendPasswordResetOTP)
+	// Register new handlers
+	mux.HandleFunc(tasks.TypeDepositProcess, func(ctx context.Context, task *asynq.Task) error {
+		// HandleDepositProcessTask is defined in task_process_deposit.go (worker package)
+		return HandleDepositProcessTask(ctx, task, processor.db, processor.mailer, processor.distributor)
+	})
+	mux.HandleFunc(tasks.TypeEmailSendDepositReversal, func(ctx context.Context, task *asynq.Task) error {
+		// HandleEmailSendDepositReversalTask is defined in task_send_email.go (worker package)
+		return HandleEmailSendDepositReversalTask(ctx, task, processor.mailer)
+	})
+	// Added withdrawal handlers
+	mux.HandleFunc(tasks.TypeWithdrawalProcess, func(ctx context.Context, task *asynq.Task) error {
+		// HandleWithdrawalProcessTask is defined in task_process_withdrawal.go (worker package)
+		return HandleWithdrawalProcessTask(ctx, task, processor.db, processor.mailer, processor.distributor)
+	})
+	mux.HandleFunc(tasks.TypeEmailSendWithdrawalConf, func(ctx context.Context, task *asynq.Task) error {
+		// HandleEmailSendWithdrawalConfirmationTask is defined in task_send_email.go (worker package)
+		return HandleEmailSendWithdrawalConfirmationTask(ctx, task, processor.mailer)
+	})
+	mux.HandleFunc(tasks.TypeEmailSendWithdrawalFail, func(ctx context.Context, task *asynq.Task) error {
+		// HandleEmailSendWithdrawalFailureTask is defined in task_send_email.go (worker package)
+		return HandleEmailSendWithdrawalFailureTask(ctx, task, processor.mailer)
+	})
 
 	log.Info().Msg("starting task processor server")
 	return processor.server.Start(mux)

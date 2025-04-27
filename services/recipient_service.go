@@ -5,115 +5,136 @@ import (
 	"errors"
 	"fmt"
 	"lazervaultGo/models"
+	"lazervaultGo/pb"
 
+	"google.golang.org/protobuf/types/known/timestamppb"
 	"gorm.io/gorm"
 )
 
-// --- Recipient Service Errors ---
-var ErrRecipientNotFound = errors.New("recipient not found or permission denied")
+// --- Service Errors ---
+var (
+	ErrRecipientNotFound     = errors.New("recipient service: recipient not found")
+	ErrRecipientAccessDenied = errors.New("recipient service: access denied")
+	ErrRecipientCreateFailed = errors.New("recipient service: failed to create recipient")
+	ErrRecipientUpdateFailed = errors.New("recipient service: failed to update recipient")
+	ErrRecipientDeleteFailed = errors.New("recipient service: failed to delete recipient")
+)
 
-// --- Recipient Service Interface ---
-
-// IRecipientService defines the interface for recipient operations
+// --- Service Interface ---
 type IRecipientService interface {
-	AddRecipient(ctx context.Context, req AddRecipientRequest) (*models.Recipient, error)
-	GetRecipients(ctx context.Context, ownerUserID uint, onlyFavorites bool) ([]models.Recipient, error)
-	UpdateRecipientFavoriteStatus(ctx context.Context, req UpdateRecipientFavoriteStatusRequest) (*models.Recipient, error)
+	CreateRecipient(ctx context.Context, userID uint, req *pb.CreateRecipientRequest) (*models.Recipient, error)
+	ListRecipients(ctx context.Context, userID uint) ([]*models.Recipient, error)
+	UpdateRecipient(ctx context.Context, userID uint, req *pb.UpdateRecipientRequest) (*models.Recipient, error)
+	DeleteRecipient(ctx context.Context, userID uint, recipientID uint) error
 }
 
-// --- Recipient Service Struct ---
-
-// RecipientService handles business logic related to recipients.
+// --- Service Struct ---
 type RecipientService struct {
 	db *gorm.DB
 }
 
-// --- Recipient Service Constructor ---
-
-// NewRecipientService creates a new RecipientService.
-func NewRecipientService(db *gorm.DB) IRecipientService { // Return interface type
+// --- Constructor ---
+func NewRecipientService(db *gorm.DB) IRecipientService {
 	return &RecipientService{db: db}
 }
 
-// --- Recipient Service Types ---
+// --- Methods ---
 
-// AddRecipientRequest defines parameters for adding a recipient.
-type AddRecipientRequest struct {
-	OwnerUserID   uint   `json:"owner_user_id" binding:"required"`
-	Name          string `json:"name" binding:"required"`
-	AccountNumber string `json:"account_number" binding:"required"`
-	SortCode      string `json:"sort_code"`
-	BankName      string `json:"bank_name" binding:"required"`
-	IsFavorite    bool   `json:"is_favorite"`
-}
-
-// --- Recipient Service Methods ---
-
-// AddRecipient creates a new recipient for a user.
-func (s *RecipientService) AddRecipient(ctx context.Context, req AddRecipientRequest) (*models.Recipient, error) {
+func (s *RecipientService) CreateRecipient(ctx context.Context, userID uint, req *pb.CreateRecipientRequest) (*models.Recipient, error) {
 	recipient := models.Recipient{
-		OwnerUserID:   req.OwnerUserID,
-		Name:          req.Name,
-		AccountNumber: req.AccountNumber,
-		SortCode:      req.SortCode,
-		BankName:      req.BankName,
-		IsFavorite:    req.IsFavorite,
+		OwnerUserID:   userID,
+		Name:          req.GetName(),
+		AccountNumber: req.GetAccountNumber(),
+		SortCode:      req.GetSortCode(),
+		BankName:      req.GetBankName(),
+		IsFavorite:    req.GetIsFavorite(),
 	}
 
-	// TODO: Add validation (e.g., check if recipient with same details already exists for user)
-
-	result := s.db.WithContext(ctx).Create(&recipient)
-	if result.Error != nil {
-		return nil, fmt.Errorf("failed to create recipient: %w", result.Error)
+	if err := s.db.WithContext(ctx).Create(&recipient).Error; err != nil {
+		// TODO: Handle potential duplicate errors based on unique constraints if any
+		return nil, fmt.Errorf("%w: %v", ErrRecipientCreateFailed, err)
 	}
-
 	return &recipient, nil
 }
 
-// GetRecipients retrieves recipients for a user, optionally filtering by favorite status.
-func (s *RecipientService) GetRecipients(ctx context.Context, ownerUserID uint, onlyFavorites bool) ([]models.Recipient, error) {
-	var recipients []models.Recipient
-
-	query := s.db.WithContext(ctx).Where("owner_user_id = ?", ownerUserID)
-
-	if onlyFavorites {
-		query = query.Where("is_favorite = ?", true)
+func (s *RecipientService) ListRecipients(ctx context.Context, userID uint) ([]*models.Recipient, error) {
+	var recipients []*models.Recipient
+	if err := s.db.WithContext(ctx).Where("owner_user_id = ?", userID).Order("is_favorite DESC, name ASC").Find(&recipients).Error; err != nil {
+		return nil, fmt.Errorf("db error listing recipients: %w", err)
 	}
-
-	result := query.Order("name ASC").Find(&recipients)
-	if result.Error != nil {
-		return nil, fmt.Errorf("failed to retrieve recipients: %w", result.Error)
-	}
-
 	return recipients, nil
 }
 
-// UpdateRecipientFavoriteStatusRequest defines parameters for updating favorite status.
-type UpdateRecipientFavoriteStatusRequest struct {
-	OwnerUserID uint `json:"owner_user_id" binding:"required"`
-	RecipientID uint `json:"recipient_id" binding:"required"`
-	IsFavorite  bool `json:"is_favorite"` // Use a pointer if you need to distinguish between false and not provided? For a toggle, bool is fine.
-}
+func (s *RecipientService) UpdateRecipient(ctx context.Context, userID uint, req *pb.UpdateRecipientRequest) (*models.Recipient, error) {
+	recipientID := uint(req.GetRecipientId())
 
-// UpdateRecipientFavoriteStatus updates the favorite status of a specific recipient.
-func (s *RecipientService) UpdateRecipientFavoriteStatus(ctx context.Context, req UpdateRecipientFavoriteStatusRequest) (*models.Recipient, error) {
 	var recipient models.Recipient
-
-	// Find the specific recipient ensuring it belongs to the requesting user
-	result := s.db.WithContext(ctx).Where("id = ? AND owner_user_id = ?", req.RecipientID, req.OwnerUserID).First(&recipient)
-	if result.Error != nil {
-		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+	// Find the recipient and verify ownership
+	if err := s.db.WithContext(ctx).Where("id = ? AND owner_user_id = ?", recipientID, userID).First(&recipient).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, ErrRecipientNotFound
 		}
-		return nil, fmt.Errorf("failed to find recipient: %w", result.Error)
+		return nil, fmt.Errorf("db error finding recipient: %w", err)
 	}
 
-	// Update the favorite status
-	updateResult := s.db.WithContext(ctx).Model(&recipient).Update("is_favorite", req.IsFavorite)
-	if updateResult.Error != nil {
-		return nil, fmt.Errorf("failed to update recipient favorite status: %w", updateResult.Error)
+	// Apply updates from request (only if fields are present in proto request)
+	updated := false
+	if req.Name != nil {
+		recipient.Name = *req.Name
+		updated = true
+	}
+	if req.AccountNumber != nil {
+		recipient.AccountNumber = *req.AccountNumber
+		updated = true
+	}
+	if req.SortCode != nil {
+		recipient.SortCode = *req.SortCode
+		updated = true
+	}
+	if req.BankName != nil {
+		recipient.BankName = *req.BankName
+		updated = true
+	}
+	if req.IsFavorite != nil {
+		recipient.IsFavorite = *req.IsFavorite
+		updated = true
 	}
 
-	// Return the updated recipient model
+	if !updated {
+		return &recipient, nil // No changes to apply
+	}
+
+	if err := s.db.WithContext(ctx).Save(&recipient).Error; err != nil {
+		return nil, fmt.Errorf("%w: %v", ErrRecipientUpdateFailed, err)
+	}
+
 	return &recipient, nil
+}
+
+func (s *RecipientService) DeleteRecipient(ctx context.Context, userID uint, recipientID uint) error {
+	result := s.db.WithContext(ctx).Where("id = ? AND owner_user_id = ?", recipientID, userID).Delete(&models.Recipient{})
+	if result.Error != nil {
+		return fmt.Errorf("%w: %v", ErrRecipientDeleteFailed, result.Error)
+	}
+	if result.RowsAffected == 0 {
+		return ErrRecipientNotFound // Or AccessDenied, depending on which is more likely
+	}
+	return nil
+}
+
+// Helper to convert Recipient model to proto message (consider placing in controller or shared converter)
+func ConvertRecipientToProto(r *models.Recipient) *pb.Recipient {
+	if r == nil {
+		return nil
+	}
+	return &pb.Recipient{
+		Id:            uint64(r.ID),
+		Name:          r.Name,
+		AccountNumber: r.AccountNumber, // Mask sensitive details?
+		SortCode:      r.SortCode,
+		BankName:      r.BankName,
+		IsFavorite:    r.IsFavorite,
+		CreatedAt:     timestamppb.New(r.CreatedAt),
+		UpdatedAt:     timestamppb.New(r.UpdatedAt),
+	}
 }

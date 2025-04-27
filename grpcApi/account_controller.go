@@ -3,11 +3,8 @@ package grpcApi
 import (
 	"context"
 	"errors"
-	"lazervaultGo/grpcApi/middleware"
-	"lazervaultGo/models"
 	"lazervaultGo/pb"
 	"lazervaultGo/services"
-	"lazervaultGo/token"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -28,38 +25,24 @@ func NewAccountController(accountService services.IAccountService, userService s
 	}
 }
 
-// getUserFromContext retrieves the user model based on the auth payload in the context.
-func (c *AccountController) getUserFromContext(ctx context.Context) (*models.User, error) {
-	authPayload, ok := ctx.Value(middleware.AuthorizationPayloadKey).(*token.Payload)
-	if !ok || authPayload == nil {
-		return nil, status.Error(codes.Unauthenticated, "missing authentication payload")
-	}
+// getUserFromContext is now a shared helper function in helpers.go
 
-	user, err := c.userService.GetUserByEmail(ctx, authPayload.Email)
+// GetUserAccounts retrieves accounts for the authenticated user.
+// Renamed from ListUserAccounts
+func (c *AccountController) GetUserAccounts(ctx context.Context, req *pb.GetUserAccountsRequest) (*pb.GetUserAccountsResponse, error) {
+	user, err := getUserFromContext(ctx, c.userService) // Use shared helper
 	if err != nil {
-		if errors.Is(err, services.ErrUserNotFound) {
-			return nil, status.Errorf(codes.Unauthenticated, "user from token not found: %v", err)
-		}
-		return nil, status.Errorf(codes.Internal, "failed to retrieve user: %v", err)
-	}
-	return user, nil
-}
-
-// ListUserAccounts retrieves accounts for the authenticated user.
-func (c *AccountController) ListUserAccounts(ctx context.Context, req *pb.ListUserAccountsRequest) (*pb.ListUserAccountsResponse, error) {
-	user, err := c.getUserFromContext(ctx)
-	if err != nil {
-		return nil, err // Error already includes status code
+		return nil, err
 	}
 
-	// Call the service layer with user ID
-	summaries, err := c.accountService.GetAccountsByUserID(ctx, user.ID)
+	// Call the renamed service layer method
+	summaries, err := c.accountService.GetUserAccounts(ctx, user.ID)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to retrieve accounts: %v", err)
 	}
 
-	// Construct and return the response
-	resp := &pb.ListUserAccountsResponse{
+	// Construct and return the renamed response type
+	resp := &pb.GetUserAccountsResponse{
 		Accounts: summaries,
 	}
 	return resp, nil
@@ -67,7 +50,7 @@ func (c *AccountController) ListUserAccounts(ctx context.Context, req *pb.ListUs
 
 // GetAccountDetails retrieves detailed information for a specific account.
 func (c *AccountController) GetAccountDetails(ctx context.Context, req *pb.GetAccountDetailsRequest) (*pb.GetAccountDetailsResponse, error) {
-	user, err := c.getUserFromContext(ctx)
+	user, err := getUserFromContext(ctx, c.userService) // Use shared helper
 	if err != nil {
 		return nil, err
 	}
@@ -94,7 +77,7 @@ func (c *AccountController) GetAccountDetails(ctx context.Context, req *pb.GetAc
 
 // UpdateAccountStatus handles requests to update an account's status.
 func (c *AccountController) UpdateAccountStatus(ctx context.Context, req *pb.UpdateAccountStatusRequest) (*pb.UpdateAccountStatusResponse, error) {
-	user, err := c.getUserFromContext(ctx)
+	user, err := getUserFromContext(ctx, c.userService) // Use shared helper
 	if err != nil {
 		return nil, err
 	}
@@ -127,7 +110,7 @@ func (c *AccountController) UpdateAccountStatus(ctx context.Context, req *pb.Upd
 
 // UpdateSecuritySettings handles requests to update account security flags.
 func (c *AccountController) UpdateSecuritySettings(ctx context.Context, req *pb.UpdateSecuritySettingsRequest) (*pb.UpdateSecuritySettingsResponse, error) {
-	user, err := c.getUserFromContext(ctx)
+	user, err := getUserFromContext(ctx, c.userService) // Use shared helper
 	if err != nil {
 		return nil, err
 	}
@@ -159,6 +142,55 @@ func (c *AccountController) UpdateSecuritySettings(ctx context.Context, req *pb.
 	return resp, nil
 }
 
-// Note: CreateAccount and RevealPIN gRPC methods are not implemented here yet.
-// CreateAccount might be better handled within UserService during signup.
+// CreateAccount handles the gRPC request to create a new account.
+func (c *AccountController) CreateAccount(ctx context.Context, req *pb.CreateAccountRequest) (*pb.CreateAccountResponse, error) {
+	user, err := getUserFromContext(ctx, c.userService) // Use shared helper
+	if err != nil {
+		return nil, err
+	}
+
+	// Basic validation (service layer might do more)
+	if req.GetAccountType() == "" {
+		return nil, status.Error(codes.InvalidArgument, "account_type is required")
+	}
+	if req.GetCurrency() == "" {
+		return nil, status.Error(codes.InvalidArgument, "currency is required")
+	}
+	// Optional PIN validation (format check is in service layer)
+	if req.Pin != nil && len(req.GetPin()) != 4 {
+		// Quick check here, though service layer does regex check
+		return nil, status.Error(codes.InvalidArgument, "PIN must be exactly 4 digits")
+	}
+
+	// Call the service layer
+	createdAccountModel, err := c.accountService.CreateAccount(ctx, user.ID, req)
+	if err != nil {
+		// Map service errors to gRPC status codes
+		if errors.Is(err, services.ErrSvcAccountTypeExists) {
+			return nil, status.Errorf(codes.AlreadyExists, "account type '%s' already exists for this user", req.GetAccountType())
+		} else if errors.Is(err, services.ErrSvcInvalidPINFormat) {
+			return nil, status.Error(codes.InvalidArgument, err.Error())
+		} else if errors.Is(err, services.ErrSvcPINHashingFailed) {
+			// Log internal error details if possible
+			return nil, status.Error(codes.Internal, "failed to process PIN")
+		} else if errors.Is(err, services.ErrSvcAccountCreationFailed) {
+			// Log internal error details if possible
+			return nil, status.Error(codes.Internal, "failed to create account")
+		}
+		// Handle other potential errors (e.g., DB connection issues)
+		return nil, status.Errorf(codes.Internal, "failed to create account: %v", err)
+	}
+
+	// Convert the created GORM model to Protobuf details
+	accountDetails := services.ConvertAccountToProtoDetails(createdAccountModel)
+
+	// Construct and return the response
+	resp := &pb.CreateAccountResponse{
+		Account: accountDetails,
+	}
+
+	return resp, nil
+}
+
+// Note: RevealPIN gRPC method is not implemented here yet.
 // RevealPIN needs careful security implementation (e.g., password check, OTP).

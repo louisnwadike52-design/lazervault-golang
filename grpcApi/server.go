@@ -41,8 +41,9 @@ func NewServer(db *gorm.DB, config *configs.Config, tokenMaker token.Maker, redi
 	)
 
 	// Initialize services
-	authService := services.NewAuthService(db, config, tokenMaker, redisWorker.GetDistributor())
-	transferService := services.NewTransferService(db, config, redisWorker.GetDistributor())
+	distributor := redisWorker.GetDistributor() // Get distributor once
+	authService := services.NewAuthService(db, config, tokenMaker, distributor)
+	transferService := services.NewTransferService(db, config, distributor)
 	accountService := services.NewAccountService(db)
 	accountCardService := services.NewAccountCardService(db, config)
 	recipientService := services.NewRecipientService(db)
@@ -50,8 +51,10 @@ func NewServer(db *gorm.DB, config *configs.Config, tokenMaker token.Maker, redi
 	userService := services.NewUserService(db, config, tokenMaker)
 	exchangeService := services.NewExchangeService(db)
 	invoiceService := services.NewInvoiceService(db)
-	depositService := services.NewDepositService(db)
-	withdrawalService := services.NewWithdrawalService(db)
+	// Inject AccountService into DepositService for converter helper
+	depositService := services.NewDepositService(db, distributor, accountService)
+	// Pass distributor to WithdrawalService constructor
+	withdrawalService := services.NewWithdrawalService(db, distributor)
 
 	// Register gRPC services
 	pb.RegisterAuthServiceServer(grpcServer, NewAuthController(authService))

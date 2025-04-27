@@ -4,14 +4,12 @@ import (
 	"context"
 	"errors"
 	"lazervaultGo/grpcApi/middleware"
-	"lazervaultGo/models"
 	"lazervaultGo/pb"
 	"lazervaultGo/services"
 	"lazervaultGo/token"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // DepositController handles gRPC requests for the DepositService.
@@ -29,45 +27,7 @@ func NewDepositController(depositService services.IDepositService, userService s
 	}
 }
 
-// convertDepositStatus converts models.DepositStatus to pb.DepositStatus
-func convertDepositStatus(modelStatus models.DepositStatus) pb.DepositStatus {
-	switch modelStatus {
-	case models.DepositStatusPending:
-		return pb.DepositStatus_DEPOSIT_STATUS_PENDING
-	case models.DepositStatusCompleted:
-		return pb.DepositStatus_DEPOSIT_STATUS_COMPLETED
-	case models.DepositStatusFailed:
-		return pb.DepositStatus_DEPOSIT_STATUS_FAILED
-	default:
-		return pb.DepositStatus_DEPOSIT_STATUS_UNSPECIFIED
-	}
-}
-
-// convertDepositTransaction converts models.Deposit to pb.DepositTransaction
-func convertDepositTransaction(deposit *models.Deposit) *pb.DepositTransaction {
-	if deposit == nil {
-		return nil
-	}
-	pbDeposit := &pb.DepositTransaction{
-		TransactionId:   deposit.ID,
-		TargetAccountId: uint64(deposit.TargetAccountID),
-		Amount:          deposit.Amount,
-		Currency:        deposit.Currency,
-		SourceBankName:  deposit.SourceBankName,
-		Status:          convertDepositStatus(deposit.Status),
-		CreatedAt:       timestamppb.New(deposit.CreatedAt),
-		FailureReason:   deposit.FailureReason,
-	}
-	if deposit.CompletedAt != nil {
-		pbDeposit.CompletedAt = timestamppb.New(*deposit.CompletedAt)
-	}
-	if deposit.FailedAt != nil {
-		pbDeposit.FailedAt = timestamppb.New(*deposit.FailedAt)
-	}
-	return pbDeposit
-}
-
-// InitiateDeposit handles the gRPC request to start a deposit.
+// InitiateDeposit handles the gRPC request to start an asynchronous deposit.
 func (c *DepositController) InitiateDeposit(ctx context.Context, req *pb.InitiateDepositRequest) (*pb.InitiateDepositResponse, error) {
 	// 1. Get User ID from context
 	authPayload, ok := ctx.Value(middleware.AuthorizationPayloadKey).(*token.Payload)
@@ -87,7 +47,7 @@ func (c *DepositController) InitiateDeposit(ctx context.Context, req *pb.Initiat
 	if req.GetTargetAccountId() == 0 {
 		return nil, status.Errorf(codes.InvalidArgument, "target_account_id is required")
 	}
-	if req.GetAmount() <= 0 {
+	if req.GetAmount() == 0 {
 		return nil, status.Errorf(codes.InvalidArgument, "amount must be positive")
 	}
 	if req.GetCurrency() == "" {
@@ -97,40 +57,59 @@ func (c *DepositController) InitiateDeposit(ctx context.Context, req *pb.Initiat
 		return nil, status.Errorf(codes.InvalidArgument, "source_bank_name is required")
 	}
 
-	// 3. Prepare Service Request
-	serviceReq := services.InitiateDepositRequest{
-		UserID:          userID,
-		TargetAccountID: uint(req.GetTargetAccountId()), // Convert uint64 to uint
-		Amount:          req.GetAmount(),
-		Currency:        req.GetCurrency(),
-		SourceBankName:  req.GetSourceBankName(),
-	}
-
-	// 4. Call Service
-	createdDeposit, err := c.depositService.InitiateDeposit(ctx, userID, serviceReq)
+	// 3. Call Service
+	initiationResponse, err := c.depositService.InitiateDeposit(ctx, userID, req)
 	if err != nil {
 		// Map service errors to gRPC status codes
-		if errors.Is(err, services.ErrDepositTargetAccountNotFound) {
-			return nil, status.Errorf(codes.NotFound, err.Error())
-		}
-		if errors.Is(err, services.ErrDepositInvalidAmount) || errors.Is(err, services.ErrDepositCurrencyMismatch) {
+		if errors.Is(err, services.ErrDepositInvalidAmount) || errors.Is(err, services.ErrDepositCurrencyMissing) || errors.Is(err, services.ErrDepositSourceBankMissing) {
 			return nil, status.Errorf(codes.InvalidArgument, err.Error())
+		} else if errors.Is(err, services.ErrDepositInitiationFailed) {
+			// Log internal error details if possible
+			return nil, status.Errorf(codes.Internal, "failed to save deposit request")
+		} else if errors.Is(err, services.ErrDepositEnqueueTaskFailed) {
+			// Log internal error details if possible
+			return nil, status.Errorf(codes.Internal, "failed to schedule deposit processing")
 		}
-		if errors.Is(err, services.ErrDepositProcessingFailed) {
-			// Log the underlying error from the service if possible (txErr)
-			// log.Errorf("Deposit processing failed: %v", err)
-			return nil, status.Errorf(codes.Internal, "failed to process deposit") // Don't expose internal details
-		}
-		// Generic internal error
+		// Generic internal error for unexpected issues
 		return nil, status.Errorf(codes.Internal, "failed to initiate deposit: %v", err)
 	}
 
-	// 5. Convert and Return Response
-	pbResponse := &pb.InitiateDepositResponse{
-		Success:     true,
-		Message:     "Deposit initiated and processed successfully.", // Adjust message if using background tasks
-		Transaction: convertDepositTransaction(createdDeposit),
+	// 4. Return successful acknowledgement response from service
+	return initiationResponse, nil
+}
+
+// GetDepositDetails handles the gRPC request to retrieve deposit details.
+func (c *DepositController) GetDepositDetails(ctx context.Context, req *pb.GetDepositDetailsRequest) (*pb.GetDepositDetailsResponse, error) {
+	// 1. Get User ID from context using the shared helper
+	// We need access to userService, which is already injected into the controller.
+	user, err := getUserFromContext(ctx, c.userService)
+	if err != nil {
+		return nil, err // Error already contains gRPC status
 	}
 
-	return pbResponse, nil
+	// 2. Validate Request
+	depositID := req.GetDepositId()
+	if depositID == "" {
+		return nil, status.Error(codes.InvalidArgument, "deposit_id is required")
+	}
+	// Basic UUID validation (optional but good practice)
+	// if _, err := uuid.Parse(depositID); err != nil {
+	// 	 return nil, status.Errorf(codes.InvalidArgument, "invalid deposit_id format: %v", err)
+	// }
+
+	// 3. Call Service
+	detailsResponse, err := c.depositService.GetDepositDetails(ctx, depositID, user.ID)
+	if err != nil {
+		// Map service errors to gRPC status codes
+		if errors.Is(err, services.ErrDepositNotFound) {
+			return nil, status.Errorf(codes.NotFound, err.Error())
+		} else if errors.Is(err, services.ErrDepositAccessDenied) {
+			return nil, status.Errorf(codes.PermissionDenied, err.Error())
+		}
+		// Handle other potential errors (e.g., DB connection issues)
+		return nil, status.Errorf(codes.Internal, "failed to get deposit details: %v", err)
+	}
+
+	// 4. Return successful response from service
+	return detailsResponse, nil
 }

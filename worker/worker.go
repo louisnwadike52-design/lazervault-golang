@@ -27,7 +27,7 @@ func NewRedisStorage(redisOpt asynq.RedisClientOpt) *RedisStorage {
 
 func NewRedisWorker(redisOpt asynq.RedisClientOpt, db *gorm.DB, mailer mail.EmailSender, config *configs.Config) *RedisWorker {
 	distributor := NewRedisTaskDistributor(redisOpt)
-	processor := NewRedisTaskProcessor(redisOpt, db, mailer, config)
+	processor := NewRedisTaskProcessor(redisOpt, db, mailer, config, distributor)
 
 	go func() {
 		if err := processor.Start(); err != nil {

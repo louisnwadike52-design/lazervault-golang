@@ -24,13 +24,13 @@ const (
 
 // Account represents a user's financial account within LazerVault.
 type Account struct {
-	gorm.Model            // Includes ID, CreatedAt, UpdatedAt, DeletedAt
-	OwnerUserID   uint    `gorm:"not null;index"`                         // Foreign key to the User model
-	AccountNumber string  `gorm:"type:varchar(100);uniqueIndex;not null"` // Full account number (IBAN/etc.)
-	AccountType   string  `gorm:"type:varchar(50);not null"`              // e.g., personal, savings, investment
-	Currency      string  `gorm:"type:varchar(10);not null"`              // e.g., USD, GBP
-	Balance       float64 `gorm:"type:decimal(18,2);not null;default:0.0"`
-	IsActive      bool    `gorm:"not null;default:true"` // Consider replacing with Status field
+	gorm.Model           // Includes ID, CreatedAt, UpdatedAt, DeletedAt
+	OwnerUserID   uint   `gorm:"not null;index"`                         // Foreign key to the User model
+	AccountNumber string `gorm:"type:varchar(100);uniqueIndex;not null"` // Full account number (IBAN/etc.)
+	AccountType   string `gorm:"type:varchar(50);not null"`              // e.g., personal, savings, investment
+	Currency      string `gorm:"type:varchar(10);not null"`              // e.g., USD, GBP
+	Balance       int64  `gorm:"not null;default:0"`                     // GORM typically maps int64 to bigint
+	IsActive      bool   `gorm:"not null;default:true"`                  // Consider replacing with Status field
 
 	// New fields for UI parity
 	Status         string  `gorm:"type:varchar(50);not null;default:'active'"` // 'active', 'blocked_temporary', 'blocked_permanent', 'blocked_stolen'
@@ -40,12 +40,13 @@ type Account struct {
 	IBAN           *string `gorm:"type:varchar(34);uniqueIndex"`               // Added: International Bank Account Number (Nullable, Unique)
 	BICSwift       *string `gorm:"type:varchar(11)"`                           // Added: Bank Identifier Code (Nullable)
 	// Spending Limits (Consider if these should be configurable or derived)
-	DailyLimit   float64 `gorm:"type:decimal(18,2);default:5000.0"`
-	MonthlyLimit float64 `gorm:"type:decimal(18,2);default:50000.0"`
+	DailyLimit   int64 `gorm:"default:500000"`  // e.g., 5000.00 * 100
+	MonthlyLimit int64 `gorm:"default:5000000"` // e.g., 50000.00 * 100
 	// Security Flags
-	Enable3DSecure       bool `gorm:"default:true"`
-	EnableContactless    bool `gorm:"default:true"`
-	EnableOnlinePayments bool `gorm:"default:true"`
+	Enable3DSecure       bool   `gorm:"default:true"`
+	EnableContactless    bool   `gorm:"default:true"`
+	EnableOnlinePayments bool   `gorm:"default:true"`
+	PINHash              string `gorm:"type:varchar(255)"` // Added field for storing hashed PIN
 
 	// Relationships
 	Owner User          `gorm:"foreignKey:OwnerUserID"` // Belongs To relationship

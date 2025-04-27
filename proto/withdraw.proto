@@ -50,9 +50,9 @@ enum WithdrawalStatus {
 message WithdrawalTransaction {
   string transaction_id = 1;        // Unique ID for the withdrawal
   uint64 source_account_id = 2;     // LazerVault account funds came from
-  double amount = 3;                // Amount withdrawn (excluding fees)
-  // double fee = 4;                // Optional withdrawal fee
-  // double total_amount = 5;       // Amount + Fee deducted
+  uint64 amount = 3;                // Changed to uint64 (minor units)
+  // uint64 fee = 4;                // Optional withdrawal fee - Changed to uint64
+  // uint64 total_amount = 5;       // Amount + Fee deducted - Changed to uint64
   string currency = 6;              // Currency code (e.g., "GBP")
   string target_bank_name = 7;      // Name of the destination bank
   string target_account_number = 8; // Destination account number (masked?)
@@ -72,18 +72,42 @@ message InitiateWithdrawalRequest {
     }
   };
   uint64 source_account_id = 1;     // LazerVault account ID to withdraw from
-  double amount = 2;                // Amount to withdraw
+  uint64 amount = 2;                // Changed to uint64 (minor units)
   string currency = 3;              // Currency of the withdrawal (e.g., "GBP")
   string target_bank_name = 4;      // Name of the destination bank
   string target_account_number = 5; // Destination account number
   string target_sort_code = 6;      // Destination sort code (optional)
 }
 
-// Response after initiating a withdrawal
+// Response after initiating a withdrawal (Acknowledgement)
 message InitiateWithdrawalResponse {
-  bool success = 1;
-  string message = 2;                   // e.g., "Withdrawal initiated successfully"
-  WithdrawalTransaction transaction = 3; // Details of the created withdrawal record
+  string withdrawal_id = 1 [json_name = "withdrawal_id"]; // The unique ID of the initiated withdrawal record
+  WithdrawalStatus status = 2;                           // Initial status (should be PENDING)
+  string message = 3;                                     // Confirmation message (e.g., "Withdrawal initiated, processing asynchronously.")
+}
+
+// Request to get details of a specific withdrawal transaction
+message GetWithdrawalDetailsRequest {
+  string withdrawal_id = 1 [json_name = "withdrawal_id"]; // The UUID of the withdrawal to retrieve
+}
+
+// Response containing details of a specific withdrawal transaction
+message GetWithdrawalDetailsResponse {
+  string withdrawal_id = 1 [json_name = "withdrawal_id"];
+  uint64 source_account_id = 2 [json_name = "source_account_id"];
+  // Amount represented in the smallest currency unit (e.g., cents)
+  uint64 amount = 3;
+  string currency = 4;
+  string target_bank_name = 5 [json_name = "target_bank_name"];
+  string target_account_number = 6 [json_name = "target_account_number"]; // Consider masking response
+  string target_sort_code = 7 [json_name = "target_sort_code"];
+  WithdrawalStatus status = 8;
+  google.protobuf.Timestamp created_at = 9 [json_name = "created_at"];
+  google.protobuf.Timestamp processing_at = 10 [json_name = "processing_at"]; // Null if not yet processed
+  google.protobuf.Timestamp completed_at = 11 [json_name = "completed_at"];  // Null if not completed
+  google.protobuf.Timestamp failed_at = 12 [json_name = "failed_at"];      // Null if not failed
+  string failure_reason = 13 [json_name = "failure_reason"];      // Empty if not failed
+  string external_transaction_id = 14 [json_name = "external_transaction_id"]; // Optional ID from provider
 }
 
 // Service for handling withdrawals
@@ -98,11 +122,28 @@ service WithdrawService {
       summary: "Initiate Withdrawal"
       description: "Initiates a withdrawal from a specified LazerVault account to an external bank account."
       tags: ["Withdrawals"]
-      security: [{ // Requires authentication
+      security: {
         security_requirement: {
-          key: "bearer" value: {}
+          key: "bearer"
         }
-      }]
+      }
+    };
+  }
+
+  // Retrieves the details and status of a specific withdrawal transaction.
+  rpc GetWithdrawalDetails (GetWithdrawalDetailsRequest) returns (GetWithdrawalDetailsResponse) {
+    option (google.api.http) = {
+      get: "/v1/withdrawals/{withdrawal_id}" // Map GET request with ID in path
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Get Withdrawal Details"
+      description: "Retrieves the current status and details of a specific withdrawal transaction by its ID."
+      tags: ["Withdrawals"]
+      security: {
+        security_requirement: {
+          key: "bearer"
+        }
+      }
     };
   }
 } 

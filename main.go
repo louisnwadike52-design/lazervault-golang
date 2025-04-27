@@ -27,6 +27,11 @@ func main() {
 
 	migrator := database.NewMigrator(db)
 
+	// // Drop all tables
+	// if err := migrator.DropAllTables(); err != nil {
+	// 	log.Fatal("cannot drop tables:", err)
+	// }
+
 	// Run migrations
 	if err := migrator.RunMigrations(); err != nil {
 		log.Fatal("cannot run migrations:", err)
@@ -40,19 +45,15 @@ func main() {
 
 	mailer := mail.NewGmailSender(config.EmailSenderName, config.EmailSenderAddress, config.EmailSenderPassword)
 
-	// No need for redisStorage here if worker manages it internally
-	// redisStorage := worker.NewRedisStorage(asynq.RedisClientOpt{...
-
 	// Create Redis Worker (Distributor + Processor)
 	redisOpt := asynq.RedisClientOpt{
 		Addr:     config.RedisServerAddr,
 		Password: "", // Add password if needed
 		DB:       0,  // Use default DB
 	}
-	// Pass config to NewRedisWorker
 	redisWorker := worker.NewRedisWorker(redisOpt, db, mailer, &config)
 
-	// Pass the distributor interface to the gRPC server
+	// Create and initialize the server
 	server := grpcApi.NewServer(db, &config, tokenMaker, redisWorker)
 
 	// Handle graceful shutdown

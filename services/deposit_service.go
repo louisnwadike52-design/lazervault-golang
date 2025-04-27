@@ -5,137 +5,229 @@ import (
 	"errors"
 	"fmt"
 	"lazervaultGo/models"
+	"lazervaultGo/pb"
+	"lazervaultGo/tasks"
 	"time"
 
-	"github.com/google/uuid"
+	// bcrypt should be here if used by HashPassword
+	"github.com/hibiken/asynq"
+	"google.golang.org/protobuf/types/known/timestamppb"
 	"gorm.io/gorm"
 )
 
 // --- Deposit Service Errors ---
 var (
-	ErrDepositTargetAccountNotFound = errors.New("target account not found or does not belong to user")
-	ErrDepositInvalidAmount         = errors.New("deposit amount must be positive")
-	ErrDepositCurrencyMismatch      = errors.New("deposit currency does not match target account currency")
-	ErrDepositProcessingFailed      = errors.New("failed to process deposit and update balance")
+	ErrDepositTargetAccountNotFound = errors.New("deposit service: target account not found or does not belong to user")
+	ErrDepositInvalidAmount         = errors.New("deposit service: deposit amount must be positive")
+	ErrDepositCurrencyMismatch      = errors.New("deposit service: deposit currency does not match target account currency")
+	ErrDepositProcessingFailed      = errors.New("deposit service: failed to process deposit and update balance")
+	ErrDepositAccountInactive       = errors.New("deposit service: cannot deposit into inactive/blocked account")
+
+	ErrDepositInitiationFailed  = errors.New("deposit service: failed to initiate deposit record")
+	ErrDepositEnqueueTaskFailed = errors.New("deposit service: failed to enqueue processing task")
+	ErrDepositCurrencyMissing   = errors.New("deposit service: currency is required")
+	ErrDepositSourceBankMissing = errors.New("deposit service: source bank name is required")
+
+	// New errors for GetDepositDetails
+	ErrDepositNotFound     = errors.New("deposit service: deposit not found")
+	ErrDepositAccessDenied = errors.New("deposit service: access denied to deposit details")
 )
 
 // --- Deposit Service Interface ---
 
-// IDepositService defines the interface for deposit operations.
 type IDepositService interface {
-	InitiateDeposit(ctx context.Context, userID uint, req InitiateDepositRequest) (*models.Deposit, error)
+	InitiateDeposit(ctx context.Context, userID uint, req *pb.InitiateDepositRequest) (*pb.InitiateDepositResponse, error)
+	GetDepositDetails(ctx context.Context, depositID string, userID uint) (*pb.GetDepositDetailsResponse, error)
 }
 
 // --- Deposit Service Struct ---
 
-// DepositService handles business logic related to deposits.
 type DepositService struct {
-	db *gorm.DB
-	// Add IAccountService if direct balance update is preferred over raw SQL/GORM update
-	// accountService IAccountService
+	db          *gorm.DB
+	distributor tasks.TaskDistributor
+	// We need AccountService ONLY for the converter helper.
+	// This isn't ideal. Consider moving the converter.
+	accountService IAccountService // Added temporarily
 }
 
 // --- Deposit Service Constructor ---
 
-// NewDepositService creates a new DepositService.
-func NewDepositService(db *gorm.DB) IDepositService {
-	return &DepositService{db: db}
-}
-
-// --- Deposit Service Types ---
-
-// InitiateDepositRequest mirrors the proto request but includes UserID.
-type InitiateDepositRequest struct {
-	UserID          uint    `json:"user_id"` // Added from context
-	TargetAccountID uint    `json:"target_account_id"`
-	Amount          float64 `json:"amount"`
-	Currency        string  `json:"currency"`
-	SourceBankName  string  `json:"source_bank_name"`
+// Updated constructor to accept IAccountService
+func NewDepositService(db *gorm.DB, distributor tasks.TaskDistributor, accountService IAccountService) IDepositService {
+	return &DepositService{db: db, distributor: distributor, accountService: accountService}
 }
 
 // --- Deposit Service Methods ---
 
-// InitiateDeposit creates a deposit record and simulates processing.
-// In a real system, this would likely involve a payment gateway and background tasks.
-func (s *DepositService) InitiateDeposit(ctx context.Context, userID uint, req InitiateDepositRequest) (*models.Deposit, error) {
+// InitiateDeposit creates a deposit record and enqueues a task for processing.
+func (s *DepositService) InitiateDeposit(ctx context.Context, userID uint, req *pb.InitiateDepositRequest) (*pb.InitiateDepositResponse, error) {
 	// 1. Validate Input
-	if req.Amount <= 0 {
+	if req.Amount == 0 {
 		return nil, ErrDepositInvalidAmount
 	}
-	// TODO: Add currency code validation (e.g., against a known list)
+	// Store amount directly as int64 (minor units)
+	amountInt := int64(req.Amount)
+	if amountInt <= 0 { // Redundant check, but safe
+		return nil, ErrDepositInvalidAmount
+	}
+	if req.Currency == "" {
+		return nil, ErrDepositCurrencyMissing
+	}
+	if req.SourceBankName == "" {
+		return nil, ErrDepositSourceBankMissing
+	}
+	targetAccountID := uint(req.GetTargetAccountId())
+	if targetAccountID == 0 {
+		return nil, fmt.Errorf("target_account_id is required")
+	}
 
-	// 2. Use Transaction for atomicity
-	var createdDeposit *models.Deposit
+	// 2. Create Deposit Record
+	deposit := models.Deposit{
+		UserID:          userID,
+		TargetAccountID: targetAccountID,
+		Amount:          amountInt, // Use int64 amount
+		Currency:        req.Currency,
+		SourceBankName:  req.SourceBankName,
+		Status:          models.DepositStatusPending,
+	}
+
+	// Use transaction here to ensure task is only queued if record is saved
 	txErr := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		// 3. Verify Target Account and Currency
-		var targetAccount models.Account
-		err := tx.Where("id = ? AND owner_user_id = ?", req.TargetAccountID, userID).First(&targetAccount).Error
-		if err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return ErrDepositTargetAccountNotFound
-			}
-			return fmt.Errorf("db error finding target account: %w", err)
-		}
-
-		if targetAccount.Currency != req.Currency {
-			return ErrDepositCurrencyMismatch
-		}
-
-		// 4. Create Initial Deposit Record (Status: PENDING)
-		deposit := models.Deposit{
-			ID:              uuid.NewString(), // Generate UUID
-			UserID:          userID,
-			TargetAccountID: req.TargetAccountID,
-			Amount:          req.Amount,
-			Currency:        req.Currency,
-			SourceBankName:  req.SourceBankName,
-			Status:          models.DepositStatusPending, // Start as pending
-		}
-
 		if err := tx.Create(&deposit).Error; err != nil {
-			return fmt.Errorf("failed to create deposit record: %w", err)
+			return fmt.Errorf("%w: %v", ErrDepositInitiationFailed, err)
 		}
 
-		// --- Simulation: Immediately attempt to complete the deposit ---
-		// In a real app, this logic (balance update, status change) would likely be
-		// in a separate background task triggered after payment gateway confirmation.
+		// 3. Enqueue Processing Task within the same transaction
+		depositPayload := &tasks.DepositProcessPayload{DepositID: deposit.ID}
 
-		// 5. Update Account Balance
-		targetAccount.Balance += req.Amount
-		if err := tx.Save(&targetAccount).Error; err != nil {
-			deposit.Status = models.DepositStatusFailed // Mark deposit as failed if balance update fails
-			deposit.FailureReason = "Failed to update account balance"
-			now := time.Now()
-			deposit.FailedAt = &now
-			tx.Save(&deposit) // Save failed status
-			return fmt.Errorf("failed to update target account balance: %w", err)
+		opts := []asynq.Option{
+			asynq.MaxRetry(5),
+			asynq.ProcessAt(time.Now().Add(5 * time.Second)),
 		}
 
-		// 6. Update Deposit Status to COMPLETED
-		deposit.Status = models.DepositStatusCompleted
-		now := time.Now()
-		deposit.CompletedAt = &now
-		if err := tx.Save(&deposit).Error; err != nil {
-			// If this fails, the balance is updated but the deposit record isn't marked completed.
-			// This indicates an inconsistency. Depending on requirements, you might:
-			// - Log critical error
-			// - Attempt to rollback (though balance is already saved)
-			// - Enqueue a reconciliation task
-			return fmt.Errorf("critical: failed to update deposit status after balance update: %w", err)
+		if err := s.distributor.DistributeTaskDepositProcess(ctx, depositPayload, opts...); err != nil {
+			fmt.Printf("CRITICAL: Error distributing deposit task for deposit %s: %v\n", deposit.ID, err)
+			return fmt.Errorf("%w: %v", ErrDepositEnqueueTaskFailed, err)
 		}
 
-		createdDeposit = &deposit // Assign the successfully created/updated deposit
-		return nil                // Commit transaction
+		return nil // Commit transaction
 	})
 
 	if txErr != nil {
-		// Translate specific errors if needed, otherwise return the transaction error
-		if errors.Is(txErr, ErrDepositTargetAccountNotFound) || errors.Is(txErr, ErrDepositCurrencyMismatch) {
-			return nil, txErr
-		}
-		// Generic processing error
-		return nil, fmt.Errorf("%w: %v", ErrDepositProcessingFailed, txErr)
+		return nil, txErr
 	}
 
-	return createdDeposit, nil
+	// 4. Construct and Return Acknowledgement Response
+	resp := &pb.InitiateDepositResponse{
+		DepositId: deposit.ID,
+		Status:    pb.DepositStatus_DEPOSIT_STATUS_PENDING,
+		Message:   "Deposit initiated and is processing asynchronously.",
+	}
+
+	return resp, nil
+}
+
+// GetDepositDetails retrieves details for a specific deposit.
+func (s *DepositService) GetDepositDetails(ctx context.Context, depositID string, userID uint) (*pb.GetDepositDetailsResponse, error) {
+	var deposit models.Deposit
+	var failedDeposit models.FailedDeposit
+	var account models.Account
+	foundInDeposits := false
+	foundInFailed := false
+
+	// Check active deposits first
+	err := s.db.WithContext(ctx).Where("id = ?", depositID).First(&deposit).Error
+	if err == nil {
+		foundInDeposits = true
+	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, fmt.Errorf("db error finding deposit: %w", err)
+	}
+
+	// If not found in active, check failed deposits
+	if !foundInDeposits {
+		err = s.db.WithContext(ctx).Where("original_deposit_id = ?", depositID).First(&failedDeposit).Error
+		if err == nil {
+			foundInFailed = true
+		} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, fmt.Errorf("db error finding failed deposit: %w", err)
+		}
+	}
+
+	if !foundInDeposits && !foundInFailed {
+		return nil, ErrDepositNotFound
+	}
+
+	resp := &pb.GetDepositDetailsResponse{}
+	var depositUserID uint
+
+	if foundInDeposits {
+		depositUserID = deposit.UserID
+		resp.DepositId = deposit.ID
+		resp.TargetAccountId = uint64(deposit.TargetAccountID)
+		resp.Amount = uint64(deposit.Amount) // Amount is now int64, cast to uint64
+		resp.Currency = deposit.Currency
+		resp.SourceBankName = deposit.SourceBankName
+		resp.Status = convertModelStatusToProto(deposit.Status)
+		resp.CreatedAt = timestamppb.New(deposit.CreatedAt)
+		if deposit.ProcessingAt != nil {
+			resp.ProcessingAt = timestamppb.New(*deposit.ProcessingAt)
+		}
+		if deposit.CompletedAt != nil {
+			resp.CompletedAt = timestamppb.New(*deposit.CompletedAt)
+		}
+		if deposit.FailedAt != nil {
+			resp.FailedAt = timestamppb.New(*deposit.FailedAt)
+		}
+		if deposit.FailureReason != nil {
+			resp.FailureReason = *deposit.FailureReason
+		}
+		if deposit.ExternalTransactionID != nil {
+			resp.ExternalTransactionId = *deposit.ExternalTransactionID
+		}
+	} else { // Found in failed
+		depositUserID = failedDeposit.UserID
+		resp.DepositId = failedDeposit.OriginalDepositID
+		resp.TargetAccountId = uint64(failedDeposit.TargetAccountID)
+		resp.Amount = uint64(failedDeposit.Amount) // Amount is now int64, cast to uint64
+		resp.Currency = failedDeposit.Currency
+		resp.SourceBankName = failedDeposit.SourceBankName
+		resp.Status = pb.DepositStatus_DEPOSIT_STATUS_FAILED
+		resp.CreatedAt = timestamppb.New(failedDeposit.AttemptedAt)
+		resp.FailedAt = timestamppb.New(failedDeposit.FailedAt)
+		resp.FailureReason = failedDeposit.FailureReason
+		if failedDeposit.ExternalTransactionID != nil {
+			resp.ExternalTransactionId = *failedDeposit.ExternalTransactionID
+		}
+	}
+
+	if depositUserID != userID {
+		return nil, ErrDepositAccessDenied
+	}
+
+	if foundInDeposits && deposit.Status == models.DepositStatusCompleted {
+		err = s.db.WithContext(ctx).Where("id = ?", deposit.TargetAccountID).First(&account).Error
+		if err != nil {
+			fmt.Printf("WARN: Failed to fetch account details for completed deposit %s: %v\n", depositID, err)
+		} else {
+			resp.UpdatedAccount = ConvertAccountToProtoDetails(&account) // Use external helper
+		}
+	}
+
+	return resp, nil
+}
+
+// Helper to convert model status to proto status
+func convertModelStatusToProto(status models.DepositStatus) pb.DepositStatus {
+	switch status {
+	case models.DepositStatusPending:
+		return pb.DepositStatus_DEPOSIT_STATUS_PENDING
+	case models.DepositStatusProcessing:
+		return pb.DepositStatus_DEPOSIT_STATUS_PROCESSING
+	case models.DepositStatusCompleted:
+		return pb.DepositStatus_DEPOSIT_STATUS_COMPLETED
+	case models.DepositStatusFailed:
+		return pb.DepositStatus_DEPOSIT_STATUS_FAILED // Should ideally not be stored long term in Deposit table
+	default:
+		return pb.DepositStatus_DEPOSIT_STATUS_UNSPECIFIED
+	}
 }

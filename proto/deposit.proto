@@ -5,13 +5,14 @@ package pb;
 import "google/protobuf/timestamp.proto";
 import "google/api/annotations.proto";
 import "protoc-gen-openapiv2/options/annotations.proto";
+import "account.proto"; // Needed for AccountDetails
 
-option go_package = "lazervaultGo/pb"; // Adjust if your go_package path is different
+option go_package = "lazervaultGo/pb";
 
-// OpenAPI v2 documentation options
+// OpenAPI v2 documentation options for the Deposit Service
 option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
   info: {
-    title: "LazerVault Deposit Service";
+    title: "LazerVault Deposit Service (Async)"; // Updated title
     version: "1.0";
     contact: {
       name: "LazerVault Support";
@@ -19,7 +20,6 @@ option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
       email: "support@lazervault.example";
     };
   };
-  // Inherit security definitions from auth.proto or define here if needed
   security_definitions: {
     security: {
       key: "bearer"
@@ -42,62 +42,94 @@ option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
 enum DepositStatus {
   DEPOSIT_STATUS_UNSPECIFIED = 0;
   DEPOSIT_STATUS_PENDING = 1;
-  DEPOSIT_STATUS_COMPLETED = 2;
-  DEPOSIT_STATUS_FAILED = 3;
-}
-
-// Represents a deposit transaction record
-message DepositTransaction {
-  string transaction_id = 1; // Unique ID for the deposit
-  uint64 target_account_id = 2; // LazerVault account receiving funds
-  double amount = 3; // Amount deposited
-  string currency = 4; // Currency code (e.g., "GBP")
-  string source_bank_name = 5; // Name of the bank funds came from
-  DepositStatus status = 6; // Current status of the deposit
-  google.protobuf.Timestamp created_at = 7;
-  google.protobuf.Timestamp completed_at = 8; // Null if not completed/failed
-  google.protobuf.Timestamp failed_at = 9;    // Null if not failed
-  string failure_reason = 10; // Optional reason for failure
+  DEPOSIT_STATUS_PROCESSING = 2;
+  DEPOSIT_STATUS_COMPLETED = 3;
+  DEPOSIT_STATUS_FAILED = 4; // Note: This represents final failure *after* processing attempt
 }
 
 // Request to initiate a deposit
 message InitiateDepositRequest {
-   option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
     json_schema: {
       required: ["target_account_id", "amount", "currency", "source_bank_name"]
     }
   };
-  uint64 target_account_id = 1; // LazerVault account ID to deposit into
-  double amount = 2;            // Amount to deposit
-  string currency = 3;          // Currency of the deposit (e.g., "GBP")
-  string source_bank_name = 4;  // Name of the source bank
+
+  uint64 target_account_id = 1 [json_name = "target_account_id"]; // Account to deposit into
+  // Amount represented in the smallest currency unit (e.g., cents for GBP/USD)
+  uint64 amount = 2;
+  string currency = 3;          // Currency code (e.g., GBP) - must match account
+  string source_bank_name = 4 [json_name = "source_bank_name"]; // Name of the originating bank
 }
 
-// Response after initiating a deposit
+// Response after initiating a deposit (acknowledgement)
 message InitiateDepositResponse {
-  bool success = 1;
-  string message = 2;                   // e.g., "Deposit initiated successfully"
-  DepositTransaction transaction = 3; // Details of the created deposit record
+  string deposit_id = 1 [json_name = "deposit_id"]; // The unique ID of the initiated deposit record
+  DepositStatus status = 2;                       // Initial status (should be PENDING)
+  string message = 3;                             // Confirmation message (e.g., "Deposit initiated, processing asynchronously.")
 }
 
-// Service for handling deposits
+// Request to get details of a specific deposit transaction
+message GetDepositDetailsRequest {
+  string deposit_id = 1 [json_name = "deposit_id"]; // The UUID of the deposit to retrieve
+}
+
+// Response containing details of a specific deposit transaction
+message GetDepositDetailsResponse {
+  string deposit_id = 1 [json_name = "deposit_id"];
+  uint64 target_account_id = 2 [json_name = "target_account_id"];
+  // Amount represented in the smallest currency unit (e.g., cents)
+  uint64 amount = 3;
+  string currency = 4;
+  string source_bank_name = 5 [json_name = "source_bank_name"];
+  DepositStatus status = 6;
+  google.protobuf.Timestamp created_at = 7 [json_name = "created_at"];
+  google.protobuf.Timestamp processing_at = 8 [json_name = "processing_at"]; // Null if not yet processed
+  google.protobuf.Timestamp completed_at = 9 [json_name = "completed_at"];  // Null if not completed
+  google.protobuf.Timestamp failed_at = 10 [json_name = "failed_at"];      // Null if not failed
+  string failure_reason = 11 [json_name = "failure_reason"];      // Empty if not failed
+  string external_transaction_id = 12 [json_name = "external_transaction_id"]; // Optional ID from provider
+
+  // Updated account details are included only if the deposit status is COMPLETED.
+  AccountDetails updated_account = 13 [json_name = "updated_account"];
+}
+
+// Service for handling deposits (asynchronous)
 service DepositService {
-  // Initiates a deposit into a LazerVault account.
-  // In a real system, this might trigger an external payment flow.
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_tag) = {
+    description: "Handles asynchronous fund deposits into user accounts."
+  };
+
+  // Initiates a deposit into a specified account.
+  // The deposit will be processed asynchronously.
+  // Amount should be provided in the smallest currency unit (e.g., cents).
   rpc InitiateDeposit (InitiateDepositRequest) returns (InitiateDepositResponse) {
     option (google.api.http) = {
       post: "/v1/deposits"
       body: "*"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      summary: "Initiate Deposit"
-      description: "Initiates a deposit from a specified source bank into a target LazerVault account."
+      summary: "Initiate Deposit (Async)"
+      description: "Initiates the process of depositing funds. The actual balance update occurs asynchronously. Amount should be provided in the smallest currency unit (e.g., cents)."
       tags: ["Deposits"]
-      security: [{ // Requires authentication
-        security_requirement: {
-          key: "bearer" value: {}
-        }
-      }]
+      security: {
+         security_requirement: { key: "bearer" value: {} }
+      }
+    };
+  }
+
+  // Retrieves the details and status of a specific deposit transaction.
+  rpc GetDepositDetails (GetDepositDetailsRequest) returns (GetDepositDetailsResponse) {
+    option (google.api.http) = {
+      get: "/v1/deposits/{deposit_id}" // Map GET request with deposit_id in path
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Get Deposit Details"
+      description: "Retrieves the current status and details of a specific deposit transaction by its ID."
+      tags: ["Deposits"]
+      security: {
+         security_requirement: { key: "bearer" value: {} }
+      }
     };
   }
 } 

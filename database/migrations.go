@@ -17,6 +17,14 @@ func NewMigrator(db *gorm.DB) *Migrator {
 func (m *Migrator) DropAllTables() error {
 	return m.db.Migrator().DropTable(
 		&models.User{},
+		&models.Account{},
+		&models.Session{},
+		&models.Transfer{},
+		&models.FailedTransfer{},
+		&models.Deposit{},
+		&models.FailedDeposit{},
+		&models.Withdrawal{},
+		&models.Recipient{},
 	)
 }
 
@@ -27,6 +35,10 @@ func (m *Migrator) RunMigrations() error {
 		&models.Session{},
 		&models.Transfer{},
 		&models.FailedTransfer{},
+		&models.Deposit{},
+		&models.FailedDeposit{},
+		&models.Withdrawal{},
+		&models.Recipient{},
 	)
 }
 

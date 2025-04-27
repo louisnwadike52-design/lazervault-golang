@@ -60,11 +60,12 @@ message CreateAccountRequest {
 
   string account_type = 1 [json_name = "account_type"]; // Type of account to create
   string currency = 2; // Currency for the new account
+  optional string pin = 3; // Optional 4-digit PIN for the account
 }
 
 // Response message after creating an account.
 message CreateAccountResponse {
-  Account account = 1; // The newly created account details
+  AccountDetails account = 1; // The newly created account details
 }
 
 // Request message for retrieving accounts (currently no parameters needed).
@@ -82,7 +83,7 @@ message AccountSummary {
     uint64 id = 1;
     string account_type = 2;      // e.g., "personal", "savings"
     string currency = 3;          // e.g., "GBP", "USD"
-    double balance = 4;
+    uint64 balance = 4;           // Changed to uint64 (minor units)
     string masked_account_number = 5; // e.g., "•••• 7890"
     string status = 6;            // e.g., "active", "blocked_temporary"
 }
@@ -92,13 +93,13 @@ message AccountDetails {
     uint64 id = 1;
     string account_type = 2;
     string currency = 3;
-    double balance = 4;
+    uint64 balance = 4;           // Changed to uint64 (minor units)
     string status = 6;
     string card_holder_name = 7;
     string card_type = 8;         // e.g., "debit"
     string expiry_date = 9;       // e.g., "12/25"
-    double daily_limit = 10;
-    double monthly_limit = 11;
+    uint64 daily_limit = 10;      // Changed to uint64 (minor units)
+    uint64 monthly_limit = 11;    // Changed to uint64 (minor units)
     bool enable_3d_secure = 12;
     bool enable_contactless = 13;
     bool enable_online_payments = 14;
@@ -118,12 +119,12 @@ message SecuritySettings {
 
 // --- RPC Requests/Responses ---
 
-// ListUserAccounts
-message ListUserAccountsRequest {
+// GetUserAccounts (Renamed from ListUserAccounts)
+message GetUserAccountsRequest {
     // User ID will be inferred from context/auth token on the server
 }
 
-message ListUserAccountsResponse {
+message GetUserAccountsResponse {
     repeated AccountSummary accounts = 1;
 }
 
@@ -179,24 +180,33 @@ service AccountService {
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "Create Account"
-      description: "Creates a new financial account for the authenticated user based on the provided type and currency."
+      description: "Creates a new financial account for the authenticated user based on the provided type and currency. An optional PIN can be set."
       tags: ["Accounts"]
+      // Security requirement already defined at service level
     };
   }
 
-  // Retrieves all accounts associated with the authenticated user.
-  rpc GetAccounts (GetAccountsRequest) returns (GetAccountsResponse) {
-    option (google.api.http) = {
-      get: "/v1/accounts"
-    };
-    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      summary: "Get Accounts"
-      description: "Retrieves a list of all financial accounts belonging to the authenticated user."
-      tags: ["Accounts"]
-    };
-  }
+  // Removed legacy GetAccounts RPC
+  // rpc GetAccounts (GetAccountsRequest) returns (GetAccountsResponse) {
+  //  // ... (options) ...
+  // }
 
-  rpc ListUserAccounts(ListUserAccountsRequest) returns (ListUserAccountsResponse) {}
+  // Renamed from ListUserAccounts
+  rpc GetUserAccounts(GetUserAccountsRequest) returns (GetUserAccountsResponse) {
+       option (google.api.http) = {
+            get: "/v1/accounts"
+        };
+       option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            summary: "Get User Accounts Summary"
+            description: "Retrieves a summary list of all financial accounts belonging to the authenticated user."
+            tags: ["Accounts"]
+            security: {
+              security_requirement: {
+                key: "bearer"
+              }
+            }
+        };
+  }
   rpc GetAccountDetails(GetAccountDetailsRequest) returns (GetAccountDetailsResponse) {}
   rpc UpdateAccountStatus(UpdateAccountStatusRequest) returns (UpdateAccountStatusResponse) {}
   rpc UpdateSecuritySettings(UpdateSecuritySettingsRequest) returns (UpdateSecuritySettingsResponse) {}

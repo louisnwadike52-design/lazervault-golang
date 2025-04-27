@@ -316,8 +316,10 @@ func (s *AuthService) RequestEmailVerification(ctx context.Context, email string
 
 	// Enqueue task to send email
 	taskPayload := &tasks.PayloadSendVerifyEmail{
-		Email: email,
-		Code:  code,
+		UserID:     user.ID,
+		Email:      email,
+		Username:   user.FirstName + " " + user.LastName,
+		SecretCode: code,
 	}
 	// Use default options for now
 	opts := []asynq.Option{

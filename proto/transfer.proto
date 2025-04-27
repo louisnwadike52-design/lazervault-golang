@@ -43,21 +43,23 @@ message TransferTransaction {
 
 // Request message for initiating a transfer
 message InitiateTransferRequest {
-    uint64 to_user_id = 1;
-    double amount = 2;
-    string category = 3;
-    string reference = 4; // Optional reference
-    google.protobuf.Timestamp scheduled_at = 5; // Optional schedule time
-    string description = 6; // Added description field
+    // uint64 to_user_id = 1; // Removed
+    uint64 from_account_id = 1 [json_name = "from_account_id"]; // Added
+    uint64 to_account_id = 2 [json_name = "to_account_id"];     // Added
+    uint64 amount = 3;          // Changed to uint64 (minor units)
+    string category = 4;
+    string reference = 5; // Optional reference
+    google.protobuf.Timestamp scheduled_at = 6; // Optional schedule time
+    string description = 7; // Added description field
 }
 
 // Response message for initiating a transfer
 message InitiateTransferResponse {
     uint64 transfer_id = 1;
     string status = 2;
-    double amount = 3;
-    double fee = 4;
-    double total_amount = 5;
+    uint64 amount = 3;          // Changed to uint64 (minor units)
+    uint64 fee = 4;             // Changed to uint64 (minor units)
+    uint64 total_amount = 5;    // Changed to uint64 (minor units)
     google.protobuf.Timestamp created_at = 6;
 }
 
@@ -161,6 +163,32 @@ message GetTransactionsResponse {
   PaginationInfo pagination = 2;
 }
 
+// Request message for getting transfer details
+message GetTransferDetailsRequest {
+    uint64 transfer_id = 1 [json_name = "transfer_id"]; // ID of the transfer to retrieve
+}
+
+// Response message containing transfer details
+message GetTransferDetailsResponse {
+    uint64 transfer_id = 1 [json_name = "transfer_id"];
+    uint64 from_account_id = 2 [json_name = "from_account_id"];
+    uint64 to_account_id = 3 [json_name = "to_account_id"];
+    uint64 from_user_id = 4 [json_name = "from_user_id"]; // Added for context
+    uint64 to_user_id = 5 [json_name = "to_user_id"];     // Added for context
+    uint64 amount = 6;          // Amount in minor units
+    uint64 fee = 7;             // Fee in minor units
+    uint64 total_amount = 8;    // Total amount in minor units
+    string currency = 9;        // Added currency
+    string status = 10;         // Status string (e.g., "pending", "completed")
+    string reference = 11;
+    string category = 12;
+    google.protobuf.Timestamp created_at = 13 [json_name = "created_at"];
+    google.protobuf.Timestamp scheduled_at = 14 [json_name = "scheduled_at"]; // Null if not scheduled
+    google.protobuf.Timestamp completed_at = 15 [json_name = "completed_at"]; // Null if not completed
+    google.protobuf.Timestamp failed_at = 16 [json_name = "failed_at"];    // Null if not failed
+    string failure_reason = 17 [json_name = "failure_reason"];    // Empty if not failed
+}
+
 // Service definition for transfers
 service TransferService {
     // Initiates a new transfer
@@ -186,11 +214,11 @@ service TransferService {
             summary: "Get Financial Statistics"
             description: "Retrieves aggregated income, expense, and categorized statistics based on transfer history for a given time period."
             tags: ["Transfers"]
-            security: [{ // Requires authentication
+            security: {
                 security_requirement: {
-                    key: "bearer" value: {}
+                    key: "bearer"
                 }
-            }]
+            }
         };
     }
 
@@ -204,11 +232,28 @@ service TransferService {
         summary: "Get Transaction History"
         description: "Retrieves a paginated list of user transactions, allowing filtering by account, card, date range, type, and category."
         tags: ["Transactions"] // Changed tag
-        security: [{ // Requires authentication
+        security: {
           security_requirement: {
-            key: "bearer" value: {}
+            key: "bearer"
           }
-        }]
+        }
       };
+    }
+
+    // Retrieves the details of a specific transfer transaction.
+    rpc GetTransferDetails (GetTransferDetailsRequest) returns (GetTransferDetailsResponse) {
+        option (google.api.http) = {
+            get: "/v1/transfers/{transfer_id}" // Map GET request with transfer_id in path
+        };
+        option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            summary: "Get Transfer Details"
+            description: "Retrieves the details of a specific transfer transaction by its ID."
+            tags: ["Transfers"]
+            security: {
+                security_requirement: {
+                    key: "bearer"
+                }
+            }
+        };
     }
 } 

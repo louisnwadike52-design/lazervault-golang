@@ -3,7 +3,6 @@ syntax = "proto3";
 package pb;
 
 import "google/protobuf/timestamp.proto";
-// import "google/protobuf/empty.proto"; // Removed unused import
 import "google/api/annotations.proto";
 import "protoc-gen-openapiv2/options/annotations.proto";
 
