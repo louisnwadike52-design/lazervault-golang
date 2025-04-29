@@ -20,9 +20,7 @@ func (m *Migrator) DropAllTables() error {
 		&models.Account{},
 		&models.Session{},
 		&models.Transfer{},
-		&models.FailedTransfer{},
 		&models.Deposit{},
-		&models.FailedDeposit{},
 		&models.Withdrawal{},
 		&models.Recipient{},
 	)
@@ -34,9 +32,7 @@ func (m *Migrator) RunMigrations() error {
 		&models.Account{},
 		&models.Session{},
 		&models.Transfer{},
-		&models.FailedTransfer{},
 		&models.Deposit{},
-		&models.FailedDeposit{},
 		&models.Withdrawal{},
 		&models.Recipient{},
 	)

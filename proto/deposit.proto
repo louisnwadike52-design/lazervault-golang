@@ -113,7 +113,7 @@ service DepositService {
       description: "Initiates the process of depositing funds. The actual balance update occurs asynchronously. Amount should be provided in the smallest currency unit (e.g., cents)."
       tags: ["Deposits"]
       security: {
-         security_requirement: { key: "bearer" value: {} }
+         security_requirement: { key: "bearer" }
       }
     };
   }
@@ -128,7 +128,7 @@ service DepositService {
       description: "Retrieves the current status and details of a specific deposit transaction by its ID."
       tags: ["Deposits"]
       security: {
-         security_requirement: { key: "bearer" value: {} }
+         security_requirement: { key: "bearer" }
       }
     };
   }

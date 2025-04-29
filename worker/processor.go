@@ -175,23 +175,6 @@ func (processor *RedisTaskProcessor) ProcessTransferLogic(ctx context.Context, t
 		transfer.FailedAt = &now
 		transfer.FailureReason = "insufficient funds"
 
-		failedTransfer := &models.FailedTransfer{
-			TransferID:    transfer.ID,
-			FromUserID:    transfer.FromUserID,
-			ToUserID:      transfer.ToUserID,
-			FromAccountID: transfer.FromAccountID,
-			ToAccountID:   transfer.ToAccountID,
-			Amount:        transfer.Amount,
-			Fee:           transfer.Fee,
-			TotalAmount:   transfer.TotalAmount,
-			FailureReason: transfer.FailureReason,
-		}
-
-		if err := tx.Create(failedTransfer).Error; err != nil {
-			tx.Rollback()
-			return fmt.Errorf("failed to create failed transfer record: %w", err)
-		}
-
 		if err := tx.Save(&transfer).Error; err != nil {
 			tx.Rollback()
 			return fmt.Errorf("failed to update transfer status to failed: %w", err)

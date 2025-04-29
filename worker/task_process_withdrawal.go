@@ -105,18 +105,14 @@ func HandleWithdrawalProcessTask(ctx context.Context, t *asynq.Task, db *gorm.DB
 			// 1. Get Source Account (Lock for update)
 			var sourceAccount models.Account
 			if err := tx.Set("gorm:query_option", "FOR UPDATE").Where("id = ?", withdrawal.SourceAccountID).First(&sourceAccount).Error; err != nil {
-				// If account not found, we can't revert balance, but still mark withdrawal failed
 				if errors.Is(err, gorm.ErrRecordNotFound) {
 					fmt.Printf("WARN: Source account %d not found during withdrawal %s failure processing. Cannot revert balance.\n", withdrawal.SourceAccountID, withdrawalID)
-					// Continue to mark withdrawal as failed
 				} else {
-					// Other DB error finding account, fail the transaction
 					return fmt.Errorf("db error finding source account %d for withdrawal %s failure: %w", withdrawal.SourceAccountID, withdrawalID, err)
 				}
 			} else {
 				// 2. Revert Balance (Add back the deducted amount)
-				// Must use the amount from the withdrawal record
-				totalDeducted := withdrawal.Amount // Assuming Amount was the total deducted
+				totalDeducted := withdrawal.Amount // Use the amount from the withdrawal record
 				sourceAccount.Balance += totalDeducted
 				if err := tx.Save(&sourceAccount).Error; err != nil {
 					return fmt.Errorf("failed to revert account balance for failed withdrawal %s: %w", withdrawalID, err)
@@ -142,7 +138,7 @@ func HandleWithdrawalProcessTask(ctx context.Context, t *asynq.Task, db *gorm.DB
 
 		fmt.Printf("Withdrawal %s failed. Balance reverted (if possible). Status updated.\n", withdrawalID)
 
-		// Optional: Enqueue failure notification email task
+		// Enqueue failure notification email task
 		var user models.User
 		if err := db.WithContext(ctx).Select("email").First(&user, withdrawal.UserID).Error; err == nil {
 			emailPayload, err := tasks.NewWithdrawalFailureEmailTask(user.Email, withdrawal.Amount, withdrawal.Currency, withdrawal.TargetBankName, withdrawal.TargetAccountNumber, failureReason)

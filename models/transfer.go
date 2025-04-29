@@ -36,18 +36,3 @@ type Transfer struct {
 	FromAccount   Account        `json:"from_account" gorm:"foreignKey:FromAccountID"`
 	ToAccount     Account        `json:"to_account" gorm:"foreignKey:ToAccountID"`
 }
-
-type FailedTransfer struct {
-	gorm.Model
-	TransferID    uint       `json:"transfer_id" gorm:"not null;index"`
-	FromUserID    uint       `json:"from_user_id"`
-	ToUserID      uint       `json:"to_user_id"`
-	FromAccountID uint       `json:"from_account_id"`
-	ToAccountID   uint       `json:"to_account_id"`
-	Amount        int64      `json:"amount" gorm:"not null"`
-	Fee           int64      `json:"fee" gorm:"not null"`
-	TotalAmount   int64      `json:"total_amount" gorm:"not null"`
-	FailureReason string     `json:"failure_reason" gorm:"type:text;not null"`
-	Reverted      bool       `json:"reverted" gorm:"default:false"`
-	RevertedAt    *time.Time `json:"reverted_at"`
-}

@@ -14,7 +14,7 @@ type FailedDeposit struct {
 
 	UserID                uint    `gorm:"not null;index"`
 	TargetAccountID       uint    `gorm:"not null;index"`
-	Amount                int64   `gorm:"not null"`
+	Amount                float64 `gorm:"not null"`
 	Currency              string  `gorm:"not null;size:3"`
 	SourceBankName        string  `gorm:"not null;size:255"`
 	ExternalTransactionID *string `gorm:"size:255;index"`

@@ -130,86 +130,55 @@ func (s *DepositService) InitiateDeposit(ctx context.Context, userID uint, req *
 // GetDepositDetails retrieves details for a specific deposit.
 func (s *DepositService) GetDepositDetails(ctx context.Context, depositID string, userID uint) (*pb.GetDepositDetailsResponse, error) {
 	var deposit models.Deposit
-	var failedDeposit models.FailedDeposit
 	var account models.Account
-	foundInDeposits := false
-	foundInFailed := false
 
-	// Check active deposits first
+	// Find the deposit record by ID
 	err := s.db.WithContext(ctx).Where("id = ?", depositID).First(&deposit).Error
-	if err == nil {
-		foundInDeposits = true
-	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrDepositNotFound
+		}
 		return nil, fmt.Errorf("db error finding deposit: %w", err)
 	}
 
-	// If not found in active, check failed deposits
-	if !foundInDeposits {
-		err = s.db.WithContext(ctx).Where("original_deposit_id = ?", depositID).First(&failedDeposit).Error
-		if err == nil {
-			foundInFailed = true
-		} else if !errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, fmt.Errorf("db error finding failed deposit: %w", err)
-		}
-	}
-
-	if !foundInDeposits && !foundInFailed {
-		return nil, ErrDepositNotFound
-	}
-
-	resp := &pb.GetDepositDetailsResponse{}
-	var depositUserID uint
-
-	if foundInDeposits {
-		depositUserID = deposit.UserID
-		resp.DepositId = deposit.ID
-		resp.TargetAccountId = uint64(deposit.TargetAccountID)
-		resp.Amount = uint64(deposit.Amount) // Amount is now int64, cast to uint64
-		resp.Currency = deposit.Currency
-		resp.SourceBankName = deposit.SourceBankName
-		resp.Status = convertModelStatusToProto(deposit.Status)
-		resp.CreatedAt = timestamppb.New(deposit.CreatedAt)
-		if deposit.ProcessingAt != nil {
-			resp.ProcessingAt = timestamppb.New(*deposit.ProcessingAt)
-		}
-		if deposit.CompletedAt != nil {
-			resp.CompletedAt = timestamppb.New(*deposit.CompletedAt)
-		}
-		if deposit.FailedAt != nil {
-			resp.FailedAt = timestamppb.New(*deposit.FailedAt)
-		}
-		if deposit.FailureReason != nil {
-			resp.FailureReason = *deposit.FailureReason
-		}
-		if deposit.ExternalTransactionID != nil {
-			resp.ExternalTransactionId = *deposit.ExternalTransactionID
-		}
-	} else { // Found in failed
-		depositUserID = failedDeposit.UserID
-		resp.DepositId = failedDeposit.OriginalDepositID
-		resp.TargetAccountId = uint64(failedDeposit.TargetAccountID)
-		resp.Amount = uint64(failedDeposit.Amount) // Amount is now int64, cast to uint64
-		resp.Currency = failedDeposit.Currency
-		resp.SourceBankName = failedDeposit.SourceBankName
-		resp.Status = pb.DepositStatus_DEPOSIT_STATUS_FAILED
-		resp.CreatedAt = timestamppb.New(failedDeposit.AttemptedAt)
-		resp.FailedAt = timestamppb.New(failedDeposit.FailedAt)
-		resp.FailureReason = failedDeposit.FailureReason
-		if failedDeposit.ExternalTransactionID != nil {
-			resp.ExternalTransactionId = *failedDeposit.ExternalTransactionID
-		}
-	}
-
-	if depositUserID != userID {
+	// Check ownership
+	if deposit.UserID != userID {
 		return nil, ErrDepositAccessDenied
 	}
 
-	if foundInDeposits && deposit.Status == models.DepositStatusCompleted {
+	// Convert deposit model to proto response
+	resp := &pb.GetDepositDetailsResponse{
+		DepositId:       deposit.ID,
+		TargetAccountId: uint64(deposit.TargetAccountID),
+		Amount:          uint64(deposit.Amount), // Amount is int64, cast to uint64
+		Currency:        deposit.Currency,
+		SourceBankName:  deposit.SourceBankName,
+		Status:          convertModelStatusToProto(deposit.Status),
+		CreatedAt:       timestamppb.New(deposit.CreatedAt),
+	}
+	if deposit.ProcessingAt != nil {
+		resp.ProcessingAt = timestamppb.New(*deposit.ProcessingAt)
+	}
+	if deposit.CompletedAt != nil {
+		resp.CompletedAt = timestamppb.New(*deposit.CompletedAt)
+	}
+	if deposit.FailedAt != nil {
+		resp.FailedAt = timestamppb.New(*deposit.FailedAt)
+	}
+	if deposit.FailureReason != nil {
+		resp.FailureReason = *deposit.FailureReason
+	}
+	if deposit.ExternalTransactionID != nil {
+		resp.ExternalTransactionId = *deposit.ExternalTransactionID
+	}
+
+	// If the deposit was completed, fetch and add account details
+	if deposit.Status == models.DepositStatusCompleted {
 		err = s.db.WithContext(ctx).Where("id = ?", deposit.TargetAccountID).First(&account).Error
 		if err != nil {
 			fmt.Printf("WARN: Failed to fetch account details for completed deposit %s: %v\n", depositID, err)
 		} else {
-			resp.UpdatedAccount = ConvertAccountToProtoDetails(&account) // Use external helper
+			resp.UpdatedAccount = ConvertAccountToProtoDetails(&account) // Use helper from AccountService
 		}
 	}
 

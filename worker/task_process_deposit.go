@@ -118,43 +118,24 @@ func HandleDepositProcessTask(ctx context.Context, t *asynq.Task, db *gorm.DB, m
 		// Optional: Enqueue success notification task
 
 	} else {
-		// --- Failure Case: Move to FailedDeposits and Enqueue Reversal Email ---
-		txErr := db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-			// 1. Create FailedDeposit record (Amount is already int64)
-			failedDeposit := models.FailedDeposit{
-				OriginalDepositID:     deposit.ID,
-				UserID:                deposit.UserID,
-				TargetAccountID:       deposit.TargetAccountID,
-				Amount:                deposit.Amount,
-				Currency:              deposit.Currency,
-				SourceBankName:        deposit.SourceBankName,
-				ExternalTransactionID: deposit.ExternalTransactionID,
-				FailureReason:         failureReason,
-				AttemptedAt:           deposit.CreatedAt,
-				FailedAt:              now,
-			}
-			if err := tx.Create(&failedDeposit).Error; err != nil {
-				return fmt.Errorf("failed to create failed_deposit record for %s: %w", depositID, err)
-			}
+		// --- Failure Case: Update Deposit Status to FAILED and Enqueue Reversal Email ---
+		fmt.Printf("Processing failure for deposit %s...\n", depositID)
 
-			// 2. Delete the original Deposit record
-			if err := tx.Delete(&deposit).Error; err != nil {
-				return fmt.Errorf("failed to delete original deposit record %s after failure: %w", depositID, err)
-			}
+		// Update the original deposit record directly
+		deposit.Status = models.DepositStatusFailed
+		deposit.FailedAt = &now
+		deposit.FailureReason = &failureReason // Assign the reason (pointer type in model)
 
-			return nil // Commit transaction
-		})
-
-		if txErr != nil {
-			fmt.Printf("Deposit failure processing transaction failed for %s: %v\n", depositID, txErr)
-			// Return error to leverage Asynq retry for the DB operations
-			return fmt.Errorf("deposit failure processing transaction failed for %s: %w", depositID, txErr)
+		if err := db.WithContext(ctx).Save(&deposit).Error; err != nil {
+			// Log error, but still try to send email. Worker might retry DB update.
+			fmt.Printf("Error marking deposit %s as failed: %v\n", depositID, err)
+			// Return error to potentially retry the DB update
+			return fmt.Errorf("failed to mark deposit %s as failed: %w", depositID, err)
 		}
 
-		// 3. Enqueue Reversal Email (passing int64 amount)
+		// Enqueue Reversal Email
 		var user models.User
 		if err := db.WithContext(ctx).Select("email").First(&user, deposit.UserID).Error; err == nil {
-			// Pass int64 deposit.Amount to the task creator
 			emailPayload, err := tasks.NewDepositReversalEmailTask(user.Email, deposit.Amount, deposit.Currency, failureReason)
 			if err != nil {
 				fmt.Printf("Error creating deposit reversal email payload for user %d, deposit %s: %v\n", deposit.UserID, depositID, err)
@@ -168,7 +149,7 @@ func HandleDepositProcessTask(ctx context.Context, t *asynq.Task, db *gorm.DB, m
 			fmt.Printf("Error retrieving user email for deposit reversal notification (User ID: %d, Deposit ID: %s): %v\n", deposit.UserID, depositID, err)
 		}
 
-		fmt.Printf("Deposit %s failed. Moved to failed_deposits. Reversal email task enqueued (if possible).\n", depositID)
+		fmt.Printf("Deposit %s failed. Status updated. Reversal email task enqueued (if possible).\n", depositID)
 	}
 
 	return nil // Task processed
