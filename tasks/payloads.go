@@ -19,6 +19,11 @@ type PayloadProcessTransfer struct {
 	// Add other necessary fields
 }
 
+// MarshalBinary implements encoding.BinaryMarshaler.
+func (p *PayloadProcessTransfer) MarshalBinary() ([]byte, error) {
+	return json.Marshal(p)
+}
+
 // PayloadSendPasswordResetOTP contains data for sending password reset OTP via SMS.
 type PayloadSendPasswordResetOTP struct {
 	PhoneNumber string `json:"phone_number"`
@@ -115,4 +120,14 @@ func NewWithdrawalFailureEmailTask(email string, amount int64, currency, bankNam
 		FailureReason:       reason,
 	}
 	return json.Marshal(payload)
+}
+
+// PayloadProcessExternalTransfer defines the payload for external transfers
+type PayloadProcessExternalTransfer struct {
+	TransferID string `json:"transfer_id"`
+}
+
+// MarshalBinary implements encoding.BinaryMarshaler.
+func (p *PayloadProcessExternalTransfer) MarshalBinary() ([]byte, error) {
+	return json.Marshal(p)
 }

@@ -53,14 +53,16 @@ message Recipient {
 message CreateRecipientRequest {
   option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
     json_schema: {
-      required: ["name", "account_number", "bank_name"]
+      required: ["name"]
     }
   };
   string name = 1;
   string account_number = 2;
-  string sort_code = 3; // Optional
+  string sort_code = 3;
   string bank_name = 4;
-  bool is_favorite = 5; // Optional, defaults to false
+  bool is_favorite = 5;
+  string type = 6;
+  uint64 internal_account_id = 7 [json_name = "internal_account_id"];
 }
 
 // Response after creating a recipient

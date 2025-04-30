@@ -2,6 +2,7 @@ package worker
 
 import (
 	"context"
+	"encoding"
 	"encoding/json"
 	"fmt"
 
@@ -43,25 +44,32 @@ func (distributor *RedisTaskDistributor) DistributeTaskSendVerifyEmail(
 	return nil
 }
 
+// DistributeTaskProcessTransfer updated to accept encoding.BinaryMarshaler
 func (distributor *RedisTaskDistributor) DistributeTaskProcessTransfer(
 	ctx context.Context,
-	payload *tasks.PayloadProcessTransfer,
+	payload encoding.BinaryMarshaler, // Changed payload type
 	opts ...asynq.Option,
 ) error {
-	jsonPayload, err := json.Marshal(payload)
+	jsonPayload, err := payload.MarshalBinary()
 	if err != nil {
-		return fmt.Errorf("failed to marshal task payload: %w", err)
+		return fmt.Errorf("failed to marshal process transfer payload: %w", err)
 	}
+	// Use the generic DistributeTask method internally
+	return distributor.DistributeTask(ctx, tasks.TaskProcessTransfer, jsonPayload, opts...)
+}
 
-	task := asynq.NewTask(tasks.TaskProcessTransfer, jsonPayload, opts...)
-	info, err := distributor.client.EnqueueContext(ctx, task)
+// Add missing DistributeTaskProcessExternalTransfer method
+func (distributor *RedisTaskDistributor) DistributeTaskProcessExternalTransfer(
+	ctx context.Context,
+	payload encoding.BinaryMarshaler,
+	opts ...asynq.Option,
+) error {
+	jsonPayload, err := payload.MarshalBinary()
 	if err != nil {
-		return fmt.Errorf("failed to enqueue task: %w", err)
+		return fmt.Errorf("failed to marshal process external transfer payload: %w", err)
 	}
-
-	log.Info().Str("type", task.Type()).Bytes("payload", task.Payload()).
-		Str("queue", info.Queue).Int("max_retry", info.MaxRetry).Msg("enqueued task")
-	return nil
+	// Use the generic DistributeTask method internally
+	return distributor.DistributeTask(ctx, tasks.TaskProcessExternalTransfer, jsonPayload, opts...)
 }
 
 func (distributor *RedisTaskDistributor) DistributeTaskSendPasswordResetOTP(

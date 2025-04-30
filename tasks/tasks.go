@@ -14,4 +14,5 @@ const (
 	TypeEmailSendWithdrawalConf  = "email:send:withdrawal_confirm"
 	TypeEmailSendWithdrawalFail  = "email:send:withdrawal_failure"
 	// Add other task types here
+	TaskProcessExternalTransfer = "task:process_external_transfer" // New task type
 )

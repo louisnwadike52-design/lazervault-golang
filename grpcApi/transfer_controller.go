@@ -9,8 +9,9 @@ import (
 	"lazervaultGo/pb"
 	"lazervaultGo/services"
 	"lazervaultGo/token" // For getting payload from context
-	"time"
+	"strings"
 
+	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -20,12 +21,12 @@ import (
 // TransferController holds the dependencies for the transfer gRPC service
 type TransferController struct {
 	pb.UnimplementedTransferServiceServer
-	transferService *services.TransferService
-	db              *gorm.DB // Need db to fetch user by email
+	transferService services.ITransferService // Use interface
+	db              *gorm.DB
 }
 
 // NewTransferController creates a new TransferController
-func NewTransferController(transferService *services.TransferService, db *gorm.DB) *TransferController {
+func NewTransferController(transferService services.ITransferService, db *gorm.DB) *TransferController {
 	return &TransferController{
 		transferService: transferService,
 		db:              db,
@@ -40,18 +41,23 @@ func convertTransferModelToProtoDetails(t *models.Transfer) *pb.GetTransferDetai
 	resp := &pb.GetTransferDetailsResponse{
 		TransferId:    uint64(t.ID),
 		FromAccountId: uint64(t.FromAccountID),
-		ToAccountId:   uint64(t.ToAccountID),
+		ToAccountId:   0, // Default to 0 if nil
 		FromUserId:    uint64(t.FromUserID),
-		ToUserId:      uint64(t.ToUserID),
+		ToUserId:      0, // Default to 0 if nil
 		Amount:        uint64(t.Amount),
 		Fee:           uint64(t.Fee),
 		TotalAmount:   uint64(t.TotalAmount),
-		// Currency: Need to fetch from account if not stored on transfer model
 		Status:        string(t.Status),
 		Reference:     t.Reference,
 		Category:      t.Category,
 		CreatedAt:     timestamppb.New(t.CreatedAt),
 		FailureReason: t.FailureReason,
+	}
+	if t.ToAccountID != nil {
+		resp.ToAccountId = uint64(*t.ToAccountID)
+	}
+	if t.ToUserID != nil {
+		resp.ToUserId = uint64(*t.ToUserID)
 	}
 	if t.ScheduledAt != nil {
 		resp.ScheduledAt = timestamppb.New(*t.ScheduledAt)
@@ -88,53 +94,79 @@ func (c *TransferController) InitiateTransfer(ctx context.Context, req *pb.Initi
 		return nil, status.Errorf(codes.Internal, "failed to find sender user: %v", err)
 	}
 
-	// 3. Validate request using new fields
-	if req.GetAmount() == 0 {
-		return nil, status.Errorf(codes.InvalidArgument, "amount must be positive")
-	}
-	if req.GetFromAccountId() == 0 {
-		return nil, status.Errorf(codes.InvalidArgument, "from_account_id is required")
-	}
-	if req.GetToAccountId() == 0 {
-		return nil, status.Errorf(codes.InvalidArgument, "to_account_id is required")
-	}
-	if req.GetFromAccountId() == req.GetToAccountId() {
-		return nil, status.Errorf(codes.InvalidArgument, "cannot transfer to the same account")
-	}
-
-	// 4. Prepare service request using new fields
+	// 3. Prepare service request from proto request
 	serviceReq := services.TransferRequest{
-		FromUserID:    fromUser.ID, // Pass authenticated user ID
+		FromUserID:    fromUser.ID,
 		FromAccountID: uint(req.GetFromAccountId()),
-		ToAccountID:   uint(req.GetToAccountId()),
-		Amount:        int64(req.GetAmount()), // Convert uint64 to int64
+		Amount:        int64(req.GetAmount()),
 		Category:      req.GetCategory(),
 		Reference:     req.GetReference(),
 		ScheduledAt:   nil,
+		// Initialize destination fields as nil
+		ToAccountID: nil,
+		RecipientID: nil,
 	}
 
-	if req.ScheduledAt != nil && req.ScheduledAt.IsValid() {
-		scheduledTime := req.ScheduledAt.AsTime()
-		if scheduledTime.After(time.Now()) {
-			serviceReq.ScheduledAt = &scheduledTime
-		}
+	// --- Map Destination (Only one will be set) ---
+	if req.GetToAccountId() > 0 {
+		toAccountID := uint(req.GetToAccountId())
+		serviceReq.ToAccountID = &toAccountID
+	} else if req.GetRecipientId() > 0 {
+		recipientID := uint(req.GetRecipientId())
+		serviceReq.RecipientID = &recipientID
+	}
+	// Service layer handles validation that exactly one was provided
+
+	// --- Remove mapping for deleted fields (already removed) ---
+
+	if req.GetScheduledAt() != nil && req.GetScheduledAt().IsValid() {
+		scheduledTime := req.GetScheduledAt().AsTime()
+		// Allow scheduling for now or immediate processing (service handles logic)
+		serviceReq.ScheduledAt = &scheduledTime
+		// Remove check for future time - service layer handles immediate vs scheduled
+		/*
+		   if scheduledTime.After(time.Now().Add(time.Minute * 1)) {
+		       serviceReq.ScheduledAt = &scheduledTime
+		   } else {
+		       return nil, status.Errorf(codes.InvalidArgument, "scheduled time must be in the future")
+		   }
+		*/
 	}
 
 	// 5. Call the service
 	res, err := c.transferService.InitiateTransfer(ctx, serviceReq.FromUserID, serviceReq)
 	if err != nil {
-		// Map specific service errors to gRPC codes
-		if errors.Is(err, services.ErrTransferFromAccountNotFound) || errors.Is(err, services.ErrTransferToAccountNotFound) {
-			return nil, status.Errorf(codes.NotFound, err.Error())
-		} else if errors.Is(err, services.ErrCannotTransferToSelfAccount) {
+		// Updated Error Mapping
+		// Check specific account service errors
+		if errors.Is(err, services.ErrSvcAccountNotFound) {
+			return nil, status.Errorf(codes.NotFound, "account not found: %v", err)
+		} else if errors.Is(err, services.ErrSvcAccountAccessDenied) {
+			return nil, status.Errorf(codes.PermissionDenied, "account access denied: %v", err)
+		} else if errors.Is(err, services.ErrSvcInsufficientFunds) {
+			return nil, status.Errorf(codes.FailedPrecondition, "insufficient funds: %v", err)
+		}
+		// Check for specific transfer service errors
+		if errors.Is(err, services.ErrCannotTransferToSelfAccount) {
 			return nil, status.Errorf(codes.InvalidArgument, err.Error())
-		} else if errors.Is(err, services.ErrTransferAccountLookupFailed) {
-			// Log this internal error
-			fmt.Printf("ERROR looking up accounts during transfer: %v\n", err)
-			return nil, status.Errorf(codes.Internal, "failed to validate accounts")
-		} // Add more specific error mappings if needed (e.g., currency mismatch)
+		}
+		// Handle recipient errors based on wrapped error message or potentially specific types
+		if strings.Contains(err.Error(), "recipient") { // Basic check, improve if recipient service exports errors
+			if strings.Contains(err.Error(), "not found") {
+				return nil, status.Errorf(codes.NotFound, err.Error())
+			} else if strings.Contains(err.Error(), "access denied") {
+				return nil, status.Errorf(codes.PermissionDenied, err.Error())
+			} else if strings.Contains(err.Error(), "missing required") || strings.Contains(err.Error(), "missing linked account ID") || strings.Contains(err.Error(), "invalid or unsupported") {
+				return nil, status.Errorf(codes.InvalidArgument, err.Error())
+			}
+		}
+		// Check for the "provide either/or" validation error from the service
+		if strings.Contains(err.Error(), "provide either to_account_id OR recipient_id") || strings.Contains(err.Error(), "either to_account_id OR recipient_id must be provided") {
+			return nil, status.Errorf(codes.InvalidArgument, err.Error())
+		}
 
-		return nil, status.Errorf(codes.Internal, "failed to initiate transfer: %v", err)
+		// Log other internal errors
+		log.Error().Err(err).Msg("failed to initiate transfer")
+		return nil, status.Errorf(codes.Internal, "failed to initiate transfer")
 	}
 
 	// 6. Prepare gRPC response
@@ -157,7 +189,7 @@ func (c *TransferController) GetTransferDetails(ctx context.Context, req *pb.Get
 	if !ok {
 		return nil, status.Errorf(codes.Unauthenticated, "missing authorization payload")
 	}
-	var user models.User // Need user ID for service call
+	var user models.User
 	if err := c.db.Where("email = ?", authPayload.Email).First(&user).Error; err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to find user: %v", err)
 	}
@@ -171,19 +203,18 @@ func (c *TransferController) GetTransferDetails(ctx context.Context, req *pb.Get
 	// 3. Call Service
 	transferModel, err := c.transferService.GetTransferDetails(ctx, uint(transferID), user.ID)
 	if err != nil {
-		// Map service errors
 		if errors.Is(err, services.ErrTransferNotFound) {
 			return nil, status.Errorf(codes.NotFound, err.Error())
 		} else if errors.Is(err, services.ErrTransferAccessDenied) {
 			return nil, status.Errorf(codes.PermissionDenied, err.Error())
 		}
-		return nil, status.Errorf(codes.Internal, "failed to get transfer details: %v", err)
+		fmt.Printf("ERROR GetTransferDetails: %v\n", err)
+		return nil, status.Errorf(codes.Internal, "failed to get transfer details")
 	}
 
 	// 4. Convert model to proto response
 	resp := convertTransferModelToProtoDetails(transferModel)
-	// TODO: Fetch currency if needed and not included in model/preload
-	// if resp.Currency == "" { ... fetch from account ... }
+	// TODO: Add currency fetching logic if needed
 
 	return resp, nil
 }

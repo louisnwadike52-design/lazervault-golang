@@ -43,14 +43,24 @@ message TransferTransaction {
 
 // Request message for initiating a transfer
 message InitiateTransferRequest {
-    // uint64 to_user_id = 1; // Removed
-    uint64 from_account_id = 1 [json_name = "from_account_id"]; // Added
-    uint64 to_account_id = 2 [json_name = "to_account_id"];     // Added
-    uint64 amount = 3;          // Changed to uint64 (minor units)
-    string category = 4;
-    string reference = 5; // Optional reference
-    google.protobuf.Timestamp scheduled_at = 6; // Optional schedule time
-    string description = 7; // Added description field
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+      json_schema: {
+        // recipient_id OR to_account_id is required - validated in service
+        required: ["from_account_id", "amount"]
+      }
+    };
+    uint64 from_account_id = 1 [json_name = "from_account_id"]; // Required
+    uint64 amount = 2;          // Required, minor units (e.g., cents, pence)
+    string category = 3;
+    string reference = 4;
+    google.protobuf.Timestamp scheduled_at = 5; // Optional. If not provided, processed immediately.
+
+    // --- Destination (Use ONE of the following) ---
+    uint64 to_account_id = 10 [json_name = "to_account_id"]; // Optional: Direct internal account ID
+    uint64 recipient_id = 11 [json_name = "recipient_id"];   // Optional: ID of the saved recipient (internal or external)
+
+    // --- Removed Direct External Details ---
+    // ... (removed fields remain removed)
 }
 
 // Response message for initiating a transfer

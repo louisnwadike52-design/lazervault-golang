@@ -24,6 +24,7 @@ var (
 	ErrSvcPINHashingFailed      = errors.New("account service: failed to hash PIN")
 	ErrSvcAccountCreationFailed = errors.New("account service: failed to create account record")
 	ErrSvcAccountTypeExists     = errors.New("account service: account type already exists for this user")
+	ErrSvcInsufficientFunds     = errors.New("account service: insufficient funds")
 )
 
 // --- Account Service Interface ---
@@ -35,6 +36,8 @@ type IAccountService interface {
 	CreateAccount(ctx context.Context, userID uint, req *pb.CreateAccountRequest) (*models.Account, error)
 	UpdateAccountStatus(ctx context.Context, userID uint, accountID uint, status string, reason string) (*models.Account, error)
 	UpdateSecuritySettings(ctx context.Context, userID uint, accountID uint, settings *pb.SecuritySettings) (*models.Account, error)
+	CheckAccountOwnership(ctx context.Context, accountID uint, userID uint) error
+	CheckSufficientBalance(ctx context.Context, tx *gorm.DB, accountID uint, requiredAmount int64) error
 }
 
 // --- Account Service Struct ---
@@ -289,4 +292,41 @@ func (s *AccountService) UpdateSecuritySettings(ctx context.Context, userID uint
 	}
 
 	return &account, nil
+}
+
+// CheckAccountOwnership verifies if the user owns the specified account.
+func (s *AccountService) CheckAccountOwnership(ctx context.Context, accountID uint, userID uint) error {
+	var account models.Account
+	if err := s.db.WithContext(ctx).Select("owner_user_id").Where("id = ?", accountID).First(&account).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ErrSvcAccountNotFound
+		}
+		return fmt.Errorf("db error checking account ownership: %w", err)
+	}
+
+	if account.OwnerUserID != userID {
+		return ErrSvcAccountAccessDenied
+	}
+	return nil
+}
+
+// CheckSufficientBalance checks if an account has enough balance, performing the check within a transaction.
+func (s *AccountService) CheckSufficientBalance(ctx context.Context, tx *gorm.DB, accountID uint, requiredAmount int64) error {
+	if tx == nil {
+		return errors.New("transaction object is required for balance check")
+	}
+
+	var account models.Account
+	// Lock the row within the transaction to prevent race conditions
+	if err := tx.WithContext(ctx).Set("gorm:query_option", "FOR UPDATE").Select("balance").Where("id = ?", accountID).First(&account).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ErrSvcAccountNotFound // Account not found during balance check
+		}
+		return fmt.Errorf("db error locking account for balance check: %w", err)
+	}
+
+	if account.Balance < requiredAmount {
+		return ErrSvcInsufficientFunds
+	}
+	return nil
 }

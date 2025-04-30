@@ -30,6 +30,7 @@ type TaskProcessor interface {
 	ProcessTaskSendVerifyEmail(ctx context.Context, task *asynq.Task) error
 	ProcessTaskProcessTransfer(ctx context.Context, task *asynq.Task) error
 	ProcessTaskSendPasswordResetOTP(ctx context.Context, task *asynq.Task) error
+	ProcessTaskProcessExternalTransfer(ctx context.Context, task *asynq.Task) error
 }
 
 type RedisTaskProcessor struct {
@@ -102,6 +103,9 @@ func (processor *RedisTaskProcessor) Start() error {
 		// HandleEmailSendWithdrawalFailureTask is defined in task_send_email.go (worker package)
 		return HandleEmailSendWithdrawalFailureTask(ctx, task, processor.mailer)
 	})
+
+	// Add handler for external transfers
+	mux.HandleFunc(tasks.TaskProcessExternalTransfer, processor.ProcessTaskProcessExternalTransfer)
 
 	log.Info().Msg("starting task processor server")
 	return processor.server.Start(mux)
@@ -272,4 +276,40 @@ func (processor *RedisTaskProcessor) ProcessTaskSendPasswordResetOTP(ctx context
 
 	log.Info().Str("phone", payload.PhoneNumber).Msg("password reset OTP sent successfully via Twilio")
 	return nil
+}
+
+func (processor *RedisTaskProcessor) ProcessTaskProcessExternalTransfer(ctx context.Context, task *asynq.Task) error {
+	var payload tasks.PayloadProcessExternalTransfer
+	if err := json.Unmarshal(task.Payload(), &payload); err != nil {
+		return fmt.Errorf("failed to unmarshal external transfer payload: %w", asynq.SkipRetry)
+	}
+	fmt.Printf("Processing external transfer task: %+v\n", payload)
+
+	// --- TODO: Implement actual external transfer logic ---
+	// 1. Start DB Transaction (maybe?) - depends if external API call is idempotent
+	// 2. Fetch Transfer record (status should be Processing)
+	// 3. Fetch related Recipient record
+	// 4. Fetch FromAccount (needed for debit)
+	// 5. Call External Payment Gateway API (using recipient details)
+	// 6. Handle API response:
+	//    - On Success: Debit FromAccount, Update Transfer status to Completed, Commit.
+	//    - On Failure: Update Transfer status to Failed (with reason), Rollback (if transaction started).
+	// 7. Handle potential idempotency issues with the external API.
+
+	fmt.Println("PLACEHOLDER: External transfer logic for", payload.TransferID)
+	// Example: Simulate success/failure
+	transferID := payload.TransferID
+	err := processor.db.Model(&models.Transfer{}).Where("id = ?", transferID).Update("status", models.TransferStatusCompleted).Error // Simulate success
+	// err := processor.db.Model(&models.Transfer{}).Where("id = ?", transferID).Updates(models.Transfer{Status: models.TransferStatusFailed, FailureReason: "Simulated external failure"}).Error // Simulate failure
+	if err != nil {
+		fmt.Printf("ERROR updating external transfer status for %s: %v\n", transferID, err)
+		return err // Let Asynq handle retry/failure
+	}
+	fmt.Printf("Updated external transfer %s status (simulated)\n", transferID)
+
+	return nil // Return error to retry/fail based on external API outcome
+}
+
+func (processor *RedisTaskProcessor) Shutdown() {
+	processor.server.Shutdown()
 }

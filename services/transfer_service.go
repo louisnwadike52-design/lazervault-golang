@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"github.com/hibiken/asynq"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"gorm.io/gorm"
 )
 
@@ -20,6 +22,7 @@ var (
 	ErrCannotTransferToSelfAccount = errors.New("transfer service: cannot transfer to the same account")
 	ErrTransferNotFound            = errors.New("transfer service: transfer not found")
 	ErrTransferAccessDenied        = errors.New("transfer service: access denied to transfer details")
+	// Errors are defined in their respective service packages (account, recipient)
 )
 
 type ITransferService interface {
@@ -28,19 +31,26 @@ type ITransferService interface {
 }
 
 type TransferService struct {
-	db          *gorm.DB
-	config      *configs.Config
-	redisWorker tasks.TaskDistributor
+	db               *gorm.DB
+	config           *configs.Config
+	redisWorker      tasks.TaskDistributor
+	recipientService IRecipientService
+	accountService   IAccountService
 }
 
 type TransferRequest struct {
-	FromUserID    uint       // Keep FromUserID (from auth context)
-	FromAccountID uint       `json:"from_account_id" validate:"required"` // Use this
-	ToAccountID   uint       `json:"to_account_id" validate:"required"`   // Use this
+	FromUserID uint // From auth context
+
+	// Input fields matching refined proto
+	FromAccountID uint       `json:"from_account_id" validate:"required"`
 	Amount        int64      `json:"amount" validate:"required,gt=0"`
 	Reference     string     `json:"reference"`
 	Category      string     `json:"category"`
-	ScheduledAt   *time.Time `json:"scheduled_at"`
+	ScheduledAt   *time.Time `json:"scheduled_at"` // Optional
+
+	// --- Destination (Use ONE) ---
+	ToAccountID *uint `json:"to_account_id"` // Optional: Direct internal account ID
+	RecipientID *uint `json:"recipient_id"`  // Optional: ID of the saved recipient
 }
 
 type TransferResponse struct {
@@ -52,93 +62,211 @@ type TransferResponse struct {
 	CreatedAt   time.Time `json:"created_at"`
 }
 
-func NewTransferService(db *gorm.DB, config *configs.Config, redisWorker tasks.TaskDistributor) *TransferService {
+func NewTransferService(db *gorm.DB, config *configs.Config, redisWorker tasks.TaskDistributor, recipientService IRecipientService, accountService IAccountService) *TransferService {
 	return &TransferService{
-		db:          db,
-		config:      config,
-		redisWorker: redisWorker,
+		db:               db,
+		config:           config,
+		redisWorker:      redisWorker,
+		recipientService: recipientService,
+		accountService:   accountService,
 	}
 }
 
 func (s *TransferService) InitiateTransfer(ctx context.Context, fromUserID uint, req TransferRequest) (*TransferResponse, error) {
-	// Basic validation
-	if req.FromAccountID == 0 || req.ToAccountID == 0 {
-		return nil, fmt.Errorf("from_account_id and to_account_id are required")
-	}
-	if req.FromAccountID == req.ToAccountID {
-		return nil, ErrCannotTransferToSelfAccount
+	// --- Basic Validation ---
+	if req.FromAccountID == 0 {
+		return nil, status.Error(codes.InvalidArgument, "from_account_id is required")
 	}
 	if req.Amount <= 0 {
-		return nil, fmt.Errorf("amount must be positive")
+		return nil, status.Error(codes.InvalidArgument, "amount must be positive")
 	}
 
-	var toUserID uint
+	// Validate that EXACTLY ONE destination type is provided
+	destinationProvided := false
+	if req.ToAccountID != nil && *req.ToAccountID > 0 {
+		destinationProvided = true
+	}
+	if req.RecipientID != nil && *req.RecipientID > 0 {
+		if destinationProvided {
+			// Both were provided
+			return nil, status.Error(codes.InvalidArgument, "provide either to_account_id OR recipient_id, not both")
+		}
+		destinationProvided = true
+	}
+	if !destinationProvided {
+		return nil, status.Error(codes.InvalidArgument, "either to_account_id OR recipient_id must be provided")
+	}
+
 	var fromCurrency string
 	var toCurrency string
+	var toAccountID_ptr *uint // Use pointers for model
+	var toUserID_ptr *uint    // Use pointers for model
+	var recipientID_ptr *uint // Use pointers for model
+	var isExternal bool = false
 
-	// Start a transaction
+	// --- Start Transaction ---
 	tx := s.db.WithContext(ctx).Begin()
 	if tx.Error != nil {
-		return nil, tx.Error
+		return nil, fmt.Errorf("failed to begin transaction: %w", tx.Error)
 	}
 	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
-		} else if tx.Error != nil {
+		if r := recover(); r != nil || tx.Error != nil {
 			tx.Rollback()
 		}
 	}()
 
-	// --- Validate Accounts and Get Necessary Info within Transaction ---
-	// Fetch FromAccount and verify owner
+	// --- Get From Account & Validate Ownership ---
 	var fromAccount models.Account
-	if err := tx.Where("id = ? AND owner_user_id = ?", req.FromAccountID, fromUserID).First(&fromAccount).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			tx.Rollback()
-			return nil, ErrTransferFromAccountNotFound
-		}
+	err := s.accountService.CheckAccountOwnership(ctx, req.FromAccountID, fromUserID)
+	if err != nil {
 		tx.Rollback()
-		return nil, fmt.Errorf("%w: finding from_account: %w", ErrTransferAccountLookupFailed, err)
+		if errors.Is(err, ErrSvcAccountNotFound) {
+			return nil, status.Errorf(codes.NotFound, "source account %d not found", req.FromAccountID)
+		} else if errors.Is(err, ErrSvcAccountAccessDenied) {
+			return nil, status.Errorf(codes.PermissionDenied, "access denied to source account %d", req.FromAccountID)
+		}
+		return nil, fmt.Errorf("source account validation failed: %w", err)
+	}
+	if err := tx.Where("id = ?", req.FromAccountID).First(&fromAccount).Error; err != nil {
+		tx.Rollback()
+		return nil, fmt.Errorf("failed to fetch source account details: %w", err)
 	}
 	fromCurrency = fromAccount.Currency
 
-	// Fetch ToAccount and get its owner ID (ToUserID)
-	var toAccount models.Account
-	if err := tx.Where("id = ?", req.ToAccountID).First(&toAccount).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			tx.Rollback()
-			return nil, ErrTransferToAccountNotFound
-		}
-		tx.Rollback()
-		return nil, fmt.Errorf("%w: finding to_account: %w", ErrTransferAccountLookupFailed, err)
-	}
-	toUserID = toAccount.OwnerUserID
-	toCurrency = toAccount.Currency
+	// --- Handle Destination Logic (Either ToAccountID or RecipientID) ---
 
-	// --- Currency Check (Example: Allow only same-currency transfers for now) ---
+	if req.ToAccountID != nil && *req.ToAccountID > 0 {
+		// Scenario 1: Direct Internal Transfer via ToAccountID
+		internalToAccountID := *req.ToAccountID
+		isExternal = false
+		recipientID_ptr = nil // No recipient involved
+
+		if req.FromAccountID == internalToAccountID {
+			tx.Rollback()
+			return nil, ErrCannotTransferToSelfAccount
+		}
+
+		var toAccount models.Account
+		if err := tx.Where("id = ?", internalToAccountID).First(&toAccount).Error; err != nil {
+			tx.Rollback()
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return nil, status.Errorf(codes.NotFound, "destination account %d not found", internalToAccountID)
+			}
+			return nil, fmt.Errorf("db error fetching destination account: %w", err)
+		}
+		// Assign pointers for the model
+		toAccountID_ptr = &internalToAccountID
+		toUserID_ptr = &toAccount.OwnerUserID
+		toCurrency = toAccount.Currency
+
+	} else if req.RecipientID != nil && *req.RecipientID > 0 {
+		// Scenario 2: Transfer via RecipientID (Internal or External)
+		recipientIDValue := *req.RecipientID
+		recipientID_ptr = &recipientIDValue // Assign pointer for model
+		toAccountID_ptr = nil               // Assume nil unless recipient is internal
+
+		recipient, err := s.recipientService.GetRecipientByID(ctx, recipientIDValue, fromUserID)
+		if err != nil {
+			tx.Rollback()
+			// Return the wrapped error. Let the controller handle specific mapping.
+			return nil, fmt.Errorf("failed to get recipient details for id %d: %w", recipientIDValue, err)
+		}
+
+		if recipient.Type == "internal" {
+			if recipient.InternalAccountID == nil || *recipient.InternalAccountID == 0 {
+				tx.Rollback()
+				return nil, fmt.Errorf("internal recipient (ID: %d) is missing linked account ID", recipientIDValue)
+			}
+			// Saved Internal Recipient
+			isExternal = false
+			internalToAccountID := *recipient.InternalAccountID
+
+			if req.FromAccountID == internalToAccountID {
+				tx.Rollback()
+				return nil, ErrCannotTransferToSelfAccount
+			}
+
+			var toAccount models.Account
+			if err := tx.Where("id = ?", internalToAccountID).First(&toAccount).Error; err != nil {
+				tx.Rollback()
+				if errors.Is(err, gorm.ErrRecordNotFound) {
+					return nil, fmt.Errorf("linked internal account (ID: %d) for recipient (ID: %d) not found", internalToAccountID, recipientIDValue)
+				}
+				return nil, fmt.Errorf("db error fetching linked internal account: %w", err)
+			}
+			// Assign pointers for the model
+			toAccountID_ptr = &internalToAccountID // Set ToAccountID for internal recipient transfer
+			toUserID_ptr = &toAccount.OwnerUserID
+			toCurrency = toAccount.Currency
+
+		} else if recipient.Type == "external" {
+			// Saved External Recipient
+			isExternal = true
+			toAccountID_ptr = nil // Explicitly nil
+			toUserID_ptr = nil    // Explicitly nil
+
+			if recipient.AccountNumber == "" || recipient.BankName == "" {
+				tx.Rollback()
+				return nil, fmt.Errorf("external recipient (ID: %d) is missing required bank details (account number/bank name)", recipientIDValue)
+			}
+			toCurrency = fromCurrency
+
+		} else {
+			tx.Rollback()
+			return nil, fmt.Errorf("invalid or unsupported recipient type '%s' for recipient ID: %d", recipient.Type, recipientIDValue)
+		}
+	} // End of RecipientID handling
+
+	// --- Currency Check ---
 	if fromCurrency != toCurrency {
 		tx.Rollback()
-		return nil, fmt.Errorf("cross-currency transfers not supported (from %s to %s)", fromCurrency, toCurrency)
-		// TODO: Implement currency conversion logic if needed
+		return nil, fmt.Errorf("cross-currency transfers not yet supported (%s to %s)", fromCurrency, toCurrency)
 	}
 
-	// Calculate fee using integer arithmetic
-	fee := (req.Amount * 15) / 1000 // Example: 1.5%
+	// --- Calculate Fee & Total ---
+	var fee int64
+	if isExternal {
+		fee = (req.Amount * 20) / 1000
+	} else {
+		fee = (req.Amount * 5) / 1000
+	}
 	totalAmount := req.Amount + fee
 
-	// Create transfer record using Account IDs and fetched ToUserID
+	// --- Check Balance ---
+	err = s.accountService.CheckSufficientBalance(ctx, tx, req.FromAccountID, totalAmount)
+	if err != nil {
+		tx.Rollback()
+		if errors.Is(err, ErrSvcInsufficientFunds) {
+			return nil, status.Errorf(codes.FailedPrecondition, "insufficient funds in source account %d", req.FromAccountID)
+		}
+		return nil, fmt.Errorf("balance check failed: %w", err)
+	}
+
+	// --- Create Transfer Record ---
 	transfer := &models.Transfer{
 		FromUserID:    fromUserID,
-		ToUserID:      toUserID, // Use fetched ToUserID
 		FromAccountID: req.FromAccountID,
-		ToAccountID:   req.ToAccountID,
+		ToUserID:      toUserID_ptr,    // Set based on destination logic
+		ToAccountID:   toAccountID_ptr, // Set based on destination logic
+		RecipientID:   recipientID_ptr, // Set based on destination logic
 		Amount:        req.Amount,
 		Fee:           fee,
 		TotalAmount:   totalAmount,
-		Status:        models.TransferStatusPending,
-		Reference:     req.Reference,
-		Category:      req.Category,
-		ScheduledAt:   req.ScheduledAt,
+		// Status set below
+		Reference:   req.Reference,
+		Category:    req.Category,
+		ScheduledAt: req.ScheduledAt,
+	}
+
+	// Determine initial status and queue options
+	opts := []asynq.Option{}
+	if req.ScheduledAt != nil && req.ScheduledAt.After(time.Now()) {
+		transfer.Status = models.TransferStatusScheduled
+		opts = append(opts, asynq.ProcessAt(*req.ScheduledAt))
+		fmt.Printf("Scheduling transfer %d for %v\n", transfer.ID, *req.ScheduledAt) // Log ID after creation
+	} else {
+		transfer.Status = models.TransferStatusProcessing
+		// No specific options needed for immediate processing
 	}
 
 	if err := tx.Create(&transfer).Error; err != nil {
@@ -146,27 +274,38 @@ func (s *TransferService) InitiateTransfer(ctx context.Context, fromUserID uint,
 		return nil, fmt.Errorf("failed to create transfer record: %w", err)
 	}
 
-	// Queue the transfer task
-	payload := &tasks.PayloadProcessTransfer{
-		TransferID: fmt.Sprint(transfer.ID),
+	// Update log message now that transfer.ID is available
+	if transfer.Status == models.TransferStatusScheduled {
+		fmt.Printf("Scheduling transfer %d for %v\n", transfer.ID, *req.ScheduledAt)
 	}
 
-	var opts []asynq.Option
-	if req.ScheduledAt != nil {
-		opts = append(opts, asynq.ProcessAt(*req.ScheduledAt))
+	// --- Queue Background Task (Only if Processing or Scheduled) ---
+	var taskErr error
+	if transfer.Status == models.TransferStatusProcessing || transfer.Status == models.TransferStatusScheduled {
+		if isExternal {
+			taskPayload := &tasks.PayloadProcessExternalTransfer{
+				TransferID: fmt.Sprint(transfer.ID),
+			}
+			taskErr = s.redisWorker.DistributeTaskProcessExternalTransfer(ctx, taskPayload, opts...)
+		} else {
+			taskPayload := &tasks.PayloadProcessTransfer{
+				TransferID: fmt.Sprint(transfer.ID),
+			}
+			taskErr = s.redisWorker.DistributeTaskProcessTransfer(ctx, taskPayload, opts...)
+		}
 	}
 
-	// Use the specific distributor method
-	if err := s.redisWorker.DistributeTaskProcessTransfer(ctx, payload, opts...); err != nil {
+	if taskErr != nil {
 		tx.Rollback()
-		return nil, fmt.Errorf("failed to distribute transfer task: %w", err)
+		return nil, fmt.Errorf("failed to distribute transfer task: %w", taskErr)
 	}
 
-	// Commit the transaction
+	// --- Commit Transaction ---
 	if err := tx.Commit().Error; err != nil {
 		return nil, fmt.Errorf("failed to commit transfer initiation: %w", err)
 	}
 
+	// --- Return Response ---
 	return &TransferResponse{
 		TransferID:  transfer.ID,
 		Status:      string(transfer.Status),
@@ -179,10 +318,8 @@ func (s *TransferService) InitiateTransfer(ctx context.Context, fromUserID uint,
 
 func (s *TransferService) GetTransferDetails(ctx context.Context, transferID uint, userID uint) (*models.Transfer, error) {
 	var transfer models.Transfer
-
-	// Fetch the transfer record. Preload related accounts if their info (like currency) is needed
-	// For now, assume currency is derived or not strictly needed in response directly from account
-	err := s.db.WithContext(ctx).Where("id = ?", transferID).First(&transfer).Error
+	// Preload FromUser and ToUser if needed for the response later
+	err := s.db.WithContext(ctx).Preload("FromUser").Preload("ToUser").Where("id = ?", transferID).First(&transfer).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, ErrTransferNotFound
@@ -190,8 +327,12 @@ func (s *TransferService) GetTransferDetails(ctx context.Context, transferID uin
 		return nil, fmt.Errorf("db error finding transfer: %w", err)
 	}
 
-	// Check ownership: User must be sender or receiver
-	if transfer.FromUserID != userID && transfer.ToUserID != userID {
+	// Check ownership: User must be sender or receiver (handle nil ToUserID)
+	isReceiver := false
+	if transfer.ToUserID != nil && *transfer.ToUserID == userID { // Dereference pointer safely
+		isReceiver = true
+	}
+	if transfer.FromUserID != userID && !isReceiver {
 		return nil, ErrTransferAccessDenied
 	}
 

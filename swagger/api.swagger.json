@@ -1938,22 +1938,25 @@
           "type": "string"
         },
         "sortCode": {
-          "type": "string",
-          "title": "Optional"
+          "type": "string"
         },
         "bankName": {
           "type": "string"
         },
         "isFavorite": {
-          "type": "boolean",
-          "title": "Optional, defaults to false"
+          "type": "boolean"
+        },
+        "type": {
+          "type": "string"
+        },
+        "internal_account_id": {
+          "type": "string",
+          "format": "uint64"
         }
       },
       "title": "Request to create a new recipient",
       "required": [
-        "name",
-        "accountNumber",
-        "bankName"
+        "name"
       ]
     },
     "pbCreateRecipientResponse": {
@@ -2568,37 +2571,41 @@
         "from_account_id": {
           "type": "string",
           "format": "uint64",
-          "description": "Added",
-          "title": "uint64 to_user_id = 1; // Removed"
-        },
-        "to_account_id": {
-          "type": "string",
-          "format": "uint64",
-          "title": "Added"
+          "title": "Required"
         },
         "amount": {
           "type": "string",
           "format": "uint64",
-          "title": "Changed to uint64 (minor units)"
+          "title": "Required, minor units (e.g., cents, pence)"
         },
         "category": {
           "type": "string"
         },
         "reference": {
-          "type": "string",
-          "title": "Optional reference"
+          "type": "string"
         },
         "scheduledAt": {
           "type": "string",
           "format": "date-time",
-          "title": "Optional schedule time"
+          "description": "Optional. If not provided, processed immediately."
         },
-        "description": {
+        "to_account_id": {
           "type": "string",
-          "title": "Added description field"
+          "format": "uint64",
+          "description": "Optional: Direct internal account ID",
+          "title": "--- Destination (Use ONE of the following) ---"
+        },
+        "recipient_id": {
+          "type": "string",
+          "format": "uint64",
+          "title": "Optional: ID of the saved recipient (internal or external)"
         }
       },
-      "title": "Request message for initiating a transfer"
+      "title": "Request message for initiating a transfer",
+      "required": [
+        "from_account_id",
+        "amount"
+      ]
     },
     "pbInitiateTransferResponse": {
       "type": "object",
