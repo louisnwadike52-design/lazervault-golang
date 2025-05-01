@@ -30,14 +30,16 @@
       "name": "ExchangeService"
     },
     {
+      "name": "GenerateTxDataService"
+    },
+    {
       "name": "InvoiceService"
     },
     {
-      "name": "RecipientService",
-      "description": "Manages saved external transfer recipients."
+      "name": "TransferService"
     },
     {
-      "name": "TransferService"
+      "name": "TxFileService"
     },
     {
       "name": "UserService"
@@ -1020,193 +1022,6 @@
         ]
       }
     },
-    "/v1/recipients": {
-      "get": {
-        "summary": "List Recipients",
-        "operationId": "RecipientService_ListRecipients",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/pbListRecipientsResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "tags": [
-          "Recipients"
-        ],
-        "security": [
-          {
-            "bearer": []
-          }
-        ]
-      },
-      "post": {
-        "summary": "Create Recipient",
-        "operationId": "RecipientService_CreateRecipient",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/pbCreateRecipientResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/pbCreateRecipientRequest"
-            }
-          }
-        ],
-        "tags": [
-          "Recipients"
-        ],
-        "security": [
-          {
-            "bearer": []
-          }
-        ]
-      }
-    },
-    "/v1/recipients/{recipient_id}": {
-      "delete": {
-        "summary": "Delete Recipient",
-        "operationId": "RecipientService_DeleteRecipient",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/pbDeleteRecipientResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "recipient_id",
-            "in": "path",
-            "required": true,
-            "type": "string",
-            "format": "uint64"
-          }
-        ],
-        "tags": [
-          "Recipients"
-        ],
-        "security": [
-          {
-            "bearer": []
-          }
-        ]
-      },
-      "put": {
-        "summary": "Update Recipient",
-        "operationId": "RecipientService_UpdateRecipient2",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/pbUpdateRecipientResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "recipient_id",
-            "in": "path",
-            "required": true,
-            "type": "string",
-            "format": "uint64"
-          },
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/RecipientServiceUpdateRecipientBody"
-            }
-          }
-        ],
-        "tags": [
-          "Recipients"
-        ],
-        "security": [
-          {
-            "bearer": []
-          }
-        ]
-      },
-      "patch": {
-        "summary": "Update Recipient",
-        "operationId": "RecipientService_UpdateRecipient",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/pbUpdateRecipientResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "recipient_id",
-            "in": "path",
-            "required": true,
-            "type": "string",
-            "format": "uint64"
-          },
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/RecipientServiceUpdateRecipientBody"
-            }
-          }
-        ],
-        "tags": [
-          "Recipients"
-        ],
-        "security": [
-          {
-            "bearer": []
-          }
-        ]
-      }
-    },
     "/v1/transactions": {
       "get": {
         "summary": "Get Transaction History",
@@ -1433,6 +1248,38 @@
         ]
       }
     },
+    "/v1/user/txfile/generate": {
+      "post": {
+        "operationId": "GenerateTxDataService_GenerateUserTxDataFile",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbGenerateUserTxDataFileResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/pbGenerateUserTxDataFileRequest"
+            }
+          }
+        ],
+        "tags": [
+          "GenerateTxDataService"
+        ]
+      }
+    },
     "/v1/users": {
       "post": {
         "summary": "Create a new user",
@@ -1464,6 +1311,29 @@
         ],
         "tags": [
           "users"
+        ]
+      }
+    },
+    "/v1/users/txfile/path": {
+      "get": {
+        "summary": "Retrieves the GCS path for the user's generated transaction data file.",
+        "operationId": "TxFileService_GetUserTxFilePath",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbGetUserTxFilePathResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "TxFileService"
         ]
       }
     },
@@ -1571,27 +1441,6 @@
         }
       },
       "title": "Request to add a new card to an account"
-    },
-    "RecipientServiceUpdateRecipientBody": {
-      "type": "object",
-      "properties": {
-        "name": {
-          "type": "string"
-        },
-        "accountNumber": {
-          "type": "string"
-        },
-        "sortCode": {
-          "type": "string"
-        },
-        "bankName": {
-          "type": "string"
-        },
-        "isFavorite": {
-          "type": "boolean"
-        }
-      },
-      "title": "Request to update a recipient"
     },
     "pbAccountCard": {
       "type": "object",
@@ -1928,46 +1777,6 @@
       "description": "Contains the details of the newly created invoice.",
       "title": "Create Invoice Response"
     },
-    "pbCreateRecipientRequest": {
-      "type": "object",
-      "properties": {
-        "name": {
-          "type": "string"
-        },
-        "accountNumber": {
-          "type": "string"
-        },
-        "sortCode": {
-          "type": "string"
-        },
-        "bankName": {
-          "type": "string"
-        },
-        "isFavorite": {
-          "type": "boolean"
-        },
-        "type": {
-          "type": "string"
-        },
-        "internal_account_id": {
-          "type": "string",
-          "format": "uint64"
-        }
-      },
-      "title": "Request to create a new recipient",
-      "required": [
-        "name"
-      ]
-    },
-    "pbCreateRecipientResponse": {
-      "type": "object",
-      "properties": {
-        "recipient": {
-          "$ref": "#/definitions/pbRecipient"
-        }
-      },
-      "title": "Response after creating a recipient"
-    },
     "pbCreateUserRequest": {
       "type": "object",
       "properties": {
@@ -2032,16 +1841,6 @@
           "$ref": "#/definitions/pbSession"
         }
       }
-    },
-    "pbDeleteRecipientResponse": {
-      "type": "object",
-      "properties": {
-        "message": {
-          "type": "string",
-          "title": "e.g., \"Recipient deleted successfully\""
-        }
-      },
-      "title": "Response after deleting a recipient (can be empty)"
     },
     "pbDepositStatus": {
       "type": "string",
@@ -2119,6 +1918,26 @@
         }
       },
       "title": "Represents a recorded exchange transaction"
+    },
+    "pbGenerateUserTxDataFileRequest": {
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "title": "ID of the user for whom to generate the data"
+        }
+      },
+      "title": "Request message - Requires the user ID"
+    },
+    "pbGenerateUserTxDataFileResponse": {
+      "type": "object",
+      "properties": {
+        "fileGcsUrl": {
+          "type": "string",
+          "title": "Publicly accessible URL to the generated file in GCS"
+        }
+      },
+      "title": "Response message - Returns the GCS URL of the generated file"
     },
     "pbGetAccountCardsResponse": {
       "type": "object",
@@ -2414,6 +2233,16 @@
           }
         }
       }
+    },
+    "pbGetUserTxFilePathResponse": {
+      "type": "object",
+      "properties": {
+        "fileGcsPath": {
+          "type": "string",
+          "title": "The GCS path, e.g., gs://your-bucket/user-tx-data/123/transactions.csv"
+        }
+      },
+      "title": "Response message for GetUserTxFilePath"
     },
     "pbGetWithdrawalDetailsResponse": {
       "type": "object",
@@ -2821,19 +2650,6 @@
       "description": "Contains a list of invoices and pagination info.",
       "title": "List Invoices Response"
     },
-    "pbListRecipientsResponse": {
-      "type": "object",
-      "properties": {
-        "recipients": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/pbRecipient"
-          }
-        }
-      },
-      "title": "Response containing a list of recipients"
-    },
     "pbLoginRequest": {
       "type": "object",
       "properties": {
@@ -2947,42 +2763,6 @@
         }
       },
       "title": "Represents receiver details for an international transfer"
-    },
-    "pbRecipient": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string",
-          "format": "uint64"
-        },
-        "name": {
-          "type": "string",
-          "title": "Nickname (e.g., \"Landlord\")"
-        },
-        "accountNumber": {
-          "type": "string",
-          "title": "External bank account number (masked?)"
-        },
-        "sortCode": {
-          "type": "string",
-          "title": "Optional sort code"
-        },
-        "bankName": {
-          "type": "string"
-        },
-        "isFavorite": {
-          "type": "boolean"
-        },
-        "createdAt": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "format": "date-time"
-        }
-      },
-      "title": "Represents a saved recipient for transfers"
     },
     "pbRefreshTokenRequest": {
       "type": "object",
@@ -3319,15 +3099,6 @@
           "title": "Return updated details"
         }
       }
-    },
-    "pbUpdateRecipientResponse": {
-      "type": "object",
-      "properties": {
-        "recipient": {
-          "$ref": "#/definitions/pbRecipient"
-        }
-      },
-      "title": "Response after updating a recipient"
     },
     "pbUpdateSecuritySettingsResponse": {
       "type": "object",

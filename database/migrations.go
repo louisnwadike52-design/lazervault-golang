@@ -1,6 +1,7 @@
 package database
 
 import (
+	"fmt"
 	"lazervaultGo/models"
 
 	"gorm.io/gorm"
@@ -23,10 +24,19 @@ func (m *Migrator) DropAllTables() error {
 		&models.Deposit{},
 		&models.Withdrawal{},
 		&models.Recipient{},
+		&models.ExchangeTransaction{},
+		&models.UserTransactionFile{},
 	)
 }
 
 func (m *Migrator) RunMigrations() error {
+	// Enable UUID generation extension if not already enabled
+	err := m.db.Exec(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp";`).Error
+	if err != nil {
+		return fmt.Errorf("failed to enable uuid-ossp extension: %w", err)
+	}
+
+	// Proceed with AutoMigrate
 	return m.db.AutoMigrate(
 		&models.User{},
 		&models.Account{},
@@ -35,6 +45,8 @@ func (m *Migrator) RunMigrations() error {
 		&models.Deposit{},
 		&models.Withdrawal{},
 		&models.Recipient{},
+		&models.ExchangeTransaction{},
+		&models.UserTransactionFile{},
 	)
 }
 

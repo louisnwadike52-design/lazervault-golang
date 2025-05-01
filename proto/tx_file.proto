@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+package pb;
+
+option go_package = "lazervaultGo/pb";
+
+import "google/api/annotations.proto"; // Import for HTTP annotations
+
+// Defines the service for getting transaction file URLs/Paths.
+service TxFileService {
+  // Retrieves the GCS path for the user's generated transaction data file.
+  rpc GetUserTxFilePath(GetUserTxFilePathRequest) returns (GetUserTxFilePathResponse) {
+    option (google.api.http) = {
+      get: "/v1/users/txfile/path" // Changed path slightly
+    };
+  }
+}
+
+// Request message for GetUserTxFilePath
+message GetUserTxFilePathRequest {
+  // User ID is implicitly determined from the authentication context (token).
+  // No explicit user ID needed in the request body for GET.
+}
+
+// Response message for GetUserTxFilePath
+message GetUserTxFilePathResponse {
+  // The GCS path, e.g., gs://your-bucket/user-tx-data/123/transactions.csv
+  string file_gcs_path = 1;
+} 

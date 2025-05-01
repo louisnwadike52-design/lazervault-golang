@@ -122,7 +122,7 @@ func (distributor *RedisTaskDistributor) DistributeTaskDepositProcess(
 		return fmt.Errorf("failed to marshal deposit process payload: %w", err)
 	}
 
-	task := asynq.NewTask(tasks.TypeDepositProcess, jsonPayload, opts...)
+	task := asynq.NewTask(tasks.TypeDepositProcessing, jsonPayload, opts...)
 	info, err := distributor.client.EnqueueContext(ctx, task)
 	if err != nil {
 		return fmt.Errorf("failed to enqueue deposit process task: %w", err)
@@ -144,7 +144,7 @@ func (distributor *RedisTaskDistributor) DistributeTaskWithdrawalProcess(
 		return fmt.Errorf("failed to marshal withdrawal process payload: %w", err)
 	}
 
-	task := asynq.NewTask(tasks.TypeWithdrawalProcess, jsonPayload, opts...)
+	task := asynq.NewTask(tasks.TypeWithdrawalProcessing, jsonPayload, opts...)
 	info, err := distributor.client.EnqueueContext(ctx, task)
 	if err != nil {
 		return fmt.Errorf("failed to enqueue withdrawal process task: %w", err)
@@ -175,4 +175,19 @@ func (distributor *RedisTaskDistributor) DistributeTaskSendWithdrawalConfirmatio
 	log.Info().Str("type", task.Type()).Bytes("payload", task.Payload()).
 		Str("queue", info.Queue).Int("max_retry", info.MaxRetry).Msg("enqueued task")
 	return nil
+}
+
+// DistributeTaskGenerateTxDataFile enqueues a task to generate a user's transaction data file.
+func (distributor *RedisTaskDistributor) DistributeTaskGenerateTxDataFile(
+	ctx context.Context,
+	payload *tasks.GenerateTxDataFilePayload,
+	opts ...asynq.Option,
+) error {
+	jsonPayload, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("failed to marshal generate tx data file payload: %w", err)
+	}
+
+	// Use the generic DistributeTask method internally
+	return distributor.DistributeTask(ctx, tasks.TypeGenerateTxDataFile, jsonPayload, opts...)
 }

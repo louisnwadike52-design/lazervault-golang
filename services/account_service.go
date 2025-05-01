@@ -6,10 +6,13 @@ import (
 	"fmt"
 	"lazervaultGo/models"
 	"lazervaultGo/pb"
+	"lazervaultGo/tasks"
 	"lazervaultGo/utils"
 	"regexp"
 	"strings"
+	"time"
 
+	"github.com/hibiken/asynq"
 	// bcrypt should be here if used by HashPassword
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"gorm.io/gorm"
@@ -44,14 +47,18 @@ type IAccountService interface {
 
 // AccountService handles business logic related to user accounts.
 type AccountService struct {
-	db *gorm.DB
+	db          *gorm.DB
+	distributor tasks.TaskDistributor
 }
 
 // --- Account Service Constructor ---
 
 // NewAccountService creates a new AccountService.
-func NewAccountService(db *gorm.DB) IAccountService { // Return interface type
-	return &AccountService{db: db}
+func NewAccountService(db *gorm.DB, distributor tasks.TaskDistributor) IAccountService { // Return interface type
+	return &AccountService{
+		db:          db,
+		distributor: distributor,
+	}
 }
 
 // --- Helper Functions ---
@@ -183,6 +190,21 @@ func (s *AccountService) CreateAccount(ctx context.Context, userID uint, req *pb
 	if err := s.db.WithContext(ctx).Create(&account).Error; err != nil {
 		// TODO: Handle potential unique constraint violations (e.g., AccountNumber)
 		return nil, fmt.Errorf("%w: %v", ErrSvcAccountCreationFailed, err)
+	}
+
+	// Enqueue Tx File Update Task (AFTER successful creation)
+	txFilePayloadBytes, err := tasks.NewGenerateTxDataFileTask(userID)
+	if err != nil {
+		fmt.Printf("CRITICAL ERROR: Failed creating tx file generation payload for user %d after account creation %d: %v\n", userID, account.ID, err)
+	} else {
+		opts := []asynq.Option{
+			asynq.MaxRetry(3),
+			asynq.Timeout(10 * time.Minute),
+			asynq.Queue(tasks.QueueLow),
+		}
+		if err := s.distributor.DistributeTask(ctx, tasks.TypeGenerateTxDataFile, txFilePayloadBytes, opts...); err != nil {
+			fmt.Printf("CRITICAL ERROR: Failed enqueuing tx file generation task for user %d after account creation %d: %v\n", userID, account.ID, err)
+		}
 	}
 
 	// Reload the account to get all fields populated by hooks/db defaults

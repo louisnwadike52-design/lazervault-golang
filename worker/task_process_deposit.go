@@ -152,5 +152,24 @@ func HandleDepositProcessTask(ctx context.Context, t *asynq.Task, db *gorm.DB, m
 		fmt.Printf("Deposit %s failed. Status updated. Reversal email task enqueued (if possible).\n", depositID)
 	}
 
+	// --- Enqueue Tx File Update Task (AFTER success or failure processing) ---
+	// Need UserID which should be available on the deposit model
+	finalUserID := deposit.UserID
+	txFilePayloadBytes, err := tasks.NewGenerateTxDataFileTask(finalUserID)
+	if err != nil {
+		// Log critical error, but don't fail the deposit task itself for this
+		fmt.Printf("CRITICAL ERROR: Failed creating tx file generation payload for user %d after deposit %s: %v\n", finalUserID, depositID, err)
+	} else {
+		opts := []asynq.Option{
+			asynq.MaxRetry(3),
+			asynq.Timeout(10 * time.Minute),
+			asynq.Queue(tasks.QueueLow), // Use low priority queue
+		}
+		if err := distributor.DistributeTask(ctx, tasks.TypeGenerateTxDataFile, txFilePayloadBytes, opts...); err != nil {
+			// Log critical error
+			fmt.Printf("CRITICAL ERROR: Failed enqueuing tx file generation task for user %d after deposit %s: %v\n", finalUserID, depositID, err)
+		}
+	}
+
 	return nil // Task processed
 }

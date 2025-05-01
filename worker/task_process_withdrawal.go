@@ -67,6 +67,7 @@ func HandleWithdrawalProcessTask(ctx context.Context, t *asynq.Task, db *gorm.DB
 
 	// --- Handle Outcome ---
 	now := time.Now()
+	var finalUserID uint = withdrawal.UserID // Store UserID for task enqueuing
 
 	if success {
 		// --- Success Case: Mark Withdrawal Completed ---
@@ -155,5 +156,22 @@ func HandleWithdrawalProcessTask(ctx context.Context, t *asynq.Task, db *gorm.DB
 		}
 	}
 
-	return nil // Task processed
+	// --- Enqueue Tx File Update Task (AFTER success or failure processing) ---
+	txFilePayloadBytes, err := tasks.NewGenerateTxDataFileTask(finalUserID)
+	if err != nil {
+		// Log critical error, but don't fail the withdrawal task itself for this
+		fmt.Printf("CRITICAL ERROR: Failed creating tx file generation payload for user %d after withdrawal %s: %v\n", finalUserID, withdrawalID, err)
+	} else {
+		opts := []asynq.Option{
+			asynq.MaxRetry(3),
+			asynq.Timeout(10 * time.Minute),
+			asynq.Queue(tasks.QueueLow), // Use low priority queue
+		}
+		if err := distributor.DistributeTask(ctx, tasks.TypeGenerateTxDataFile, txFilePayloadBytes, opts...); err != nil {
+			// Log critical error
+			fmt.Printf("CRITICAL ERROR: Failed enqueuing tx file generation task for user %d after withdrawal %s: %v\n", finalUserID, withdrawalID, err)
+		}
+	}
+
+	return nil // Task processed (success or failure handled)
 }

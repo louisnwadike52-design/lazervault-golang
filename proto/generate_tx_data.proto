@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+package pb;
+
+option go_package = "github.com/louislawrence/lazervault/pb"; // Adjust path if needed
+
+import "google/protobuf/timestamp.proto";
+import "google/api/annotations.proto";
+
+// Service definition
+service GenerateTxDataService {
+  rpc GenerateUserTxDataFile(GenerateUserTxDataFileRequest) returns (GenerateUserTxDataFileResponse) {
+    option (google.api.http) = {
+      post: "/v1/user/txfile/generate" // Example POST endpoint
+      body: "*"
+    };
+  }
+}
+
+// Request message - Requires the user ID
+message GenerateUserTxDataFileRequest {
+  string user_id = 1; // ID of the user for whom to generate the data
+  // Consider adding authentication context if needed, e.g., string access_token = 2;
+}
+
+// Response message - Returns the GCS URL of the generated file
+message GenerateUserTxDataFileResponse {
+  string file_gcs_url = 1; // Publicly accessible URL to the generated file in GCS
+} 

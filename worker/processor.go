@@ -20,11 +20,6 @@ import (
 	"gorm.io/gorm"
 )
 
-const (
-	QueueCritical = "critical"
-	QueueDefault  = "default"
-)
-
 type TaskProcessor interface {
 	Start() error
 	ProcessTaskSendVerifyEmail(ctx context.Context, task *asynq.Task) error
@@ -34,23 +29,26 @@ type TaskProcessor interface {
 }
 
 type RedisTaskProcessor struct {
-	server      *asynq.Server
-	db          *gorm.DB
-	mailer      mail.EmailSender
-	config      *configs.Config
-	distributor tasks.TaskDistributor
+	server              *asynq.Server
+	db                  *gorm.DB
+	mailer              mail.EmailSender
+	config              *configs.Config
+	distributor         tasks.TaskDistributor
+	txDataFileProcessor *GenerateTxDataFileProcessor
 }
 
 func NewRedisTaskProcessor(redisOpt asynq.RedisClientOpt, db *gorm.DB, mailer mail.EmailSender, config *configs.Config, distributor tasks.TaskDistributor) TaskProcessor {
 	logger := NewLogger()
 	redis.SetLogger(logger)
 
+	txDataFileProcessor := NewGenerateTxDataFileProcessor(db, *config)
+
 	server := asynq.NewServer(
 		redisOpt,
 		asynq.Config{
 			Queues: map[string]int{
-				QueueCritical: 10,
-				QueueDefault:  5,
+				tasks.QueueCritical: 10,
+				tasks.QueueDefault:  5,
 			},
 			ErrorHandler: asynq.ErrorHandlerFunc(func(ctx context.Context, task *asynq.Task, err error) {
 				log.Error().Err(err).Str("type", task.Type()).
@@ -62,49 +60,44 @@ func NewRedisTaskProcessor(redisOpt asynq.RedisClientOpt, db *gorm.DB, mailer ma
 	)
 
 	return &RedisTaskProcessor{
-		server:      server,
-		db:          db,
-		mailer:      mailer,
-		config:      config,
-		distributor: distributor,
+		server:              server,
+		db:                  db,
+		mailer:              mailer,
+		config:              config,
+		distributor:         distributor,
+		txDataFileProcessor: txDataFileProcessor,
 	}
 }
 
 func (processor *RedisTaskProcessor) Start() error {
 	mux := asynq.NewServeMux()
 
-	// Register handlers using closures to pass dependencies
+	// Register handlers using constants from the tasks package
 	mux.HandleFunc(tasks.TaskSendVerifyEmail, func(ctx context.Context, task *asynq.Task) error {
-		// HandleEmailSendVerifyUserTask is defined in task_send_email.go (worker package)
 		return HandleEmailSendVerifyUserTask(ctx, task, processor.mailer)
 	})
-	mux.HandleFunc(tasks.TaskProcessTransfer, processor.ProcessTaskProcessTransfer) // Keep existing method if needed
-	// Point password reset task type to the correct processor method
+	mux.HandleFunc(tasks.TaskProcessTransfer, processor.ProcessTaskProcessTransfer)
 	mux.HandleFunc(tasks.TaskSendPasswordResetOTP, processor.ProcessTaskSendPasswordResetOTP)
-	// Register new handlers
-	mux.HandleFunc(tasks.TypeDepositProcess, func(ctx context.Context, task *asynq.Task) error {
-		// HandleDepositProcessTask is defined in task_process_deposit.go (worker package)
+	mux.HandleFunc(tasks.TypeDepositProcessing, func(ctx context.Context, task *asynq.Task) error {
 		return HandleDepositProcessTask(ctx, task, processor.db, processor.mailer, processor.distributor)
 	})
 	mux.HandleFunc(tasks.TypeEmailSendDepositReversal, func(ctx context.Context, task *asynq.Task) error {
-		// HandleEmailSendDepositReversalTask is defined in task_send_email.go (worker package)
 		return HandleEmailSendDepositReversalTask(ctx, task, processor.mailer)
 	})
-	// Added withdrawal handlers
-	mux.HandleFunc(tasks.TypeWithdrawalProcess, func(ctx context.Context, task *asynq.Task) error {
-		// HandleWithdrawalProcessTask is defined in task_process_withdrawal.go (worker package)
+	mux.HandleFunc(tasks.TypeWithdrawalProcessing, func(ctx context.Context, task *asynq.Task) error {
 		return HandleWithdrawalProcessTask(ctx, task, processor.db, processor.mailer, processor.distributor)
 	})
 	mux.HandleFunc(tasks.TypeEmailSendWithdrawalConf, func(ctx context.Context, task *asynq.Task) error {
-		// HandleEmailSendWithdrawalConfirmationTask is defined in task_send_email.go (worker package)
 		return HandleEmailSendWithdrawalConfirmationTask(ctx, task, processor.mailer)
 	})
 	mux.HandleFunc(tasks.TypeEmailSendWithdrawalFail, func(ctx context.Context, task *asynq.Task) error {
-		// HandleEmailSendWithdrawalFailureTask is defined in task_send_email.go (worker package)
 		return HandleEmailSendWithdrawalFailureTask(ctx, task, processor.mailer)
 	})
 
-	// Add handler for external transfers
+	// Register the TxDataFile handler using the correct constant
+	mux.HandleFunc(tasks.TypeGenerateTxDataFile, processor.txDataFileProcessor.ProcessTask)
+
+	// Register external transfer handler using the correct constant
 	mux.HandleFunc(tasks.TaskProcessExternalTransfer, processor.ProcessTaskProcessExternalTransfer)
 
 	log.Info().Msg("starting task processor server")
@@ -210,7 +203,35 @@ func (processor *RedisTaskProcessor) ProcessTransferLogic(ctx context.Context, t
 		return fmt.Errorf("failed to update transfer status to completed: %w", err)
 	}
 
+	// --- Enqueue Tx File Update Task (AFTER successful commit) ---
+	// We need the UserID. Since it could be FromAccount or ToAccount owner,
+	// let's enqueue for both if they are different users.
+	if transfer.FromAccount.OwnerUserID != 0 {
+		enqueueTxFileUpdate(ctx, processor.distributor, transfer.FromAccount.OwnerUserID, fmt.Sprintf("transfer %d", transferID))
+	}
+	// Ensure ToAccount owner is different before enqueuing again
+	if transfer.ToAccount.OwnerUserID != 0 && transfer.ToAccount.OwnerUserID != transfer.FromAccount.OwnerUserID {
+		enqueueTxFileUpdate(ctx, processor.distributor, transfer.ToAccount.OwnerUserID, fmt.Sprintf("transfer %d", transferID))
+	}
+
 	return tx.Commit().Error
+}
+
+// Helper function to enqueue the file generation task and log errors
+func enqueueTxFileUpdate(ctx context.Context, distributor tasks.TaskDistributor, userID uint, triggerEvent string) {
+	txFilePayloadBytes, err := tasks.NewGenerateTxDataFileTask(userID)
+	if err != nil {
+		fmt.Printf("CRITICAL ERROR: Failed creating tx file generation payload for user %d after %s: %v\n", userID, triggerEvent, err)
+		return // Don't proceed if payload creation fails
+	}
+	opts := []asynq.Option{
+		asynq.MaxRetry(3),
+		asynq.Timeout(10 * time.Minute),
+		asynq.Queue(tasks.QueueLow),
+	}
+	if err := distributor.DistributeTask(ctx, tasks.TypeGenerateTxDataFile, txFilePayloadBytes, opts...); err != nil {
+		fmt.Printf("CRITICAL ERROR: Failed enqueuing tx file generation task for user %d after %s: %v\n", userID, triggerEvent, err)
+	}
 }
 
 func (processor *RedisTaskProcessor) ProcessTaskSendVerifyEmail(ctx context.Context, task *asynq.Task) error {
@@ -299,15 +320,37 @@ func (processor *RedisTaskProcessor) ProcessTaskProcessExternalTransfer(ctx cont
 	fmt.Println("PLACEHOLDER: External transfer logic for", payload.TransferID)
 	// Example: Simulate success/failure
 	transferID := payload.TransferID
-	err := processor.db.Model(&models.Transfer{}).Where("id = ?", transferID).Update("status", models.TransferStatusCompleted).Error // Simulate success
-	// err := processor.db.Model(&models.Transfer{}).Where("id = ?", transferID).Updates(models.Transfer{Status: models.TransferStatusFailed, FailureReason: "Simulated external failure"}).Error // Simulate failure
-	if err != nil {
-		fmt.Printf("ERROR updating external transfer status for %s: %v\n", transferID, err)
-		return err // Let Asynq handle retry/failure
-	}
-	fmt.Printf("Updated external transfer %s status (simulated)\n", transferID)
+	var transfer models.Transfer
+	success := true // Simulate success for now
+	var dbErr error
 
-	return nil // Return error to retry/fail based on external API outcome
+	if success {
+		dbErr = processor.db.Model(&models.Transfer{}).Where("id = ?", transferID).Update("status", models.TransferStatusCompleted).Error
+	} else {
+		dbErr = processor.db.Model(&models.Transfer{}).Where("id = ?", transferID).Updates(models.Transfer{Status: models.TransferStatusFailed, FailureReason: "Simulated external failure"}).Error
+	}
+
+	if dbErr != nil {
+		fmt.Printf("ERROR updating external transfer status for %s: %v\n", transferID, dbErr)
+		return dbErr // Let Asynq handle retry/failure
+	}
+
+	// --- Enqueue Tx File Update Task (AFTER successful simulated update) ---
+	if success {
+		// Need to fetch the UserID associated with the FromAccount of the transfer
+		if err := processor.db.WithContext(ctx).Preload("FromAccount").First(&transfer, "id = ?", transferID).Error; err == nil {
+			if transfer.FromAccount.OwnerUserID != 0 {
+				enqueueTxFileUpdate(ctx, processor.distributor, transfer.FromAccount.OwnerUserID, fmt.Sprintf("external transfer %s", transferID))
+			} else {
+				fmt.Printf("Warning: Could not determine owner user ID for external transfer %s to enqueue file update.\n", transferID)
+			}
+		} else {
+			fmt.Printf("ERROR: Failed to fetch transfer details for user ID lookup after external transfer %s: %v\n", transferID, err)
+		}
+	}
+
+	fmt.Printf("Updated external transfer %s status (simulated)\n", transferID)
+	return nil // Return error to retry/fail based on actual external API outcome
 }
 
 func (processor *RedisTaskProcessor) Shutdown() {

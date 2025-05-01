@@ -23,8 +23,8 @@ type ReceiverDetails struct {
 
 // ExchangeTransaction represents an international transfer in the database
 type ExchangeTransaction struct {
-	ID              string         `gorm:"type:uuid;primaryKey;default:uuid_generate_v4()"`
-	UserID          string         `gorm:"type:uuid;not null;index"` // The user who initiated the transfer
+	ID              string         `gorm:"primaryKey;type:varchar(36)" json:"id"` // UUID
+	UserID          uint           `gorm:"not null;index"`                        // Changed to uint, removed explicit type:uuid
 	FromCurrency    string         `gorm:"type:varchar(10);not null"`
 	ToCurrency      string         `gorm:"type:varchar(10);not null"`
 	AmountFrom      float64        `gorm:"not null"`

@@ -7,9 +7,11 @@ import (
 	"fmt"
 	"lazervaultGo/models" // Correct path
 	"lazervaultGo/pb"     // Correct path
+	"lazervaultGo/tasks"  // Added tasks import
 	"math/rand"
 	"time"
 
+	"github.com/hibiken/asynq" // Added asynq import
 	"gorm.io/datatypes"
 	"gorm.io/gorm"
 )
@@ -42,13 +44,18 @@ type IExchangeService interface {
 
 // ExchangeService implements the IExchangeService
 type ExchangeService struct {
-	db *gorm.DB
+	db          *gorm.DB
+	distributor tasks.TaskDistributor // Added task distributor
 	// Add dependencies like AccountService or a RateProvider later
 }
 
 // NewExchangeService creates a new ExchangeService
-func NewExchangeService(db *gorm.DB) IExchangeService {
-	return &ExchangeService{db: db}
+// Updated to accept distributor
+func NewExchangeService(db *gorm.DB, distributor tasks.TaskDistributor) IExchangeService {
+	return &ExchangeService{
+		db:          db,
+		distributor: distributor,
+	}
 }
 
 // GetExchangeRate fetches the current exchange rate (mocked)
@@ -75,7 +82,7 @@ func (s *ExchangeService) GetExchangeRate(ctx context.Context, fromCurrency, toC
 
 // InitiateTransferServiceRequest contains parameters for initiating a transfer
 type InitiateTransferServiceRequest struct {
-	UserID          string // ID of the user initiating
+	UserID          uint
 	FromCurrency    string
 	ToCurrency      string
 	AmountFrom      float64
@@ -85,7 +92,7 @@ type InitiateTransferServiceRequest struct {
 // InitiateInternationalTransfer handles validating, calculating, and recording a new transfer
 func (s *ExchangeService) InitiateInternationalTransfer(ctx context.Context, req *InitiateTransferServiceRequest) (*models.ExchangeTransaction, error) {
 	// Validate input
-	if req.UserID == "" {
+	if req.UserID == 0 {
 		return nil, ErrInvalidUserID // Re-use from chat service or define new
 	}
 	if req.FromCurrency == "" || req.ToCurrency == "" {
@@ -157,7 +164,7 @@ func (s *ExchangeService) InitiateInternationalTransfer(ctx context.Context, req
 		return nil, fmt.Errorf("failed to save exchange transaction: %w", err)
 	}
 
-	// 5. TODO: Enqueue a background task to process the actual transfer (e.g., call external API)
+	// 5. TODO: Enqueue a background task to process the actual transfer
 	// Example placeholder (replace with actual task enqueuing):
 	// taskPayload := worker.PayloadSendInternationalTransfer{TransactionID: transaction.ID}
 	// _, err = taskDistributor.DistributeTaskSendInternationalTransfer(ctx, &taskPayload)
@@ -171,19 +178,34 @@ func (s *ExchangeService) InitiateInternationalTransfer(ctx context.Context, req
 		return nil, fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
+	// --- Enqueue Tx File Update Task (AFTER successful commit) ---
+	txFilePayloadBytes, err := tasks.NewGenerateTxDataFileTask(transaction.UserID)
+	if err != nil {
+		fmt.Printf("CRITICAL ERROR: Failed creating tx file generation payload for user %d after exchange %s: %v\n", transaction.UserID, transaction.ID, err)
+	} else {
+		opts := []asynq.Option{
+			asynq.MaxRetry(3),
+			asynq.Timeout(10 * time.Minute),
+			asynq.Queue(tasks.QueueLow),
+		}
+		if err := s.distributor.DistributeTask(ctx, tasks.TypeGenerateTxDataFile, txFilePayloadBytes, opts...); err != nil {
+			fmt.Printf("CRITICAL ERROR: Failed enqueuing tx file generation task for user %d after exchange %s: %v\n", transaction.UserID, transaction.ID, err)
+		}
+	}
+
 	return transaction, nil
 }
 
 // GetRecentExchangesServiceRequest contains parameters for fetching history
 type GetRecentExchangesServiceRequest struct {
-	UserID    string
+	UserID    uint
 	PageSize  int
 	PageToken string // Use transaction ID as page token
 }
 
 // GetRecentExchanges retrieves recent transactions for a user
 func (s *ExchangeService) GetRecentExchanges(ctx context.Context, req *GetRecentExchangesServiceRequest) ([]models.ExchangeTransaction, string, error) {
-	if req.UserID == "" {
+	if req.UserID == 0 {
 		return nil, "", ErrInvalidUserID
 	}
 

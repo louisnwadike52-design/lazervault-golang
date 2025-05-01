@@ -1,6 +1,10 @@
 package tasks
 
-import "encoding/json"
+import (
+	"encoding/json"
+	// "time" // time is not used directly here for options
+	// "github.com/hibiken/asynq" // asynq is not used directly here
+)
 
 // --- Task Payloads ---
 
@@ -12,11 +16,9 @@ type PayloadSendVerifyEmail struct {
 	SecretCode string `json:"secret_code"`
 }
 
-// PayloadProcessTransfer contains the data needed for processing a transfer.
-// Define this properly based on your transfer logic if needed.
+// PayloadProcessTransfer contains the data needed for processing an internal transfer.
 type PayloadProcessTransfer struct {
 	TransferID string `json:"transfer_id"`
-	// Add other necessary fields
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler.
@@ -24,14 +26,14 @@ func (p *PayloadProcessTransfer) MarshalBinary() ([]byte, error) {
 	return json.Marshal(p)
 }
 
-// PayloadSendPasswordResetOTP contains data for sending password reset OTP via SMS.
+// PayloadSendPasswordResetOTP contains data for sending password reset OTP.
 type PayloadSendPasswordResetOTP struct {
-	PhoneNumber string `json:"phone_number"`
-	OTPCode     string `json:"otp_code"` // Correct field for SMS OTP flow
+	PhoneNumber string `json:"phone_number,omitempty"` // If sending via SMS
+	Email       string `json:"email,omitempty"`        // If sending via Email
+	OTPCode     string `json:"otp_code"`
 }
 
-// --- Deposit Process Task ---
-
+// DepositProcessPayload defines payload for deposit processing.
 type DepositProcessPayload struct {
 	DepositID string `json:"deposit_id"`
 }
@@ -41,16 +43,14 @@ func NewDepositProcessTask(depositID string) ([]byte, error) {
 	return json.Marshal(payload)
 }
 
-// --- Email Send Deposit Reversal Task ---
-
+// EmailSendDepositReversalPayload defines payload for deposit reversal email.
 type EmailSendDepositReversalPayload struct {
 	UserEmail     string `json:"user_email"`
-	Amount        int64  `json:"amount"` // Ensure int64
+	Amount        int64  `json:"amount"`
 	Currency      string `json:"currency"`
 	FailureReason string `json:"failure_reason"`
 }
 
-// Ensure signature accepts int64 amount
 func NewDepositReversalEmailTask(email string, amount int64, currency string, reason string) ([]byte, error) {
 	payload := EmailSendDepositReversalPayload{
 		UserEmail:     email,
@@ -61,8 +61,7 @@ func NewDepositReversalEmailTask(email string, amount int64, currency string, re
 	return json.Marshal(payload)
 }
 
-// --- Withdrawal Process Task ---
-
+// WithdrawalProcessPayload defines payload for withdrawal processing.
 type WithdrawalProcessPayload struct {
 	WithdrawalID string `json:"withdrawal_id"`
 }
@@ -72,23 +71,20 @@ func NewWithdrawalProcessTask(withdrawalID string) ([]byte, error) {
 	return json.Marshal(payload)
 }
 
-// --- Email Send Withdrawal Confirmation Task ---
-
+// EmailSendWithdrawalConfirmationPayload defines payload for withdrawal confirmation email.
 type EmailSendWithdrawalConfirmationPayload struct {
 	UserEmail           string `json:"user_email"`
-	Amount              int64  `json:"amount"` // Minor units
+	Amount              int64  `json:"amount"`
 	Currency            string `json:"currency"`
 	TargetBankName      string `json:"target_bank_name"`
 	TargetAccountNumber string `json:"target_account_number"` // Masked number
 }
 
 func NewWithdrawalConfirmationEmailTask(email string, amount int64, currency, bankName, accNum string) ([]byte, error) {
-	// Basic masking for account number display
 	maskedAccNum := accNum
 	if len(accNum) > 4 {
 		maskedAccNum = "••••" + accNum[len(accNum)-4:]
 	}
-
 	payload := EmailSendWithdrawalConfirmationPayload{
 		UserEmail:           email,
 		Amount:              amount,
@@ -99,8 +95,7 @@ func NewWithdrawalConfirmationEmailTask(email string, amount int64, currency, ba
 	return json.Marshal(payload)
 }
 
-// --- Email Send Withdrawal Failure Task ---
-
+// EmailSendWithdrawalFailurePayload defines payload for withdrawal failure email.
 type EmailSendWithdrawalFailurePayload struct {
 	UserEmail           string `json:"user_email"`
 	Amount              int64  `json:"amount"`
@@ -122,7 +117,7 @@ func NewWithdrawalFailureEmailTask(email string, amount int64, currency, bankNam
 	return json.Marshal(payload)
 }
 
-// PayloadProcessExternalTransfer defines the payload for external transfers
+// PayloadProcessExternalTransfer defines payload for external transfers.
 type PayloadProcessExternalTransfer struct {
 	TransferID string `json:"transfer_id"`
 }
@@ -131,3 +126,20 @@ type PayloadProcessExternalTransfer struct {
 func (p *PayloadProcessExternalTransfer) MarshalBinary() ([]byte, error) {
 	return json.Marshal(p)
 }
+
+// --- Generate Transaction Data File Task ---
+type GenerateTxDataFilePayload struct {
+	UserID uint `json:"user_id"` // User ID (primary key) for whom to generate the file
+}
+
+func NewGenerateTxDataFileTask(userID uint) ([]byte, error) {
+	payload := GenerateTxDataFilePayload{UserID: userID}
+	return json.Marshal(payload)
+}
+
+// Note: Task creation helpers returning *asynq.Task are removed as requested.
+// Calling code will now need to use the `New...Task` helpers above to get
+// the payload bytes and then construct the *asynq.Task manually, e.g.:
+//
+// payloadBytes, err := tasks.NewDepositProcessTask(depositID)
+// task := asynq.NewTask(tasks.TypeDepositProcessing, payloadBytes, opts...)

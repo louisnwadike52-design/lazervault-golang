@@ -11,6 +11,7 @@ type Config struct {
 	DBDriver                 string        `mapstructure:"DB_DRIVER"`
 	DBSource                 string        `mapstructure:"DB_SOURCE"`
 	ServerAddress            string        `mapstructure:"SERVER_ADDRESS"`
+	GrpcServerAddress        string        `mapstructure:"GRPC_SERVER_ADDRESS"`
 	DBHost                   string        `mapstructure:"DB_HOST"`
 	DBPort                   string        `mapstructure:"DB_PORT"`
 	DBUser                   string        `mapstructure:"DB_USER"`
@@ -38,6 +39,10 @@ type Config struct {
 	// Password Reset Config
 	PasswordResetTokenExpiry time.Duration `mapstructure:"PASSWORD_RESET_TOKEN_EXPIRY"`
 	FrontendResetPasswordURL string        `mapstructure:"FRONTEND_RESET_PASSWORD_URL"`
+
+	// GCS Config
+	GCSBucketName      string `mapstructure:"GCS_BUCKET_NAME"`
+	GCSCredentialsFile string `mapstructure:"GCS_CREDENTIALS_FILE"`
 }
 
 func LoadConfig(path string) (config Config, err error) {
@@ -46,6 +51,10 @@ func LoadConfig(path string) (config Config, err error) {
 	viper.SetConfigType("env")
 
 	viper.AutomaticEnv()
+	viper.BindEnv("GCS_BUCKET_NAME")
+	viper.BindEnv("GCS_CREDENTIALS_FILE")
+	viper.BindEnv("GRPC_SERVER_ADDRESS")
+
 	err = viper.ReadInConfig()
 
 	if err != nil {

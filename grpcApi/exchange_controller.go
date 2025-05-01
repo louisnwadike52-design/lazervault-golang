@@ -63,7 +63,7 @@ func convertExchangeTransactionToProto(tx *models.ExchangeTransaction) (*pb.Exch
 
 	return &pb.ExchangeTransaction{
 		TransactionId:   tx.ID,
-		UserId:          tx.UserID,
+		UserId:          fmt.Sprintf("%d", tx.UserID), // Convert uint to string for proto
 		FromCurrency:    tx.FromCurrency,
 		ToCurrency:      tx.ToCurrency,
 		AmountFrom:      tx.AmountFrom,
@@ -140,7 +140,7 @@ func (controller *ExchangeController) InitiateInternationalTransfer(ctx context.
 
 	// --- Prepare Service Request ---
 	serviceReq := &services.InitiateTransferServiceRequest{
-		UserID:       fmt.Sprint(userID),
+		UserID:       userID, // Assign uint directly
 		FromCurrency: req.GetFromCurrency(),
 		ToCurrency:   req.GetToCurrency(),
 		AmountFrom:   req.GetAmountFrom(),
@@ -205,7 +205,7 @@ func (controller *ExchangeController) GetRecentExchanges(ctx context.Context, re
 	userID := user.ID // Assuming user model has ID field (uint)
 
 	serviceReq := &services.GetRecentExchangesServiceRequest{
-		UserID:    fmt.Sprint(userID),
+		UserID:    userID, // Assign uint directly
 		PageSize:  int(req.GetPageSize()),
 		PageToken: req.GetPageToken(),
 	}

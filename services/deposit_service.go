@@ -7,9 +7,11 @@ import (
 	"lazervaultGo/models"
 	"lazervaultGo/pb"
 	"lazervaultGo/tasks"
-	"time"
 
 	// bcrypt should be here if used by HashPassword
+
+	"time"
+
 	"github.com/hibiken/asynq"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"gorm.io/gorm"
@@ -43,16 +45,13 @@ type IDepositService interface {
 // --- Deposit Service Struct ---
 
 type DepositService struct {
-	db          *gorm.DB
-	distributor tasks.TaskDistributor
-	// We need AccountService ONLY for the converter helper.
-	// This isn't ideal. Consider moving the converter.
-	accountService IAccountService // Added temporarily
+	db             *gorm.DB
+	distributor    tasks.TaskDistributor // Task distributor
+	accountService IAccountService
 }
 
 // --- Deposit Service Constructor ---
 
-// Updated constructor to accept IAccountService
 func NewDepositService(db *gorm.DB, distributor tasks.TaskDistributor, accountService IAccountService) IDepositService {
 	return &DepositService{db: db, distributor: distributor, accountService: accountService}
 }
@@ -97,16 +96,22 @@ func (s *DepositService) InitiateDeposit(ctx context.Context, userID uint, req *
 			return fmt.Errorf("%w: %v", ErrDepositInitiationFailed, err)
 		}
 
-		// 3. Enqueue Processing Task within the same transaction
-		depositPayload := &tasks.DepositProcessPayload{DepositID: deposit.ID}
-
-		opts := []asynq.Option{
-			asynq.MaxRetry(5),
-			asynq.ProcessAt(time.Now().Add(5 * time.Second)),
+		// 3. Enqueue Processing Task using payload bytes and DistributeTask
+		payloadBytes, err := tasks.NewDepositProcessTask(deposit.ID)
+		if err != nil {
+			return fmt.Errorf("failed to create deposit processing payload: %w", err)
 		}
 
-		if err := s.distributor.DistributeTaskDepositProcess(ctx, depositPayload, opts...); err != nil {
-			fmt.Printf("CRITICAL: Error distributing deposit task for deposit %s: %v\n", deposit.ID, err)
+		// Define options directly here
+		opts := []asynq.Option{
+			asynq.MaxRetry(5),
+			asynq.Timeout(5 * time.Minute),
+			asynq.Queue(tasks.QueueDefault), // Assuming QueueDefault is defined in tasks
+		}
+
+		// Use the generic DistributeTask method from the interface
+		err = s.distributor.DistributeTask(ctx, tasks.TypeDepositProcessing, payloadBytes, opts...)
+		if err != nil {
 			return fmt.Errorf("%w: %v", ErrDepositEnqueueTaskFailed, err)
 		}
 
