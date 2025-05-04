@@ -65,6 +65,11 @@ func NewServer(db *gorm.DB, config *configs.Config, tokenMaker token.Maker, redi
 	// Initialize the controller for getting the tx file PATH
 	txFileController := NewTxFileController(txFileService, tokenMaker, db) // Inject db
 
+	// Initialize AI Chat Service
+	aiChatService := services.NewAIChatService(db, config)
+	// Initialize AI Chat Controller
+	aiChatController := NewAIChatController(aiChatService, userService)
+
 	// Register gRPC services
 	pb.RegisterAuthServiceServer(grpcServer, NewAuthController(authService))
 	pb.RegisterUserServiceServer(grpcServer, NewUserController(server))
@@ -79,7 +84,7 @@ func NewServer(db *gorm.DB, config *configs.Config, tokenMaker token.Maker, redi
 	pb.RegisterWithdrawServiceServer(grpcServer, NewWithdrawalController(withdrawalService, userService))
 	pb.RegisterGenerateTxDataServiceServer(grpcServer, generateTxDataController)
 	pb.RegisterTxFileServiceServer(grpcServer, txFileController)
-
+	pb.RegisterAIChatServiceServer(grpcServer, aiChatController)
 	server.grpcServer = grpcServer
 	return server
 }

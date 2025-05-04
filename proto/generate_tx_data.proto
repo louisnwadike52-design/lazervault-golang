@@ -4,7 +4,6 @@ package pb;
 
 option go_package = "github.com/louislawrence/lazervault/pb"; // Adjust path if needed
 
-import "google/protobuf/timestamp.proto";
 import "google/api/annotations.proto";
 
 // Service definition

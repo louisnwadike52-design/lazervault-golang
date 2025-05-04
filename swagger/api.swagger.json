@@ -1,20 +1,19 @@
 {
   "swagger": "2.0",
   "info": {
-    "title": "LazerVault Account Service",
-    "version": "1.0",
-    "contact": {
-      "name": "LazerVault Support",
-      "url": "https://github.com/LazerVault",
-      "email": "support@lazervault.example"
-    }
+    "title": "LazerVault API",
+    "description": "LazerVault Account Card API",
+    "version": "1.0"
   },
   "tags": [
+    {
+      "name": "AccountCardService"
+    },
     {
       "name": "AccountService"
     },
     {
-      "name": "AccountCardService"
+      "name": "AIChatService"
     },
     {
       "name": "AuthService"
@@ -50,6 +49,10 @@
     {
       "name": "WithdrawService"
     }
+  ],
+  "schemes": [
+    "http",
+    "https"
   ],
   "consumes": [
     "application/json"
@@ -276,6 +279,41 @@
         ],
         "tags": [
           "AccountCardService"
+        ]
+      }
+    },
+    "/v1/ai/chat": {
+      "post": {
+        "summary": "Process AI Chat Query",
+        "description": "Sends the user's query to the AI chatbot, along with contextual user transaction data (fetched server-side), and returns the AI's response.",
+        "operationId": "AIChatService_ProcessChat",
+        "responses": {
+          "200": {
+            "description": "OK - AI response received.",
+            "schema": {
+              "$ref": "#/definitions/pbProcessChatResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "Payload containing the user's query for the AI chatbot.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/pbProcessChatRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AI Chat"
         ]
       }
     },
@@ -3006,6 +3044,35 @@
         }
       }
     },
+    "pbProcessChatRequest": {
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "string",
+          "description": "The user's input/query to the AI."
+        }
+      },
+      "description": "Payload containing the user's query for the AI chatbot.",
+      "title": "AI Process Chat Request",
+      "required": [
+        "query"
+      ]
+    },
+    "pbProcessChatResponse": {
+      "type": "object",
+      "properties": {
+        "response": {
+          "type": "string",
+          "description": "The AI's response."
+        },
+        "userTxFilePath": {
+          "type": "string",
+          "description": "The GCS file path for the user's transaction data used by the AI."
+        }
+      },
+      "description": "Contains the AI chatbot's response.",
+      "title": "AI Process Chat Response"
+    },
     "pbReceiverDetails": {
       "type": "object",
       "properties": {
@@ -3565,18 +3632,5 @@
         }
       }
     }
-  },
-  "securityDefinitions": {
-    "bearer": {
-      "type": "apiKey",
-      "description": "Authentication token, prefixed by Bearer: Bearer \u003ctoken\u003e",
-      "name": "Authorization",
-      "in": "header"
-    }
-  },
-  "security": [
-    {
-      "bearer": []
-    }
-  ]
+  }
 }

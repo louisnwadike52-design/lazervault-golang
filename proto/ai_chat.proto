@@ -1,0 +1,84 @@
+syntax = "proto3";
+
+package pb;
+
+import "google/api/annotations.proto"; // For potential HTTP bindings
+import "protoc-gen-openapiv2/options/annotations.proto"; // For OpenAPI documentation
+
+option go_package = "lazervaultGo/pb";
+
+// OpenAPI documentation definition for AIChatService
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+	info: {
+		title: "LazerVault AI Chat Service";
+		version: "1.0";
+		contact: {
+			name: "LazerVault";
+			url: "https://github.com/LazerVault";
+		};
+	};
+	responses: {
+		key: "401";
+		value: {
+			description: "Returned when the user is not authenticated.";
+		}
+    }
+    responses: {
+		key: "503";
+		value: {
+			description: "Returned when the external AI service is unavailable or fails.";
+		}
+    }
+};
+
+// Request message for the AI Chat endpoint
+message ProcessChatRequest {
+   option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+		json_schema: {
+			title: "AI Process Chat Request";
+			description: "Payload containing the user's query for the AI chatbot.";
+			required: ["query"];
+		}
+	};
+  string query = 1 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {description: "The user's input/query to the AI."}];
+}
+
+// Response message for the AI Chat endpoint
+message ProcessChatResponse {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+		json_schema: {
+			title: "AI Process Chat Response";
+			description: "Contains the AI chatbot's response.";
+		}
+	};
+  string response = 1 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {description: "The AI's response."}];
+  string user_tx_file_path = 2 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {description: "The GCS file path for the user's transaction data used by the AI."}];
+}
+
+// Service definition for AI chat interactions
+service AIChatService {
+  // Processes a user's query using an external AI chatbot, leveraging user context.
+  rpc ProcessChat(ProcessChatRequest) returns (ProcessChatResponse) {
+    option (google.api.http) = {
+      post: "/v1/ai/chat"
+      body: "*"
+    };
+     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+			description: "Sends the user's query to the AI chatbot, along with contextual user transaction data (fetched server-side), and returns the AI's response.";
+			summary: "Process AI Chat Query";
+            tags: ["AI Chat"];
+            responses: {
+                key: "200";
+                value: {
+                    description: "OK - AI response received.";
+                    schema: {
+                        json_schema: {
+                           ref: "#/definitions/pbProcessChatResponse";
+                        }
+                    }
+                }
+            }
+            // Add 400, 401, 404 (user/tx file not found), 500, 503 responses
+		};
+  }
+} 

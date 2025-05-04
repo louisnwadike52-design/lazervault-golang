@@ -43,6 +43,15 @@ type Config struct {
 	// GCS Config
 	GCSBucketName      string `mapstructure:"GCS_BUCKET_NAME"`
 	GCSCredentialsFile string `mapstructure:"GCS_CREDENTIALS_FILE"`
+
+	// External Services
+	ExchangeRateAPIKey string  `mapstructure:"EXCHANGE_RATE_API_KEY"`
+	AiServiceURL       string  `mapstructure:"AI_SERVICE_URL"`
+	OpenAIAPIKey       string  `mapstructure:"OPENAI_API_KEY"`
+	OpenAIBaseURL      string  `mapstructure:"OPENAI_BASE_URL"`
+	OpenAIModel        string  `mapstructure:"OPENAI_MODEL"`
+	OpenAITemperature  float64 `mapstructure:"OPENAI_TEMPERATURE"`
+	OpenAIMaxTokens    int     `mapstructure:"OPENAI_MAX_TOKENS"`
 }
 
 func LoadConfig(path string) (config Config, err error) {
