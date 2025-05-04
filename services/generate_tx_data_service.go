@@ -4,9 +4,8 @@ import (
 	"bytes"
 	"context"
 	"encoding/csv"
-	"encoding/json"
-	"fmt"
-	"os"
+	"fmt" // Need ioutil again for ReadFile if < Go 1.16, or use os.ReadFile
+	"os"  // Use os.ReadFile if Go >= 1.16
 	"strconv"
 	"time"
 
@@ -17,6 +16,8 @@ import (
 	"lazervaultGo/token"
 
 	"cloud.google.com/go/storage"
+	// No longer need credentials import if not using the creds object directly
+	// credentials "golang.org/x/oauth2/google"
 	"google.golang.org/api/option"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -58,8 +59,7 @@ type ServiceAccountCreds struct {
 	ClientID     string `json:"client_id"`
 }
 
-// GenerateUserTxDataFile implements the gRPC method - Now just calls the background task logic directly for immediate generation.
-// This might be removed later if generation is ONLY triggered by background tasks.
+// GenerateUserTxDataFile implements the gRPC method
 func (s *GenerateTxDataService) GenerateUserTxDataFile(ctx context.Context, req *pb.GenerateUserTxDataFileRequest) (*pb.GenerateUserTxDataFileResponse, error) {
 	// 1. Retrieve Payload from Context (injected by middleware)
 	authPayload, ok := ctx.Value(middleware.AuthorizationPayloadKey).(*token.Payload) // Use middleware key
@@ -101,27 +101,31 @@ func (s *GenerateTxDataService) GenerateUserTxDataFile(ctx context.Context, req 
 	}
 
 	// Upload
-	gcsPath := fmt.Sprintf("gs://%s/user-tx-data/%s/transactions.csv", s.config.GCSBucketName, userIDStr)
+	objectFullPath := fmt.Sprintf("user-tx-data/%s/transactions.csv", userIDStr) // Path within bucket
 	if err := s.UploadOrOverwriteTxFile(ctx, userIDStr, csvData); err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to upload file to GCS: %v", err)
 	}
 
-	// Store/Update the GCS path in the database
+	// Construct the Public HTTPS URL (ASSUMES OBJECT IS PUBLICLY READABLE IN GCP)
+	publicURL := fmt.Sprintf("https://storage.googleapis.com/%s/%s", s.config.GCSBucketName, objectFullPath)
+
+	// Store/Update the Public URL in the database
 	fileRecord := models.UserTransactionFile{
-		UserID:   uint(userID), // Ensure type is uint
-		FilePath: gcsPath,
+		UserID:   uint(userID),
+		FilePath: publicURL, // Store the public URL
 	}
 	if errDb := s.db.WithContext(ctx).Clauses(clause.OnConflict{
 		Columns:   []clause.Column{{Name: "user_id"}},
 		DoUpdates: clause.AssignmentColumns([]string{"file_path", "updated_at"}),
 	}).Create(&fileRecord).Error; errDb != nil {
-		// Log error but proceed, the file *was* generated and uploaded.
-		fmt.Printf("ERROR: Failed to save/update user transaction file path in DB for user %d: %v\n", userID, errDb)
+		fmt.Printf("ERROR: Failed to save/update user transaction file public URL in DB for user %d: %v\n", userID, errDb)
+		// Don't fail the whole operation just for this DB save error
 	}
 
-	// Return response with the actual GCS path
+	// Return response with the public HTTPS URL
+	// Assuming proto uses FileGcsUrl field name for now
 	return &pb.GenerateUserTxDataFileResponse{
-		FileGcsUrl: gcsPath, // Keep existing response field for now
+		FileGcsUrl: publicURL,
 	}, nil
 }
 
@@ -389,12 +393,13 @@ func (s *GenerateTxDataService) UploadOrOverwriteTxFile(ctx context.Context, use
 	return nil
 }
 
+/* // Commenting out as GetTxFileSignedUrl is no longer used by the primary flow
 // GetTxFileSignedUrl generates a signed URL for reading the user's transaction file.
 func (s *GenerateTxDataService) GetTxFileSignedUrl(ctx context.Context, userID string) (string, error) {
 	objectPath := fmt.Sprintf("user-tx-data/%s/transactions.csv", userID)
 	gcsBucketName := s.config.GCSBucketName
 
-	// --- Determine Credential Source --- //
+	// --- Determine Credential Source & Get Service Account Email if possible --- //
 	var credOption option.ClientOption
 	var serviceAccountEmail string
 	var err error
@@ -411,12 +416,11 @@ func (s *GenerateTxDataService) GetTxFileSignedUrl(ctx context.Context, userID s
 		}
 		credOption = option.WithCredentialsFile(credsFile)
 
-		// Load credentials bytes from file to extract email for signing info
-		credsBytes, readErr := os.ReadFile(credsFile)
+		// Load credentials bytes from file ONLY to extract email for signing info
+		credsBytes, readErr := os.ReadFile(credsFile) // Use os.ReadFile
 		if readErr != nil {
-			return "", fmt.Errorf("failed to read service account key file %s for signing: %w", credsFile, readErr)
+			return "", fmt.Errorf("failed to read service account key file %s for signing info: %w", credsFile, readErr)
 		}
-
 		// Extract email from JSON bytes
 		var saInfo ServiceAccountCreds // Re-use struct defined earlier
 		if err := json.Unmarshal(credsBytes, &saInfo); err == nil {
@@ -426,9 +430,9 @@ func (s *GenerateTxDataService) GetTxFileSignedUrl(ctx context.Context, userID s
 		}
 
 	} else {
-		// Relying on Application Default Credentials (ADC) - e.g., GCE metadata
+		// Relying on Application Default Credentials (ADC)
 		credOption = option.WithScopes(storage.ScopeReadOnly)
-		// Cannot reliably get email from ADC here for GoogleAccessID
+		fmt.Println("Warning: Generating Signed URL using ADC without explicit key file. Email for GoogleAccessID might not be available.")
 	}
 
 	// --- Check if Object Exists --- //
@@ -453,18 +457,25 @@ func (s *GenerateTxDataService) GetTxFileSignedUrl(ctx context.Context, userID s
 		Scheme:         storage.SigningSchemeV4,
 		Method:         "GET",
 		Expires:        time.Now().Add(15 * time.Minute),
-		GoogleAccessID: serviceAccountEmail, // Provide the email if we have it
+		GoogleAccessID: serviceAccountEmail, // <<< Set GoogleAccessID
 	}
 
 	if opts.GoogleAccessID == "" {
-		fmt.Println("Warning: Could not determine service account email for signing. SignedURL generation might fail if ADC source doesn't provide it.")
+		fmt.Println("Warning: GoogleAccessID is empty; SignedURL may fail if ADC cannot determine service account email.")
 	}
 
 	// --- Generate the Signed URL --- //
 	signedURL, err := storage.SignedURL(gcsBucketName, objectPath, opts)
 	if err != nil {
-		return "", fmt.Errorf("failed to sign URL for gs://%s/%s: %w", gcsBucketName, objectPath, err)
+		errMsg := fmt.Sprintf("failed to sign URL for gs://%s/%s: %v", gcsBucketName, objectPath, err)
+		if credsFile != "" {
+			errMsg += fmt.Sprintf(" (using creds file: %s)", credsFile)
+		} else {
+			errMsg += " (using ADC)"
+		}
+		return "", fmt.Errorf(errMsg)
 	}
 
 	return signedURL, nil
 }
+*/

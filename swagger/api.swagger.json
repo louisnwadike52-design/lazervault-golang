@@ -36,6 +36,9 @@
       "name": "InvoiceService"
     },
     {
+      "name": "RecipientService"
+    },
+    {
       "name": "TransferService"
     },
     {
@@ -1022,6 +1025,164 @@
         ]
       }
     },
+    "/v1/recipients": {
+      "get": {
+        "summary": "Lists all recipients saved by the authenticated user.",
+        "operationId": "RecipientService_ListRecipients",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbListRecipientsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "RecipientService"
+        ]
+      },
+      "post": {
+        "summary": "Creates a new recipient for the authenticated user.",
+        "operationId": "RecipientService_CreateRecipient",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbCreateRecipientResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/pbCreateRecipientRequest"
+            }
+          }
+        ],
+        "tags": [
+          "RecipientService"
+        ]
+      }
+    },
+    "/v1/recipients/{recipientId}": {
+      "get": {
+        "summary": "Retrieves details for a specific recipient owned by the authenticated user.",
+        "description": "Renamed from GetRecipientByID",
+        "operationId": "RecipientService_GetRecipient",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbGetRecipientResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "recipientId",
+            "description": "ID of the recipient to retrieve",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "format": "uint64"
+          }
+        ],
+        "tags": [
+          "RecipientService"
+        ]
+      },
+      "delete": {
+        "summary": "Deletes a recipient owned by the authenticated user.",
+        "operationId": "RecipientService_DeleteRecipient",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbDeleteRecipientResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "recipientId",
+            "description": "ID of the recipient to delete",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "format": "uint64"
+          }
+        ],
+        "tags": [
+          "RecipientService"
+        ]
+      },
+      "patch": {
+        "summary": "Updates an existing recipient owned by the authenticated user.",
+        "operationId": "RecipientService_UpdateRecipient",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbUpdateRecipientResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "recipientId",
+            "description": "ID of the recipient to update",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "format": "uint64"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/RecipientServiceUpdateRecipientBody"
+            }
+          }
+        ],
+        "tags": [
+          "RecipientService"
+        ]
+      }
+    },
     "/v1/transactions": {
       "get": {
         "summary": "Get Transaction History",
@@ -1314,15 +1475,15 @@
         ]
       }
     },
-    "/v1/users/txfile/path": {
+    "/v1/users/txfile/url": {
       "get": {
-        "summary": "Retrieves the GCS path for the user's generated transaction data file.",
-        "operationId": "TxFileService_GetUserTxFilePath",
+        "summary": "Retrieves the pre-generated Signed URL for the user's transaction data file.",
+        "operationId": "TxFileService_GetUserTxFileUrl",
         "responses": {
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/pbGetUserTxFilePathResponse"
+              "$ref": "#/definitions/pbGetUserTxFileUrlResponse"
             }
           },
           "default": {
@@ -1441,6 +1602,34 @@
         }
       },
       "title": "Request to add a new card to an account"
+    },
+    "RecipientServiceUpdateRecipientBody": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Optional fields to update. Use wrappers to distinguish between\nsetting a field to its default value (e.g., false, \"\") and not updating it."
+        },
+        "isFavorite": {
+          "type": "boolean"
+        },
+        "accountNumber": {
+          "type": "string",
+          "title": "Only applicable for external recipients"
+        },
+        "sortCode": {
+          "type": "string",
+          "title": "Only applicable for external recipients"
+        },
+        "bankName": {
+          "type": "string",
+          "title": "Only applicable for external recipients"
+        },
+        "countryCode": {
+          "type": "string",
+          "title": "Only applicable for external recipients"
+        }
+      }
     },
     "pbAccountCard": {
       "type": "object",
@@ -1777,6 +1966,49 @@
       "description": "Contains the details of the newly created invoice.",
       "title": "Create Invoice Response"
     },
+    "pbCreateRecipientRequest": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "title": "Required"
+        },
+        "isFavorite": {
+          "type": "boolean",
+          "title": "Defaults to false if not set"
+        },
+        "type": {
+          "type": "string",
+          "title": "Defaults to \"external\" if not set (\"internal\", \"external\")"
+        },
+        "internalAccountId": {
+          "type": "string",
+          "format": "uint64",
+          "description": "Required if type is \"internal\"",
+          "title": "Provide ONE of the following based on 'type'"
+        },
+        "accountNumber": {
+          "type": "string"
+        },
+        "bankName": {
+          "type": "string"
+        },
+        "sortCode": {
+          "type": "string"
+        },
+        "countryCode": {
+          "type": "string"
+        }
+      }
+    },
+    "pbCreateRecipientResponse": {
+      "type": "object",
+      "properties": {
+        "recipient": {
+          "$ref": "#/definitions/pbRecipient"
+        }
+      }
+    },
     "pbCreateUserRequest": {
       "type": "object",
       "properties": {
@@ -1839,6 +2071,15 @@
         },
         "session": {
           "$ref": "#/definitions/pbSession"
+        }
+      }
+    },
+    "pbDeleteRecipientResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string",
+          "title": "e.g., \"Recipient deleted successfully\""
         }
       }
     },
@@ -2076,6 +2317,14 @@
       "description": "List of recent international exchange transactions.",
       "title": "Get Recent Exchanges Response"
     },
+    "pbGetRecipientResponse": {
+      "type": "object",
+      "properties": {
+        "recipient": {
+          "$ref": "#/definitions/pbRecipient"
+        }
+      }
+    },
     "pbGetStatisticsResponse": {
       "type": "object",
       "properties": {
@@ -2234,15 +2483,15 @@
         }
       }
     },
-    "pbGetUserTxFilePathResponse": {
+    "pbGetUserTxFileUrlResponse": {
       "type": "object",
       "properties": {
-        "fileGcsPath": {
+        "publicFileUrl": {
           "type": "string",
-          "title": "The GCS path, e.g., gs://your-bucket/user-tx-data/123/transactions.csv"
+          "description": "The Public HTTPS URL to the transaction file.\nRequires the GCS object to be publicly readable."
         }
       },
-      "title": "Response message for GetUserTxFilePath"
+      "title": "Response message for GetUserTxFileUrl"
     },
     "pbGetWithdrawalDetailsResponse": {
       "type": "object",
@@ -2650,6 +2899,18 @@
       "description": "Contains a list of invoices and pagination info.",
       "title": "List Invoices Response"
     },
+    "pbListRecipientsResponse": {
+      "type": "object",
+      "properties": {
+        "recipients": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbRecipient"
+          }
+        }
+      }
+    },
     "pbLoginRequest": {
       "type": "object",
       "properties": {
@@ -2763,6 +3024,60 @@
         }
       },
       "title": "Represents receiver details for an international transfer"
+    },
+    "pbRecipient": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "name": {
+          "type": "string"
+        },
+        "isFavorite": {
+          "type": "boolean"
+        },
+        "type": {
+          "type": "string",
+          "title": "\"internal\" or \"external\""
+        },
+        "internalAccountId": {
+          "type": "string",
+          "format": "uint64",
+          "description": "ID of the linked internal account",
+          "title": "Fields for INTERNAL recipients"
+        },
+        "internalUserId": {
+          "type": "string",
+          "format": "uint64",
+          "title": "ID of the owner of the linked internal account"
+        },
+        "accountNumber": {
+          "type": "string",
+          "description": "Consider masking in responses if sensitive",
+          "title": "Fields for EXTERNAL recipients"
+        },
+        "sortCode": {
+          "type": "string"
+        },
+        "bankName": {
+          "type": "string"
+        },
+        "countryCode": {
+          "type": "string",
+          "title": "e.g., \"GB\", \"US\""
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "description": "Represents a saved recipient entity."
     },
     "pbRefreshTokenRequest": {
       "type": "object",
@@ -3097,6 +3412,14 @@
         "account": {
           "$ref": "#/definitions/pbAccountDetails",
           "title": "Return updated details"
+        }
+      }
+    },
+    "pbUpdateRecipientResponse": {
+      "type": "object",
+      "properties": {
+        "recipient": {
+          "$ref": "#/definitions/pbRecipient"
         }
       }
     },

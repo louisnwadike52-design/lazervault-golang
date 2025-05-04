@@ -15,7 +15,7 @@ import (
 
 // ITxFileService defines the interface for transaction file related operations.
 type ITxFileService interface {
-	GetUserTxFilePath(ctx context.Context, userIDStr string) (*pb.GetUserTxFilePathResponse, error)
+	GetUserTxFileUrl(ctx context.Context, userIDStr string) (*pb.GetUserTxFileUrlResponse, error)
 }
 
 // TxFileService implements the ITxFileService interface.
@@ -30,8 +30,8 @@ func NewTxFileService(db *gorm.DB) ITxFileService {
 	}
 }
 
-// GetUserTxFilePath retrieves the GCS path for the user's transaction file from the database.
-func (s *TxFileService) GetUserTxFilePath(ctx context.Context, userIDStr string) (*pb.GetUserTxFilePathResponse, error) {
+// GetUserTxFileUrl retrieves the stored Signed URL for the user's transaction file from the database.
+func (s *TxFileService) GetUserTxFileUrl(ctx context.Context, userIDStr string) (*pb.GetUserTxFileUrlResponse, error) {
 	if userIDStr == "" {
 		return nil, status.Errorf(codes.InvalidArgument, "User ID string cannot be empty")
 	}
@@ -44,19 +44,19 @@ func (s *TxFileService) GetUserTxFilePath(ctx context.Context, userIDStr string)
 
 	var fileRecord models.UserTransactionFile
 
-	// Query the database for the file path
+	// Query the database for the file path (which is the stored Signed URL)
 	err = s.db.WithContext(ctx).Where("user_id = ?", uint(userID)).First(&fileRecord).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, status.Errorf(codes.NotFound, "transaction file path not found for this user")
+			return nil, status.Errorf(codes.NotFound, "transaction file URL record not found for this user")
 		}
 		// Log internal DB errors
 		fmt.Printf("ERROR: Failed to query UserTransactionFile for user %d: %v\n", userID, err)
-		return nil, status.Errorf(codes.Internal, "failed to retrieve transaction file path")
+		return nil, status.Errorf(codes.Internal, "failed to retrieve transaction file URL")
 	}
 
-	// Return the found file path
-	return &pb.GetUserTxFilePathResponse{
-		FileGcsPath: fileRecord.FilePath,
+	// Return the found file path (Public URL)
+	return &pb.GetUserTxFileUrlResponse{
+		PublicFileUrl: fileRecord.FilePath,
 	}, nil
 }

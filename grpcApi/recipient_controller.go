@@ -128,3 +128,36 @@ func (c *RecipientController) DeleteRecipient(ctx context.Context, req *pb.Delet
 		Message: "Recipient deleted successfully",
 	}, nil
 }
+
+// GetRecipient handles the gRPC request to retrieve a specific recipient.
+func (c *RecipientController) GetRecipient(ctx context.Context, req *pb.GetRecipientRequest) (*pb.GetRecipientResponse, error) {
+	user, err := getUserFromContext(ctx, c.userService)
+	if err != nil {
+		return nil, err // Propagate auth/user lookup errors
+	}
+
+	recipientID := uint(req.GetRecipientId())
+	if recipientID == 0 {
+		return nil, status.Error(codes.InvalidArgument, "recipient_id is required")
+	}
+
+	// Call the service layer, passing the requesting user's ID for ownership check
+	foundModel, err := c.recipientService.GetRecipientByID(ctx, recipientID, user.ID)
+	if err != nil {
+		// Map service errors
+		if errors.Is(err, services.ErrRecipientNotFound) {
+			return nil, status.Errorf(codes.NotFound, "recipient with id %d not found", recipientID)
+		} else if errors.Is(err, services.ErrRecipientAccessDenied) {
+			// Return NotFound instead of PermissionDenied to avoid revealing existence
+			return nil, status.Errorf(codes.NotFound, "recipient with id %d not found", recipientID)
+		}
+		// Handle potential database errors or other unexpected issues
+		// log.Errorf("Failed to get recipient %d for user %d: %v", recipientID, user.ID, err) // Consider logging
+		return nil, status.Errorf(codes.Internal, "failed to retrieve recipient: %v", err)
+	}
+
+	// Convert the found model to the proto response format
+	return &pb.GetRecipientResponse{
+		Recipient: services.ConvertRecipientToProto(foundModel),
+	}, nil
+}

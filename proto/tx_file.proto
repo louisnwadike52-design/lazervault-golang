@@ -8,22 +8,22 @@ import "google/api/annotations.proto"; // Import for HTTP annotations
 
 // Defines the service for getting transaction file URLs/Paths.
 service TxFileService {
-  // Retrieves the GCS path for the user's generated transaction data file.
-  rpc GetUserTxFilePath(GetUserTxFilePathRequest) returns (GetUserTxFilePathResponse) {
+  // Retrieves the pre-generated Signed URL for the user's transaction data file.
+  rpc GetUserTxFileUrl(GetUserTxFileUrlRequest) returns (GetUserTxFileUrlResponse) {
     option (google.api.http) = {
-      get: "/v1/users/txfile/path" // Changed path slightly
+      get: "/v1/users/txfile/url" // Changed path back to /url
     };
   }
 }
 
-// Request message for GetUserTxFilePath
-message GetUserTxFilePathRequest {
+// Request message for GetUserTxFileUrl
+message GetUserTxFileUrlRequest {
   // User ID is implicitly determined from the authentication context (token).
-  // No explicit user ID needed in the request body for GET.
 }
 
-// Response message for GetUserTxFilePath
-message GetUserTxFilePathResponse {
-  // The GCS path, e.g., gs://your-bucket/user-tx-data/123/transactions.csv
-  string file_gcs_path = 1;
+// Response message for GetUserTxFileUrl
+message GetUserTxFileUrlResponse {
+  // The Public HTTPS URL to the transaction file.
+  // Requires the GCS object to be publicly readable.
+  string public_file_url = 1;
 } 

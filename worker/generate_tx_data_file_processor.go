@@ -87,29 +87,27 @@ func (p *GenerateTxDataFileProcessor) ProcessTask(ctx context.Context, task *asy
 	}
 
 	// 4. Upload/Overwrite to GCS using the service's method
-	objectPath := fmt.Sprintf("gs://%s/user-tx-data/%s/transactions.csv", p.config.GCSBucketName, userIDStr)
+	objectPath := fmt.Sprintf("user-tx-data/%s/transactions.csv", userIDStr) // Relative path
 	if err := p.txFileService.UploadOrOverwriteTxFile(ctx, userIDStr, csvData); err != nil {
 		log.Error().Err(err).Uint("user_id", payload.UserID).Msg("failed to upload tx file to GCS")
 		return fmt.Errorf("failed to upload file to GCS for user %d: %w", payload.UserID, err)
 	}
 
-	// 5. Store/Update the GCS path in the database
+	// 5. Construct Public HTTPS URL (ASSUMES OBJECT IS PUBLICLY READABLE IN GCP)
+	publicURL := fmt.Sprintf("https://storage.googleapis.com/%s/%s", p.config.GCSBucketName, objectPath)
+
+	// 6. Store/Update the Public URL in the database
 	fileRecord := models.UserTransactionFile{
 		UserID:   userID,
-		FilePath: objectPath,
+		FilePath: publicURL, // Store the public URL
 	}
 
-	// Use Clauses(clause.OnConflict) to perform an "upsert"
-	// If a record with UserID exists, update FilePath and UpdatedAt
-	// Otherwise, insert a new record.
-	if err := p.db.WithContext(ctx).Clauses(clause.OnConflict{
-		Columns:   []clause.Column{{Name: "user_id"}},                            // Conflict target
-		DoUpdates: clause.AssignmentColumns([]string{"file_path", "updated_at"}), // Columns to update
-	}).Create(&fileRecord).Error; err != nil {
-		// Log the error but don't fail the task, as the file *was* uploaded.
-		// The path can be potentially recovered or regenerated later.
-		log.Error().Err(err).Uint("user_id", userID).Str("gcs_path", objectPath).Msg("failed to save/update user transaction file path in DB")
-		// Do not return error here, let the task succeed if upload was okay.
+	// Use Clauses(clause.OnConflict) for upsert
+	if errDb := p.db.WithContext(ctx).Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "user_id"}},
+		DoUpdates: clause.AssignmentColumns([]string{"file_path", "updated_at"}),
+	}).Create(&fileRecord).Error; errDb != nil {
+		log.Error().Err(errDb).Uint("user_id", userID).Str("public_url", publicURL).Msg("failed to save/update user transaction file public URL in DB")
 	}
 
 	log.Info().Str("task_type", task.Type()).Str("user_id", userIDStr).Msg("generate tx data file task completed successfully")

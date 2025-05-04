@@ -1,0 +1,156 @@
+syntax = "proto3";
+
+package pb;
+
+import "google/protobuf/timestamp.proto";
+import "google/api/annotations.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+import "google/protobuf/wrappers.proto";
+
+option go_package = "lazervaultGo/pb";
+
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+    info: {
+        title: "LazerVault API"
+        version: "1.0"
+        description: "LazerVault Recipient API"
+    }
+    schemes: HTTP
+    schemes: HTTPS
+    consumes: "application/json"
+    produces: "application/json"
+};
+
+// Represents a saved recipient entity.
+message Recipient {
+  uint64 id = 1;
+  string name = 2;
+  bool is_favorite = 3;
+  string type = 4; // "internal" or "external"
+
+  // Fields for INTERNAL recipients
+  optional uint64 internal_account_id = 5; // ID of the linked internal account
+  optional uint64 internal_user_id = 6;    // ID of the owner of the linked internal account
+
+  // Fields for EXTERNAL recipients
+  string account_number = 7; // Consider masking in responses if sensitive
+  string sort_code = 8;
+  string bank_name = 9;
+  string country_code = 10; // e.g., "GB", "US"
+
+  google.protobuf.Timestamp created_at = 11;
+  google.protobuf.Timestamp updated_at = 12;
+}
+
+// --- Create Recipient ---
+
+message CreateRecipientRequest {
+  string name = 1;                             // Required
+  optional bool is_favorite = 2;               // Defaults to false if not set
+  optional string type = 3;                    // Defaults to "external" if not set ("internal", "external")
+
+  // Provide ONE of the following based on 'type'
+  optional uint64 internal_account_id = 4;     // Required if type is "internal"
+  optional string account_number = 5;
+  optional string bank_name = 6;
+  optional string sort_code = 7;
+  optional string country_code = 8;
+}
+
+message CreateRecipientResponse {
+  Recipient recipient = 1;
+}
+
+// --- List Recipients ---
+
+message ListRecipientsRequest {
+  // Future filtering/pagination options can go here
+  // User ID is derived from the authentication context on the server
+}
+
+message ListRecipientsResponse {
+  repeated Recipient recipients = 1;
+}
+
+// --- Update Recipient ---
+
+message UpdateRecipientRequest {
+  uint64 recipient_id = 1; // ID of the recipient to update
+
+  // Optional fields to update. Use wrappers to distinguish between
+  // setting a field to its default value (e.g., false, "") and not updating it.
+  optional google.protobuf.StringValue name = 2;
+  optional google.protobuf.BoolValue is_favorite = 3;
+  optional google.protobuf.StringValue account_number = 4; // Only applicable for external recipients
+  optional google.protobuf.StringValue sort_code = 5;      // Only applicable for external recipients
+  optional google.protobuf.StringValue bank_name = 6;      // Only applicable for external recipients
+  optional google.protobuf.StringValue country_code = 7;   // Only applicable for external recipients
+
+  // Note: Updating 'type' or 'internal_account_id' might be complex
+  // and is often handled via deletion and recreation, hence not included here.
+}
+
+message UpdateRecipientResponse {
+  Recipient recipient = 1;
+}
+
+// --- Delete Recipient ---
+
+message DeleteRecipientRequest {
+  uint64 recipient_id = 1; // ID of the recipient to delete
+}
+
+message DeleteRecipientResponse {
+  string message = 1; // e.g., "Recipient deleted successfully"
+}
+
+// --- Get Recipient ---
+
+message GetRecipientRequest {
+  uint64 recipient_id = 1; // ID of the recipient to retrieve
+}
+
+message GetRecipientResponse {
+  Recipient recipient = 1;
+}
+
+
+// Service definition for managing recipients
+service RecipientService {
+  // Creates a new recipient for the authenticated user.
+  rpc CreateRecipient(CreateRecipientRequest) returns (CreateRecipientResponse) {
+    option (google.api.http) = {
+      post: "/v1/recipients"
+      body: "*"
+    };
+  }
+
+  // Lists all recipients saved by the authenticated user.
+  rpc ListRecipients(ListRecipientsRequest) returns (ListRecipientsResponse) {
+     option (google.api.http) = {
+      get: "/v1/recipients"
+    };
+  }
+
+  // Updates an existing recipient owned by the authenticated user.
+  rpc UpdateRecipient(UpdateRecipientRequest) returns (UpdateRecipientResponse) {
+    option (google.api.http) = {
+      patch: "/v1/recipients/{recipient_id}"
+      body: "*"
+    };
+  }
+
+  // Deletes a recipient owned by the authenticated user.
+  rpc DeleteRecipient(DeleteRecipientRequest) returns (DeleteRecipientResponse) {
+    option (google.api.http) = {
+      delete: "/v1/recipients/{recipient_id}"
+    };
+  }
+
+  // Retrieves details for a specific recipient owned by the authenticated user.
+  rpc GetRecipient(GetRecipientRequest) returns (GetRecipientResponse) { // Renamed from GetRecipientByID
+    option (google.api.http) = {
+      get: "/v1/recipients/{recipient_id}"
+    };
+  }
+} 

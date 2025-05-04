@@ -263,7 +263,6 @@ func (s *TransferService) InitiateTransfer(ctx context.Context, fromUserID uint,
 	if req.ScheduledAt != nil && req.ScheduledAt.After(time.Now()) {
 		transfer.Status = models.TransferStatusScheduled
 		opts = append(opts, asynq.ProcessAt(*req.ScheduledAt))
-		fmt.Printf("Scheduling transfer %d for %v\n", transfer.ID, *req.ScheduledAt) // Log ID after creation
 	} else {
 		transfer.Status = models.TransferStatusProcessing
 		// No specific options needed for immediate processing
@@ -272,6 +271,24 @@ func (s *TransferService) InitiateTransfer(ctx context.Context, fromUserID uint,
 	if err := tx.Create(&transfer).Error; err != nil {
 		tx.Rollback()
 		return nil, fmt.Errorf("failed to create transfer record: %w", err)
+	}
+
+	// --- Immediate Debit for Processing Transfers ---
+	if transfer.Status == models.TransferStatusProcessing {
+		// Debit the total amount directly from the source account within the transaction
+		// We use a direct update as IAccountService doesn't expose a balance update method.
+		// CheckSufficientBalance was already performed earlier.
+		result := tx.Model(&models.Account{}).Where("id = ?", transfer.FromAccountID).Update("balance", gorm.Expr("balance - ?", transfer.TotalAmount))
+		if result.Error != nil {
+			tx.Rollback()
+			return nil, fmt.Errorf("failed to debit source account %d for immediate transfer %d: %w", transfer.FromAccountID, transfer.ID, result.Error)
+		}
+		// Optional: Check if exactly one row was affected
+		if result.RowsAffected == 0 {
+			tx.Rollback()
+			// This shouldn't happen if CheckAccountOwnership and Create worked, but good to check.
+			return nil, fmt.Errorf("failed to debit source account %d: account not found during update (transfer %d)", transfer.FromAccountID, transfer.ID)
+		}
 	}
 
 	// Update log message now that transfer.ID is available

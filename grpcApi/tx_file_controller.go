@@ -35,8 +35,9 @@ func NewTxFileController(service services.ITxFileService, tokenMaker token.Maker
 	}
 }
 
-// GetUserTxFilePath handles authentication via middleware and calls the service.
-func (c *TxFileController) GetUserTxFilePath(ctx context.Context, req *pb.GetUserTxFilePathRequest) (*pb.GetUserTxFilePathResponse, error) {
+// GetUserTxFileUrl handles authentication and retrieves the stored URL.
+// Renamed method and updated request/response types to match proto
+func (c *TxFileController) GetUserTxFileUrl(ctx context.Context, req *pb.GetUserTxFileUrlRequest) (*pb.GetUserTxFileUrlResponse, error) {
 	// 1. Retrieve Payload from Context (injected by middleware)
 	authPayload, ok := ctx.Value(middleware.AuthorizationPayloadKey).(*token.Payload)
 	if !ok || authPayload == nil {
@@ -54,13 +55,15 @@ func (c *TxFileController) GetUserTxFilePath(ctx context.Context, req *pb.GetUse
 	}
 	authenticatedUserIDStr := fmt.Sprintf("%d", user.ID)
 
-	// 3. Call the Service (passing the string user ID)
-	resp, err := c.service.GetUserTxFilePath(ctx, authenticatedUserIDStr)
+	// 3. Call the Service (renamed method)
+	resp, err := c.service.GetUserTxFileUrl(ctx, authenticatedUserIDStr)
 	if err != nil {
 		// Pass service errors (including NotFound) through
 		return nil, err
 	}
 
-	// 4. Return Response (already contains the path)
-	return resp, nil
+	// 4. Construct the correct response type
+	return &pb.GetUserTxFileUrlResponse{
+		PublicFileUrl: resp.GetPublicFileUrl(), // Get the stored URL from the service response field
+	}, nil
 }

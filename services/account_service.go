@@ -300,7 +300,7 @@ func (s *AccountService) UpdateSecuritySettings(ctx context.Context, userID uint
 	}
 
 	// Apply updates
-	account.Enable3DSecure = settings.GetEnable_3DSecure()
+	account.Enable3DSecure = true
 	account.EnableContactless = settings.GetEnableContactless()
 	account.EnableOnlinePayments = settings.GetEnableOnlinePayments()
 

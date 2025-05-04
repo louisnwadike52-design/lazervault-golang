@@ -55,14 +55,14 @@ func (s *RecipientService) CreateRecipient(ctx context.Context, userID uint, req
 	recipient := models.Recipient{
 		OwnerUserID: userID,
 		Name:        req.GetName(),
-		IsFavorite:  req.GetIsFavorite(),
+		IsFavorite:  req.GetIsFavorite(), // Defaults to false if not set
 		Type:        recipientType,
 	}
 
 	// Validate and populate based on type
 	switch recipientType {
 	case "internal":
-		internalAccountID := uint(req.GetInternalAccountId())
+		internalAccountID := uint(req.GetInternalAccountId()) // GetInternalAccountId returns 0 if not set
 		if internalAccountID == 0 {
 			return nil, ErrMissingInternalID
 		}
@@ -85,15 +85,17 @@ func (s *RecipientService) CreateRecipient(ctx context.Context, userID uint, req
 		recipient.CountryCode = ""
 
 	case "external":
-		accountNumber := req.GetAccountNumber()
-		bankName := req.GetBankName()
+		// Get external fields directly from the request
+		accountNumber := req.GetAccountNumber() // Returns "" if not set
+		bankName := req.GetBankName()           // Returns "" if not set
 		if accountNumber == "" || bankName == "" {
 			return nil, ErrMissingExternalDetails
 		}
 		recipient.AccountNumber = accountNumber
-		recipient.SortCode = req.GetSortCode() // Optional
 		recipient.BankName = bankName
-		// recipient.CountryCode = req.GetCountryCode() // Add if you have this field
+		recipient.SortCode = req.GetSortCode()       // Optional, defaults to ""
+		recipient.CountryCode = req.GetCountryCode() // Optional, defaults to ""
+
 		// Clear internal fields for external type
 		recipient.InternalAccountID = nil
 		recipient.InternalUserID = nil
@@ -129,27 +131,35 @@ func (s *RecipientService) UpdateRecipient(ctx context.Context, userID uint, req
 		return nil, fmt.Errorf("db error finding recipient: %w", err)
 	}
 
-	// Apply updates from request (only if fields are present in proto request)
+	// Apply updates from request using wrappers
 	updated := false
-	if req.Name != nil {
-		recipient.Name = *req.Name
-		updated = true
-	}
-	if req.AccountNumber != nil {
-		recipient.AccountNumber = *req.AccountNumber
-		updated = true
-	}
-	if req.SortCode != nil {
-		recipient.SortCode = *req.SortCode
-		updated = true
-	}
-	if req.BankName != nil {
-		recipient.BankName = *req.BankName
+	if req.Name != nil { // Check if the wrapper message itself is present
+		recipient.Name = req.GetName().GetValue() // Get value from wrapper
 		updated = true
 	}
 	if req.IsFavorite != nil {
-		recipient.IsFavorite = *req.IsFavorite
+		recipient.IsFavorite = req.GetIsFavorite().GetValue()
 		updated = true
+	}
+
+	// Only update external fields if the recipient is external
+	if recipient.Type == "external" {
+		if req.AccountNumber != nil {
+			recipient.AccountNumber = req.GetAccountNumber().GetValue()
+			updated = true
+		}
+		if req.SortCode != nil {
+			recipient.SortCode = req.GetSortCode().GetValue()
+			updated = true
+		}
+		if req.BankName != nil {
+			recipient.BankName = req.GetBankName().GetValue()
+			updated = true
+		}
+		if req.CountryCode != nil {
+			recipient.CountryCode = req.GetCountryCode().GetValue()
+			updated = true
+		}
 	}
 
 	if !updated {
@@ -196,19 +206,33 @@ func (s *RecipientService) GetRecipientByID(ctx context.Context, recipientID uin
 	return &recipient, nil
 }
 
-// Helper to convert Recipient model to proto message (consider placing in controller or shared converter)
+// Helper to convert Recipient model to proto message
 func ConvertRecipientToProto(r *models.Recipient) *pb.Recipient {
 	if r == nil {
 		return nil
 	}
-	return &pb.Recipient{
+	protoRecipient := &pb.Recipient{
 		Id:            uint64(r.ID),
 		Name:          r.Name,
-		AccountNumber: r.AccountNumber, // Mask sensitive details?
+		IsFavorite:    r.IsFavorite,
+		Type:          r.Type,
+		AccountNumber: r.AccountNumber, // Populate external fields
 		SortCode:      r.SortCode,
 		BankName:      r.BankName,
-		IsFavorite:    r.IsFavorite,
+		CountryCode:   r.CountryCode,
 		CreatedAt:     timestamppb.New(r.CreatedAt),
 		UpdatedAt:     timestamppb.New(r.UpdatedAt),
 	}
+
+	// Populate internal fields only if they are not nil in the model
+	if r.InternalAccountID != nil {
+		internalAccountId := uint64(*r.InternalAccountID)
+		protoRecipient.InternalAccountId = &internalAccountId
+	}
+	if r.InternalUserID != nil {
+		internalUserId := uint64(*r.InternalUserID)
+		protoRecipient.InternalUserId = &internalUserId
+	}
+
+	return protoRecipient
 }
