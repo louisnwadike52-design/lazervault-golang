@@ -11,6 +11,7 @@ import (
 	"lazervaultGo/pb"
 	"log" // Use standard Go log package
 	"net/http"
+	"strconv"
 	"time"
 
 	"google.golang.org/grpc/codes"
@@ -91,6 +92,7 @@ func (s *AIChatService) ProcessChat(ctx context.Context, userID uint, req *pb.Pr
 	chatbotReqPayload := map[string]string{
 		"query":        req.GetQuery(),
 		"tx_file_path": userTxFile.FilePath,
+		"user_id":      strconv.FormatUint(uint64(userID), 10),
 	}
 	payloadBytes, err := json.Marshal(chatbotReqPayload)
 	if err != nil {

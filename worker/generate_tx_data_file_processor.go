@@ -49,25 +49,24 @@ func (p *GenerateTxDataFileProcessor) ProcessTask(ctx context.Context, task *asy
 
 	// --- Core Logic: Fetch, Format, Upload --- //
 
+	// No longer need to fetch account IDs separately, service handles filtering by userID
 	// 1. Find user accounts (needed by fetchAllUserTransactions)
-	var userAccounts []models.Account
-	if err := p.db.WithContext(ctx).Where("owner_user_id = ?", payload.UserID).Find(&userAccounts).Error; err != nil {
-		// Log error but potentially continue if user *might* exist without accounts? Unlikely.
-		log.Error().Err(err).Uint("user_id", payload.UserID).Msg("failed to query user accounts for tx file generation")
-		// Retryable error
-		return fmt.Errorf("failed to query user accounts for user %d: %w", payload.UserID, err)
-	}
-	if len(userAccounts) == 0 {
-		log.Warn().Uint("user_id", payload.UserID).Msg("user has no accounts, skipping tx file generation task")
-		return nil // No accounts, nothing to generate, task successful
-	}
-	var accountIDs []uint
-	for _, acc := range userAccounts {
-		accountIDs = append(accountIDs, acc.ID)
-	}
+	// var userAccounts []models.Account
+	// if err := p.db.WithContext(ctx).Where("owner_user_id = ?", payload.UserID).Find(&userAccounts).Error; err != nil {
+	// 	log.Error().Err(err).Uint("user_id", payload.UserID).Msg("failed to query user accounts for tx file generation")
+	// 	return fmt.Errorf("failed to query user accounts for user %d: %w", payload.UserID, err)
+	// }
+	// if len(userAccounts) == 0 {
+	// 	log.Warn().Uint("user_id", payload.UserID).Msg("user has no accounts, skipping tx file generation task")
+	// 	return nil
+	// }
+	// var accountIDs []uint
+	// for _, acc := range userAccounts {
+	// 	accountIDs = append(accountIDs, acc.ID)
+	// }
 
-	// 2. Fetch all relevant transactions using the service's method
-	allRecords, err := p.txFileService.FetchAllUserTransactions(ctx, accountIDs)
+	// 2. Fetch all relevant transactions using the service's method (pass only userID)
+	allRecords, err := p.txFileService.FetchAllUserTransactions(ctx, payload.UserID)
 	if err != nil {
 		log.Error().Err(err).Uint("user_id", payload.UserID).Msg("failed to fetch transactions for tx file generation")
 		// Retryable error

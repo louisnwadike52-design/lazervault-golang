@@ -37,15 +37,55 @@ func NewGenerateTxDataService(db *gorm.DB, config configs.Config) *GenerateTxDat
 }
 
 // TransactionRecord defines a unified structure for CSV output
+// Fields are pointers where they don't apply to all transaction types.
 type TransactionRecord struct {
-	Timestamp    time.Time
-	Type         string // "DEPOSIT", "WITHDRAWAL", "TRANSFER_OUT", "TRANSFER_IN", "EXCHANGE"
-	Amount       float64
-	Currency     string
-	Status       string
-	Description  string
-	RelatedParty string // Recipient Name/Account, Source, Exchange Pair etc.
-	Reference    string
+	// Common Fields
+	UserID                uint64     `json:"user_id"`
+	Timestamp             time.Time  `json:"timestamp"` // Usually CreatedAt
+	Type                  string     `json:"type"`      // DEPOSIT, WITHDRAWAL, TRANSFER_OUT, TRANSFER_IN, EXCHANGE_OUT, EXCHANGE_IN
+	Amount                float64    `json:"amount"`    // Primary amount (deposit, withdrawal, transfer, relevant exchange amount)
+	Currency              string     `json:"currency"`  // Primary currency
+	Status                string     `json:"status"`
+	Description           string     `json:"description"`                       // Generated description
+	Reference             string     `json:"reference"`                         // Unique ID (Deposit.ID, Withdrawal.ID, Transfer.Reference, Exchange.ID)
+	FailureReason         *string    `json:"failure_reason,omitempty"`          // From Transfer, Withdrawal, Deposit
+	CompletedAt           *time.Time `json:"completed_at,omitempty"`            // From Transfer, Withdrawal, Deposit
+	ProcessingAt          *time.Time `json:"processing_at,omitempty"`           // From Withdrawal, Deposit
+	FailedAt              *time.Time `json:"failed_at,omitempty"`               // From Transfer, Withdrawal, Deposit
+	ExternalTransactionID *string    `json:"external_transaction_id,omitempty"` // From Withdrawal, Deposit
+
+	// Account IDs
+	FromAccountID *uint `json:"from_account_id,omitempty"`
+	ToAccountID   *uint `json:"to_account_id,omitempty"`
+
+	// Deposit Specific
+	DepositSourceBankName *string `json:"deposit_source_bank_name,omitempty"`
+
+	// Withdrawal Specific
+	WithdrawalTargetBankName      *string `json:"withdrawal_target_bank_name,omitempty"`
+	WithdrawalTargetAccountNumber *string `json:"withdrawal_target_account_number,omitempty"`
+	WithdrawalTargetSortCode      *string `json:"withdrawal_target_sort_code,omitempty"`
+
+	// Transfer Specific
+	TransferFee         *float64   `json:"transfer_fee,omitempty"`
+	TransferTotalAmount *float64   `json:"transfer_total_amount,omitempty"`
+	TransferCategory    *string    `json:"transfer_category,omitempty"`
+	TransferScheduledAt *time.Time `json:"transfer_scheduled_at,omitempty"`
+	SenderInfo          string     `json:"sender_info,omitempty"`    // Generated for TRANSFER_IN
+	RecipientInfo       string     `json:"recipient_info,omitempty"` // Generated for TRANSFER_OUT
+	RecipientID         *uint      `json:"recipient_id,omitempty"`   // From Transfer model
+
+	// Exchange Specific
+	ExchangeFromCurrency    *string  `json:"exchange_from_currency,omitempty"`
+	ExchangeToCurrency      *string  `json:"exchange_to_currency,omitempty"`
+	ExchangeAmountFrom      *float64 `json:"exchange_amount_from,omitempty"`
+	ExchangeAmountTo        *float64 `json:"exchange_amount_to,omitempty"`
+	ExchangeRate            *float64 `json:"exchange_rate,omitempty"`
+	ExchangeFees            *float64 `json:"exchange_fees,omitempty"`
+	ExchangeReceiverDetails *string  `json:"exchange_receiver_details,omitempty"` // JSON string
+
+	// Generic Related Party (Fallback/Specific Use)
+	RelatedParty *string `json:"related_party,omitempty"` // For specific cases like exchange pair where other fields don't fit
 }
 
 // ServiceAccountCreds defines the structure for parsing the service account JSON key file.
@@ -90,7 +130,7 @@ func (s *GenerateTxDataService) GenerateUserTxDataFile(ctx context.Context, req 
 		accountIDs = append(accountIDs, acc.ID)
 	}
 
-	allRecords, err := s.FetchAllUserTransactions(ctx, accountIDs)
+	allRecords, err := s.FetchAllUserTransactions(ctx, uint(userID))
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to fetch transactions: %v", err)
 	}
@@ -130,216 +170,390 @@ func (s *GenerateTxDataService) GenerateUserTxDataFile(ctx context.Context, req 
 }
 
 // FetchAllUserTransactions fetches and compiles all transaction types for a user.
-// Renamed from fetchAllUserTransactions to be public for the processor.
-func (s *GenerateTxDataService) FetchAllUserTransactions(ctx context.Context, accountIDs []uint) ([]TransactionRecord, error) {
+// It now requires the userID to populate the records.
+func (s *GenerateTxDataService) FetchAllUserTransactions(ctx context.Context, userID uint) ([]TransactionRecord, error) {
 	var records []TransactionRecord
+	userID64 := uint64(userID) // Convert once for convenience
+
+	// --- Helper funcs for formatting pointers ---
+	stringPtr := func(s string) *string {
+		if s == "" {
+			return nil
+		}
+		return &s
+	}
+	float64Ptr := func(f float64) *float64 {
+		// Decide if 0.0 should be nil or represented
+		// if f == 0.0 { return nil } // Uncomment if 0 should be omitted
+		return &f
+	}
+	timePtr := func(t *time.Time) *time.Time {
+		if t == nil {
+			return nil
+		}
+		if t.IsZero() {
+			return nil
+		}
+		return t
+	}
+	// --- End Helper funcs ---
 
 	// Fetch Deposits
 	var deposits []models.Deposit
-	if err := s.db.WithContext(ctx).Where("target_account_id IN ?", accountIDs).Order("created_at desc").Find(&deposits).Error; err != nil {
+	if err := s.db.WithContext(ctx).Joins("join accounts on accounts.id = deposits.target_account_id").Where("accounts.owner_user_id = ?", userID).Order("deposits.created_at desc").Find(&deposits).Error; err != nil {
 		return nil, fmt.Errorf("failed to query deposits: %w", err)
 	}
 	for _, d := range deposits {
 		amountFloat := float64(d.Amount) / 100.0
+		toAccountID := d.TargetAccountID
 		records = append(records, TransactionRecord{
-			Timestamp:    d.CreatedAt,
-			Type:         "DEPOSIT",
-			Amount:       amountFloat,
-			Currency:     d.Currency,
-			Status:       string(d.Status),
-			Description:  "Deposit from " + d.SourceBankName,
-			RelatedParty: d.SourceBankName,
-			Reference:    d.ID,
+			UserID:                userID64,
+			Timestamp:             d.CreatedAt,
+			Type:                  "DEPOSIT",
+			Amount:                amountFloat,
+			Currency:              d.Currency,
+			Status:                string(d.Status),
+			Description:           "Deposit from " + d.SourceBankName,
+			Reference:             d.ID,
+			ToAccountID:           &toAccountID,
+			FailureReason:         d.FailureReason,
+			CompletedAt:           timePtr(d.CompletedAt),
+			ProcessingAt:          timePtr(d.ProcessingAt),
+			FailedAt:              timePtr(d.FailedAt),
+			ExternalTransactionID: d.ExternalTransactionID,
+			DepositSourceBankName: stringPtr(d.SourceBankName),
 		})
 	}
 
 	// Fetch Withdrawals
 	var withdrawals []models.Withdrawal
-	if err := s.db.WithContext(ctx).Where("source_account_id IN ?", accountIDs).Order("created_at desc").Find(&withdrawals).Error; err != nil {
+	if err := s.db.WithContext(ctx).Joins("join accounts on accounts.id = withdrawals.source_account_id").Where("accounts.owner_user_id = ?", userID).Order("withdrawals.created_at desc").Find(&withdrawals).Error; err != nil {
 		return nil, fmt.Errorf("failed to query withdrawals: %w", err)
 	}
 	for _, w := range withdrawals {
 		amountFloat := float64(w.Amount) / 100.0
+		fromAccountID := w.SourceAccountID
+		ref := w.TransactionReference
+		if ref == "" {
+			ref = w.ID
+		}
 		records = append(records, TransactionRecord{
-			Timestamp:    w.CreatedAt,
-			Type:         "WITHDRAWAL",
-			Amount:       amountFloat,
-			Currency:     w.Currency,
-			Status:       string(w.Status),
-			Description:  fmt.Sprintf("Withdrawal to %s (%s)", w.TargetBankName, w.TargetAccountNumber),
-			RelatedParty: w.TargetBankName,
-			Reference:    w.TransactionReference,
+			UserID:                        userID64,
+			Timestamp:                     w.CreatedAt,
+			Type:                          "WITHDRAWAL",
+			Amount:                        amountFloat,
+			Currency:                      w.Currency,
+			Status:                        string(w.Status),
+			Description:                   fmt.Sprintf("Withdrawal to %s (%s)", w.TargetBankName, w.TargetAccountNumber),
+			Reference:                     ref,
+			FromAccountID:                 &fromAccountID,
+			FailureReason:                 stringPtr(w.FailureReason),
+			CompletedAt:                   timePtr(w.CompletedAt),
+			ProcessingAt:                  timePtr(w.ProcessingAt),
+			FailedAt:                      timePtr(w.FailedAt),
+			ExternalTransactionID:         w.ExternalTransactionID,
+			WithdrawalTargetBankName:      stringPtr(w.TargetBankName),
+			WithdrawalTargetAccountNumber: stringPtr(w.TargetAccountNumber),
+			WithdrawalTargetSortCode:      stringPtr(w.TargetSortCode),
 		})
 	}
 
 	// Fetch Transfers (Outgoing)
 	var outgoingTransfers []models.Transfer
-	if err := s.db.WithContext(ctx).Where("from_account_id IN ?", accountIDs).Preload("ToUser").Preload("Recipient").Order("created_at desc").Find(&outgoingTransfers).Error; err != nil {
+	if err := s.db.WithContext(ctx).Where("from_user_id = ?", userID).Preload("ToUser").Preload("Recipient").Order("created_at desc").Find(&outgoingTransfers).Error; err != nil {
 		return nil, fmt.Errorf("failed to query outgoing transfers: %w", err)
 	}
 	for _, t := range outgoingTransfers {
-		recipientInfo := "Unknown Recipient"
+		recipientInfoStr := "Unknown Recipient"
 		if t.ToUser != nil {
-			recipientInfo = t.ToUser.FirstName + " " + t.ToUser.LastName
-			if recipientInfo == " " {
-				recipientInfo = t.ToUser.Email
+			recipientInfoStr = t.ToUser.FirstName + " " + t.ToUser.LastName
+			if recipientInfoStr == " " {
+				recipientInfoStr = t.ToUser.Email
 			}
 		} else if t.Recipient != nil {
-			recipientInfo = fmt.Sprintf("%s (%s)", t.Recipient.Name, t.Recipient.AccountNumber)
+			recipientInfoStr = fmt.Sprintf("%s (%s)", t.Recipient.Name, t.Recipient.AccountNumber)
 		} else if t.ToAccountID != nil {
-			recipientInfo = fmt.Sprintf("Account ID: %d", *t.ToAccountID)
+			recipientInfoStr = fmt.Sprintf("Internal Account ID: %d", *t.ToAccountID)
 		}
 
 		amountFloat := float64(t.Amount) / 100.0
+		transferFee := float64(t.Fee) / 100.0
+		transferTotalAmount := float64(t.TotalAmount) / 100.0
+		var accountCurrency string
 		var fromAccount models.Account
 		if err := s.db.WithContext(ctx).Select("currency").First(&fromAccount, t.FromAccountID).Error; err == nil {
-			accountCurrency := fromAccount.Currency
-			records = append(records, TransactionRecord{
-				Timestamp:    t.CreatedAt,
-				Type:         "TRANSFER_OUT",
-				Amount:       amountFloat,
-				Currency:     accountCurrency,
-				Status:       string(t.Status),
-				Description:  "Transfer to " + recipientInfo,
-				RelatedParty: recipientInfo,
-				Reference:    t.Reference,
-			})
+			accountCurrency = fromAccount.Currency
 		} else {
-			// Log that this transfer record is skipped due to missing currency info
-			fmt.Printf("Warning: Skipping outgoing transfer record (ID: %s) due to error fetching FromAccount currency: %v\n", t.Reference, err)
+			fmt.Printf("Warning: Outgoing transfer record (ID: %s) missing currency: %v\n", t.Reference, err)
+			accountCurrency = "UNKNOWN" // Fallback currency
 		}
+
+		fromAccID := t.FromAccountID
+		records = append(records, TransactionRecord{
+			UserID:              userID64,
+			Timestamp:           t.CreatedAt,
+			Type:                "TRANSFER_OUT",
+			Amount:              amountFloat,
+			Currency:            accountCurrency,
+			Status:              string(t.Status),
+			Description:         "Transfer to " + recipientInfoStr,
+			Reference:           t.Reference,
+			FromAccountID:       &fromAccID,
+			ToAccountID:         t.ToAccountID,
+			RecipientInfo:       recipientInfoStr,
+			RecipientID:         t.RecipientID,
+			FailureReason:       stringPtr(t.FailureReason),
+			CompletedAt:         timePtr(t.CompletedAt),
+			FailedAt:            timePtr(t.FailedAt),
+			TransferFee:         float64Ptr(transferFee),
+			TransferTotalAmount: float64Ptr(transferTotalAmount),
+			TransferCategory:    stringPtr(t.Category),
+			TransferScheduledAt: timePtr(t.ScheduledAt),
+		})
 	}
 
 	// Fetch Transfers (Incoming)
 	var incomingTransfers []models.Transfer
-	if err := s.db.WithContext(ctx).Where("to_account_id IN ?", accountIDs).Preload("FromUser").Order("created_at desc").Find(&incomingTransfers).Error; err != nil {
+	if err := s.db.WithContext(ctx).Where("to_user_id = ?", userID).Preload("FromUser").Order("created_at desc").Find(&incomingTransfers).Error; err != nil {
 		return nil, fmt.Errorf("failed to query incoming transfers: %w", err)
 	}
 	for _, t := range incomingTransfers {
-		senderInfo := "Unknown Sender"
+		senderInfoStr := "Unknown Sender"
 		if t.FromUser.ID != 0 {
-			senderInfo = t.FromUser.FirstName + " " + t.FromUser.LastName
-			if senderInfo == " " {
-				senderInfo = t.FromUser.Email
+			senderInfoStr = t.FromUser.FirstName + " " + t.FromUser.LastName
+			if senderInfoStr == " " {
+				senderInfoStr = t.FromUser.Email
 			}
 		} else {
-			senderInfo = fmt.Sprintf("Account ID: %d", t.FromAccountID)
+			senderInfoStr = fmt.Sprintf("Account ID: %d", t.FromAccountID)
 		}
 
 		amountFloat := float64(t.Amount) / 100.0
+		transferFee := float64(t.Fee) / 100.0
+		transferTotalAmount := float64(t.TotalAmount) / 100.0
+		var accountCurrency string
 		var toAccount models.Account
 		if t.ToAccountID != nil {
 			if err := s.db.WithContext(ctx).Select("currency").First(&toAccount, *t.ToAccountID).Error; err == nil {
-				accountCurrency := toAccount.Currency
-				records = append(records, TransactionRecord{
-					Timestamp:    t.CreatedAt,
-					Type:         "TRANSFER_IN",
-					Amount:       amountFloat,
-					Currency:     accountCurrency,
-					Status:       string(t.Status),
-					Description:  "Transfer from " + senderInfo,
-					RelatedParty: senderInfo,
-					Reference:    t.Reference,
-				})
+				accountCurrency = toAccount.Currency
 			} else {
-				// Log that this transfer record is skipped due to missing currency info
-				fmt.Printf("Warning: Skipping incoming transfer record (ID: %s) due to error fetching ToAccount currency: %v\n", t.Reference, err)
+				fmt.Printf("Warning: Incoming transfer record (ID: %s) missing currency: %v\n", t.Reference, err)
+				accountCurrency = "UNKNOWN" // Fallback
 			}
 		} else {
-			// Log that this transfer record is skipped because ToAccountID was nil (should be rare)
 			fmt.Printf("Warning: Skipping incoming transfer record (ID: %s) because ToAccountID is nil\n", t.Reference)
+			continue
 		}
+
+		fromAccID := t.FromAccountID
+		records = append(records, TransactionRecord{
+			UserID:              userID64,
+			Timestamp:           t.CreatedAt,
+			Type:                "TRANSFER_IN",
+			Amount:              amountFloat,
+			Currency:            accountCurrency,
+			Status:              string(t.Status),
+			Description:         "Transfer from " + senderInfoStr,
+			Reference:           t.Reference,
+			FromAccountID:       &fromAccID,
+			ToAccountID:         t.ToAccountID,
+			SenderInfo:          senderInfoStr,
+			FailureReason:       stringPtr(t.FailureReason),
+			CompletedAt:         timePtr(t.CompletedAt),
+			FailedAt:            timePtr(t.FailedAt),
+			TransferFee:         float64Ptr(transferFee),
+			TransferTotalAmount: float64Ptr(transferTotalAmount),
+			TransferCategory:    stringPtr(t.Category),
+			TransferScheduledAt: timePtr(t.ScheduledAt),
+		})
 	}
 
-	// Fetch Exchange Transactions
+	// Fetch Exchanges
 	var exchanges []models.ExchangeTransaction
-	var ownerUserID uint // Keep as uint based on Account model
-
-	if len(accountIDs) > 0 {
-		var account models.Account
-		// Fetch the uint owner_user_id from the account
-		if err := s.db.WithContext(ctx).Select("owner_user_id").First(&account, accountIDs[0]).Error; err == nil {
-			ownerUserID = account.OwnerUserID
-		} else if err != gorm.ErrRecordNotFound {
-			return nil, fmt.Errorf("failed to get owner user ID for account %d: %w", accountIDs[0], err)
-		}
+	if err := s.db.WithContext(ctx).Where("user_id = ?", userID).Order("created_at desc").Find(&exchanges).Error; err != nil {
+		return nil, fmt.Errorf("failed to query exchanges: %w", err)
 	}
+	for _, e := range exchanges {
+		var txType string
+		var amount float64
+		var description string
+		var accountIDForRecord *uint
+		var exchangeAccount models.Account
+		var baseCurrency string
 
-	// Check if we found a valid ownerUserID
-	if ownerUserID == 0 {
-		// Depending on requirements, you might want to try other accountIDs or return an error.
-		fmt.Println("Warning: Could not determine owner_user_id from provided account IDs, skipping exchange transaction fetch.")
-	} else {
-		// Query using the uint ownerUserID directly.
-		// This relies on GORM/pgx/postgres implicitly handling the comparison
-		// between uint and the uuid column, which caused the original error.
-		// NOTE: This might still fail depending on driver/DB configuration.
-		// The RECOMMENDED fix is to make User.ID and ExchangeTransaction.UserID types consistent.
-		if err := s.db.WithContext(ctx).Where("user_id = ?", ownerUserID).Order("created_at desc").Find(&exchanges).Error; err != nil {
-			// Handle potential errors during the query itself
-			return nil, fmt.Errorf("failed to query exchanges for user %d: %w", ownerUserID, err)
+		if e.AmountFrom > 0 { // Treat as outgoing from the FromCurrency account
+			txType = "EXCHANGE_OUT"
+			amount = float64(e.AmountFrom) // Use raw amount
+			baseCurrency = e.FromCurrency
+			description = fmt.Sprintf("Exchange %s to %s", e.FromCurrency, e.ToCurrency)
+			// Find account matching FromCurrency
+			if err := s.db.WithContext(ctx).Where("owner_user_id = ? AND currency = ?", userID, e.FromCurrency).First(&exchangeAccount).Error; err == nil {
+				accID := exchangeAccount.ID
+				accountIDForRecord = &accID
+			} else {
+				fmt.Printf("Warning: Exchange record (ID: %s) missing FromAccount: %v\n", e.ID, err)
+			}
+		} else if e.AmountTo > 0 { // Treat as incoming to the ToCurrency account
+			txType = "EXCHANGE_IN"
+			amount = float64(e.AmountTo) // Use raw amount
+			baseCurrency = e.ToCurrency
+			description = fmt.Sprintf("Exchange from %s to %s", e.FromCurrency, e.ToCurrency)
+			// Find account matching ToCurrency
+			if err := s.db.WithContext(ctx).Where("owner_user_id = ? AND currency = ?", userID, e.ToCurrency).First(&exchangeAccount).Error; err == nil {
+				accID := exchangeAccount.ID
+				accountIDForRecord = &accID
+			} else {
+				fmt.Printf("Warning: Exchange record (ID: %s) missing ToAccount: %v\n", e.ID, err)
+			}
+		} else {
+			continue // Skip if no amount is set
 		}
-		for _, ex := range exchanges {
-			records = append(records, TransactionRecord{
-				Timestamp:    ex.CreatedAt,
-				Type:         "EXCHANGE",
-				Amount:       ex.AmountTo,
-				Currency:     ex.ToCurrency,
-				Status:       ex.Status,
-				Description:  fmt.Sprintf("Exchange %.2f %s -> %.2f %s (Rate: %.6f)", ex.AmountFrom, ex.FromCurrency, ex.AmountTo, ex.ToCurrency, ex.ExchangeRate),
-				RelatedParty: fmt.Sprintf("%s/%s", ex.FromCurrency, ex.ToCurrency),
-				Reference:    ex.ID, // Use string ID directly as inferred from linter
-			})
+
+		// Marshal receiver details if they exist
+		var receiverDetailsStr *string
+		if e.ReceiverDetails != nil {
+			receiverJSON, marshalErr := e.ReceiverDetails.MarshalJSON()
+			if marshalErr == nil {
+				receiverStr := string(receiverJSON)
+				receiverDetailsStr = &receiverStr // Assign address of string
+			} else {
+				fmt.Printf("Warning: Failed to marshal receiver details for exchange %s: %v\n", e.ID, marshalErr)
+			}
 		}
+
+		rec := TransactionRecord{
+			UserID:                  userID64,
+			Timestamp:               e.CreatedAt,
+			Type:                    txType,
+			Amount:                  amount, // Use the appropriate amount (From or To)
+			Currency:                baseCurrency,
+			Status:                  string(e.Status),
+			Description:             description,
+			Reference:               e.ID,
+			CompletedAt:             &e.UpdatedAt, // Use UpdatedAt as CompletedAt approximation for Exchange
+			ExchangeFromCurrency:    stringPtr(e.FromCurrency),
+			ExchangeToCurrency:      stringPtr(e.ToCurrency),
+			ExchangeAmountFrom:      float64Ptr(e.AmountFrom),
+			ExchangeAmountTo:        float64Ptr(e.AmountTo),
+			ExchangeRate:            float64Ptr(e.ExchangeRate),
+			ExchangeFees:            float64Ptr(e.Fees),
+			ExchangeReceiverDetails: receiverDetailsStr,                                            // Assign the *string directly
+			RelatedParty:            stringPtr(fmt.Sprintf("%s/%s", e.FromCurrency, e.ToCurrency)), // Use RelatedParty for pair
+		}
+
+		// Assign account ID based on type
+		if txType == "EXCHANGE_OUT" {
+			rec.FromAccountID = accountIDForRecord
+		} else { // EXCHANGE_IN
+			rec.ToAccountID = accountIDForRecord
+		}
+		records = append(records, rec)
 	}
-
-	// TODO: Add Failed Deposits, Invoices if they represent user-facing financial events
-
-	// Sort all records chronologically (most recent first) - might already be mostly sorted
-	// Consider a more robust sort if exact order across types is critical
-	// sort.SliceStable(records, func(i, j int) bool {
-	// 	return records[i].Timestamp.After(records[j].Timestamp)
-	// })
 
 	return records, nil
 }
 
-// FormatTransactionsToCSV formats records into a CSV buffer.
-// Renamed from formatTransactionsToCSV to be public for the processor.
+// FormatTransactionsToCSV formats the records into a CSV byte buffer.
 func (s *GenerateTxDataService) FormatTransactionsToCSV(records []TransactionRecord) (*bytes.Buffer, error) {
-	buffer := &bytes.Buffer{}
-	writer := csv.NewWriter(buffer)
+	var buf bytes.Buffer
+	w := csv.NewWriter(&buf)
 
 	// Write header
-	header := []string{"Timestamp", "Type", "Amount", "Currency", "Status", "Description", "RelatedParty", "Reference"}
-	if err := writer.Write(header); err != nil {
-		return nil, err
+	header := []string{
+		"UserID", "Timestamp", "Type", "Amount", "Currency", "Status", "Description", "Reference",
+		"FailureReason", "CompletedAt", "ProcessingAt", "FailedAt", "ExternalTransactionID",
+		"FromAccountID", "ToAccountID",
+		"DepositSourceBankName",
+		"WithdrawalTargetBankName", "WithdrawalTargetAccountNumber", "WithdrawalTargetSortCode",
+		"TransferFee", "TransferTotalAmount", "TransferCategory", "TransferScheduledAt",
+		"SenderInfo", "RecipientInfo", "RecipientID",
+		"ExchangeFromCurrency", "ExchangeToCurrency", "ExchangeAmountFrom", "ExchangeAmountTo",
+		"ExchangeRate", "ExchangeFees", "ExchangeReceiverDetails",
+		"RelatedParty",
+	}
+	if err := w.Write(header); err != nil {
+		return nil, fmt.Errorf("failed to write CSV header: %w", err)
+	}
+
+	// Helper funcs for formatting pointers
+	formatUintPointer := func(ptr *uint) string {
+		if ptr == nil {
+			return ""
+		}
+		return strconv.FormatUint(uint64(*ptr), 10)
+	}
+	formatFloat64Pointer := func(ptr *float64) string {
+		if ptr == nil {
+			return ""
+		}
+		return strconv.FormatFloat(*ptr, 'f', -1, 64)
+	}
+	formatStringPointer := func(ptr *string) string {
+		if ptr == nil {
+			return ""
+		}
+		return *ptr
+	}
+	formatTimePointer := func(ptr *time.Time) string {
+		if ptr == nil {
+			return ""
+		}
+		if ptr.IsZero() {
+			return ""
+		}
+		return ptr.Format(time.RFC3339)
 	}
 
 	// Write records
-	for _, r := range records {
+	for _, rec := range records {
 		row := []string{
-			r.Timestamp.Format(time.RFC3339), // ISO 8601 format
-			r.Type,
-			strconv.FormatFloat(r.Amount, 'f', 2, 64), // Format amount to 2 decimal places
-			r.Currency,
-			r.Status,
-			r.Description,
-			r.RelatedParty,
-			r.Reference,
+			strconv.FormatUint(rec.UserID, 10),
+			formatTimePointer(&rec.Timestamp),
+			rec.Type,
+			strconv.FormatFloat(rec.Amount, 'f', 2, 64),
+			rec.Currency,
+			rec.Status,
+			rec.Description,
+			rec.Reference,
+			formatStringPointer(rec.FailureReason),
+			formatTimePointer(rec.CompletedAt),
+			formatTimePointer(rec.ProcessingAt),
+			formatTimePointer(rec.FailedAt),
+			formatStringPointer(rec.ExternalTransactionID),
+			formatUintPointer(rec.FromAccountID),
+			formatUintPointer(rec.ToAccountID),
+			formatStringPointer(rec.DepositSourceBankName),
+			formatStringPointer(rec.WithdrawalTargetBankName),
+			formatStringPointer(rec.WithdrawalTargetAccountNumber),
+			formatStringPointer(rec.WithdrawalTargetSortCode),
+			formatFloat64Pointer(rec.TransferFee),
+			formatFloat64Pointer(rec.TransferTotalAmount),
+			formatStringPointer(rec.TransferCategory),
+			formatTimePointer(rec.TransferScheduledAt),
+			rec.SenderInfo,
+			rec.RecipientInfo,
+			formatUintPointer(rec.RecipientID),
+			formatStringPointer(rec.ExchangeFromCurrency),
+			formatStringPointer(rec.ExchangeToCurrency),
+			formatFloat64Pointer(rec.ExchangeAmountFrom),
+			formatFloat64Pointer(rec.ExchangeAmountTo),
+			formatFloat64Pointer(rec.ExchangeRate),
+			formatFloat64Pointer(rec.ExchangeFees),
+			formatStringPointer(rec.ExchangeReceiverDetails),
+			formatStringPointer(rec.RelatedParty),
 		}
-		if err := writer.Write(row); err != nil {
-			// Log the error but potentially continue? Or fail? Let's fail for now.
-			return nil, fmt.Errorf("failed to write record %+v: %w", r, err)
+		if err := w.Write(row); err != nil {
+			return nil, fmt.Errorf("failed to write CSV row for reference %s: %w", rec.Reference, err)
 		}
 	}
 
-	writer.Flush()
-	if err := writer.Error(); err != nil {
-		return nil, err
+	w.Flush() // Ensure all data is written to the buffer
+
+	if err := w.Error(); err != nil {
+		return nil, fmt.Errorf("CSV writer error: %w", err)
 	}
 
-	return buffer, nil
+	return &buf, nil
 }
 
 // UploadOrOverwriteTxFile uploads the data to GCS, overwriting if it exists.
