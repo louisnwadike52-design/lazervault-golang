@@ -317,6 +317,100 @@
         ]
       }
     },
+    "/v1/ai/chat/history": {
+      "get": {
+        "summary": "Get AI Chat History",
+        "description": "Retrieves the AI chat history (list of query/response pairs) for the authenticated user.",
+        "operationId": "AIChatService_GetAIChatHistory",
+        "responses": {
+          "200": {
+            "description": "OK - AI Chat history retrieved.",
+            "schema": {
+              "$ref": "#/definitions/pbGetAIChatHistoryResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "AI Chat"
+        ]
+      }
+    },
+    "/v1/ai/index/chat": {
+      "post": {
+        "summary": "Index Chat History",
+        "description": "Triggers the indexing process for the authenticated user's latest chat history file stored in GCS.",
+        "operationId": "AIChatService_IndexChatHistory",
+        "responses": {
+          "200": {
+            "description": "OK - Indexing triggered or file not found (check message).",
+            "schema": {
+              "$ref": "#/definitions/pbIndexChatHistoryResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "Triggers the indexing process for the authenticated user's latest chat history file.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/pbIndexChatHistoryRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AI Indexing"
+        ]
+      }
+    },
+    "/v1/ai/index/transactions": {
+      "post": {
+        "summary": "Index Transaction File",
+        "description": "Triggers the indexing process for the authenticated user's latest transaction file stored in GCS.",
+        "operationId": "AIChatService_IndexTransactionFile",
+        "responses": {
+          "200": {
+            "description": "OK - Indexing triggered or file not found (check message).",
+            "schema": {
+              "$ref": "#/definitions/pbIndexTransactionFileResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "Triggers the indexing process for the authenticated user's latest transaction file.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/pbIndexTransactionFileRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AI Indexing"
+        ]
+      }
+    },
     "/v1/auth/apple/signin": {
       "post": {
         "summary": "Sign In/Up with Apple",
@@ -1669,6 +1763,25 @@
         }
       }
     },
+    "pbAIChatHistoryEntry": {
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "string",
+          "description": "The user's query."
+        },
+        "response": {
+          "type": "string",
+          "description": "The AI's response."
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "Timestamp of the interaction (RFC3339 format)."
+        }
+      },
+      "description": "A single query-response pair from the AI chat history.",
+      "title": "AI Chat History Entry"
+    },
     "pbAccountCard": {
       "type": "object",
       "properties": {
@@ -2218,6 +2331,21 @@
       },
       "title": "Response message - Returns the GCS URL of the generated file"
     },
+    "pbGetAIChatHistoryResponse": {
+      "type": "object",
+      "properties": {
+        "history": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbAIChatHistoryEntry"
+          },
+          "description": "List of AI chat history entries, ordered chronologically."
+        }
+      },
+      "description": "A list of AI chat history entries for the user.",
+      "title": "Get AI Chat History Response"
+    },
     "pbGetAccountCardsResponse": {
       "type": "object",
       "properties": {
@@ -2591,6 +2719,46 @@
         }
       },
       "title": "Response containing details of a specific withdrawal transaction"
+    },
+    "pbIndexChatHistoryRequest": {
+      "type": "object",
+      "description": "Triggers the indexing process for the authenticated user's latest chat history file.",
+      "title": "Index Chat History Request"
+    },
+    "pbIndexChatHistoryResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "description": "Indicates if the indexing task was successfully triggered."
+        },
+        "msg": {
+          "type": "string",
+          "description": "A status message (e.g., 'Indexing triggered' or 'File not found')."
+        }
+      },
+      "description": "Response confirming the chat history indexing task was triggered.",
+      "title": "Index Chat History Response"
+    },
+    "pbIndexTransactionFileRequest": {
+      "type": "object",
+      "description": "Triggers the indexing process for the authenticated user's latest transaction file.",
+      "title": "Index Transaction File Request"
+    },
+    "pbIndexTransactionFileResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "description": "Indicates if the indexing task was successfully triggered."
+        },
+        "msg": {
+          "type": "string",
+          "description": "A status message (e.g., 'Indexing triggered' or 'File not found')."
+        }
+      },
+      "description": "Response confirming the transaction file indexing task was triggered.",
+      "title": "Index Transaction File Response"
     },
     "pbInitiateDepositRequest": {
       "type": "object",
@@ -3061,16 +3229,24 @@
     "pbProcessChatResponse": {
       "type": "object",
       "properties": {
+        "success": {
+          "type": "boolean",
+          "description": "Indicates if the query was successfully processed."
+        },
+        "msg": {
+          "type": "string",
+          "description": "A status message related to the processing."
+        },
+        "query": {
+          "type": "string",
+          "description": "The original query sent by the user."
+        },
         "response": {
           "type": "string",
           "description": "The AI's response."
-        },
-        "userTxFilePath": {
-          "type": "string",
-          "description": "The GCS file path for the user's transaction data used by the AI."
         }
       },
-      "description": "Contains the AI chatbot's response.",
+      "description": "Contains the AI chatbot's response along with status.",
       "title": "AI Process Chat Response"
     },
     "pbReceiverDetails": {

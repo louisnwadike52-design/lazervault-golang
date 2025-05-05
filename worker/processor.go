@@ -8,6 +8,7 @@ import (
 	"lazervaultGo/configs"
 	"lazervaultGo/mail"
 	"lazervaultGo/models"
+	"lazervaultGo/services"
 	"lazervaultGo/tasks"
 	"strconv"
 	"time"
@@ -35,13 +36,14 @@ type RedisTaskProcessor struct {
 	config              *configs.Config
 	distributor         tasks.TaskDistributor
 	txDataFileProcessor *GenerateTxDataFileProcessor
+	aiChatService       *services.AIChatService
 }
 
-func NewRedisTaskProcessor(redisOpt asynq.RedisClientOpt, db *gorm.DB, mailer mail.EmailSender, config *configs.Config, distributor tasks.TaskDistributor) TaskProcessor {
+func NewRedisTaskProcessor(redisOpt asynq.RedisClientOpt, db *gorm.DB, mailer mail.EmailSender, config *configs.Config, distributor tasks.TaskDistributor, aiChatService *services.AIChatService) TaskProcessor {
 	logger := NewLogger()
 	redis.SetLogger(logger)
 
-	txDataFileProcessor := NewGenerateTxDataFileProcessor(db, *config)
+	txDataFileProcessor := NewGenerateTxDataFileProcessor(db, *config, aiChatService)
 
 	server := asynq.NewServer(
 		redisOpt,
@@ -49,6 +51,7 @@ func NewRedisTaskProcessor(redisOpt asynq.RedisClientOpt, db *gorm.DB, mailer ma
 			Queues: map[string]int{
 				tasks.QueueCritical: 10,
 				tasks.QueueDefault:  5,
+				tasks.QueueLow:      5,
 			},
 			ErrorHandler: asynq.ErrorHandlerFunc(func(ctx context.Context, task *asynq.Task, err error) {
 				log.Error().Err(err).Str("type", task.Type()).
@@ -66,6 +69,7 @@ func NewRedisTaskProcessor(redisOpt asynq.RedisClientOpt, db *gorm.DB, mailer ma
 		config:              config,
 		distributor:         distributor,
 		txDataFileProcessor: txDataFileProcessor,
+		aiChatService:       aiChatService,
 	}
 }
 
@@ -99,6 +103,16 @@ func (processor *RedisTaskProcessor) Start() error {
 
 	// Register external transfer handler using the correct constant
 	mux.HandleFunc(tasks.TaskProcessExternalTransfer, processor.ProcessTaskProcessExternalTransfer)
+
+	// Register the new AI Chat History handler
+	mux.HandleFunc(tasks.TypeUpdateChatHistoryAndIndex, func(ctx context.Context, task *asynq.Task) error {
+		// Ensure aiChatService is not nil before calling the handler
+		if processor.aiChatService == nil {
+			log.Error().Msg("AIChatService is nil in RedisTaskProcessor, cannot handle TypeUpdateChatHistoryAndIndex")
+			return fmt.Errorf("internal configuration error: AIChatService not available %w", asynq.SkipRetry)
+		}
+		return HandleUpdateChatHistoryAndIndexTask(ctx, task, processor.aiChatService)
+	})
 
 	log.Info().Msg("starting task processor server")
 	return processor.server.Start(mux)
@@ -351,6 +365,43 @@ func (processor *RedisTaskProcessor) ProcessTaskProcessExternalTransfer(ctx cont
 
 	fmt.Printf("Updated external transfer %s status (simulated)\n", transferID)
 	return nil // Return error to retry/fail based on actual external API outcome
+}
+
+// HandleUpdateChatHistoryAndIndexTask processes the task to save chat history and trigger indexing.
+func HandleUpdateChatHistoryAndIndexTask(ctx context.Context, task *asynq.Task, aiService *services.AIChatService) error {
+	var payload tasks.UpdateChatHistoryAndIndexPayload
+	if err := json.Unmarshal(task.Payload(), &payload); err != nil {
+		// Non-recoverable error: If payload is malformed, retrying won't help.
+		log.Error().Err(err).Msg("Failed to unmarshal UpdateChatHistoryAndIndexPayload")
+		return fmt.Errorf("failed to unmarshal payload: %w", asynq.SkipRetry)
+	}
+
+	log.Info().Uint("user_id", payload.UserID).Msg("Processing chat history update task")
+
+	// Step 1: Save the chat entry
+	if err := aiService.SaveChatEntry(ctx, payload.UserID, payload.Query, payload.Response); err != nil {
+		log.Error().Err(err).Uint("user_id", payload.UserID).Msg("Failed to save chat entry in background task")
+		// Depending on the error, you might want to retry (e.g., temporary DB issue)
+		// For now, let's return the error to let Asynq handle retries based on MaxRetry.
+		return fmt.Errorf("failed to save chat entry: %w", err)
+	}
+
+	// Step 2: Update the chat history file in GCS
+	if err := aiService.UpdateChatHistoryFile(ctx, payload.UserID); err != nil {
+		log.Error().Err(err).Uint("user_id", payload.UserID).Msg("Failed to update chat history file in background task")
+		// GCS errors might be transient, so retrying is reasonable.
+		return fmt.Errorf("failed to update chat history file: %w", err)
+	}
+
+	// Step 3: Trigger AI indexing for chat history
+	if err := aiService.TriggerChatHistoryIndexing(ctx, payload.UserID); err != nil {
+		log.Error().Err(err).Uint("user_id", payload.UserID).Msg("Failed to trigger AI chat history indexing in background task")
+		// Errors calling the AI service might be transient (network, service down).
+		return fmt.Errorf("failed to trigger AI chat history indexing: %w", err)
+	}
+
+	log.Info().Uint("user_id", payload.UserID).Msg("Successfully processed chat history update task")
+	return nil
 }
 
 func (processor *RedisTaskProcessor) Shutdown() {

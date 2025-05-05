@@ -48,11 +48,97 @@ message ProcessChatResponse {
   option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
 		json_schema: {
 			title: "AI Process Chat Response";
-			description: "Contains the AI chatbot's response.";
+			description: "Contains the AI chatbot's response along with status.";
 		}
 	};
-  string response = 1 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {description: "The AI's response."}];
-  string user_tx_file_path = 2 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {description: "The GCS file path for the user's transaction data used by the AI."}];
+  bool success = 1 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {description: "Indicates if the query was successfully processed."}];
+  string msg = 2 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {description: "A status message related to the processing."}];
+  string query = 3 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {description: "The original query sent by the user."}];
+  string response = 4 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {description: "The AI's response."}];
+}
+
+// Request message for triggering chat history indexing for the authenticated user
+message IndexChatHistoryRequest {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+		json_schema: {
+			title: "Index Chat History Request";
+			description: "Triggers the indexing process for the authenticated user's latest chat history file.";
+        // No fields needed, user ID comes from auth context
+		}
+	};
+  // Potentially add user_id field if needed for admin purposes later, but for now rely on auth context
+}
+
+// Response message for chat history indexing trigger
+message IndexChatHistoryResponse {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+		json_schema: {
+			title: "Index Chat History Response";
+			description: "Response confirming the chat history indexing task was triggered.";
+		}
+	};
+  bool success = 1 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {description: "Indicates if the indexing task was successfully triggered."}];
+  string msg = 2 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {description: "A status message (e.g., 'Indexing triggered' or 'File not found')."}];
+}
+
+// Request message for triggering transaction file indexing for the authenticated user
+message IndexTransactionFileRequest {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+		json_schema: {
+			title: "Index Transaction File Request";
+			description: "Triggers the indexing process for the authenticated user's latest transaction file.";
+        // No fields needed, user ID comes from auth context
+		}
+	};
+   // Potentially add user_id field if needed for admin purposes later
+}
+
+// Response message for transaction file indexing trigger
+message IndexTransactionFileResponse {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+		json_schema: {
+			title: "Index Transaction File Response";
+			description: "Response confirming the transaction file indexing task was triggered.";
+		}
+	};
+  bool success = 1 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {description: "Indicates if the indexing task was successfully triggered."}];
+  string msg = 2 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {description: "A status message (e.g., 'Indexing triggered' or 'File not found')."}];
+}
+
+// Represents a single entry in the AI chat history
+message AIChatHistoryEntry {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+		json_schema: {
+			title: "AI Chat History Entry";
+			description: "A single query-response pair from the AI chat history.";
+		}
+	};
+  string query = 1 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {description: "The user's query."}];
+  string response = 2 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {description: "The AI's response."}];
+  string timestamp = 3 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {description: "Timestamp of the interaction (RFC3339 format)."}];
+}
+
+// Request message for getting the user's AI chat history
+message GetAIChatHistoryRequest {
+ option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+		json_schema: {
+			title: "Get AI Chat History Request";
+			description: "Request to fetch the AI chat history for the authenticated user.";
+      // No fields needed, user ID comes from auth context
+		}
+	};
+  // Potential future additions: pagination (limit, offset)
+}
+
+// Response message containing the user's AI chat history
+message GetAIChatHistoryResponse {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+		json_schema: {
+			title: "Get AI Chat History Response";
+			description: "A list of AI chat history entries for the user.";
+		}
+	};
+  repeated AIChatHistoryEntry history = 1 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {description: "List of AI chat history entries, ordered chronologically."}];
 }
 
 // Service definition for AI chat interactions
@@ -79,6 +165,80 @@ service AIChatService {
                 }
             }
             // Add 400, 401, 404 (user/tx file not found), 500, 503 responses
+		};
+  }
+
+  // Triggers indexing for the authenticated user's chat history file.
+  rpc IndexChatHistory(IndexChatHistoryRequest) returns (IndexChatHistoryResponse) {
+    option (google.api.http) = {
+      post: "/v1/ai/index/chat"
+      body: "*" // Body can be empty or *
+    };
+     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+			description: "Triggers the indexing process for the authenticated user's latest chat history file stored in GCS.";
+			summary: "Index Chat History";
+            tags: ["AI Indexing"];
+            responses: {
+                key: "200";
+                value: {
+                    description: "OK - Indexing triggered or file not found (check message).";
+                    schema: {
+                        json_schema: {
+                           ref: "#/definitions/pbIndexChatHistoryResponse";
+                        }
+                    }
+                }
+            }
+            // Add 401, 500, 503 responses
+		};
+  }
+
+  // Triggers indexing for the authenticated user's transaction file.
+  rpc IndexTransactionFile(IndexTransactionFileRequest) returns (IndexTransactionFileResponse) {
+    option (google.api.http) = {
+      post: "/v1/ai/index/transactions"
+      body: "*" // Body can be empty or *
+    };
+     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+			description: "Triggers the indexing process for the authenticated user's latest transaction file stored in GCS.";
+			summary: "Index Transaction File";
+            tags: ["AI Indexing"];
+             responses: {
+                key: "200";
+                value: {
+                    description: "OK - Indexing triggered or file not found (check message).";
+                    schema: {
+                        json_schema: {
+                           ref: "#/definitions/pbIndexTransactionFileResponse";
+                        }
+                    }
+                }
+            }
+            // Add 401, 500, 503 responses
+		};
+  }
+
+  // Retrieves the AI chat history for the authenticated user.
+  rpc GetAIChatHistory(GetAIChatHistoryRequest) returns (GetAIChatHistoryResponse) {
+    option (google.api.http) = {
+      get: "/v1/ai/chat/history"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+			description: "Retrieves the AI chat history (list of query/response pairs) for the authenticated user.";
+			summary: "Get AI Chat History";
+            tags: ["AI Chat"];
+            responses: {
+                key: "200";
+                value: {
+                    description: "OK - AI Chat history retrieved.";
+                    schema: {
+                        json_schema: {
+                           ref: "#/definitions/pbGetAIChatHistoryResponse";
+                        }
+                    }
+                }
+            }
+             // Add 401, 500 responses
 		};
   }
 } 

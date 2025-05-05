@@ -7,10 +7,12 @@
     "install": "go mod tidy && make install-tools",
     "build": "go build -o lazervaultGolang main.go",
     "proto": "make proto",
-    "start:redis": "redis-server --daemonize yes --port 6379",
+    "start:redis:local": "redis-server --daemonize yes --port 6379",
+    "start:redis:brew": "brew services start redis",
     "start:redis:background": "brew services start redis",
     "stop:redis": "brew services stop redis",
-    "gcloud:login": "gcloud auth activate-service-account --key-file=lazervault-c4d5f9e91078.json"
+    "gcloud:login": "gcloud auth activate-service-account --key-file=lazervault-c4d5f9e91078.json", 
+    "clear:redis": "redis-cli FLUSHALL"
   },
   "devDependencies": {
     "nodemon": "^3.1.9"

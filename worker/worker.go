@@ -4,6 +4,7 @@ import (
 	"context"
 	"lazervaultGo/configs"
 	"lazervaultGo/mail"
+	"lazervaultGo/services"
 	"lazervaultGo/tasks"
 
 	"github.com/hibiken/asynq"
@@ -25,9 +26,15 @@ func NewRedisStorage(redisOpt asynq.RedisClientOpt) *RedisStorage {
 	return &RedisStorage{redisStorage: asynq.NewClient(redisOpt), ctx: context.Background()}
 }
 
-func NewRedisWorker(redisOpt asynq.RedisClientOpt, db *gorm.DB, mailer mail.EmailSender, config *configs.Config) *RedisWorker {
+func NewRedisWorker(
+	redisOpt asynq.RedisClientOpt,
+	db *gorm.DB,
+	mailer mail.EmailSender,
+	config *configs.Config,
+	aiChatService *services.AIChatService,
+) *RedisWorker {
 	distributor := NewRedisTaskDistributor(redisOpt)
-	processor := NewRedisTaskProcessor(redisOpt, db, mailer, config, distributor)
+	processor := NewRedisTaskProcessor(redisOpt, db, mailer, config, distributor, aiChatService)
 
 	go func() {
 		if err := processor.Start(); err != nil {

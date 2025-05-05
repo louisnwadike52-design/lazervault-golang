@@ -26,6 +26,8 @@ func (m *Migrator) DropAllTables() error {
 		&models.Recipient{},
 		&models.ExchangeTransaction{},
 		&models.UserTransactionFile{},
+		&models.AIChatHistory{},
+		&models.UserChatHistoryFile{},
 	)
 }
 
@@ -47,6 +49,8 @@ func (m *Migrator) RunMigrations() error {
 		&models.Recipient{},
 		&models.ExchangeTransaction{},
 		&models.UserTransactionFile{},
+		&models.AIChatHistory{},
+		&models.UserChatHistoryFile{},
 	)
 }
 

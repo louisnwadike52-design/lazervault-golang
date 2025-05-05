@@ -28,7 +28,12 @@ type Server struct {
 	redisWorker *worker.RedisWorker
 }
 
-func NewServer(db *gorm.DB, config *configs.Config, tokenMaker token.Maker, redisWorker *worker.RedisWorker) *Server {
+func NewServer(
+	db *gorm.DB,
+	config *configs.Config,
+	tokenMaker token.Maker,
+	redisWorker *worker.RedisWorker,
+) *Server {
 	server := &Server{
 		config:      config,
 		db:          db,
@@ -45,28 +50,22 @@ func NewServer(db *gorm.DB, config *configs.Config, tokenMaker token.Maker, redi
 	authService := services.NewAuthService(db, config, tokenMaker, distributor)
 	accountService := services.NewAccountService(db, distributor)
 	recipientService := services.NewRecipientService(db)
-	// Inject AccountService and RecipientService into TransferService
 	transferService := services.NewTransferService(db, config, distributor, recipientService, accountService)
 	accountCardService := services.NewAccountCardService(db, config)
 	chatService := services.NewChatService(db)
 	userService := services.NewUserService(db, config, tokenMaker)
 	exchangeService := services.NewExchangeService(db, distributor)
 	invoiceService := services.NewInvoiceService(db)
-	// Inject AccountService into DepositService for converter helper
 	depositService := services.NewDepositService(db, distributor, accountService)
-	// Pass distributor to WithdrawalService constructor
 	withdrawalService := services.NewWithdrawalService(db, distributor)
-	// Initialize the tx data service (needed by controller and tx file service)
 	generateTxDataService := services.NewGenerateTxDataService(db, *config)
-	// Initialize the controller for generating tx data (immediate call)
-	generateTxDataController := NewGenerateTxDataController(*generateTxDataService, tokenMaker, db) // Inject db
-	// Initialize the service for getting the tx file PATH (inject DB)
-	txFileService := services.NewTxFileService(db) // Inject db
-	// Initialize the controller for getting the tx file PATH
-	txFileController := NewTxFileController(txFileService, tokenMaker, db) // Inject db
+	generateTxDataController := NewGenerateTxDataController(*generateTxDataService, tokenMaker, db)
+	txFileService := services.NewTxFileService(db)
+	txFileController := NewTxFileController(txFileService, tokenMaker, db)
 
 	// Initialize AI Chat Service
-	aiChatService := services.NewAIChatService(db, config)
+	aiChatService := services.NewAIChatService(db, config, distributor)
+
 	// Initialize AI Chat Controller
 	aiChatController := NewAIChatController(aiChatService, userService)
 

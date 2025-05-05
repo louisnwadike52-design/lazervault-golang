@@ -5,6 +5,7 @@ import (
 	"lazervaultGo/database"
 	"lazervaultGo/grpcApi"
 	"lazervaultGo/mail"
+	"lazervaultGo/services"
 	"lazervaultGo/token"
 	"lazervaultGo/worker"
 	"log"
@@ -45,15 +46,25 @@ func main() {
 
 	mailer := mail.NewGmailSender(config.EmailSenderName, config.EmailSenderAddress, config.EmailSenderPassword)
 
-	// Create Redis Worker (Distributor + Processor)
+	// Setup Redis connection options
 	redisOpt := asynq.RedisClientOpt{
 		Addr:     config.RedisServerAddr,
 		Password: "", // Add password if needed
 		DB:       0,  // Use default DB
 	}
-	redisWorker := worker.NewRedisWorker(redisOpt, db, mailer, &config)
 
-	// Create and initialize the server
+	// 1. Create the Task Distributor
+	taskDistributor := worker.NewRedisTaskDistributor(redisOpt)
+
+	// 2. Initialize AIChatService (needs distributor)
+	aiChatService := services.NewAIChatService(db, &config, taskDistributor)
+
+	// 3. Create the full Redis Worker (processor starts automatically inside)
+	//    Pass the initialized aiChatService to the worker constructor.
+	redisWorker := worker.NewRedisWorker(redisOpt, db, mailer, &config, aiChatService)
+
+	// 4. Create and initialize the gRPC/HTTP server
+	//    Pass the redisWorker (which contains distributor & processor)
 	server := grpcApi.NewServer(db, &config, tokenMaker, redisWorker)
 
 	// Handle graceful shutdown

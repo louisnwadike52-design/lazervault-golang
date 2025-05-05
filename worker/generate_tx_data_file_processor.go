@@ -17,19 +17,19 @@ import (
 
 // GenerateTxDataFileProcessor handles tasks of type tasks.TypeGenerateTxDataFile
 type GenerateTxDataFileProcessor struct {
-	db     *gorm.DB
-	config configs.Config
-	// Service is embedded directly for now. Could inject an interface later.
+	db            *gorm.DB
+	config        configs.Config
 	txFileService services.GenerateTxDataService
+	aiChatService *services.AIChatService // Add AIChatService
 }
 
 // NewGenerateTxDataFileProcessor creates a new processor for generating tx data files.
-func NewGenerateTxDataFileProcessor(db *gorm.DB, config configs.Config) *GenerateTxDataFileProcessor {
+func NewGenerateTxDataFileProcessor(db *gorm.DB, config configs.Config, aiChatService *services.AIChatService) *GenerateTxDataFileProcessor {
 	return &GenerateTxDataFileProcessor{
-		db:     db,
-		config: config,
-		// Initialize the embedded service
+		db:            db,
+		config:        config,
 		txFileService: *services.NewGenerateTxDataService(db, config),
+		aiChatService: aiChatService, // Store AIChatService
 	}
 }
 
@@ -92,13 +92,13 @@ func (p *GenerateTxDataFileProcessor) ProcessTask(ctx context.Context, task *asy
 		return fmt.Errorf("failed to upload file to GCS for user %d: %w", payload.UserID, err)
 	}
 
-	// 5. Construct Public HTTPS URL (ASSUMES OBJECT IS PUBLICLY READABLE IN GCP)
+	// 5. Construct the Public HTTPS URL
 	publicURL := fmt.Sprintf("https://storage.googleapis.com/%s/%s", p.config.GCSBucketName, objectPath)
 
 	// 6. Store/Update the Public URL in the database
 	fileRecord := models.UserTransactionFile{
-		UserID:   userID,
-		FilePath: publicURL, // Store the public URL
+		UserID:   payload.UserID,
+		FilePath: publicURL, // Store the public URL directly
 	}
 
 	// Use Clauses(clause.OnConflict) for upsert
@@ -106,9 +106,26 @@ func (p *GenerateTxDataFileProcessor) ProcessTask(ctx context.Context, task *asy
 		Columns:   []clause.Column{{Name: "user_id"}},
 		DoUpdates: clause.AssignmentColumns([]string{"file_path", "updated_at"}),
 	}).Create(&fileRecord).Error; errDb != nil {
-		log.Error().Err(errDb).Uint("user_id", userID).Str("public_url", publicURL).Msg("failed to save/update user transaction file public URL in DB")
+		log.Error().Err(errDb).Uint("user_id", payload.UserID).Str("public_url", publicURL).Msg("failed to save/update user transaction file public URL in DB")
+		// If DB save fails, should we still attempt indexing? Maybe not, as indexing relies on the path being persisted.
+		return fmt.Errorf("failed to save file path to DB for user %d: %w", payload.UserID, errDb)
+	}
+	log.Info().Uint("user_id", payload.UserID).Str("public_url", publicURL).Msg("Saved transaction file public URL to DB")
+
+	// --- Trigger AI Indexing --- //
+	if p.aiChatService == nil {
+		log.Error().Uint("user_id", payload.UserID).Msg("AIChatService is nil in GenerateTxDataFileProcessor, cannot trigger indexing")
+		// This is a config error, don't retry the task itself, but log prominently.
+		return fmt.Errorf("internal configuration error: AIChatService not available %w", asynq.SkipRetry)
 	}
 
-	log.Info().Str("task_type", task.Type()).Str("user_id", userIDStr).Msg("generate tx data file task completed successfully")
+	// The Trigger function will now fetch this public URL from the DB
+	if err := p.aiChatService.TriggerTransactionFileIndexing(ctx, payload.UserID); err != nil {
+		log.Error().Err(err).Uint("user_id", payload.UserID).Msg("Failed to trigger AI transaction file indexing")
+		// Return the error to let Asynq handle retries. Indexing might fail transiently.
+		return fmt.Errorf("failed to trigger AI transaction file indexing for user %d: %w", payload.UserID, err)
+	}
+
+	log.Info().Str("task_type", task.Type()).Str("user_id", userIDStr).Msg("generate tx data file task and indexing trigger completed successfully")
 	return nil
 }

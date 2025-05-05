@@ -1,0 +1,6 @@
+version: v1
+roots:
+  - proto
+lint:
+  use:
+    - DEFAULT
