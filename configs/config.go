@@ -52,13 +52,16 @@ type Config struct {
 	OpenAIModel        string  `mapstructure:"OPENAI_MODEL"`
 	OpenAITemperature  float64 `mapstructure:"OPENAI_TEMPERATURE"`
 	OpenAIMaxTokens    int     `mapstructure:"OPENAI_MAX_TOKENS"`
+
+	// LiveKit Config
+	LiveKitHost      string `mapstructure:"LIVEKIT_URL"`
+	LiveKitAPIKey    string `mapstructure:"LIVEKIT_API_KEY"`
+	LiveKitAPISecret string `mapstructure:"LIVEKIT_API_SECRET"`
 }
 
 func LoadConfig(path string) (config Config, err error) {
 	viper.AddConfigPath(path)
-	viper.SetConfigName("app")
-	viper.SetConfigType("env")
-
+	viper.SetConfigFile(".env")
 	viper.AutomaticEnv()
 	viper.BindEnv("GCS_BUCKET_NAME")
 	viper.BindEnv("GCS_CREDENTIALS_FILE")

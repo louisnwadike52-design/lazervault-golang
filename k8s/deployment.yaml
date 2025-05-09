@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lazervault-deployment
+  namespace: default # Or your specific namespace
+  labels:
+    app: lazervault
+spec:
+  replicas: 2 # Start with 2 replicas, adjust as needed
+  selector:
+    matchLabels:
+      app: lazervault
+  template:
+    metadata:
+      labels:
+        app: lazervault
+    spec:
+      containers:
+      - name: lazervault-app
+        image: europe-west1-docker.pkg.dev/lazervault/lazervault-images/lazervault-golang:latest 
+        ports:
+        - name: grpc-port
+          containerPort: 7007 # Ensure this matches GRPC_SERVER_PORT in your .env
+        - name: http-port
+          containerPort: 8080 # Ensure this matches HTTP_SERVER_PORT in your .env
+        env:
+        - name: REDIS_SERVER_ADDR
+          valueFrom:
+            configMapKeyRef:
+              name: lazervault-config
+              key: REDIS_SERVER_ADDR
+        resources:
+          requests:
+            cpu: "500m" # Represents 2 CPU cores
+            memory: "1Gi"
+          limits:
+            cpu: "1" # Represents 2 CPU cores
+            memory: "2Gi"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http-port # This should be the HTTP port from your .env
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 300 # 5 minutes
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: http-port # This should be the HTTP port from your .env
+          initialDelaySeconds: 15
+          periodSeconds: 5
+          timeoutSeconds: 300 # 5 minutes
+      # --- Cloud SQL Proxy Sidecar (Example - uncomment and configure if using Cloud SQL) ---
+      # - name: cloud-sql-proxy
+      #   image: europe-west1-docker.pkg.dev/lazervault/lazervault-images/lazervault-golang:latest 
+      #   command:
+      #     - "/cloud_sql_proxy"
+      #     - "-instances=YOUR_PROJECT_ID:YOUR_REGION:YOUR_INSTANCE_NAME=tcp:5432" # <-- REPLACE
+      #   securityContext:
+      #     runAsNonRoot: true
+      #   resources:
+      #     requests:
+      #       memory: "64Mi"
+      #       cpu: "50m" 

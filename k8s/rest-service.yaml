@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: lazervault-rest-service
+  namespace: default # Or your specific namespace
+  labels:
+    app: lazervault
+spec:
+  type: LoadBalancer # Creates an external IP, consider Ingress for production
+  selector:
+    app: lazervault
+  ports:
+  - name: http-external-port
+    protocol: TCP
+    port: 8080       # External port the service listens on
+    targetPort: http-port # Name of the port in the Deployment's Pod spec (containerPort 8080) 

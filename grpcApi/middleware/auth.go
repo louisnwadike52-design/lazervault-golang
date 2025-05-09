@@ -16,6 +16,7 @@ type contextKey string
 
 // Exported context key for authorization payload
 const AuthorizationPayloadKey contextKey = "authorization_payload"
+const AccessTokenKey contextKey = "accessToken" // New key for the raw access token string
 
 const (
 	authorizationHeader = "authorization"
@@ -34,13 +35,18 @@ func AuthInterceptor(tokenMaker token.Maker) grpc.UnaryServerInterceptor {
 			return handler(ctx, req)
 		}
 
-		payload, err := authorize(ctx, tokenMaker)
+		// authorize now returns payload AND the raw token string
+		payload, rawToken, err := authorize(ctx, tokenMaker)
 		if err != nil {
 			return nil, err
 		}
 
 		// Add user info to context using the exported key
 		ctx = context.WithValue(ctx, AuthorizationPayloadKey, payload)
+		// Store the raw access token string in the context
+		if rawToken != "" {
+			ctx = context.WithValue(ctx, AccessTokenKey, rawToken)
+		}
 		return handler(ctx, req)
 	}
 }
@@ -51,7 +57,7 @@ func requiresAuth(method string) bool {
 	publicEndpoints := map[string]bool{
 		// Auth Service public endpoints
 		"/pb.AuthService/Login":        false,
-		"/pb.AuthService/Logout":       true,
+		"/pb.AuthService/Logout":       true, // Should be true, logout needs auth
 		"/pb.AuthService/RefreshToken": false,
 		"/pb.AuthService/Register":     false,
 		"/pb.AuthService/VerifyEmail":  false,
@@ -72,34 +78,34 @@ func requiresAuth(method string) bool {
 	return true
 }
 
-// authorize verifies the authentication token from the context
-func authorize(ctx context.Context, tokenMaker token.Maker) (*token.Payload, error) {
+// authorize verifies the authentication token from the context and returns payload + raw token
+func authorize(ctx context.Context, tokenMaker token.Maker) (*token.Payload, string, error) {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
-		return nil, status.Error(codes.Unauthenticated, "metadata is not provided")
+		return nil, "", status.Error(codes.Unauthenticated, "metadata is not provided")
 	}
 
 	values := md.Get(authorizationHeader)
 	if len(values) == 0 {
-		return nil, status.Error(codes.Unauthenticated, "authorization token is not provided")
+		return nil, "", status.Error(codes.Unauthenticated, "authorization token is not provided")
 	}
 
 	authHeader := values[0]
 	fields := strings.Fields(authHeader)
 	if len(fields) < 2 {
-		return nil, status.Error(codes.Unauthenticated, "invalid authorization header format")
+		return nil, "", status.Error(codes.Unauthenticated, "invalid authorization header format")
 	}
 
 	authType := strings.ToLower(fields[0])
 	if authType != authorizationBearer {
-		return nil, status.Error(codes.Unauthenticated, "unsupported authorization type")
+		return nil, "", status.Error(codes.Unauthenticated, "unsupported authorization type")
 	}
 
-	accessToken := fields[1]
-	payload, err := tokenMaker.VerifyToken(accessToken)
+	accessTokenString := fields[1] // This is the raw token string
+	payload, err := tokenMaker.VerifyToken(accessTokenString)
 	if err != nil {
-		return nil, status.Errorf(codes.Unauthenticated, "invalid token: %v", err)
+		return nil, "", status.Errorf(codes.Unauthenticated, "invalid token: %v", err)
 	}
 
-	return payload, nil
+	return payload, accessTokenString, nil // Return the raw token string as well
 }

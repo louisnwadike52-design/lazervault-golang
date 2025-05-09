@@ -47,6 +47,9 @@
       "name": "UserService"
     },
     {
+      "name": "VoiceSessionService"
+    },
+    {
       "name": "WithdrawService"
     }
   ],
@@ -1211,6 +1214,39 @@
         ]
       }
     },
+    "/v1/recipients/search-by-name": {
+      "get": {
+        "summary": "Search saved recipients by name",
+        "description": "Searches existing saved recipients by their name. Returns a list of matching recipients with their ID and name.",
+        "operationId": "RecipientService_GetSimilarRecipientsByName",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbGetSimilarRecipientsByNameResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "name",
+            "description": "Changed from name_query. This will be the name (or partial name) to search for in saved recipients.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "Recipients"
+        ]
+      }
+    },
     "/v1/recipients/{recipientId}": {
       "get": {
         "summary": "Retrieves details for a specific recipient owned by the authenticated user.",
@@ -1627,6 +1663,45 @@
         },
         "tags": [
           "TxFileService"
+        ]
+      }
+    },
+    "/v1/voice/session/start": {
+      "post": {
+        "summary": "Start Voice Session",
+        "description": "Initiates a voice session with an AI agent, returns LiveKit room details and client token.",
+        "operationId": "VoiceSessionService_StartVoiceSession",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbStartVoiceSessionResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/pbStartVoiceSessionRequest"
+            }
+          }
+        ],
+        "tags": [
+          "Voice Session"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
         ]
       }
     },
@@ -2311,6 +2386,20 @@
       },
       "title": "Represents a recorded exchange transaction"
     },
+    "pbFoundRecipientResult": {
+      "type": "object",
+      "properties": {
+        "recipientId": {
+          "type": "string",
+          "title": "Mapped from Recipient.ID"
+        },
+        "name": {
+          "type": "string",
+          "title": "Mapped from Recipient.Name"
+        }
+      },
+      "title": "Renamed from SimilarRecipientUser and fields adjusted"
+    },
     "pbGenerateUserTxDataFileRequest": {
       "type": "object",
       "properties": {
@@ -2488,6 +2577,19 @@
       "properties": {
         "recipient": {
           "$ref": "#/definitions/pbRecipient"
+        }
+      }
+    },
+    "pbGetSimilarRecipientsByNameResponse": {
+      "type": "object",
+      "properties": {
+        "foundRecipients": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbFoundRecipientResult"
+          },
+          "title": "Changed from similar_users and type updated"
         }
       }
     },
@@ -3550,6 +3652,27 @@
       "required": [
         "idToken"
       ]
+    },
+    "pbStartVoiceSessionRequest": {
+      "type": "object",
+      "title": "Potentially add a field if Flutter needs to pass any specific parameters\n for session setup, though user identity is derived from auth token.\n string preferred_agent_language = 1;"
+    },
+    "pbStartVoiceSessionResponse": {
+      "type": "object",
+      "properties": {
+        "roomName": {
+          "type": "string",
+          "description": "The unique LiveKit room name for this session."
+        },
+        "livekitToken": {
+          "type": "string",
+          "description": "The LiveKit access token for the Flutter client."
+        },
+        "agentId": {
+          "type": "string",
+          "description": "An identifier for the agent (optional, could be fixed)."
+        }
+      }
     },
     "pbTimePeriod": {
       "type": "string",

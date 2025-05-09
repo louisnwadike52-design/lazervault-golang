@@ -3,6 +3,8 @@ package grpcApi
 import (
 	"context"
 	"errors" // Needed for getUserFromContext dependency
+	"fmt"
+	"lazervaultGo/models" // Added for models.User to *pb.SimilarRecipientUser conversion
 	"lazervaultGo/pb"
 	"lazervaultGo/services"
 
@@ -141,23 +143,59 @@ func (c *RecipientController) GetRecipient(ctx context.Context, req *pb.GetRecip
 		return nil, status.Error(codes.InvalidArgument, "recipient_id is required")
 	}
 
-	// Call the service layer, passing the requesting user's ID for ownership check
 	foundModel, err := c.recipientService.GetRecipientByID(ctx, recipientID, user.ID)
 	if err != nil {
-		// Map service errors
 		if errors.Is(err, services.ErrRecipientNotFound) {
 			return nil, status.Errorf(codes.NotFound, "recipient with id %d not found", recipientID)
 		} else if errors.Is(err, services.ErrRecipientAccessDenied) {
-			// Return NotFound instead of PermissionDenied to avoid revealing existence
 			return nil, status.Errorf(codes.NotFound, "recipient with id %d not found", recipientID)
 		}
-		// Handle potential database errors or other unexpected issues
-		// log.Errorf("Failed to get recipient %d for user %d: %v", recipientID, user.ID, err) // Consider logging
 		return nil, status.Errorf(codes.Internal, "failed to retrieve recipient: %v", err)
 	}
 
-	// Convert the found model to the proto response format
 	return &pb.GetRecipientResponse{
 		Recipient: services.ConvertRecipientToProto(foundModel),
 	}, nil
+}
+
+// GetSimilarRecipientsByName handles the gRPC request to search for a user's saved recipients by name.
+func (c *RecipientController) GetSimilarRecipientsByName(ctx context.Context, req *pb.GetSimilarRecipientsByNameRequest) (*pb.GetSimilarRecipientsByNameResponse, error) {
+	// Get authenticated user
+	user, err := getUserFromContext(ctx, c.userService)
+	if err != nil {
+		return nil, err // Propagate auth/user lookup errors
+	}
+
+	if req.GetName() == "" { // Updated from GetNameQuery()
+		return nil, status.Error(codes.InvalidArgument, "name is required")
+	}
+
+	// Call the service layer method, now scoped to the authenticated user
+	foundRecipientModels, err := c.recipientService.GetSimilarRecipientsByName(ctx, req.GetName(), user.ID)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to search for recipients by name: %v", err)
+	}
+
+	// Convert models.Recipient to pb.FoundRecipientResult
+	pbFoundRecipients := make([]*pb.FoundRecipientResult, 0, len(foundRecipientModels))
+	for _, recipientModel := range foundRecipientModels {
+		if recipientModel != nil {
+			pbFoundRecipients = append(pbFoundRecipients, ConvertRecipientModelToFoundRecipientResultProto(recipientModel))
+		}
+	}
+
+	return &pb.GetSimilarRecipientsByNameResponse{
+		FoundRecipients: pbFoundRecipients, // Updated field name
+	}, nil
+}
+
+// Helper to convert models.Recipient to pb.FoundRecipientResult
+func ConvertRecipientModelToFoundRecipientResultProto(r *models.Recipient) *pb.FoundRecipientResult {
+	if r == nil {
+		return nil
+	}
+	return &pb.FoundRecipientResult{
+		RecipientId: fmt.Sprint(r.ID),
+		Name:        r.Name,
+	}
 }

@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: lazervault-grpc-service
+  namespace: default # Or your specific namespace
+  labels:
+    app: lazervault
+  annotations:
+    # This annotation is important for GKE LoadBalancer to handle HTTP/2 for gRPC
+    cloud.google.com/app-protocols: '{"grpc-internal-port":"HTTP2"}'
+spec:
+  type: LoadBalancer # Creates an external IP, consider Ingress for production
+  selector:
+    app: lazervault
+  ports:
+  - name: grpc-internal-port # Name used in the annotation
+    protocol: TCP
+    port: 7007       # External port the service listens on
+    targetPort: grpc-port # Name of the port in the Deployment's Pod spec (containerPort 7007) 

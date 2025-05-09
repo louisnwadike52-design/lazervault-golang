@@ -2,6 +2,7 @@ package grpcApi
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"lazervaultGo/configs"
 	"lazervaultGo/grpcApi/middleware"
@@ -11,11 +12,13 @@ import (
 	"lazervaultGo/worker"
 	"net"
 	"net/http"
+	"os"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/rs/cors"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/reflection"
 	"gorm.io/gorm"
 )
 
@@ -33,7 +36,11 @@ func NewServer(
 	config *configs.Config,
 	tokenMaker token.Maker,
 	redisWorker *worker.RedisWorker,
-) *Server {
+) (*Server, error) {
+	if redisWorker == nil {
+		return nil, errors.New("redisWorker dependency cannot be nil in NewServer")
+	}
+
 	server := &Server{
 		config:      config,
 		db:          db,
@@ -69,6 +76,12 @@ func NewServer(
 	// Initialize AI Chat Controller
 	aiChatController := NewAIChatController(aiChatService, userService)
 
+	// Initialize Voice Session Service
+	voiceSessionService := services.NewVoiceSessionService(db, config, tokenMaker)
+
+	// Initialize Voice Session Controller
+	voiceSessionController := NewVoiceSessionController(voiceSessionService, userService)
+
 	// Register gRPC services
 	pb.RegisterAuthServiceServer(grpcServer, NewAuthController(authService))
 	pb.RegisterUserServiceServer(grpcServer, NewUserController(server))
@@ -84,8 +97,13 @@ func NewServer(
 	pb.RegisterGenerateTxDataServiceServer(grpcServer, generateTxDataController)
 	pb.RegisterTxFileServiceServer(grpcServer, txFileController)
 	pb.RegisterAIChatServiceServer(grpcServer, aiChatController)
+	pb.RegisterVoiceSessionServiceServer(grpcServer, voiceSessionController)
 	server.grpcServer = grpcServer
-	return server
+
+	// Register reflection service on gRPC server.
+	reflection.Register(grpcServer)
+
+	return server, nil
 }
 
 func (s *Server) Start() error {
@@ -154,6 +172,10 @@ func (s *Server) startHTTPServer() error {
 	if err := pb.RegisterWithdrawServiceHandlerFromEndpoint(ctx, gwmux, grpcAddr, opts); err != nil {
 		return fmt.Errorf("failed to register withdraw gateway: %w", err)
 	}
+	// Register VoiceSessionService gateway handler
+	if err := pb.RegisterVoiceSessionServiceHandlerFromEndpoint(ctx, gwmux, grpcAddr, opts); err != nil {
+		return fmt.Errorf("failed to register voice session gateway: %w", err)
+	}
 	// Comment out problematic gateway registrations until root cause is found
 	/*
 		if err := pb.RegisterGenerateTxDataServiceHandlerFromEndpoint(ctx, gwmux, grpcAddr, opts); err != nil {
@@ -202,8 +224,14 @@ func (s *Server) startHTTPServer() error {
 
 	handler := corsHandler.Handler(mux)
 
+	// Determine port for HTTP server
+	httpPort := os.Getenv("PORT")
+	if httpPort == "" {
+		httpPort = s.config.HTTPServerPort // Fallback to config for local development
+	}
+
 	// Start HTTP server
-	httpAddr := fmt.Sprintf(":%s", s.config.HTTPServerPort)
+	httpAddr := fmt.Sprintf(":%s", httpPort)
 	fmt.Printf("Starting HTTP server on %s\n", httpAddr)
 
 	return http.ListenAndServe(httpAddr, handler)

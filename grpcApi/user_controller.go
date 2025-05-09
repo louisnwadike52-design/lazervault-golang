@@ -7,6 +7,7 @@ import (
 	"lazervaultGo/pb"
 	"lazervaultGo/services"
 
+	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -24,6 +25,15 @@ func NewUserController(server *Server) *UserController {
 }
 
 func (c *UserController) CreateUser(ctx context.Context, req *pb.CreateUserRequest) (*pb.CreateUserResponse, error) {
+	// Log request received
+	log.Info().
+		Str("email", req.Email).
+		Str("first_name", req.FirstName).
+		Str("last_name", req.LastName).
+		Str("phone_number", req.PhoneNumber).
+		Str("role", req.Role).
+		Msg("Received CreateUser request")
+
 	// Create user model from request
 	user := &models.User{
 		FirstName:   req.FirstName,
@@ -37,8 +47,12 @@ func (c *UserController) CreateUser(ctx context.Context, req *pb.CreateUserReque
 	userService := services.NewUserService(c.server.db, c.server.config, c.server.tokenMaker)
 	// Create user in database
 	if err := userService.CreateUser(ctx, user); err != nil {
-		return c.createErrorResponse(codes.InvalidArgument, err.Error())
+		// Logging handled in createErrorResponse
+		return c.createErrorResponse(codes.InvalidArgument, err.Error(), req.Email)
 	}
+
+	// Log success
+	log.Info().Uint("user_id", user.ID).Str("email", user.Email).Msg("User created successfully")
 
 	// Convert to protobuf response
 	return &pb.CreateUserResponse{
@@ -60,7 +74,14 @@ func (c *UserController) CreateUser(ctx context.Context, req *pb.CreateUserReque
 	}, nil
 }
 
-func (c *UserController) createErrorResponse(errorCode codes.Code, errorMessage string) (*pb.CreateUserResponse, error) {
+func (c *UserController) createErrorResponse(errorCode codes.Code, errorMessage string, email string) (*pb.CreateUserResponse, error) {
+	// Log the error
+	log.Error().
+		Str("email_attempted", email).
+		Str("error", errorMessage).
+		Str("grpc_code", errorCode.String()).
+		Msg("CreateUser failed")
+
 	fmt.Println("grpc error: ", errorMessage)
 	return &pb.CreateUserResponse{
 		Success: false,

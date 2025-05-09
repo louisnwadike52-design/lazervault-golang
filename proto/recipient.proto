@@ -114,6 +114,19 @@ message GetRecipientResponse {
   Recipient recipient = 1;
 }
 
+// Renamed from SimilarRecipientUser and fields adjusted
+message FoundRecipientResult {
+  string recipient_id = 1; // Mapped from Recipient.ID
+  string name = 2;         // Mapped from Recipient.Name
+}
+
+message GetSimilarRecipientsByNameRequest {
+  string name = 1; // Changed from name_query. This will be the name (or partial name) to search for in saved recipients.
+}
+
+message GetSimilarRecipientsByNameResponse {
+  repeated FoundRecipientResult found_recipients = 1; // Changed from similar_users and type updated
+}
 
 // Service definition for managing recipients
 service RecipientService {
@@ -151,6 +164,20 @@ service RecipientService {
   rpc GetRecipient(GetRecipientRequest) returns (GetRecipientResponse) { // Renamed from GetRecipientByID
     option (google.api.http) = {
       get: "/v1/recipients/{recipient_id}"
+    };
+  }
+
+  // Searches for saved recipients by name.
+  rpc GetSimilarRecipientsByName(GetSimilarRecipientsByNameRequest) returns (GetSimilarRecipientsByNameResponse) {
+    option (google.api.http) = {
+      get: "/v1/recipients/search-by-name"
+      // The 'name' field from GetSimilarRecipientsByNameRequest will be mapped from the query parameter.
+      // e.g. /v1/recipients/search-by-name?name=JohnsCoffeeShop
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Search saved recipients by name"
+      description: "Searches existing saved recipients by their name. Returns a list of matching recipients with their ID and name."
+      tags: ["Recipients"]
     };
   }
 } 

@@ -32,6 +32,7 @@ type IRecipientService interface {
 	UpdateRecipient(ctx context.Context, userID uint, req *pb.UpdateRecipientRequest) (*models.Recipient, error)
 	DeleteRecipient(ctx context.Context, userID uint, recipientID uint) error
 	GetRecipientByID(ctx context.Context, recipientID uint, requestingUserID uint) (*models.Recipient, error)
+	GetSimilarRecipientsByName(ctx context.Context, name string, userID uint) ([]*models.Recipient, error)
 }
 
 // --- Service Struct ---
@@ -204,6 +205,24 @@ func (s *RecipientService) GetRecipientByID(ctx context.Context, recipientID uin
 	// Handle preload errors if necessary
 
 	return &recipient, nil
+}
+
+func (s *RecipientService) GetSimilarRecipientsByName(ctx context.Context, name string, userID uint) ([]*models.Recipient, error) {
+	var recipients []*models.Recipient
+	searchTerm := "%" + strings.ToLower(name) + "%"
+
+	// Search term against the Name field of the recipients table, scoped to the OwnerUserID.
+	err := s.db.WithContext(ctx).
+		Select("id", "name"). // Select only ID and Name as per new requirement for response
+		Where("owner_user_id = ? AND LOWER(name) ILIKE ?", userID, searchTerm).
+		Limit(10). // Limit results to a reasonable number
+		Find(&recipients).Error
+
+	if err != nil {
+		return nil, fmt.Errorf("database error searching recipients by name: %w", err)
+	}
+
+	return recipients, nil
 }
 
 // Helper to convert Recipient model to proto message

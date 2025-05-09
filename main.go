@@ -8,7 +8,8 @@ import (
 	"lazervaultGo/services"
 	"lazervaultGo/token"
 	"lazervaultGo/worker"
-	"log"
+
+	"github.com/rs/zerolog/log"
 
 	"github.com/hibiken/asynq"
 )
@@ -17,31 +18,31 @@ func main() {
 	// Load configuration
 	config, err := configs.LoadConfig(".")
 	if err != nil {
-		log.Fatal("cannot load config:", err)
+		log.Fatal().Err(err).Msg("cannot load config")
 	}
 
 	// Initialize database
 	db, err := database.ConnectDB(config)
 	if err != nil {
-		log.Fatal("cannot connect to db:", err)
+		log.Fatal().Err(err).Msg("cannot connect to db")
 	}
 
 	migrator := database.NewMigrator(db)
 
 	// // Drop all tables
 	// if err := migrator.DropAllTables(); err != nil {
-	// 	log.Fatal("cannot drop tables:", err)
+	// 	log.Fatal().Err(err).Msg("cannot drop tables") // Adjusted if uncommented
 	// }
 
 	// Run migrations
 	if err := migrator.RunMigrations(); err != nil {
-		log.Fatal("cannot run migrations:", err)
+		log.Fatal().Err(err).Msg("cannot run migrations")
 	}
 
 	// Create token maker
 	tokenMaker, err := token.NewPasetoMaker(config.TokenSymmetricKey)
 	if err != nil {
-		log.Fatal("cannot create token maker:", err)
+		log.Fatal().Err(err).Msg("cannot create token maker")
 	}
 
 	mailer := mail.NewGmailSender(config.EmailSenderName, config.EmailSenderAddress, config.EmailSenderPassword)
@@ -65,14 +66,17 @@ func main() {
 
 	// 4. Create and initialize the gRPC/HTTP server
 	//    Pass the redisWorker (which contains distributor & processor)
-	server := grpcApi.NewServer(db, &config, tokenMaker, redisWorker)
+	server, err := grpcApi.NewServer(db, &config, tokenMaker, redisWorker)
+	if err != nil {
+		log.Fatal().Err(err).Msg("cannot create server")
+	}
 
 	// Handle graceful shutdown
 	go handleShutdown(server)
 
 	// Start server
 	if err := server.Start(); err != nil {
-		log.Fatal("cannot start server:", err)
+		log.Fatal().Err(err).Msg("cannot start server")
 	}
 }
 
