@@ -12,7 +12,6 @@ import (
 	"lazervaultGo/worker"
 	"net"
 	"net/http"
-	"os"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/rs/cors"
@@ -111,17 +110,16 @@ func (s *Server) Start() error {
 	grpcAddr := fmt.Sprintf(":%s", s.config.GRPCServerPort)
 	listener, err := net.Listen("tcp", grpcAddr)
 	if err != nil {
-		return fmt.Errorf("failed to listen: %w", err)
+		return fmt.Errorf("failed to listen on gRPC port %s: %w", s.config.GRPCServerPort, err)
 	}
-
+	fmt.Printf("Starting gRPC server on %s\n", grpcAddr)
 	go func() {
-		fmt.Printf("Starting gRPC server on %s\n", grpcAddr)
 		if err := s.grpcServer.Serve(listener); err != nil {
 			panic(fmt.Sprintf("failed to serve gRPC: %v", err))
 		}
 	}()
 
-	// Start HTTP gateway
+	// Start HTTP gateway server
 	return s.startHTTPServer()
 }
 
@@ -135,67 +133,69 @@ func (s *Server) startHTTPServer() error {
 		runtime.WithOutgoingHeaderMatcher(customHeaderMatcher),
 	)
 
-	grpcAddr := fmt.Sprintf("localhost:%s", s.config.GRPCServerPort)
+	// The gRPC server is now on its own port again.
+	grpcDialAddr := fmt.Sprintf("localhost:%s", s.config.GRPCServerPort)
 	opts := []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())}
 
 	// Register service handlers
-	if err := pb.RegisterAuthServiceHandlerFromEndpoint(ctx, gwmux, grpcAddr, opts); err != nil {
+	if err := pb.RegisterAuthServiceHandlerFromEndpoint(ctx, gwmux, grpcDialAddr, opts); err != nil {
 		return fmt.Errorf("failed to register auth gateway: %w", err)
 	}
-	if err := pb.RegisterUserServiceHandlerFromEndpoint(ctx, gwmux, grpcAddr, opts); err != nil {
+	if err := pb.RegisterUserServiceHandlerFromEndpoint(ctx, gwmux, grpcDialAddr, opts); err != nil {
 		return fmt.Errorf("failed to register user gateway: %w", err)
 	}
-	if err := pb.RegisterTransferServiceHandlerFromEndpoint(ctx, gwmux, grpcAddr, opts); err != nil {
+	if err := pb.RegisterTransferServiceHandlerFromEndpoint(ctx, gwmux, grpcDialAddr, opts); err != nil {
 		return fmt.Errorf("failed to register transfer gateway: %w", err)
 	}
-	if err := pb.RegisterAccountServiceHandlerFromEndpoint(ctx, gwmux, grpcAddr, opts); err != nil {
+	if err := pb.RegisterAccountServiceHandlerFromEndpoint(ctx, gwmux, grpcDialAddr, opts); err != nil {
 		return fmt.Errorf("failed to register account gateway: %w", err)
 	}
-	if err := pb.RegisterAccountCardServiceHandlerFromEndpoint(ctx, gwmux, grpcAddr, opts); err != nil {
+	if err := pb.RegisterAccountCardServiceHandlerFromEndpoint(ctx, gwmux, grpcDialAddr, opts); err != nil {
 		return fmt.Errorf("failed to register account card gateway: %w", err)
 	}
-	if err := pb.RegisterRecipientServiceHandlerFromEndpoint(ctx, gwmux, grpcAddr, opts); err != nil {
+	if err := pb.RegisterRecipientServiceHandlerFromEndpoint(ctx, gwmux, grpcDialAddr, opts); err != nil {
 		return fmt.Errorf("failed to register recipient gateway: %w", err)
 	}
-	if err := pb.RegisterChatServiceHandlerFromEndpoint(ctx, gwmux, grpcAddr, opts); err != nil {
+	if err := pb.RegisterChatServiceHandlerFromEndpoint(ctx, gwmux, grpcDialAddr, opts); err != nil {
 		return fmt.Errorf("failed to register chat gateway: %w", err)
 	}
-	if err := pb.RegisterExchangeServiceHandlerFromEndpoint(ctx, gwmux, grpcAddr, opts); err != nil {
+	if err := pb.RegisterExchangeServiceHandlerFromEndpoint(ctx, gwmux, grpcDialAddr, opts); err != nil {
 		return fmt.Errorf("failed to register exchange gateway: %w", err)
 	}
-	if err := pb.RegisterInvoiceServiceHandlerFromEndpoint(ctx, gwmux, grpcAddr, opts); err != nil {
+	if err := pb.RegisterInvoiceServiceHandlerFromEndpoint(ctx, gwmux, grpcDialAddr, opts); err != nil {
 		return fmt.Errorf("failed to register invoice gateway: %w", err)
 	}
-	if err := pb.RegisterDepositServiceHandlerFromEndpoint(ctx, gwmux, grpcAddr, opts); err != nil {
+	if err := pb.RegisterDepositServiceHandlerFromEndpoint(ctx, gwmux, grpcDialAddr, opts); err != nil {
 		return fmt.Errorf("failed to register deposit gateway: %w", err)
 	}
-	if err := pb.RegisterWithdrawServiceHandlerFromEndpoint(ctx, gwmux, grpcAddr, opts); err != nil {
+	if err := pb.RegisterWithdrawServiceHandlerFromEndpoint(ctx, gwmux, grpcDialAddr, opts); err != nil {
 		return fmt.Errorf("failed to register withdraw gateway: %w", err)
 	}
-	// Register VoiceSessionService gateway handler
-	if err := pb.RegisterVoiceSessionServiceHandlerFromEndpoint(ctx, gwmux, grpcAddr, opts); err != nil {
-		return fmt.Errorf("failed to register voice session gateway: %w", err)
+	if err := pb.RegisterAIChatServiceHandlerFromEndpoint(ctx, gwmux, grpcDialAddr, opts); err != nil {
+		return fmt.Errorf("failed to register ai chat gateway: %w", err)
 	}
-	// Comment out problematic gateway registrations until root cause is found
-	/*
-		if err := pb.RegisterGenerateTxDataServiceHandlerFromEndpoint(ctx, gwmux, grpcAddr, opts); err != nil {
-			return fmt.Errorf("failed to register generate tx data gateway: %w", err)
-		}
-		if err := pb.RegisterTxFileServiceHandlerFromEndpoint(ctx, gwmux, grpcAddr, opts); err != nil {
-			return fmt.Errorf("failed to register tx file service gateway: %w", err)
-		}
-	*/
 
-	// Create main HTTP mux
-	mux := http.NewServeMux()
+	// Register remaining service handlers
+	if err := pb.RegisterGenerateTxDataServiceHandlerFromEndpoint(ctx, gwmux, grpcDialAddr, opts); err != nil {
+		return fmt.Errorf("failed to register generate tx data gateway: %w", err)
+	}
+	if err := pb.RegisterTxFileServiceHandlerFromEndpoint(ctx, gwmux, grpcDialAddr, opts); err != nil {
+		return fmt.Errorf("failed to register tx file service gateway: %w", err)
+	}
+	if err := pb.RegisterVoiceSessionServiceHandlerFromEndpoint(ctx, gwmux, grpcDialAddr, opts); err != nil {
+		return fmt.Errorf("failed to register voice session service gateway: %w", err)
+	}
+
+	// Create main HTTP mux for non-gRPC traffic (swagger, gateway)
+	httpMux := http.NewServeMux()
 
 	// Add Swagger handler
-	mux.Handle("/swagger/", http.StripPrefix("/swagger/", http.FileServer(http.Dir("./swagger"))))
+	httpMux.Handle("/swagger/", http.StripPrefix("/swagger/", http.FileServer(http.Dir("./swagger"))))
 
 	// Add gateway handler
-	mux.Handle("/", gwmux)
+	httpMux.Handle("/", gwmux)
 
-	// Setup CORS
+	// Setup CORS for HTTP traffic (gateway, swagger)
 	corsHandler := cors.New(cors.Options{
 		AllowedOrigins: []string{"*"},
 		AllowedMethods: []string{
@@ -222,19 +222,25 @@ func (s *Server) startHTTPServer() error {
 		AllowCredentials: true,
 	})
 
-	handler := corsHandler.Handler(mux)
+	// Wrap the HTTP mux with CORS
+	corsEnabledHttpMux := corsHandler.Handler(httpMux)
 
 	// Determine port for HTTP server
-	httpPort := os.Getenv("PORT")
+	httpPort := s.config.HTTPServerPort
 	if httpPort == "" {
 		httpPort = s.config.HTTPServerPort // Fallback to config for local development
 	}
 
 	// Start HTTP server
 	httpAddr := fmt.Sprintf(":%s", httpPort)
-	fmt.Printf("Starting HTTP server on %s\n", httpAddr)
+	fmt.Printf("Starting HTTP gateway server on %s\n", httpAddr)
 
-	return http.ListenAndServe(httpAddr, handler)
+	// Store the server instance so it can be shut down gracefully if needed.
+	s.httpServer = &http.Server{
+		Addr:    httpAddr,
+		Handler: corsEnabledHttpMux, // No longer using h2c.NewHandler
+	}
+	return s.httpServer.ListenAndServe()
 }
 
 func customHeaderMatcher(key string) (string, bool) {

@@ -22,20 +22,20 @@ option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
   // Define security definitions (e.g., Bearer token)
   security_definitions: {
     security: {
-      key: "bearer"
+      key: "bearer";
       value: {
-        type: TYPE_API_KEY
-        in: IN_HEADER
-        name: "Authorization"
-        description: "Authentication token, prefixed by Bearer: Bearer <token>"
-      }
-    }
-  }
+        type: TYPE_API_KEY;
+        in: IN_HEADER;
+        name: "Authorization";
+        description: "Authentication token, prefixed by Bearer: Bearer <token>";
+      };
+    };
+  };
   security: {
     security_requirement: {
-      key: "bearer"
-    }
-  }
+      key: "bearer";
+    };
+  };
 };
 
 // The Account message represents a user's financial account.
@@ -54,8 +54,8 @@ message Account {
 message CreateAccountRequest {
   option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
     json_schema: {
-      required: ["account_type", "currency"]
-    }
+      required: ["account_type", "currency"];
+    };
   };
 
   string account_type = 1 [json_name = "account_type"]; // Type of account to create
@@ -175,14 +175,13 @@ service AccountService {
   // Creates a new account for the authenticated user.
   rpc CreateAccount (CreateAccountRequest) returns (CreateAccountResponse) {
     option (google.api.http) = {
-      post: "/v1/accounts"
-      body: "*"
+      post: "/v1/accounts";
+      body: "*";
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      summary: "Create Account"
-      description: "Creates a new financial account for the authenticated user based on the provided type and currency. An optional PIN can be set."
-      tags: ["Accounts"]
-      // Security requirement already defined at service level
+      summary: "Create Account";
+      description: "Creates a new financial account for the authenticated user based on the provided type and currency. An optional PIN can be set.";
+      tags: ["Accounts"];
     };
   }
 
@@ -191,24 +190,55 @@ service AccountService {
   //  // ... (options) ...
   // }
 
-  // Renamed from ListUserAccounts
+  // GetUserAccounts retrieves a summary list of all accounts for the authenticated user
   rpc GetUserAccounts(GetUserAccountsRequest) returns (GetUserAccountsResponse) {
-       option (google.api.http) = {
-            get: "/v1/accounts"
-        };
-       option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-            summary: "Get User Accounts Summary"
-            description: "Retrieves a summary list of all financial accounts belonging to the authenticated user."
-            tags: ["Accounts"]
-            security: {
-              security_requirement: {
-                key: "bearer"
-              }
-            }
-        };
+    option (google.api.http) = {
+      get: "/v1/accounts";
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Get User Accounts Summary";
+      description: "Retrieves a summary list of all financial accounts belonging to the authenticated user.";
+      tags: ["Accounts"];
+    };
   }
-  rpc GetAccountDetails(GetAccountDetailsRequest) returns (GetAccountDetailsResponse) {}
-  rpc UpdateAccountStatus(UpdateAccountStatusRequest) returns (UpdateAccountStatusResponse) {}
-  rpc UpdateSecuritySettings(UpdateSecuritySettingsRequest) returns (UpdateSecuritySettingsResponse) {}
-  // rpc RevealPIN(RevealPINRequest) returns (RevealPINResponse) {} // Uncomment when ready
+
+  // GetAccountDetails retrieves detailed information for a specific account
+  rpc GetAccountDetails(GetAccountDetailsRequest) returns (GetAccountDetailsResponse) {
+    option (google.api.http) = {
+      get: "/v1/accounts/{account_id}";
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Get Account Details";
+      description: "Retrieves detailed information for a specific account, including security settings and limits.";
+      tags: ["Accounts"];
+    };
+  }
+
+  // UpdateAccountStatus updates the status of an account
+  rpc UpdateAccountStatus(UpdateAccountStatusRequest) returns (UpdateAccountStatusResponse) {
+    option (google.api.http) = {
+      patch: "/v1/accounts/{account_id}/status";
+      body: "*";
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Update Account Status";
+      description: "Updates the status of an account (e.g., active, blocked).";
+      tags: ["Accounts"];
+    };
+  }
+
+  // UpdateSecuritySettings updates the security settings for an account
+  rpc UpdateSecuritySettings(UpdateSecuritySettingsRequest) returns (UpdateSecuritySettingsResponse) {
+    option (google.api.http) = {
+      patch: "/v1/accounts/{account_id}/security";
+      body: "*";
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Update Security Settings";
+      description: "Updates security settings for an account (e.g., 3D Secure, contactless payments).";
+      tags: ["Accounts"];
+    };
+  }
+
+  // RevealPIN(RevealPINRequest) returns (RevealPINResponse) {} // Uncomment when ready
 }

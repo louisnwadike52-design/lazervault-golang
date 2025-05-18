@@ -9,14 +9,30 @@ import "google/protobuf/timestamp.proto";
 
 option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
     info: {
-        title: "LazerVault API"
-        version: "1.0"
-        description: "LazerVault Transfer API"
-    }
-    schemes: HTTP
-    schemes: HTTPS
-    consumes: "application/json"
-    produces: "application/json"
+        title: "LazerVault API";
+        version: "1.0";
+        description: "LazerVault Transfer API";
+    };
+    schemes: HTTP;
+    schemes: HTTPS;
+    consumes: "application/json";
+    produces: "application/json";
+    security_definitions: {
+        security: {
+            key: "bearer";
+            value: {
+                type: TYPE_API_KEY;
+                in: IN_HEADER;
+                name: "Authorization";
+                description: "Authentication token, prefixed by Bearer: Bearer <token>";
+            };
+        };
+    };
+    security: {
+        security_requirement: {
+            key: "bearer";
+        };
+    };
 };
 
 // Transfer Type Enum
@@ -45,15 +61,14 @@ message TransferTransaction {
 message InitiateTransferRequest {
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
       json_schema: {
-        // recipient_id OR to_account_id is required - validated in service
-        required: ["from_account_id", "amount"]
-      }
+        required: ["from_account_id", "amount"];
+      };
     };
     uint64 from_account_id = 1 [json_name = "from_account_id"]; // Required
     uint64 amount = 2;          // Required, minor units (e.g., cents, pence)
     string category = 3;
     string reference = 4;
-    google.protobuf.Timestamp scheduled_at = 5; // Optional. If not provided, processed immediately.
+    optional string scheduled_at = 5; // Optional. If not provided, processed immediately. Format: "2006-01-02T15:04:05Z07:00"
 
     // --- Destination (Use ONE of the following) ---
     uint64 to_account_id = 10 [json_name = "to_account_id"]; // Optional: Direct internal account ID
@@ -118,8 +133,8 @@ message ComparisonData {
 message GetStatisticsRequest {
    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
     json_schema: {
-      required: ["time_period"]
-    }
+      required: ["time_period"];
+    };
   };
   TimePeriod time_period = 1;
   // google.protobuf.Timestamp start_date = 2; // Alternative to TimePeriod
@@ -152,7 +167,7 @@ message GetTransactionsRequest {
    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
     json_schema: {
       // Define required/optional fields if needed for OpenAPI
-    }
+    };
   };
   // Filtering Options
   uint64 account_id = 1;            // Optional: Filter by specific account ID
@@ -193,7 +208,7 @@ message GetTransferDetailsResponse {
     string reference = 11;
     string category = 12;
     google.protobuf.Timestamp created_at = 13 [json_name = "created_at"];
-    google.protobuf.Timestamp scheduled_at = 14 [json_name = "scheduled_at"]; // Null if not scheduled
+    optional string scheduled_at = 14 [json_name = "scheduled_at"]; // Optional, format: "2006-01-02T15:04:05Z07:00"
     google.protobuf.Timestamp completed_at = 15 [json_name = "completed_at"]; // Null if not completed
     google.protobuf.Timestamp failed_at = 16 [json_name = "failed_at"];    // Null if not failed
     string failure_reason = 17 [json_name = "failure_reason"];    // Empty if not failed
@@ -204,66 +219,49 @@ service TransferService {
     // Initiates a new transfer
     rpc InitiateTransfer(InitiateTransferRequest) returns (InitiateTransferResponse) {
         option (google.api.http) = {
-            post: "/v1/transfers"
-            body: "*"
+            post: "/v1/transfers";
+            body: "*";
         };
         option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-            summary: "Initiate a new transfer"
-            description: "Initiates a new transfer with the provided details"
-            tags: "transfers"
+            summary: "Initiate a new transfer";
+            description: "Initiates a new transfer with the provided details";
+            tags: ["transfers"];
         };      
     };
 
     // Fetches aggregated financial statistics based on transfer history.
     rpc GetStatistics (GetStatisticsRequest) returns (GetStatisticsResponse) {
         option (google.api.http) = {
-            get: "/v1/transfers/statistics"
-            // query parameters will be mapped from GetStatisticsRequest fields
+            get: "/v1/transfers/statistics";
         };
         option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-            summary: "Get Financial Statistics"
-            description: "Retrieves aggregated income, expense, and categorized statistics based on transfer history for a given time period."
-            tags: ["Transfers"]
-            security: {
-                security_requirement: {
-                    key: "bearer"
-                }
-            }
+            summary: "Get Financial Statistics";
+            description: "Retrieves aggregated income, expense, and categorized statistics based on transfer history for a given time period.";
+            tags: ["Transfers"];
         };
     }
 
     // Fetches a paginated list of transactions based on filter criteria.
     rpc GetTransactions (GetTransactionsRequest) returns (GetTransactionsResponse) {
       option (google.api.http) = {
-        get: "/v1/transactions" // Changed path for clarity
-        // Query parameters mapped from GetTransactionsRequest fields
+        get: "/v1/transactions";
       };
       option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-        summary: "Get Transaction History"
-        description: "Retrieves a paginated list of user transactions, allowing filtering by account, card, date range, type, and category."
-        tags: ["Transactions"] // Changed tag
-        security: {
-          security_requirement: {
-            key: "bearer"
-          }
-        }
+        summary: "Get Transaction History";
+        description: "Retrieves a paginated list of user transactions, allowing filtering by account, card, date range, type, and category.";
+        tags: ["Transactions"];
       };
     }
 
     // Retrieves the details of a specific transfer transaction.
     rpc GetTransferDetails (GetTransferDetailsRequest) returns (GetTransferDetailsResponse) {
         option (google.api.http) = {
-            get: "/v1/transfers/{transfer_id}" // Map GET request with transfer_id in path
+            get: "/v1/transfers/{transfer_id}";
         };
         option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-            summary: "Get Transfer Details"
-            description: "Retrieves the details of a specific transfer transaction by its ID."
-            tags: ["Transfers"]
-            security: {
-                security_requirement: {
-                    key: "bearer"
-                }
-            }
+            summary: "Get Transfer Details";
+            description: "Retrieves the details of a specific transfer transaction by its ID.";
+            tags: ["Transfers"];
         };
     }
 } 

@@ -34,10 +34,13 @@ const (
 type AccountServiceClient interface {
 	// Creates a new account for the authenticated user.
 	CreateAccount(ctx context.Context, in *CreateAccountRequest, opts ...grpc.CallOption) (*CreateAccountResponse, error)
-	// Renamed from ListUserAccounts
+	// GetUserAccounts retrieves a summary list of all accounts for the authenticated user
 	GetUserAccounts(ctx context.Context, in *GetUserAccountsRequest, opts ...grpc.CallOption) (*GetUserAccountsResponse, error)
+	// GetAccountDetails retrieves detailed information for a specific account
 	GetAccountDetails(ctx context.Context, in *GetAccountDetailsRequest, opts ...grpc.CallOption) (*GetAccountDetailsResponse, error)
+	// UpdateAccountStatus updates the status of an account
 	UpdateAccountStatus(ctx context.Context, in *UpdateAccountStatusRequest, opts ...grpc.CallOption) (*UpdateAccountStatusResponse, error)
+	// UpdateSecuritySettings updates the security settings for an account
 	UpdateSecuritySettings(ctx context.Context, in *UpdateSecuritySettingsRequest, opts ...grpc.CallOption) (*UpdateSecuritySettingsResponse, error)
 }
 
@@ -107,10 +110,13 @@ func (c *accountServiceClient) UpdateSecuritySettings(ctx context.Context, in *U
 type AccountServiceServer interface {
 	// Creates a new account for the authenticated user.
 	CreateAccount(context.Context, *CreateAccountRequest) (*CreateAccountResponse, error)
-	// Renamed from ListUserAccounts
+	// GetUserAccounts retrieves a summary list of all accounts for the authenticated user
 	GetUserAccounts(context.Context, *GetUserAccountsRequest) (*GetUserAccountsResponse, error)
+	// GetAccountDetails retrieves detailed information for a specific account
 	GetAccountDetails(context.Context, *GetAccountDetailsRequest) (*GetAccountDetailsResponse, error)
+	// UpdateAccountStatus updates the status of an account
 	UpdateAccountStatus(context.Context, *UpdateAccountStatusRequest) (*UpdateAccountStatusResponse, error)
+	// UpdateSecuritySettings updates the security settings for an account
 	UpdateSecuritySettings(context.Context, *UpdateSecuritySettingsRequest) (*UpdateSecuritySettingsResponse, error)
 	mustEmbedUnimplementedAccountServiceServer()
 }

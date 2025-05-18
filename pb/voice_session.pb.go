@@ -128,13 +128,13 @@ const file_voice_session_proto_rawDesc = "" +
 	"\x19StartVoiceSessionResponse\x12\x1b\n" +
 	"\troom_name\x18\x01 \x01(\tR\broomName\x12#\n" +
 	"\rlivekit_token\x18\x02 \x01(\tR\flivekitToken\x12\x19\n" +
-	"\bagent_id\x18\x03 \x01(\tR\aagentId2\xa3\x02\n" +
-	"\x13VoiceSessionService\x12\x8b\x02\n" +
-	"\x11StartVoiceSession\x12\x1c.pb.StartVoiceSessionRequest\x1a\x1d.pb.StartVoiceSessionResponse\"\xb8\x01\x92A\x92\x01\n" +
-	"\rVoice Session\x12\x13Start Voice Session\x1aZInitiates a voice session with an AI agent, returns LiveKit room details and client token.b\x10\n" +
-	"\x0e\n" +
+	"\bagent_id\x18\x03 \x01(\tR\aagentId2\x9f\x02\n" +
+	"\x13VoiceSessionService\x12\x87\x02\n" +
+	"\x11StartVoiceSession\x12\x1c.pb.StartVoiceSessionRequest\x1a\x1d.pb.StartVoiceSessionResponse\"\xb4\x01\x92A\x8e\x01\n" +
+	"\rVoice Session\x12\x13Start Voice Session\x1aZInitiates a voice session with an AI agent, returns LiveKit room details and client token.b\f\n" +
 	"\n" +
-	"bearerAuth\x12\x00\x82\xd3\xe4\x93\x02\x1c:\x01*\"\x17/v1/voice/session/startBq\x92A]\x123\n" +
+	"\n" +
+	"\x06bearer\x12\x00\x82\xd3\xe4\x93\x02\x1c:\x01*\"\x17/v1/voice/session/startBq\x92A]\x123\n" +
 	"\x0eLazerVault API\x12\x1cLazerVault Voice Session API2\x031.0*\x02\x01\x022\x10application/json:\x10application/jsonZ\x0flazervaultGo/pbb\x06proto3"
 
 var (

@@ -61,12 +61,10 @@ type Config struct {
 
 func LoadConfig(path string) (config Config, err error) {
 	viper.AddConfigPath(path)
-	viper.SetConfigFile(".env")
-	viper.AutomaticEnv()
-	viper.BindEnv("GCS_BUCKET_NAME")
-	viper.BindEnv("GCS_CREDENTIALS_FILE")
-	viper.BindEnv("GRPC_SERVER_ADDRESS")
+	viper.SetConfigName("app")
+	viper.SetConfigType("env")
 
+	viper.AutomaticEnv()
 	err = viper.ReadInConfig()
 
 	if err != nil {

@@ -1,0 +1,36 @@
+steps:
+  # Build the container image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      [
+        'build',
+        '-f',
+        'Dockerfile.go-microservices',
+        '-t',
+        'europe-west1-docker.pkg.dev/lazervault/lazervault/lazervault-golang-microservices:latest',
+        '.',
+      ]
+  # Push the container image to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'europe-west1-docker.pkg.dev/lazervault/lazervault/lazervault-golang-microservices:latest']
+  # Deploy container image to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      [
+        'run',
+        'deploy',
+        'lazervault-golang-microservices',
+        '--image',
+        'europe-west1-docker.pkg.dev/lazervault/lazervault/lazervault-golang-microservices:latest',
+        '--region',
+        'europe-west1',
+        '--platform',
+        'managed',
+        '--port',
+        '7878',
+        '--quiet',
+        '--allow-unauthenticated',
+      ]
+images:
+  - 'europe-west1-docker.pkg.dev/lazervault/lazervault/lazervault-golang-microservices:latest'

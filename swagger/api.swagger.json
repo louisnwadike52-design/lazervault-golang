@@ -85,11 +85,6 @@
         },
         "tags": [
           "Accounts"
-        ],
-        "security": [
-          {
-            "bearer": []
-          }
         ]
       },
       "post": {
@@ -119,6 +114,39 @@
             "schema": {
               "$ref": "#/definitions/pbCreateAccountRequest"
             }
+          }
+        ],
+        "tags": [
+          "Accounts"
+        ]
+      }
+    },
+    "/v1/accounts/{accountId}": {
+      "get": {
+        "summary": "Get Account Details",
+        "description": "Retrieves detailed information for a specific account, including security settings and limits.",
+        "operationId": "AccountService_GetAccountDetails",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbGetAccountDetailsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "accountId",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "format": "uint64"
           }
         ],
         "tags": [
@@ -285,6 +313,88 @@
         ]
       }
     },
+    "/v1/accounts/{accountId}/security": {
+      "patch": {
+        "summary": "Update Security Settings",
+        "description": "Updates security settings for an account (e.g., 3D Secure, contactless payments).",
+        "operationId": "AccountService_UpdateSecuritySettings",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbUpdateSecuritySettingsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "accountId",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "format": "uint64"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/AccountServiceUpdateSecuritySettingsBody"
+            }
+          }
+        ],
+        "tags": [
+          "Accounts"
+        ]
+      }
+    },
+    "/v1/accounts/{accountId}/status": {
+      "patch": {
+        "summary": "Update Account Status",
+        "description": "Updates the status of an account (e.g., active, blocked).",
+        "operationId": "AccountService_UpdateAccountStatus",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbUpdateAccountStatusResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "accountId",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "format": "uint64"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/AccountServiceUpdateAccountStatusBody"
+            }
+          }
+        ],
+        "tags": [
+          "Accounts"
+        ]
+      }
+    },
     "/v1/ai/chat": {
       "post": {
         "summary": "Process AI Chat Query",
@@ -341,6 +451,11 @@
         },
         "tags": [
           "AI Chat"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
         ]
       }
     },
@@ -1442,11 +1557,6 @@
         ],
         "tags": [
           "Transactions"
-        ],
-        "security": [
-          {
-            "bearer": []
-          }
         ]
       }
     },
@@ -1530,11 +1640,6 @@
         ],
         "tags": [
           "Transfers"
-        ],
-        "security": [
-          {
-            "bearer": []
-          }
         ]
       }
     },
@@ -1569,11 +1674,6 @@
         ],
         "tags": [
           "Transfers"
-        ],
-        "security": [
-          {
-            "bearer": []
-          }
         ]
       }
     },
@@ -1700,7 +1800,7 @@
         ],
         "security": [
           {
-            "bearerAuth": []
+            "bearer": []
           }
         ]
       }
@@ -1809,6 +1909,29 @@
         }
       },
       "title": "Request to add a new card to an account"
+    },
+    "AccountServiceUpdateAccountStatusBody": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "title": "Target status: \"active\", \"blocked_temporary\", \"blocked_permanent\", \"blocked_stolen\""
+        },
+        "reason": {
+          "type": "string",
+          "title": "Optional reason, especially for blocking"
+        }
+      },
+      "title": "UpdateAccountStatus"
+    },
+    "AccountServiceUpdateSecuritySettingsBody": {
+      "type": "object",
+      "properties": {
+        "settings": {
+          "$ref": "#/definitions/pbSecuritySettings"
+        }
+      },
+      "title": "UpdateSecuritySettings"
     },
     "RecipientServiceUpdateRecipientBody": {
       "type": "object",
@@ -2719,8 +2842,7 @@
         },
         "scheduled_at": {
           "type": "string",
-          "format": "date-time",
-          "title": "Null if not scheduled"
+          "title": "Optional, format: \"2006-01-02T15:04:05Z07:00\""
         },
         "completed_at": {
           "type": "string",
@@ -2972,8 +3094,7 @@
         },
         "scheduledAt": {
           "type": "string",
-          "format": "date-time",
-          "description": "Optional. If not provided, processed immediately."
+          "title": "Optional. If not provided, processed immediately. Format: \"2006-01-02T15:04:05Z07:00\""
         },
         "to_account_id": {
           "type": "string",

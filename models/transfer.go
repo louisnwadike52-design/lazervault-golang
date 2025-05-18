@@ -30,7 +30,7 @@ type Transfer struct {
 	Status        TransferStatus `json:"status" gorm:"not null;default:'pending'"`
 	Reference     string         `json:"reference" gorm:"type:varchar(255)"`
 	Category      string         `json:"category" gorm:"type:varchar(100)"`
-	ScheduledAt   *time.Time     `json:"scheduled_at"`
+	ScheduledAt   *string        `json:"scheduled_at" gorm:"default:null"`
 	CompletedAt   *time.Time     `json:"completed_at"`
 	FailedAt      *time.Time     `json:"failed_at"`
 	FailureReason string         `json:"failure_reason" gorm:"type:text"`

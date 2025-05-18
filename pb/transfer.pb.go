@@ -260,7 +260,7 @@ type InitiateTransferRequest struct {
 	Amount        uint64                 `protobuf:"varint,2,opt,name=amount,proto3" json:"amount,omitempty"`                   // Required, minor units (e.g., cents, pence)
 	Category      string                 `protobuf:"bytes,3,opt,name=category,proto3" json:"category,omitempty"`
 	Reference     string                 `protobuf:"bytes,4,opt,name=reference,proto3" json:"reference,omitempty"`
-	ScheduledAt   *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=scheduled_at,json=scheduledAt,proto3" json:"scheduled_at,omitempty"` // Optional. If not provided, processed immediately.
+	ScheduledAt   *string                `protobuf:"bytes,5,opt,name=scheduled_at,json=scheduledAt,proto3,oneof" json:"scheduled_at,omitempty"` // Optional. If not provided, processed immediately. Format: "2006-01-02T15:04:05Z07:00"
 	// --- Destination (Use ONE of the following) ---
 	ToAccountId   uint64 `protobuf:"varint,10,opt,name=to_account_id,proto3" json:"to_account_id,omitempty"` // Optional: Direct internal account ID
 	RecipientId   uint64 `protobuf:"varint,11,opt,name=recipient_id,proto3" json:"recipient_id,omitempty"`   // Optional: ID of the saved recipient (internal or external)
@@ -326,11 +326,11 @@ func (x *InitiateTransferRequest) GetReference() string {
 	return ""
 }
 
-func (x *InitiateTransferRequest) GetScheduledAt() *timestamppb.Timestamp {
-	if x != nil {
-		return x.ScheduledAt
+func (x *InitiateTransferRequest) GetScheduledAt() string {
+	if x != nil && x.ScheduledAt != nil {
+		return *x.ScheduledAt
 	}
-	return nil
+	return ""
 }
 
 func (x *InitiateTransferRequest) GetToAccountId() uint64 {
@@ -1126,10 +1126,10 @@ type GetTransferDetailsResponse struct {
 	Reference     string                 `protobuf:"bytes,11,opt,name=reference,proto3" json:"reference,omitempty"`
 	Category      string                 `protobuf:"bytes,12,opt,name=category,proto3" json:"category,omitempty"`
 	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,13,opt,name=created_at,proto3" json:"created_at,omitempty"`
-	ScheduledAt   *timestamppb.Timestamp `protobuf:"bytes,14,opt,name=scheduled_at,proto3" json:"scheduled_at,omitempty"`     // Null if not scheduled
-	CompletedAt   *timestamppb.Timestamp `protobuf:"bytes,15,opt,name=completed_at,proto3" json:"completed_at,omitempty"`     // Null if not completed
-	FailedAt      *timestamppb.Timestamp `protobuf:"bytes,16,opt,name=failed_at,proto3" json:"failed_at,omitempty"`           // Null if not failed
-	FailureReason string                 `protobuf:"bytes,17,opt,name=failure_reason,proto3" json:"failure_reason,omitempty"` // Empty if not failed
+	ScheduledAt   *string                `protobuf:"bytes,14,opt,name=scheduled_at,proto3,oneof" json:"scheduled_at,omitempty"` // Optional, format: "2006-01-02T15:04:05Z07:00"
+	CompletedAt   *timestamppb.Timestamp `protobuf:"bytes,15,opt,name=completed_at,proto3" json:"completed_at,omitempty"`       // Null if not completed
+	FailedAt      *timestamppb.Timestamp `protobuf:"bytes,16,opt,name=failed_at,proto3" json:"failed_at,omitempty"`             // Null if not failed
+	FailureReason string                 `protobuf:"bytes,17,opt,name=failure_reason,proto3" json:"failure_reason,omitempty"`   // Empty if not failed
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1255,11 +1255,11 @@ func (x *GetTransferDetailsResponse) GetCreatedAt() *timestamppb.Timestamp {
 	return nil
 }
 
-func (x *GetTransferDetailsResponse) GetScheduledAt() *timestamppb.Timestamp {
-	if x != nil {
-		return x.ScheduledAt
+func (x *GetTransferDetailsResponse) GetScheduledAt() string {
+	if x != nil && x.ScheduledAt != nil {
+		return *x.ScheduledAt
 	}
-	return nil
+	return ""
 }
 
 func (x *GetTransferDetailsResponse) GetCompletedAt() *timestamppb.Timestamp {
@@ -1300,17 +1300,18 @@ const file_transfer_proto_rawDesc = "" +
 	"\vdescription\x18\t \x01(\tR\vdescription\x129\n" +
 	"\n" +
 	"created_at\x18\n" +
-	" \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\"\xc0\x02\n" +
+	" \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\"\xba\x02\n" +
 	"\x17InitiateTransferRequest\x12(\n" +
 	"\x0ffrom_account_id\x18\x01 \x01(\x04R\x0ffrom_account_id\x12\x16\n" +
 	"\x06amount\x18\x02 \x01(\x04R\x06amount\x12\x1a\n" +
 	"\bcategory\x18\x03 \x01(\tR\bcategory\x12\x1c\n" +
-	"\treference\x18\x04 \x01(\tR\treference\x12=\n" +
-	"\fscheduled_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\vscheduledAt\x12$\n" +
+	"\treference\x18\x04 \x01(\tR\treference\x12&\n" +
+	"\fscheduled_at\x18\x05 \x01(\tH\x00R\vscheduledAt\x88\x01\x01\x12$\n" +
 	"\rto_account_id\x18\n" +
 	" \x01(\x04R\rto_account_id\x12\"\n" +
 	"\frecipient_id\x18\v \x01(\x04R\frecipient_id: \x92A\x1d\n" +
-	"\x1b\xd2\x01\x0ffrom_account_id\xd2\x01\x06amount\"\xdb\x01\n" +
+	"\x1b\xd2\x01\x0ffrom_account_id\xd2\x01\x06amountB\x0f\n" +
+	"\r_scheduled_at\"\xdb\x01\n" +
 	"\x18InitiateTransferResponse\x12\x1f\n" +
 	"\vtransfer_id\x18\x01 \x01(\x04R\n" +
 	"transferId\x12\x16\n" +
@@ -1380,7 +1381,7 @@ const file_transfer_proto_rawDesc = "" +
 	"pagination\x18\x02 \x01(\v2\x12.pb.PaginationInfoR\n" +
 	"pagination\"=\n" +
 	"\x19GetTransferDetailsRequest\x12 \n" +
-	"\vtransfer_id\x18\x01 \x01(\x04R\vtransfer_id\"\xab\x05\n" +
+	"\vtransfer_id\x18\x01 \x01(\x04R\vtransfer_id\"\xa5\x05\n" +
 	"\x1aGetTransferDetailsResponse\x12 \n" +
 	"\vtransfer_id\x18\x01 \x01(\x04R\vtransfer_id\x12(\n" +
 	"\x0ffrom_account_id\x18\x02 \x01(\x04R\x0ffrom_account_id\x12$\n" +
@@ -1399,11 +1400,12 @@ const file_transfer_proto_rawDesc = "" +
 	"\bcategory\x18\f \x01(\tR\bcategory\x12:\n" +
 	"\n" +
 	"created_at\x18\r \x01(\v2\x1a.google.protobuf.TimestampR\n" +
-	"created_at\x12>\n" +
-	"\fscheduled_at\x18\x0e \x01(\v2\x1a.google.protobuf.TimestampR\fscheduled_at\x12>\n" +
+	"created_at\x12'\n" +
+	"\fscheduled_at\x18\x0e \x01(\tH\x00R\fscheduled_at\x88\x01\x01\x12>\n" +
 	"\fcompleted_at\x18\x0f \x01(\v2\x1a.google.protobuf.TimestampR\fcompleted_at\x128\n" +
 	"\tfailed_at\x18\x10 \x01(\v2\x1a.google.protobuf.TimestampR\tfailed_at\x12&\n" +
-	"\x0efailure_reason\x18\x11 \x01(\tR\x0efailure_reason*~\n" +
+	"\x0efailure_reason\x18\x11 \x01(\tR\x0efailure_reasonB\x0f\n" +
+	"\r_scheduled_at*~\n" +
 	"\fTransferType\x12\x1d\n" +
 	"\x19TRANSFER_TYPE_UNSPECIFIED\x10\x00\x12\x18\n" +
 	"\x14TRANSFER_TYPE_INCOME\x10\x01\x12\x19\n" +
@@ -1416,26 +1418,22 @@ const file_transfer_proto_rawDesc = "" +
 	"\x11TIME_PERIOD_MONTH\x10\x02\x12\x17\n" +
 	"\x13TIME_PERIOD_QUARTER\x10\x03\x12\x14\n" +
 	"\x10TIME_PERIOD_YEAR\x10\x04\x12\x13\n" +
-	"\x0fTIME_PERIOD_ALL\x10\x052\xf7\a\n" +
+	"\x0fTIME_PERIOD_ALL\x10\x052\xcd\a\n" +
 	"\x0fTransferService\x12\xc2\x01\n" +
 	"\x10InitiateTransfer\x12\x1b.pb.InitiateTransferRequest\x1a\x1c.pb.InitiateTransferResponse\"s\x92AX\n" +
-	"\ttransfers\x12\x17Initiate a new transfer\x1a2Initiates a new transfer with the provided details\x82\xd3\xe4\x93\x02\x12:\x01*\"\r/v1/transfers\x12\x93\x02\n" +
-	"\rGetStatistics\x12\x18.pb.GetStatisticsRequest\x1a\x19.pb.GetStatisticsResponse\"\xcc\x01\x92A\xa8\x01\n" +
-	"\tTransfers\x12\x18Get Financial Statistics\x1asRetrieves aggregated income, expense, and categorized statistics based on transfer history for a given time period.b\f\n" +
+	"\ttransfers\x12\x17Initiate a new transfer\x1a2Initiates a new transfer with the provided details\x82\xd3\xe4\x93\x02\x12:\x01*\"\r/v1/transfers\x12\x85\x02\n" +
+	"\rGetStatistics\x12\x18.pb.GetStatisticsRequest\x1a\x19.pb.GetStatisticsResponse\"\xbe\x01\x92A\x9a\x01\n" +
+	"\tTransfers\x12\x18Get Financial Statistics\x1asRetrieves aggregated income, expense, and categorized statistics based on transfer history for a given time period.\x82\xd3\xe4\x93\x02\x1a\x12\x18/v1/transfers/statistics\x12\x87\x02\n" +
+	"\x0fGetTransactions\x12\x1a.pb.GetTransactionsRequest\x1a\x1b.pb.GetTransactionsResponse\"\xba\x01\x92A\x9e\x01\n" +
+	"\fTransactions\x12\x17Get Transaction History\x1auRetrieves a paginated list of user transactions, allowing filtering by account, card, date range, type, and category.\x82\xd3\xe4\x93\x02\x12\x12\x10/v1/transactions\x12\xe2\x01\n" +
+	"\x12GetTransferDetails\x12\x1d.pb.GetTransferDetailsRequest\x1a\x1e.pb.GetTransferDetailsResponse\"\x8c\x01\x92Af\n" +
+	"\tTransfers\x12\x14Get Transfer Details\x1aCRetrieves the details of a specific transfer transaction by its ID.\x82\xd3\xe4\x93\x02\x1d\x12\x1b/v1/transfers/{transfer_id}B\xda\x01\x92A\xc1\x01\x12.\n" +
+	"\x0eLazerVault API\x12\x17LazerVault Transfer API2\x031.0*\x02\x01\x022\x10application/json:\x10application/jsonZY\n" +
+	"W\n" +
+	"\x06bearer\x12M\b\x02\x128Authentication token, prefixed by Bearer: Bearer <token>\x1a\rAuthorization \x02b\f\n" +
 	"\n" +
 	"\n" +
-	"\x06bearer\x12\x00\x82\xd3\xe4\x93\x02\x1a\x12\x18/v1/transfers/statistics\x12\x95\x02\n" +
-	"\x0fGetTransactions\x12\x1a.pb.GetTransactionsRequest\x1a\x1b.pb.GetTransactionsResponse\"\xc8\x01\x92A\xac\x01\n" +
-	"\fTransactions\x12\x17Get Transaction History\x1auRetrieves a paginated list of user transactions, allowing filtering by account, card, date range, type, and category.b\f\n" +
-	"\n" +
-	"\n" +
-	"\x06bearer\x12\x00\x82\xd3\xe4\x93\x02\x12\x12\x10/v1/transactions\x12\xf0\x01\n" +
-	"\x12GetTransferDetails\x12\x1d.pb.GetTransferDetailsRequest\x1a\x1e.pb.GetTransferDetailsResponse\"\x9a\x01\x92At\n" +
-	"\tTransfers\x12\x14Get Transfer Details\x1aCRetrieves the details of a specific transfer transaction by its ID.b\f\n" +
-	"\n" +
-	"\n" +
-	"\x06bearer\x12\x00\x82\xd3\xe4\x93\x02\x1d\x12\x1b/v1/transfers/{transfer_id}Bp\x92AX\x12.\n" +
-	"\x0eLazerVault API\x12\x17LazerVault Transfer API2\x031.0*\x02\x01\x022\x10application/json:\x10application/jsonZ\x13lazervaultGolang/pbb\x06proto3"
+	"\x06bearer\x12\x00Z\x13lazervaultGolang/pbb\x06proto3"
 
 var (
 	file_transfer_proto_rawDescOnce sync.Once
@@ -1473,37 +1471,35 @@ var file_transfer_proto_goTypes = []any{
 var file_transfer_proto_depIdxs = []int32{
 	0,  // 0: pb.TransferTransaction.transfer_type:type_name -> pb.TransferType
 	16, // 1: pb.TransferTransaction.created_at:type_name -> google.protobuf.Timestamp
-	16, // 2: pb.InitiateTransferRequest.scheduled_at:type_name -> google.protobuf.Timestamp
-	16, // 3: pb.InitiateTransferResponse.created_at:type_name -> google.protobuf.Timestamp
-	16, // 4: pb.TimeSeriesPoint.timestamp:type_name -> google.protobuf.Timestamp
-	1,  // 5: pb.GetStatisticsRequest.time_period:type_name -> pb.TimePeriod
-	5,  // 6: pb.GetStatisticsResponse.expense_timeseries:type_name -> pb.TimeSeriesPoint
-	6,  // 7: pb.GetStatisticsResponse.expense_breakdown:type_name -> pb.CategorySummary
-	6,  // 8: pb.GetStatisticsResponse.income_breakdown:type_name -> pb.CategorySummary
-	7,  // 9: pb.GetStatisticsResponse.monthly_overview:type_name -> pb.MonthlyData
-	8,  // 10: pb.GetStatisticsResponse.comparison_metrics:type_name -> pb.ComparisonData
-	16, // 11: pb.GetTransactionsRequest.start_date:type_name -> google.protobuf.Timestamp
-	16, // 12: pb.GetTransactionsRequest.end_date:type_name -> google.protobuf.Timestamp
-	0,  // 13: pb.GetTransactionsRequest.transfer_type:type_name -> pb.TransferType
-	2,  // 14: pb.GetTransactionsResponse.transactions:type_name -> pb.TransferTransaction
-	11, // 15: pb.GetTransactionsResponse.pagination:type_name -> pb.PaginationInfo
-	16, // 16: pb.GetTransferDetailsResponse.created_at:type_name -> google.protobuf.Timestamp
-	16, // 17: pb.GetTransferDetailsResponse.scheduled_at:type_name -> google.protobuf.Timestamp
-	16, // 18: pb.GetTransferDetailsResponse.completed_at:type_name -> google.protobuf.Timestamp
-	16, // 19: pb.GetTransferDetailsResponse.failed_at:type_name -> google.protobuf.Timestamp
-	3,  // 20: pb.TransferService.InitiateTransfer:input_type -> pb.InitiateTransferRequest
-	9,  // 21: pb.TransferService.GetStatistics:input_type -> pb.GetStatisticsRequest
-	12, // 22: pb.TransferService.GetTransactions:input_type -> pb.GetTransactionsRequest
-	14, // 23: pb.TransferService.GetTransferDetails:input_type -> pb.GetTransferDetailsRequest
-	4,  // 24: pb.TransferService.InitiateTransfer:output_type -> pb.InitiateTransferResponse
-	10, // 25: pb.TransferService.GetStatistics:output_type -> pb.GetStatisticsResponse
-	13, // 26: pb.TransferService.GetTransactions:output_type -> pb.GetTransactionsResponse
-	15, // 27: pb.TransferService.GetTransferDetails:output_type -> pb.GetTransferDetailsResponse
-	24, // [24:28] is the sub-list for method output_type
-	20, // [20:24] is the sub-list for method input_type
-	20, // [20:20] is the sub-list for extension type_name
-	20, // [20:20] is the sub-list for extension extendee
-	0,  // [0:20] is the sub-list for field type_name
+	16, // 2: pb.InitiateTransferResponse.created_at:type_name -> google.protobuf.Timestamp
+	16, // 3: pb.TimeSeriesPoint.timestamp:type_name -> google.protobuf.Timestamp
+	1,  // 4: pb.GetStatisticsRequest.time_period:type_name -> pb.TimePeriod
+	5,  // 5: pb.GetStatisticsResponse.expense_timeseries:type_name -> pb.TimeSeriesPoint
+	6,  // 6: pb.GetStatisticsResponse.expense_breakdown:type_name -> pb.CategorySummary
+	6,  // 7: pb.GetStatisticsResponse.income_breakdown:type_name -> pb.CategorySummary
+	7,  // 8: pb.GetStatisticsResponse.monthly_overview:type_name -> pb.MonthlyData
+	8,  // 9: pb.GetStatisticsResponse.comparison_metrics:type_name -> pb.ComparisonData
+	16, // 10: pb.GetTransactionsRequest.start_date:type_name -> google.protobuf.Timestamp
+	16, // 11: pb.GetTransactionsRequest.end_date:type_name -> google.protobuf.Timestamp
+	0,  // 12: pb.GetTransactionsRequest.transfer_type:type_name -> pb.TransferType
+	2,  // 13: pb.GetTransactionsResponse.transactions:type_name -> pb.TransferTransaction
+	11, // 14: pb.GetTransactionsResponse.pagination:type_name -> pb.PaginationInfo
+	16, // 15: pb.GetTransferDetailsResponse.created_at:type_name -> google.protobuf.Timestamp
+	16, // 16: pb.GetTransferDetailsResponse.completed_at:type_name -> google.protobuf.Timestamp
+	16, // 17: pb.GetTransferDetailsResponse.failed_at:type_name -> google.protobuf.Timestamp
+	3,  // 18: pb.TransferService.InitiateTransfer:input_type -> pb.InitiateTransferRequest
+	9,  // 19: pb.TransferService.GetStatistics:input_type -> pb.GetStatisticsRequest
+	12, // 20: pb.TransferService.GetTransactions:input_type -> pb.GetTransactionsRequest
+	14, // 21: pb.TransferService.GetTransferDetails:input_type -> pb.GetTransferDetailsRequest
+	4,  // 22: pb.TransferService.InitiateTransfer:output_type -> pb.InitiateTransferResponse
+	10, // 23: pb.TransferService.GetStatistics:output_type -> pb.GetStatisticsResponse
+	13, // 24: pb.TransferService.GetTransactions:output_type -> pb.GetTransactionsResponse
+	15, // 25: pb.TransferService.GetTransferDetails:output_type -> pb.GetTransferDetailsResponse
+	22, // [22:26] is the sub-list for method output_type
+	18, // [18:22] is the sub-list for method input_type
+	18, // [18:18] is the sub-list for extension type_name
+	18, // [18:18] is the sub-list for extension extendee
+	0,  // [0:18] is the sub-list for field type_name
 }
 
 func init() { file_transfer_proto_init() }
@@ -1511,6 +1507,8 @@ func file_transfer_proto_init() {
 	if File_transfer_proto != nil {
 		return
 	}
+	file_transfer_proto_msgTypes[1].OneofWrappers = []any{}
+	file_transfer_proto_msgTypes[13].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

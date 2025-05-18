@@ -495,7 +495,7 @@ const file_ai_chat_proto_rawDesc = "" +
 	"_*\x1bGet AI Chat History Request2@Request to fetch the AI chat history for the authenticated user.\"\xe2\x01\n" +
 	"\x18GetAIChatHistoryResponse\x12p\n" +
 	"\ahistory\x18\x01 \x03(\v2\x16.pb.AIChatHistoryEntryB>\x92A;29List of AI chat history entries, ordered chronologically.R\ahistory:T\x92AQ\n" +
-	"O*\x1cGet AI Chat History Response2/A list of AI chat history entries for the user.2\x9c\v\n" +
+	"O*\x1cGet AI Chat History Response2/A list of AI chat history entries for the user.2\xaa\v\n" +
 	"\rAIChatService\x12\xd7\x02\n" +
 	"\vProcessChat\x12\x16.pb.ProcessChatRequest\x1a\x17.pb.ProcessChatResponse\"\x96\x02\x92A\xfc\x01\n" +
 	"\aAI Chat\x12\x15Process AI Chat Query\x1a\x8b\x01Sends the user's query to the AI chatbot, along with contextual user transaction data (fetched server-side), and returns the AI's response.JL\n" +
@@ -511,12 +511,15 @@ const file_ai_chat_proto_rawDesc = "" +
 	"\vAI Indexing\x12\x16Index Transaction File\x1aaTriggers the indexing process for the authenticated user's latest transaction file stored in GCS.Ju\n" +
 	"\x03200\x12n\n" +
 	":OK - Indexing triggered or file not found (check message).\x120\n" +
-	".\x1a,#/definitions/pbIndexTransactionFileResponse\x82\xd3\xe4\x93\x02\x1e:\x01*\"\x19/v1/ai/index/transactions\x12\xbf\x02\n" +
-	"\x10GetAIChatHistory\x12\x1b.pb.GetAIChatHistoryRequest\x1a\x1c.pb.GetAIChatHistoryResponse\"\xef\x01\x92A\xd0\x01\n" +
+	".\x1a,#/definitions/pbIndexTransactionFileResponse\x82\xd3\xe4\x93\x02\x1e:\x01*\"\x19/v1/ai/index/transactions\x12\xcd\x02\n" +
+	"\x10GetAIChatHistory\x12\x1b.pb.GetAIChatHistoryRequest\x1a\x1c.pb.GetAIChatHistoryResponse\"\xfd\x01\x92A\xde\x01\n" +
 	"\aAI Chat\x12\x13Get AI Chat History\x1aXRetrieves the AI chat history (list of query/response pairs) for the authenticated user.JV\n" +
 	"\x03200\x12O\n" +
 	"\x1fOK - AI Chat history retrieved.\x12,\n" +
-	"*\x1a(#/definitions/pbGetAIChatHistoryResponse\x82\xd3\xe4\x93\x02\x15\x12\x13/v1/ai/chat/historyB\xe5\x01\x92A\xd0\x01\x12N\n" +
+	"*\x1a(#/definitions/pbGetAIChatHistoryResponseb\f\n" +
+	"\n" +
+	"\n" +
+	"\x06bearer\x12\x00\x82\xd3\xe4\x93\x02\x15\x12\x13/v1/ai/chat/historyB\xe5\x01\x92A\xd0\x01\x12N\n" +
 	"\x1aLazerVault AI Chat Service\"+\n" +
 	"\n" +
 	"LazerVault\x12\x1dhttps://github.com/LazerVault2\x031.0R5\n" +

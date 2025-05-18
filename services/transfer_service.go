@@ -42,11 +42,11 @@ type TransferRequest struct {
 	FromUserID uint // From auth context
 
 	// Input fields matching refined proto
-	FromAccountID uint       `json:"from_account_id" validate:"required"`
-	Amount        int64      `json:"amount" validate:"required,gt=0"`
-	Reference     string     `json:"reference"`
-	Category      string     `json:"category"`
-	ScheduledAt   *time.Time `json:"scheduled_at"` // Optional
+	FromAccountID uint    `json:"from_account_id" validate:"required"`
+	Amount        int64   `json:"amount" validate:"required,gt=0"`
+	Reference     string  `json:"reference"`
+	Category      string  `json:"category"`
+	ScheduledAt   *string `json:"scheduled_at,omitempty"` // Optional string, format: "2006-01-02T15:04:05Z07:00"
 
 	// --- Destination (Use ONE) ---
 	ToAccountID *uint `json:"to_account_id"` // Optional: Direct internal account ID
@@ -255,17 +255,30 @@ func (s *TransferService) InitiateTransfer(ctx context.Context, fromUserID uint,
 		// Status set below
 		Reference:   req.Reference,
 		Category:    req.Category,
-		ScheduledAt: req.ScheduledAt,
+		ScheduledAt: req.ScheduledAt, // Store the original string
 	}
 
 	// Determine initial status and queue options
 	opts := []asynq.Option{}
-	if req.ScheduledAt != nil && req.ScheduledAt.After(time.Now()) {
-		transfer.Status = models.TransferStatusScheduled
-		opts = append(opts, asynq.ProcessAt(*req.ScheduledAt))
+	if req.ScheduledAt != nil && *req.ScheduledAt != "" {
+		// Parse the scheduled time in ISO 8601 UTC format
+		parsedTime, err := time.Parse(time.RFC3339, *req.ScheduledAt)
+		if err != nil {
+			tx.Rollback()
+			return nil, status.Error(codes.InvalidArgument, "invalid scheduled_at format, expected ISO 8601 UTC format (e.g., 2024-03-20T15:04:05Z)")
+		}
+
+		// Convert to UTC if not already
+		parsedTime = parsedTime.UTC()
+
+		if parsedTime.After(time.Now().UTC()) {
+			transfer.Status = models.TransferStatusScheduled
+			opts = append(opts, asynq.ProcessAt(parsedTime))
+		} else {
+			transfer.Status = models.TransferStatusProcessing
+		}
 	} else {
 		transfer.Status = models.TransferStatusProcessing
-		// No specific options needed for immediate processing
 	}
 
 	if err := tx.Create(&transfer).Error; err != nil {
@@ -276,24 +289,20 @@ func (s *TransferService) InitiateTransfer(ctx context.Context, fromUserID uint,
 	// --- Immediate Debit for Processing Transfers ---
 	if transfer.Status == models.TransferStatusProcessing {
 		// Debit the total amount directly from the source account within the transaction
-		// We use a direct update as IAccountService doesn't expose a balance update method.
-		// CheckSufficientBalance was already performed earlier.
 		result := tx.Model(&models.Account{}).Where("id = ?", transfer.FromAccountID).Update("balance", gorm.Expr("balance - ?", transfer.TotalAmount))
 		if result.Error != nil {
 			tx.Rollback()
 			return nil, fmt.Errorf("failed to debit source account %d for immediate transfer %d: %w", transfer.FromAccountID, transfer.ID, result.Error)
 		}
-		// Optional: Check if exactly one row was affected
 		if result.RowsAffected == 0 {
 			tx.Rollback()
-			// This shouldn't happen if CheckAccountOwnership and Create worked, but good to check.
 			return nil, fmt.Errorf("failed to debit source account %d: account not found during update (transfer %d)", transfer.FromAccountID, transfer.ID)
 		}
 	}
 
 	// Update log message now that transfer.ID is available
-	if transfer.Status == models.TransferStatusScheduled {
-		fmt.Printf("Scheduling transfer %d for %v\n", transfer.ID, *req.ScheduledAt)
+	if transfer.Status == models.TransferStatusScheduled && req.ScheduledAt != nil {
+		fmt.Printf("Scheduling transfer %d for %s (UTC)\n", transfer.ID, *req.ScheduledAt)
 	}
 
 	// --- Queue Background Task (Only if Processing or Scheduled) ---

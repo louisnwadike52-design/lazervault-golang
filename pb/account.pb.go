@@ -1188,18 +1188,18 @@ const file_account_proto_rawDesc = "" +
 	"\n" +
 	"account_id\x18\x01 \x01(\x04R\taccountId\"%\n" +
 	"\x11RevealPINResponse\x12\x10\n" +
-	"\x03pin\x18\x01 \x01(\tR\x03pin2\x95\x06\n" +
+	"\x03pin\x18\x01 \x01(\tR\x03pin2\xe0\t\n" +
 	"\x0eAccountService\x12\xfd\x01\n" +
 	"\rCreateAccount\x12\x18.pb.CreateAccountRequest\x1a\x19.pb.CreateAccountResponse\"\xb6\x01\x92A\x9b\x01\n" +
-	"\bAccounts\x12\x0eCreate Account\x1a\x7fCreates a new financial account for the authenticated user based on the provided type and currency. An optional PIN can be set.\x82\xd3\xe4\x93\x02\x11:\x01*\"\f/v1/accounts\x12\xf1\x01\n" +
-	"\x0fGetUserAccounts\x12\x1a.pb.GetUserAccountsRequest\x1a\x1b.pb.GetUserAccountsResponse\"\xa4\x01\x92A\x8c\x01\n" +
-	"\bAccounts\x12\x19Get User Accounts Summary\x1aWRetrieves a summary list of all financial accounts belonging to the authenticated user.b\f\n" +
-	"\n" +
-	"\n" +
-	"\x06bearer\x12\x00\x82\xd3\xe4\x93\x02\x0e\x12\f/v1/accounts\x12R\n" +
-	"\x11GetAccountDetails\x12\x1c.pb.GetAccountDetailsRequest\x1a\x1d.pb.GetAccountDetailsResponse\"\x00\x12X\n" +
-	"\x13UpdateAccountStatus\x12\x1e.pb.UpdateAccountStatusRequest\x1a\x1f.pb.UpdateAccountStatusResponse\"\x00\x12a\n" +
-	"\x16UpdateSecuritySettings\x12!.pb.UpdateSecuritySettingsRequest\x1a\".pb.UpdateSecuritySettingsResponse\"\x00B\xf2\x01\x92A\xdd\x01\x12r\n" +
+	"\bAccounts\x12\x0eCreate Account\x1a\x7fCreates a new financial account for the authenticated user based on the provided type and currency. An optional PIN can be set.\x82\xd3\xe4\x93\x02\x11:\x01*\"\f/v1/accounts\x12\xe2\x01\n" +
+	"\x0fGetUserAccounts\x12\x1a.pb.GetUserAccountsRequest\x1a\x1b.pb.GetUserAccountsResponse\"\x95\x01\x92A~\n" +
+	"\bAccounts\x12\x19Get User Accounts Summary\x1aWRetrieves a summary list of all financial accounts belonging to the authenticated user.\x82\xd3\xe4\x93\x02\x0e\x12\f/v1/accounts\x12\xf6\x01\n" +
+	"\x11GetAccountDetails\x12\x1c.pb.GetAccountDetailsRequest\x1a\x1d.pb.GetAccountDetailsResponse\"\xa3\x01\x92A\x7f\n" +
+	"\bAccounts\x12\x13Get Account Details\x1a^Retrieves detailed information for a specific account, including security settings and limits.\x82\xd3\xe4\x93\x02\x1b\x12\x19/v1/accounts/{account_id}\x12\xe3\x01\n" +
+	"\x13UpdateAccountStatus\x12\x1e.pb.UpdateAccountStatusRequest\x1a\x1f.pb.UpdateAccountStatusResponse\"\x8a\x01\x92A\\\n" +
+	"\bAccounts\x12\x15Update Account Status\x1a9Updates the status of an account (e.g., active, blocked).\x82\xd3\xe4\x93\x02%:\x01*2 /v1/accounts/{account_id}/status\x12\x89\x02\n" +
+	"\x16UpdateSecuritySettings\x12!.pb.UpdateSecuritySettingsRequest\x1a\".pb.UpdateSecuritySettingsResponse\"\xa7\x01\x92Aw\n" +
+	"\bAccounts\x12\x18Update Security Settings\x1aQUpdates security settings for an account (e.g., 3D Secure, contactless payments).\x82\xd3\xe4\x93\x02':\x01*2\"/v1/accounts/{account_id}/securityB\xf2\x01\x92A\xdd\x01\x12r\n" +
 	"\x1aLazerVault Account Service\"O\n" +
 	"\x12LazerVault Support\x12\x1dhttps://github.com/LazerVault\x1a\x1asupport@lazervault.example2\x031.0ZY\n" +
 	"W\n" +

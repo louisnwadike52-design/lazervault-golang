@@ -227,6 +227,11 @@ service AIChatService {
 			description: "Retrieves the AI chat history (list of query/response pairs) for the authenticated user.";
 			summary: "Get AI Chat History";
             tags: ["AI Chat"];
+            security: {
+              security_requirement: {
+                key: "bearer"; // Assuming "bearer" is defined in your global security definitions
+              }
+            };
             responses: {
                 key: "200";
                 value: {

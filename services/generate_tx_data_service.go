@@ -67,13 +67,13 @@ type TransactionRecord struct {
 	WithdrawalTargetSortCode      *string `json:"withdrawal_target_sort_code,omitempty"`
 
 	// Transfer Specific
-	TransferFee         *float64   `json:"transfer_fee,omitempty"`
-	TransferTotalAmount *float64   `json:"transfer_total_amount,omitempty"`
-	TransferCategory    *string    `json:"transfer_category,omitempty"`
-	TransferScheduledAt *time.Time `json:"transfer_scheduled_at,omitempty"`
-	SenderInfo          string     `json:"sender_info,omitempty"`    // Generated for TRANSFER_IN
-	RecipientInfo       string     `json:"recipient_info,omitempty"` // Generated for TRANSFER_OUT
-	RecipientID         *uint      `json:"recipient_id,omitempty"`   // From Transfer model
+	TransferFee         *float64 `json:"transfer_fee,omitempty"`
+	TransferTotalAmount *float64 `json:"transfer_total_amount,omitempty"`
+	TransferCategory    *string  `json:"transfer_category,omitempty"`
+	TransferScheduledAt *string  `json:"transfer_scheduled_at,omitempty"` // Changed to string pointer
+	SenderInfo          string   `json:"sender_info,omitempty"`           // Generated for TRANSFER_IN
+	RecipientInfo       string   `json:"recipient_info,omitempty"`        // Generated for TRANSFER_OUT
+	RecipientID         *uint    `json:"recipient_id,omitempty"`          // From Transfer model
 
 	// Exchange Specific
 	ExchangeFromCurrency    *string  `json:"exchange_from_currency,omitempty"`
@@ -308,7 +308,7 @@ func (s *GenerateTxDataService) FetchAllUserTransactions(ctx context.Context, us
 			TransferFee:         float64Ptr(transferFee),
 			TransferTotalAmount: float64Ptr(transferTotalAmount),
 			TransferCategory:    stringPtr(t.Category),
-			TransferScheduledAt: timePtr(t.ScheduledAt),
+			TransferScheduledAt: t.ScheduledAt, // Use the string pointer directly
 		})
 	}
 
@@ -364,7 +364,7 @@ func (s *GenerateTxDataService) FetchAllUserTransactions(ctx context.Context, us
 			TransferFee:         float64Ptr(transferFee),
 			TransferTotalAmount: float64Ptr(transferTotalAmount),
 			TransferCategory:    stringPtr(t.Category),
-			TransferScheduledAt: timePtr(t.ScheduledAt),
+			TransferScheduledAt: t.ScheduledAt, // Use the string pointer directly
 		})
 	}
 
@@ -501,7 +501,7 @@ func (s *GenerateTxDataService) FormatTransactionsToCSV(records []TransactionRec
 		if ptr.IsZero() {
 			return ""
 		}
-		return ptr.Format(time.RFC3339)
+		return ptr.UTC().Format(time.RFC3339)
 	}
 
 	// Write records
@@ -529,7 +529,7 @@ func (s *GenerateTxDataService) FormatTransactionsToCSV(records []TransactionRec
 			formatFloat64Pointer(rec.TransferFee),
 			formatFloat64Pointer(rec.TransferTotalAmount),
 			formatStringPointer(rec.TransferCategory),
-			formatTimePointer(rec.TransferScheduledAt),
+			formatStringPointer(rec.TransferScheduledAt), // Use string pointer formatter
 			rec.SenderInfo,
 			rec.RecipientInfo,
 			formatUintPointer(rec.RecipientID),

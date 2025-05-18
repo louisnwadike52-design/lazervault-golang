@@ -1,0 +1,50 @@
+# Stage 1: Build the Go application
+FROM golang:1.23-alpine AS builder
+
+WORKDIR /app
+
+# Install build dependencies: git for go modules, make for build scripts, protobuf-dev for protoc
+RUN apk update && apk add --no-cache make git protobuf-dev build-base redis
+
+# Install protoc Go plugins
+RUN go install google.golang.org/protobuf/cmd/protoc-gen-go@latest && \
+    go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest && \
+    go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-grpc-gateway@latest && \
+    go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2@latest
+
+COPY go.mod go.sum ./
+RUN go mod download && go mod tidy && go mod verify
+
+COPY . .
+
+RUN make proto
+
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-w -s" -o /app/bin/appserver main.go
+
+# Stage 2: Create the final lightweight image
+FROM alpine:latest
+
+WORKDIR /app
+
+# Install runtime dependencies: ca-certificates for HTTPS, tzdata, and redis.
+RUN apk update && apk add --no-cache ca-certificates tzdata redis
+
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+
+COPY --from=builder /app/bin/appserver /app/appserver
+
+# Copy environment file and GCS credentials key
+COPY app.env /app/app.env
+COPY lazervault-c4d5f9e91078.json /app/lazervault-c4d5f9e91078.json
+
+COPY entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
+
+RUN chown -R appuser:appgroup /app
+
+USER appuser
+
+EXPOSE 7878 7007 6379
+
+ENTRYPOINT ["/app/entrypoint.sh"]
+CMD ["/app/appserver"]

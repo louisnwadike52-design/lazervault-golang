@@ -10,6 +10,7 @@ import (
 	"lazervaultGo/services"
 	"lazervaultGo/token" // For getting payload from context
 	"strings"
+	"time"
 
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc/codes"
@@ -60,7 +61,7 @@ func convertTransferModelToProtoDetails(t *models.Transfer) *pb.GetTransferDetai
 		resp.ToUserId = uint64(*t.ToUserID)
 	}
 	if t.ScheduledAt != nil {
-		resp.ScheduledAt = timestamppb.New(*t.ScheduledAt)
+		resp.ScheduledAt = t.ScheduledAt // Already a string pointer
 	}
 	if t.CompletedAt != nil {
 		resp.CompletedAt = timestamppb.New(*t.CompletedAt)
@@ -119,18 +120,21 @@ func (c *TransferController) InitiateTransfer(ctx context.Context, req *pb.Initi
 
 	// --- Remove mapping for deleted fields (already removed) ---
 
-	if req.GetScheduledAt() != nil && req.GetScheduledAt().IsValid() {
-		scheduledTime := req.GetScheduledAt().AsTime()
-		// Allow scheduling for now or immediate processing (service handles logic)
-		serviceReq.ScheduledAt = &scheduledTime
-		// Remove check for future time - service layer handles immediate vs scheduled
-		/*
-		   if scheduledTime.After(time.Now().Add(time.Minute * 1)) {
-		       serviceReq.ScheduledAt = &scheduledTime
-		   } else {
-		       return nil, status.Errorf(codes.InvalidArgument, "scheduled time must be in the future")
-		   }
-		*/
+	if req.GetScheduledAt() != "" {
+		// Parse the scheduled time string to validate format
+		scheduledTime, err := time.Parse(time.RFC3339, req.GetScheduledAt())
+		if err != nil {
+			return nil, status.Error(codes.InvalidArgument, "Invalid scheduled_at format. Expected ISO 8601 UTC format (e.g., 2024-03-20T15:04:05Z)")
+		}
+
+		// Validate scheduled time is in the future
+		if scheduledTime.Before(time.Now().UTC()) {
+			return nil, status.Error(codes.InvalidArgument, "Scheduled time must be in the future")
+		}
+
+		// Use the validated string directly
+		scheduledAt := req.GetScheduledAt()
+		serviceReq.ScheduledAt = &scheduledAt
 	}
 
 	// 5. Call the service
