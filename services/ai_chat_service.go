@@ -15,6 +15,7 @@ import (
 	"log" // Use standard Go log package
 	"net/http"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -68,6 +69,105 @@ type AIChatService struct {
 	taskDistributor tasks.TaskDistributor
 }
 
+// getRecentTransactions fetches the last 5 transactions for a user
+func (s *AIChatService) getRecentTransactions(ctx context.Context, userID uint) (string, error) {
+	// Fetch transfers
+	var transfers []models.Transfer
+	if err := s.db.WithContext(ctx).
+		Where("from_user_id = ? OR to_user_id = ?", userID, userID).
+		Order("created_at desc").
+		Limit(5).
+		Find(&transfers).Error; err != nil {
+		return "", fmt.Errorf("failed to fetch transfers: %w", err)
+	}
+
+	// Fetch deposits
+	var deposits []models.Deposit
+	if err := s.db.WithContext(ctx).
+		Where("user_id = ?", userID).
+		Order("created_at desc").
+		Limit(5).
+		Find(&deposits).Error; err != nil {
+		return "", fmt.Errorf("failed to fetch deposits: %w", err)
+	}
+
+	// Fetch withdrawals
+	var withdrawals []models.Withdrawal
+	if err := s.db.WithContext(ctx).
+		Where("user_id = ?", userID).
+		Order("created_at desc").
+		Limit(5).
+		Find(&withdrawals).Error; err != nil {
+		return "", fmt.Errorf("failed to fetch withdrawals: %w", err)
+	}
+
+	// Combine all transactions into a single slice
+	type Transaction struct {
+		Type        string    `json:"type"`
+		Amount      int64     `json:"amount"`
+		Currency    string    `json:"currency"`
+		Status      string    `json:"status"`
+		CreatedAt   time.Time `json:"created_at"`
+		Description string    `json:"description,omitempty"`
+	}
+
+	var allTransactions []Transaction
+
+	// Add transfers
+	for _, t := range transfers {
+		allTransactions = append(allTransactions, Transaction{
+			Type:        "transfer",
+			Amount:      t.Amount,
+			Currency:    "USD", // Assuming USD as default, adjust if needed
+			Status:      string(t.Status),
+			CreatedAt:   t.CreatedAt,
+			Description: t.Reference,
+		})
+	}
+
+	// Add deposits
+	for _, d := range deposits {
+		allTransactions = append(allTransactions, Transaction{
+			Type:        "deposit",
+			Amount:      d.Amount,
+			Currency:    d.Currency,
+			Status:      string(d.Status),
+			CreatedAt:   d.CreatedAt,
+			Description: d.SourceBankName,
+		})
+	}
+
+	// Add withdrawals
+	for _, w := range withdrawals {
+		allTransactions = append(allTransactions, Transaction{
+			Type:        "withdrawal",
+			Amount:      w.Amount,
+			Currency:    w.Currency,
+			Status:      string(w.Status),
+			CreatedAt:   w.CreatedAt,
+			Description: w.TargetBankName,
+		})
+	}
+
+	// Sort by creation date (most recent first)
+	sort.Slice(allTransactions, func(i, j int) bool {
+		return allTransactions[i].CreatedAt.After(allTransactions[j].CreatedAt)
+	})
+
+	// Take only the 5 most recent transactions
+	if len(allTransactions) > 5 {
+		allTransactions = allTransactions[:5]
+	}
+
+	// Convert to JSON
+	txHistoryJSON, err := json.Marshal(allTransactions)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal transaction history: %w", err)
+	}
+
+	return string(txHistoryJSON), nil
+}
+
 // NewAIChatService creates a new AIChatService instance.
 func NewAIChatService(db *gorm.DB, config *configs.Config, taskDistributor tasks.TaskDistributor) *AIChatService {
 	return &AIChatService{
@@ -93,11 +193,20 @@ func (s *AIChatService) ProcessChat(ctx context.Context, userID uint, req *pb.Pr
 		return nil, ErrAIChatbotURLMissing
 	}
 
+	// Fetch recent transactions
+	txHistory, err := s.getRecentTransactions(ctx, userID)
+	if err != nil {
+		log.Printf("WARN: ProcessChat: Failed to fetch transaction history for User ID %d: %v", userID, err)
+		// Continue without transaction history rather than failing the request
+		txHistory = "[]"
+	}
+
 	// --- Call External AI /api/chat endpoint --- //
 	userIDStr := strconv.FormatUint(uint64(userID), 10) // Convert uint userID to string
 	chatbotReqPayload := map[string]string{
-		"query":   req.GetQuery(),
-		"user_id": userIDStr, // Add user_id to the payload
+		"query":      req.GetQuery(),
+		"user_id":    userIDStr,
+		"tx_history": txHistory, // Add transaction history to the payload
 	}
 	payloadBytes, err := json.Marshal(chatbotReqPayload)
 	if err != nil {
@@ -116,7 +225,7 @@ func (s *AIChatService) ProcessChat(ctx context.Context, userID uint, req *pb.Pr
 	// Add API Key or Auth if needed for /chats
 	// httpReq.Header.Set("Authorization", "Bearer <your-api-key>")
 
-	log.Printf("INFO: ProcessChat: Request payload to /api/chat: %s", string(payloadBytes)) // Log will now show user_id
+	log.Printf("INFO: ProcessChat: Request payload to /api/chat: %s", string(payloadBytes)) // Log will now show user_id and tx_history
 	httpResp, err := s.httpClient.Do(httpReq)
 	if err != nil {
 		log.Printf("ERROR: ProcessChat: HTTP request to /api/chat failed. err: %v, URL: %s", err, chatEndpointURL)

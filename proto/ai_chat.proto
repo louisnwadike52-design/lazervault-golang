@@ -41,6 +41,7 @@ message ProcessChatRequest {
 		}
 	};
   string query = 1 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {description: "The user's input/query to the AI."}];
+  string tx_history = 2 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {description: "JSON string containing the last 5 transactions."}];
 }
 
 // Response message for the AI Chat endpoint
