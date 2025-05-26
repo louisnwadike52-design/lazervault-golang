@@ -36,14 +36,13 @@ type RedisTaskProcessor struct {
 	config              *configs.Config
 	distributor         tasks.TaskDistributor
 	txDataFileProcessor *GenerateTxDataFileProcessor
-	aiChatService       *services.AIChatService
 }
 
-func NewRedisTaskProcessor(redisOpt asynq.RedisClientOpt, db *gorm.DB, mailer mail.EmailSender, config *configs.Config, distributor tasks.TaskDistributor, aiChatService *services.AIChatService) TaskProcessor {
+func NewRedisTaskProcessor(redisOpt asynq.RedisClientOpt, db *gorm.DB, mailer mail.EmailSender, config *configs.Config, distributor tasks.TaskDistributor) TaskProcessor {
 	logger := NewLogger()
 	redis.SetLogger(logger)
 
-	txDataFileProcessor := NewGenerateTxDataFileProcessor(db, *config, aiChatService)
+	txDataFileProcessor := NewGenerateTxDataFileProcessor(db, *config)
 
 	server := asynq.NewServer(
 		redisOpt,
@@ -69,7 +68,6 @@ func NewRedisTaskProcessor(redisOpt asynq.RedisClientOpt, db *gorm.DB, mailer ma
 		config:              config,
 		distributor:         distributor,
 		txDataFileProcessor: txDataFileProcessor,
-		aiChatService:       aiChatService,
 	}
 }
 
@@ -83,13 +81,15 @@ func (processor *RedisTaskProcessor) Start() error {
 	mux.HandleFunc(tasks.TaskProcessTransfer, processor.ProcessTaskProcessTransfer)
 	mux.HandleFunc(tasks.TaskSendPasswordResetOTP, processor.ProcessTaskSendPasswordResetOTP)
 	mux.HandleFunc(tasks.TypeDepositProcessing, func(ctx context.Context, task *asynq.Task) error {
-		return HandleDepositProcessTask(ctx, task, processor.db, processor.mailer, processor.distributor)
+		txService := services.NewTransactionService(processor.db)
+		return HandleDepositProcessTask(ctx, task, processor.db, processor.mailer, processor.distributor, txService, processor.txDataFileProcessor.txFileService)
 	})
 	mux.HandleFunc(tasks.TypeEmailSendDepositReversal, func(ctx context.Context, task *asynq.Task) error {
 		return HandleEmailSendDepositReversalTask(ctx, task, processor.mailer)
 	})
 	mux.HandleFunc(tasks.TypeWithdrawalProcessing, func(ctx context.Context, task *asynq.Task) error {
-		return HandleWithdrawalProcessTask(ctx, task, processor.db, processor.mailer, processor.distributor)
+		txService := services.NewTransactionService(processor.db)
+		return HandleWithdrawalProcessTask(ctx, task, processor.db, processor.mailer, processor.distributor, txService, processor.txDataFileProcessor.txFileService)
 	})
 	mux.HandleFunc(tasks.TypeEmailSendWithdrawalConf, func(ctx context.Context, task *asynq.Task) error {
 		return HandleEmailSendWithdrawalConfirmationTask(ctx, task, processor.mailer)
@@ -99,20 +99,22 @@ func (processor *RedisTaskProcessor) Start() error {
 	})
 
 	// Register the TxDataFile handler using the correct constant
-	mux.HandleFunc(tasks.TypeGenerateTxDataFile, processor.txDataFileProcessor.ProcessTask)
+	mux.HandleFunc(tasks.TypeGenerateTxDataFile, func(ctx context.Context, task *asynq.Task) error {
+		aiChatService := services.NewAIChatService(processor.db, processor.config, processor.distributor)
+		return processor.txDataFileProcessor.ProcessTask(ctx, task, aiChatService)
+	})
 
 	// Register external transfer handler using the correct constant
 	mux.HandleFunc(tasks.TaskProcessExternalTransfer, processor.ProcessTaskProcessExternalTransfer)
 
 	// Register the new AI Chat History handler
 	mux.HandleFunc(tasks.TypeUpdateChatHistoryAndIndex, func(ctx context.Context, task *asynq.Task) error {
-		// Ensure aiChatService is not nil before calling the handler
-		if processor.aiChatService == nil {
-			log.Error().Msg("AIChatService is nil in RedisTaskProcessor, cannot handle TypeUpdateChatHistoryAndIndex")
-			return fmt.Errorf("internal configuration error: AIChatService not available %w", asynq.SkipRetry)
-		}
-		return HandleUpdateChatHistoryAndIndexTask(ctx, task, processor.aiChatService)
+		aiChatService := services.NewAIChatService(processor.db, processor.config, processor.distributor)
+		return HandleUpdateChatHistoryAndIndexTask(ctx, task, aiChatService)
 	})
+
+	// Register the new transaction file update handler
+	mux.HandleFunc(tasks.TypeUpdateTxFileAndIndex, processor.HandleUpdateTxFile)
 
 	log.Info().Msg("starting task processor server")
 	return processor.server.Start(mux)
@@ -217,35 +219,43 @@ func (processor *RedisTaskProcessor) ProcessTransferLogic(ctx context.Context, t
 		return fmt.Errorf("failed to update transfer status to completed: %w", err)
 	}
 
-	// --- Enqueue Tx File Update Task (AFTER successful commit) ---
-	// We need the UserID. Since it could be FromAccount or ToAccount owner,
-	// let's enqueue for both if they are different users.
-	if transfer.FromAccount.OwnerUserID != 0 {
-		enqueueTxFileUpdate(ctx, processor.distributor, transfer.FromAccount.OwnerUserID, fmt.Sprintf("transfer %d", transferID))
-	}
-	// Ensure ToAccount owner is different before enqueuing again
-	if transfer.ToAccount.OwnerUserID != 0 && transfer.ToAccount.OwnerUserID != transfer.FromAccount.OwnerUserID {
-		enqueueTxFileUpdate(ctx, processor.distributor, transfer.ToAccount.OwnerUserID, fmt.Sprintf("transfer %d", transferID))
+	// Create transaction record
+	txService := services.NewTransactionService(processor.db)
+	record := services.TransactionRecord{
+		UserID:              uint64(transfer.FromUserID),
+		Timestamp:           transfer.CreatedAt,
+		Type:                "TRANSFER_OUT",
+		Amount:              float64(transfer.Amount) / 100.0,
+		Currency:            "USD", // Default currency
+		Status:              string(transfer.Status),
+		Description:         transfer.Reference,
+		Reference:           transfer.Reference,
+		FromAccountID:       &transfer.FromAccountID,
+		ToAccountID:         transfer.ToAccountID,
+		FailureReason:       &transfer.FailureReason,
+		CompletedAt:         transfer.CompletedAt,
+		ProcessingAt:        &transfer.UpdatedAt,
+		FailedAt:            transfer.FailedAt,
+		TransferFee:         Float64Ptr(float64(transfer.Fee) / 100.0),
+		TransferTotalAmount: Float64Ptr(float64(transfer.TotalAmount) / 100.0),
+		TransferCategory:    &transfer.Category,
+		TransferScheduledAt: transfer.ScheduledAt,
+		RecipientID:         transfer.RecipientID,
 	}
 
-	return tx.Commit().Error
-}
+	// Create transaction record in database
+	if err := txService.CreateTransaction(ctx, record); err != nil {
+		log.Printf("Failed to create transaction record: %v", err)
+		// Don't return error as this is not critical
+	}
 
-// Helper function to enqueue the file generation task and log errors
-func enqueueTxFileUpdate(ctx context.Context, distributor tasks.TaskDistributor, userID uint, triggerEvent string) {
-	txFilePayloadBytes, err := tasks.NewGenerateTxDataFileTask(userID)
-	if err != nil {
-		fmt.Printf("CRITICAL ERROR: Failed creating tx file generation payload for user %d after %s: %v\n", userID, triggerEvent, err)
-		return // Don't proceed if payload creation fails
+	// Append to transaction file
+	if err := processor.txDataFileProcessor.txFileService.AppendTransactionToFile(ctx, uint(transfer.FromUserID), record); err != nil {
+		log.Printf("Failed to append transaction to file: %v", err)
+		// Don't return error as this is not critical
 	}
-	opts := []asynq.Option{
-		asynq.MaxRetry(3),
-		asynq.Timeout(10 * time.Minute),
-		asynq.Queue(tasks.QueueLow),
-	}
-	if err := distributor.DistributeTask(ctx, tasks.TypeGenerateTxDataFile, txFilePayloadBytes, opts...); err != nil {
-		fmt.Printf("CRITICAL ERROR: Failed enqueuing tx file generation task for user %d after %s: %v\n", userID, triggerEvent, err)
-	}
+
+	return nil
 }
 
 func (processor *RedisTaskProcessor) ProcessTaskSendVerifyEmail(ctx context.Context, task *asynq.Task) error {
@@ -316,28 +326,16 @@ func (processor *RedisTaskProcessor) ProcessTaskSendPasswordResetOTP(ctx context
 func (processor *RedisTaskProcessor) ProcessTaskProcessExternalTransfer(ctx context.Context, task *asynq.Task) error {
 	var payload tasks.PayloadProcessExternalTransfer
 	if err := json.Unmarshal(task.Payload(), &payload); err != nil {
+		log.Error().Err(err).Msg("Failed to unmarshal external transfer payload")
 		return fmt.Errorf("failed to unmarshal external transfer payload: %w", asynq.SkipRetry)
 	}
-	fmt.Printf("Processing external transfer task: %+v\n", payload)
 
-	// --- TODO: Implement actual external transfer logic ---
-	// 1. Start DB Transaction (maybe?) - depends if external API call is idempotent
-	// 2. Fetch Transfer record (status should be Processing)
-	// 3. Fetch related Recipient record
-	// 4. Fetch FromAccount (needed for debit)
-	// 5. Call External Payment Gateway API (using recipient details)
-	// 6. Handle API response:
-	//    - On Success: Debit FromAccount, Update Transfer status to Completed, Commit.
-	//    - On Failure: Update Transfer status to Failed (with reason), Rollback (if transaction started).
-	// 7. Handle potential idempotency issues with the external API.
+	log.Info().Str("transfer_id", payload.TransferID).Msg("Processing external transfer task")
 
-	fmt.Println("PLACEHOLDER: External transfer logic for", payload.TransferID)
-	// Example: Simulate success/failure
+	// Step 1: Update transfer status in database
 	transferID := payload.TransferID
-	var transfer models.Transfer
 	success := true // Simulate success for now
 	var dbErr error
-
 	if success {
 		dbErr = processor.db.Model(&models.Transfer{}).Where("id = ?", transferID).Update("status", models.TransferStatusCompleted).Error
 	} else {
@@ -345,26 +343,53 @@ func (processor *RedisTaskProcessor) ProcessTaskProcessExternalTransfer(ctx cont
 	}
 
 	if dbErr != nil {
-		fmt.Printf("ERROR updating external transfer status for %s: %v\n", transferID, dbErr)
-		return dbErr // Let Asynq handle retry/failure
+		log.Error().Err(dbErr).Str("transfer_id", transferID).Msg("Failed to update transfer status")
+		return fmt.Errorf("failed to update transfer status: %w", dbErr)
 	}
 
-	// --- Enqueue Tx File Update Task (AFTER successful simulated update) ---
-	if success {
-		// Need to fetch the UserID associated with the FromAccount of the transfer
-		if err := processor.db.WithContext(ctx).Preload("FromAccount").First(&transfer, "id = ?", transferID).Error; err == nil {
-			if transfer.FromAccount.OwnerUserID != 0 {
-				enqueueTxFileUpdate(ctx, processor.distributor, transfer.FromAccount.OwnerUserID, fmt.Sprintf("external transfer %s", transferID))
-			} else {
-				fmt.Printf("Warning: Could not determine owner user ID for external transfer %s to enqueue file update.\n", transferID)
-			}
-		} else {
-			fmt.Printf("ERROR: Failed to fetch transfer details for user ID lookup after external transfer %s: %v\n", transferID, err)
-		}
+	// Step 2: Create transaction record
+	var transfer models.Transfer
+	if err := processor.db.First(&transfer, transferID).Error; err != nil {
+		log.Error().Err(err).Str("transfer_id", transferID).Msg("Failed to fetch transfer details")
+		return fmt.Errorf("failed to fetch transfer details: %w", err)
 	}
 
-	fmt.Printf("Updated external transfer %s status (simulated)\n", transferID)
-	return nil // Return error to retry/fail based on actual external API outcome
+	txService := services.NewTransactionService(processor.db)
+	record := services.TransactionRecord{
+		UserID:              uint64(transfer.FromUserID),
+		Timestamp:           transfer.CreatedAt,
+		Type:                "EXTERNAL_TRANSFER",
+		Amount:              float64(transfer.Amount) / 100.0,
+		Currency:            "USD", // Default currency
+		Status:              string(transfer.Status),
+		Description:         transfer.Reference,
+		Reference:           transfer.Reference,
+		FromAccountID:       &transfer.FromAccountID,
+		ToAccountID:         transfer.ToAccountID,
+		FailureReason:       &transfer.FailureReason,
+		CompletedAt:         transfer.CompletedAt,
+		ProcessingAt:        &transfer.UpdatedAt,
+		FailedAt:            transfer.FailedAt,
+		TransferFee:         Float64Ptr(float64(transfer.Fee) / 100.0),
+		TransferTotalAmount: Float64Ptr(float64(transfer.TotalAmount) / 100.0),
+		TransferCategory:    &transfer.Category,
+		TransferScheduledAt: transfer.ScheduledAt,
+		RecipientID:         transfer.RecipientID,
+	}
+
+	if err := txService.CreateTransaction(ctx, record); err != nil {
+		log.Error().Err(err).Str("transfer_id", transferID).Uint("user_id", transfer.FromUserID).Msg("Failed to create transaction record")
+		// Don't return error as this is not critical for the transfer process
+	}
+
+	// Step 3: Update transaction file and trigger AI indexing
+	if err := processor.txDataFileProcessor.txFileService.AppendTransactionToFile(ctx, uint(transfer.FromUserID), record); err != nil {
+		log.Error().Err(err).Str("transfer_id", transferID).Uint("user_id", transfer.FromUserID).Msg("Failed to append transaction to file and trigger indexing")
+		// Don't return error as this is not critical for the transfer process
+	}
+
+	log.Info().Str("transfer_id", transferID).Uint("user_id", transfer.FromUserID).Msg("Successfully processed external transfer task")
+	return nil
 }
 
 // HandleUpdateChatHistoryAndIndexTask processes the task to save chat history and trigger indexing.
@@ -401,6 +426,73 @@ func HandleUpdateChatHistoryAndIndexTask(ctx context.Context, task *asynq.Task, 
 	}
 
 	log.Info().Uint("user_id", payload.UserID).Msg("Successfully processed chat history update task")
+	return nil
+}
+
+// HandleUpdateTxFile processes the transaction file update task
+func (processor *RedisTaskProcessor) HandleUpdateTxFile(ctx context.Context, t *asynq.Task) error {
+	var payload tasks.UpdateTxFileAndIndexPayload
+	if err := json.Unmarshal(t.Payload(), &payload); err != nil {
+		return fmt.Errorf("failed to unmarshal UpdateTxFileAndIndex payload: %w", asynq.SkipRetry)
+	}
+
+	log.Info().Uint("user_id", payload.UserID).Msg("Processing transaction file update task")
+
+	// Parse the transaction data
+	var txHistoryList []map[string]interface{}
+	if err := json.Unmarshal([]byte(payload.TxData), &txHistoryList); err != nil {
+		return fmt.Errorf("failed to unmarshal transaction data: %w", asynq.SkipRetry)
+	}
+
+	// Create transaction file service
+	txFileService := services.NewGenerateTxDataService(processor.db, *processor.config)
+
+	// Convert transactions to TransactionRecord format
+	var records []services.TransactionRecord
+	for _, tx := range txHistoryList {
+		// Safely get values with type assertions
+		txType, _ := tx["type"].(string)
+		amount, _ := tx["amount"].(float64)
+		currency, _ := tx["currency"].(string)
+		status, _ := tx["status"].(string)
+		description, _ := tx["description"].(string)
+		if description == "" {
+			// Set a default description if none provided
+			description = fmt.Sprintf("%s transaction", txType)
+		}
+
+		record := services.TransactionRecord{
+			UserID:      uint64(payload.UserID),
+			Type:        txType,
+			Amount:      amount,
+			Currency:    currency,
+			Status:      status,
+			Description: description,
+			Timestamp:   time.Now(), // Set current time as timestamp
+		}
+		records = append(records, record)
+	}
+
+	// Format transactions as CSV
+	csvData, err := txFileService.FormatTransactionsToCSV(records)
+	if err != nil {
+		log.Error().Err(err).Uint("user_id", payload.UserID).Msg("Failed to format transactions to CSV")
+		return fmt.Errorf("failed to format transactions to CSV: %w", err)
+	}
+
+	// Upload to GCS
+	if err := txFileService.UploadOrOverwriteTxFile(ctx, fmt.Sprint(payload.UserID), csvData); err != nil {
+		log.Error().Err(err).Uint("user_id", payload.UserID).Msg("Failed to upload transaction file to GCS")
+		return fmt.Errorf("failed to upload transaction file: %w", err)
+	}
+
+	// Trigger indexing
+	if err := txFileService.TriggerTransactionFileIndexing(ctx, payload.UserID); err != nil {
+		log.Error().Err(err).Uint("user_id", payload.UserID).Msg("Failed to trigger transaction file indexing")
+		// Don't return error as indexing failure shouldn't invalidate the update
+	}
+
+	log.Info().Uint("user_id", payload.UserID).Msg("Successfully processed transaction file update task")
 	return nil
 }
 

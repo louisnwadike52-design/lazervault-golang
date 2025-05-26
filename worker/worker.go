@@ -4,7 +4,6 @@ import (
 	"context"
 	"lazervaultGo/configs"
 	"lazervaultGo/mail"
-	"lazervaultGo/services"
 	"lazervaultGo/tasks"
 
 	"github.com/hibiken/asynq"
@@ -31,10 +30,9 @@ func NewRedisWorker(
 	db *gorm.DB,
 	mailer mail.EmailSender,
 	config *configs.Config,
-	aiChatService *services.AIChatService,
 ) *RedisWorker {
 	distributor := NewRedisTaskDistributor(redisOpt)
-	processor := NewRedisTaskProcessor(redisOpt, db, mailer, config, distributor, aiChatService)
+	processor := NewRedisTaskProcessor(redisOpt, db, mailer, config, distributor)
 
 	go func() {
 		if err := processor.Start(); err != nil {

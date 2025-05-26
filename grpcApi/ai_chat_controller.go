@@ -3,6 +3,7 @@ package grpcApi
 import (
 	"context" // Added for GetAuthPayload
 	"fmt"
+	"lazervaultGo/grpcApi/middleware"
 	"lazervaultGo/pb"
 	"lazervaultGo/services"
 	"log" // Use standard Go log package
@@ -40,10 +41,16 @@ func (c *AIChatController) ProcessChat(ctx context.Context, req *pb.ProcessChatR
 		return nil, status.Error(codes.Unauthenticated, "invalid user ID in token")
 	}
 
+	// Extract access token from context (like voice_session_controller)
+	appTokenString, ok := ctx.Value(middleware.AccessTokenKey).(string)
+	if !ok || appTokenString == "" {
+		return nil, status.Errorf(codes.Unauthenticated, "application access token not found in context")
+	}
+
 	log.Printf("INFO: AIChatController: Processing chat for User ID: %d", userID)
 
-	// Delegate to the service, passing the extracted userID
-	return c.service.ProcessChat(ctx, userID, req)
+	// Delegate to the service, passing the extracted userID and access token
+	return c.service.ProcessChat(ctx, userID, appTokenString, req)
 }
 
 // IndexChatHistory triggers indexing for the authenticated user's chat history file.

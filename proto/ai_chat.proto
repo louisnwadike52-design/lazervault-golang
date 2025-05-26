@@ -37,11 +37,12 @@ message ProcessChatRequest {
 		json_schema: {
 			title: "AI Process Chat Request";
 			description: "Payload containing the user's query for the AI chatbot.";
-			required: ["query"];
+			required: ["query", "user_id"];
 		}
 	};
   string query = 1 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {description: "The user's input/query to the AI."}];
   string tx_history = 2 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {description: "JSON string containing the last 5 transactions."}];
+  uint32 user_id = 3 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {description: "The ID of the user making the request."}];
 }
 
 // Response message for the AI Chat endpoint

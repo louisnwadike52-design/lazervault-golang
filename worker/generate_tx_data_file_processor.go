@@ -19,22 +19,20 @@ import (
 type GenerateTxDataFileProcessor struct {
 	db            *gorm.DB
 	config        configs.Config
-	txFileService services.GenerateTxDataService
-	aiChatService *services.AIChatService // Add AIChatService
+	txFileService *services.GenerateTxDataService
 }
 
 // NewGenerateTxDataFileProcessor creates a new processor for generating tx data files.
-func NewGenerateTxDataFileProcessor(db *gorm.DB, config configs.Config, aiChatService *services.AIChatService) *GenerateTxDataFileProcessor {
+func NewGenerateTxDataFileProcessor(db *gorm.DB, config configs.Config) *GenerateTxDataFileProcessor {
 	return &GenerateTxDataFileProcessor{
 		db:            db,
 		config:        config,
-		txFileService: *services.NewGenerateTxDataService(db, config),
-		aiChatService: aiChatService, // Store AIChatService
+		txFileService: services.NewGenerateTxDataService(db, config),
 	}
 }
 
 // ProcessTask implements the tasks.TaskProcessor interface.
-func (p *GenerateTxDataFileProcessor) ProcessTask(ctx context.Context, task *asynq.Task) error {
+func (p *GenerateTxDataFileProcessor) ProcessTask(ctx context.Context, task *asynq.Task, aiChatService *services.AIChatService) error {
 	var payload tasks.GenerateTxDataFilePayload
 	if err := json.Unmarshal(task.Payload(), &payload); err != nil {
 		// Use standard logger if zerolog isn't setup here
@@ -113,14 +111,14 @@ func (p *GenerateTxDataFileProcessor) ProcessTask(ctx context.Context, task *asy
 	log.Info().Uint("user_id", payload.UserID).Str("public_url", publicURL).Msg("Saved transaction file public URL to DB")
 
 	// --- Trigger AI Indexing --- //
-	if p.aiChatService == nil {
-		log.Error().Uint("user_id", payload.UserID).Msg("AIChatService is nil in GenerateTxDataFileProcessor, cannot trigger indexing")
+	if aiChatService == nil {
+		log.Error().Uint("user_id", payload.UserID).Msg("AIChatService is nil, cannot trigger indexing")
 		// This is a config error, don't retry the task itself, but log prominently.
 		return fmt.Errorf("internal configuration error: AIChatService not available %w", asynq.SkipRetry)
 	}
 
 	// The Trigger function will now fetch this public URL from the DB
-	if err := p.aiChatService.TriggerTransactionFileIndexing(ctx, payload.UserID); err != nil {
+	if err := aiChatService.TriggerTransactionFileIndexing(ctx, payload.UserID); err != nil {
 		log.Error().Err(err).Uint("user_id", payload.UserID).Msg("Failed to trigger AI transaction file indexing")
 		// Return the error to let Asynq handle retries. Indexing might fail transiently.
 		return fmt.Errorf("failed to trigger AI transaction file indexing for user %d: %w", payload.UserID, err)

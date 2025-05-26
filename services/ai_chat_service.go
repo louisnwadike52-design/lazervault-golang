@@ -21,7 +21,6 @@ import (
 	"time"
 
 	"cloud.google.com/go/storage" // GCS Client
-	"github.com/hibiken/asynq"
 	"google.golang.org/api/option"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -69,8 +68,8 @@ type AIChatService struct {
 	taskDistributor tasks.TaskDistributor
 }
 
-// getRecentTransactions fetches the last 5 transactions for a user
-func (s *AIChatService) getRecentTransactions(ctx context.Context, userID uint) (string, error) {
+// getRecentTransactions fetches the last 5 transactions for a user and returns them as a slice of maps
+func (s *AIChatService) getRecentTransactions(ctx context.Context, userID uint) ([]map[string]interface{}, error) {
 	// Fetch transfers
 	var transfers []models.Transfer
 	if err := s.db.WithContext(ctx).
@@ -78,7 +77,7 @@ func (s *AIChatService) getRecentTransactions(ctx context.Context, userID uint) 
 		Order("created_at desc").
 		Limit(5).
 		Find(&transfers).Error; err != nil {
-		return "", fmt.Errorf("failed to fetch transfers: %w", err)
+		return nil, fmt.Errorf("failed to fetch transfers: %w", err)
 	}
 
 	// Fetch deposits
@@ -88,7 +87,7 @@ func (s *AIChatService) getRecentTransactions(ctx context.Context, userID uint) 
 		Order("created_at desc").
 		Limit(5).
 		Find(&deposits).Error; err != nil {
-		return "", fmt.Errorf("failed to fetch deposits: %w", err)
+		return nil, fmt.Errorf("failed to fetch deposits: %w", err)
 	}
 
 	// Fetch withdrawals
@@ -98,7 +97,7 @@ func (s *AIChatService) getRecentTransactions(ctx context.Context, userID uint) 
 		Order("created_at desc").
 		Limit(5).
 		Find(&withdrawals).Error; err != nil {
-		return "", fmt.Errorf("failed to fetch withdrawals: %w", err)
+		return nil, fmt.Errorf("failed to fetch withdrawals: %w", err)
 	}
 
 	// Combine all transactions into a single slice
@@ -159,13 +158,16 @@ func (s *AIChatService) getRecentTransactions(ctx context.Context, userID uint) 
 		allTransactions = allTransactions[:5]
 	}
 
-	// Convert to JSON
-	txHistoryJSON, err := json.Marshal(allTransactions)
-	if err != nil {
-		return "", fmt.Errorf("failed to marshal transaction history: %w", err)
+	// Convert to []map[string]interface{}
+	result := make([]map[string]interface{}, len(allTransactions))
+	for i, tx := range allTransactions {
+		b, _ := json.Marshal(tx)
+		var m map[string]interface{}
+		_ = json.Unmarshal(b, &m)
+		result[i] = m
 	}
 
-	return string(txHistoryJSON), nil
+	return result, nil
 }
 
 // NewAIChatService creates a new AIChatService instance.
@@ -181,7 +183,7 @@ func NewAIChatService(db *gorm.DB, config *configs.Config, taskDistributor tasks
 }
 
 // ProcessChat handles the primary AI chat request.
-func (s *AIChatService) ProcessChat(ctx context.Context, userID uint, req *pb.ProcessChatRequest) (*pb.ProcessChatResponse, error) {
+func (s *AIChatService) ProcessChat(ctx context.Context, userID uint, accessToken string, req *pb.ProcessChatRequest) (*pb.ProcessChatResponse, error) {
 	log.Printf("INFO: ProcessChat Service: Received request for User ID: %d", userID)
 
 	if req.GetQuery() == "" {
@@ -193,20 +195,19 @@ func (s *AIChatService) ProcessChat(ctx context.Context, userID uint, req *pb.Pr
 		return nil, ErrAIChatbotURLMissing
 	}
 
-	// Fetch recent transactions
-	txHistory, err := s.getRecentTransactions(ctx, userID)
+	// Fetch recent transactions as a slice
+	txHistoryList, err := s.getRecentTransactions(ctx, userID)
 	if err != nil {
 		log.Printf("WARN: ProcessChat: Failed to fetch transaction history for User ID %d: %v", userID, err)
-		// Continue without transaction history rather than failing the request
-		txHistory = "[]"
+		txHistoryList = []map[string]interface{}{} // fallback to empty list
 	}
 
-	// --- Call External AI /api/chat endpoint --- //
-	userIDStr := strconv.FormatUint(uint64(userID), 10) // Convert uint userID to string
-	chatbotReqPayload := map[string]string{
-		"query":      req.GetQuery(),
-		"user_id":    userIDStr,
-		"tx_history": txHistory, // Add transaction history to the payload
+	userIDStr := strconv.FormatUint(uint64(userID), 10)
+	chatbotReqPayload := map[string]interface{}{
+		"query":        req.GetQuery(),
+		"user_id":      userIDStr,
+		"tx_history":   txHistoryList, // pass as a list, not a string
+		"access_token": accessToken,   // include the access token
 	}
 	payloadBytes, err := json.Marshal(chatbotReqPayload)
 	if err != nil {
@@ -222,10 +223,8 @@ func (s *AIChatService) ProcessChat(ctx context.Context, userID uint, req *pb.Pr
 		return nil, status.Error(codes.Internal, "failed to prepare request for AI service")
 	}
 	httpReq.Header.Set("Content-Type", "application/json")
-	// Add API Key or Auth if needed for /chats
-	// httpReq.Header.Set("Authorization", "Bearer <your-api-key>")
 
-	log.Printf("INFO: ProcessChat: Request payload to /api/chat: %s", string(payloadBytes)) // Log will now show user_id and tx_history
+	log.Printf("INFO: ProcessChat: Request payload to /api/chat: %s", string(payloadBytes))
 	httpResp, err := s.httpClient.Do(httpReq)
 	if err != nil {
 		log.Printf("ERROR: ProcessChat: HTTP request to /api/chat failed. err: %v, URL: %s", err, chatEndpointURL)
@@ -267,43 +266,27 @@ func (s *AIChatService) ProcessChat(ctx context.Context, userID uint, req *pb.Pr
 
 	// --- Parse Successful Response --- //
 	var chatbotRespPayload map[string]string
-	if err := json.Unmarshal(bodyBytes, &chatbotRespPayload); err != nil { // Use bodyBytes
-		log.Printf("ERROR: ProcessChat: Failed to decode JSON response from /api/chat: %v. Body: %s", err, string(bodyBytes))
-		return nil, status.Error(codes.Internal, "failed to parse response from AI service")
+	if err := json.Unmarshal(bodyBytes, &chatbotRespPayload); err != nil {
+		log.Printf("ERROR: ProcessChat: Failed to unmarshal response from /api/chat: %v", err)
+		return nil, status.Error(codes.Internal, "failed to parse AI service response")
 	}
 
-	aiResponse, ok := chatbotRespPayload["response"]
-	if !ok || aiResponse == "" {
-		log.Println("WARN: ProcessChat: Chatbot response from /api/chat missing 'response' field or field is empty")
-		return nil, status.Error(codes.Internal, "invalid response format from AI service")
+	aiResponse := chatbotRespPayload["response"]
+	if aiResponse == "" {
+		log.Printf("ERROR: ProcessChat: Empty response from AI chatbot for User ID %d", userID)
+		return nil, status.Error(codes.Internal, "received empty response from AI service")
 	}
 
-	log.Printf("INFO: ProcessChat: Successfully processed query for User ID: %d", userID)
-
-	// --- Enqueue Background Task for History Saving & Indexing --- //
-	taskPayload, err := tasks.NewUpdateChatHistoryAndIndexTask(userID, req.GetQuery(), aiResponse)
-	if err != nil {
-		log.Printf("ERROR: ProcessChat: Failed to create task payload for User ID %d: %v", userID, err)
-		// Log the error, but still return the response to the user.
-		// The history won't be saved/indexed for this interaction.
-		// Consider more robust error handling if this is critical.
-	} else {
-		taskOpts := []asynq.Option{
-			asynq.Queue(tasks.QueueLow), // Use low priority queue
-			asynq.MaxRetry(3),
-			asynq.Timeout(5 * time.Minute),
-		}
-		if err := s.taskDistributor.DistributeTask(ctx, tasks.TypeUpdateChatHistoryAndIndex, taskPayload, taskOpts...); err != nil {
-			log.Printf("ERROR: ProcessChat: Failed to enqueue chat history update task for User ID %d: %v", userID, err)
-			// Log error, still return response to user.
-		}
-		log.Printf("INFO: ProcessChat: Enqueued chat history update task for User ID: %d", userID)
+	// Save chat entry to database
+	if err := s.SaveChatEntry(ctx, userID, req.GetQuery(), aiResponse); err != nil {
+		log.Printf("ERROR: ProcessChat: Failed to save chat entry to database for User ID %d: %v", userID, err)
+		// Continue even if save fails, as we want to return the AI response to the user
 	}
 
-	// --- Return Response to User Immediately --- //
+	// Return the AI response
 	return &pb.ProcessChatResponse{
 		Success:  true,
-		Msg:      "Query processed successfully",
+		Msg:      "Successfully processed AI chat request",
 		Query:    req.GetQuery(),
 		Response: aiResponse,
 	}, nil

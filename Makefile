@@ -43,3 +43,6 @@ tail-http2:
 	@echo "Tailing logs for Cloud Run service: $(CLOUDRUN_SERVICE_NAME_HTTP2)..."
 	@gcloud run services logs tail $(CLOUDRUN_SERVICE_NAME_HTTP2) --project=$(PROJECT_ID) --region=$(CLOUDRUN_REGION) -f Dockerfile.http2
 
+grant-ADC: 
+	gcloud auth application-default set-quota-project lazervault-460507
+

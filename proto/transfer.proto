@@ -162,32 +162,6 @@ message PaginationInfo {
   int64 total_items = 4;
 }
 
-// Request message for fetching transaction history
-message GetTransactionsRequest {
-   option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
-    json_schema: {
-      // Define required/optional fields if needed for OpenAPI
-    };
-  };
-  // Filtering Options
-  uint64 account_id = 1;            // Optional: Filter by specific account ID
-  string card_id = 2;               // Optional: Filter by specific card ID (will lookup linked account)
-  google.protobuf.Timestamp start_date = 3; // Optional: Start of date range
-  google.protobuf.Timestamp end_date = 4;   // Optional: End of date range
-  TransferType transfer_type = 5;   // Optional: Filter by type (INCOME, EXPENSE, INTERNAL)
-  string category = 6;              // Optional: Filter by category
-
-  // Pagination Options
-  int32 page_number = 10;           // Defaults to 1 if not provided
-  int32 page_size = 11;             // Defaults to a server-defined size (e.g., 20) if not provided
-}
-
-// Response message containing transaction history
-message GetTransactionsResponse {
-  repeated TransferTransaction transactions = 1;
-  PaginationInfo pagination = 2;
-}
-
 // Request message for getting transfer details
 message GetTransferDetailsRequest {
     uint64 transfer_id = 1 [json_name = "transfer_id"]; // ID of the transfer to retrieve
@@ -238,18 +212,6 @@ service TransferService {
             summary: "Get Financial Statistics";
             description: "Retrieves aggregated income, expense, and categorized statistics based on transfer history for a given time period.";
             tags: ["Transfers"];
-        };
-    }
-
-    // Fetches a paginated list of transactions based on filter criteria.
-    rpc GetTransactions (GetTransactionsRequest) returns (GetTransactionsResponse) {
-      option (google.api.http) = {
-        get: "/v1/transactions";
-      };
-      option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-        summary: "Get Transaction History";
-        description: "Retrieves a paginated list of user transactions, allowing filtering by account, card, date range, type, and category.";
-        tags: ["Transactions"];
       };
     }
 

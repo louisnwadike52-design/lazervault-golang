@@ -27,6 +27,8 @@ const (
 type ProcessChatRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Query         string                 `protobuf:"bytes,1,opt,name=query,proto3" json:"query,omitempty"`
+	TxHistory     string                 `protobuf:"bytes,2,opt,name=tx_history,json=txHistory,proto3" json:"tx_history,omitempty"`
+	UserId        uint32                 `protobuf:"varint,3,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -66,6 +68,20 @@ func (x *ProcessChatRequest) GetQuery() string {
 		return x.Query
 	}
 	return ""
+}
+
+func (x *ProcessChatRequest) GetTxHistory() string {
+	if x != nil {
+		return x.TxHistory
+	}
+	return ""
+}
+
+func (x *ProcessChatRequest) GetUserId() uint32 {
+	if x != nil {
+		return x.UserId
+	}
+	return 0
 }
 
 // Response message for the AI Chat endpoint
@@ -464,10 +480,13 @@ var File_ai_chat_proto protoreflect.FileDescriptor
 
 const file_ai_chat_proto_rawDesc = "" +
 	"\n" +
-	"\rai_chat.proto\x12\x02pb\x1a\x1cgoogle/api/annotations.proto\x1a.protoc-gen-openapiv2/options/annotations.proto\"\xb3\x01\n" +
+	"\rai_chat.proto\x12\x02pb\x1a\x1cgoogle/api/annotations.proto\x1a.protoc-gen-openapiv2/options/annotations.proto\"\xd8\x02\n" +
 	"\x12ProcessChatRequest\x12<\n" +
-	"\x05query\x18\x01 \x01(\tB&\x92A#2!The user's input/query to the AI.R\x05query:_\x92A\\\n" +
-	"Z*\x17AI Process Chat Request27Payload containing the user's query for the AI chatbot.\xd2\x01\x05query\"\xfa\x02\n" +
+	"\x05query\x18\x01 \x01(\tB&\x92A#2!The user's input/query to the AI.R\x05query\x12S\n" +
+	"\n" +
+	"tx_history\x18\x02 \x01(\tB4\x92A12/JSON string containing the last 5 transactions.R\ttxHistory\x12D\n" +
+	"\auser_id\x18\x03 \x01(\rB+\x92A(2&The ID of the user making the request.R\x06userId:i\x92Af\n" +
+	"d*\x17AI Process Chat Request27Payload containing the user's query for the AI chatbot.\xd2\x01\x05query\xd2\x01\auser_id\"\xfa\x02\n" +
 	"\x13ProcessChatResponse\x12Q\n" +
 	"\asuccess\x18\x01 \x01(\bB7\x92A422Indicates if the query was successfully processed.R\asuccess\x12B\n" +
 	"\x03msg\x18\x02 \x01(\tB0\x92A-2+A status message related to the processing.R\x03msg\x12?\n" +

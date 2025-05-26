@@ -21,7 +21,6 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	TransferService_InitiateTransfer_FullMethodName   = "/pb.TransferService/InitiateTransfer"
 	TransferService_GetStatistics_FullMethodName      = "/pb.TransferService/GetStatistics"
-	TransferService_GetTransactions_FullMethodName    = "/pb.TransferService/GetTransactions"
 	TransferService_GetTransferDetails_FullMethodName = "/pb.TransferService/GetTransferDetails"
 )
 
@@ -35,8 +34,6 @@ type TransferServiceClient interface {
 	InitiateTransfer(ctx context.Context, in *InitiateTransferRequest, opts ...grpc.CallOption) (*InitiateTransferResponse, error)
 	// Fetches aggregated financial statistics based on transfer history.
 	GetStatistics(ctx context.Context, in *GetStatisticsRequest, opts ...grpc.CallOption) (*GetStatisticsResponse, error)
-	// Fetches a paginated list of transactions based on filter criteria.
-	GetTransactions(ctx context.Context, in *GetTransactionsRequest, opts ...grpc.CallOption) (*GetTransactionsResponse, error)
 	// Retrieves the details of a specific transfer transaction.
 	GetTransferDetails(ctx context.Context, in *GetTransferDetailsRequest, opts ...grpc.CallOption) (*GetTransferDetailsResponse, error)
 }
@@ -69,16 +66,6 @@ func (c *transferServiceClient) GetStatistics(ctx context.Context, in *GetStatis
 	return out, nil
 }
 
-func (c *transferServiceClient) GetTransactions(ctx context.Context, in *GetTransactionsRequest, opts ...grpc.CallOption) (*GetTransactionsResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetTransactionsResponse)
-	err := c.cc.Invoke(ctx, TransferService_GetTransactions_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *transferServiceClient) GetTransferDetails(ctx context.Context, in *GetTransferDetailsRequest, opts ...grpc.CallOption) (*GetTransferDetailsResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetTransferDetailsResponse)
@@ -99,8 +86,6 @@ type TransferServiceServer interface {
 	InitiateTransfer(context.Context, *InitiateTransferRequest) (*InitiateTransferResponse, error)
 	// Fetches aggregated financial statistics based on transfer history.
 	GetStatistics(context.Context, *GetStatisticsRequest) (*GetStatisticsResponse, error)
-	// Fetches a paginated list of transactions based on filter criteria.
-	GetTransactions(context.Context, *GetTransactionsRequest) (*GetTransactionsResponse, error)
 	// Retrieves the details of a specific transfer transaction.
 	GetTransferDetails(context.Context, *GetTransferDetailsRequest) (*GetTransferDetailsResponse, error)
 	mustEmbedUnimplementedTransferServiceServer()
@@ -118,9 +103,6 @@ func (UnimplementedTransferServiceServer) InitiateTransfer(context.Context, *Ini
 }
 func (UnimplementedTransferServiceServer) GetStatistics(context.Context, *GetStatisticsRequest) (*GetStatisticsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetStatistics not implemented")
-}
-func (UnimplementedTransferServiceServer) GetTransactions(context.Context, *GetTransactionsRequest) (*GetTransactionsResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetTransactions not implemented")
 }
 func (UnimplementedTransferServiceServer) GetTransferDetails(context.Context, *GetTransferDetailsRequest) (*GetTransferDetailsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetTransferDetails not implemented")
@@ -182,24 +164,6 @@ func _TransferService_GetStatistics_Handler(srv interface{}, ctx context.Context
 	return interceptor(ctx, in, info, handler)
 }
 
-func _TransferService_GetTransactions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetTransactionsRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(TransferServiceServer).GetTransactions(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: TransferService_GetTransactions_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(TransferServiceServer).GetTransactions(ctx, req.(*GetTransactionsRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _TransferService_GetTransferDetails_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetTransferDetailsRequest)
 	if err := dec(in); err != nil {
@@ -232,10 +196,6 @@ var TransferService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetStatistics",
 			Handler:    _TransferService_GetStatistics_Handler,
-		},
-		{
-			MethodName: "GetTransactions",
-			Handler:    _TransferService_GetTransactions_Handler,
 		},
 		{
 			MethodName: "GetTransferDetails",

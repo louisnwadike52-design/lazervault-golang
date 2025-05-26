@@ -1,0 +1,81 @@
+syntax = "proto3";
+
+package pb;
+
+import "google/api/annotations.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+
+option go_package = "lazervaultGo/pb";
+
+// Transaction related messages
+message GetTransactionsRequest {
+    string user_id = 1;
+    optional string type = 2;
+    optional string status = 3;
+    optional string start_date = 4;  // ISO 8601 format
+    optional string end_date = 5;    // ISO 8601 format
+    optional int32 limit = 6;
+    optional int32 offset = 7;
+}
+
+message Transaction {
+    uint64 id = 1;
+    uint64 user_id = 2;
+    string timestamp = 3;
+    string type = 4;
+    double amount = 5;
+    string currency = 6;
+    string status = 7;
+    string description = 8;
+    string reference = 9;
+    optional string failure_reason = 10;
+    optional string completed_at = 11;
+    optional string processing_at = 12;
+    optional string failed_at = 13;
+    optional string external_transaction_id = 14;
+    optional uint32 from_account_id = 15;
+    optional uint32 to_account_id = 16;
+    optional string deposit_source_bank_name = 17;
+    optional string withdrawal_target_bank_name = 18;
+    optional string withdrawal_target_account_number = 19;
+    optional string withdrawal_target_sort_code = 20;
+    optional double transfer_fee = 21;
+    optional double transfer_total_amount = 22;
+    optional string transfer_category = 23;
+    optional string transfer_scheduled_at = 24;
+    string sender_info = 25;
+    string recipient_info = 26;
+    optional uint32 recipient_id = 27;
+    optional string exchange_from_currency = 28;
+    optional string exchange_to_currency = 29;
+    optional double exchange_amount_from = 30;
+    optional double exchange_amount_to = 31;
+    optional double exchange_rate = 32;
+    optional double exchange_fees = 33;
+    optional string exchange_receiver_details = 34;
+    optional string related_party = 35;
+    string created_at = 36;
+    string updated_at = 37;
+}
+
+message GetTransactionsResponse {
+    repeated Transaction transactions = 1;
+    int64 total = 2;
+    int32 limit = 3;
+    int32 offset = 4;
+}
+
+// The TransactionService provides methods for managing transactions.
+service TransactionService {
+    // GetTransactions retrieves transactions based on filters
+    rpc GetTransactions(GetTransactionsRequest) returns (GetTransactionsResponse) {
+        option (google.api.http) = {
+            get: "/v1/transactions"
+        };
+        option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            summary: "Get Transactions";
+            description: "Retrieves transactions based on provided filters.";
+            tags: ["Transactions"];
+        };
+    }
+} 

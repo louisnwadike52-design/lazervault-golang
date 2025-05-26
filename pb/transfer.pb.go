@@ -909,162 +909,6 @@ func (x *PaginationInfo) GetTotalItems() int64 {
 	return 0
 }
 
-// Request message for fetching transaction history
-type GetTransactionsRequest struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Filtering Options
-	AccountId    uint64                 `protobuf:"varint,1,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`                               // Optional: Filter by specific account ID
-	CardId       string                 `protobuf:"bytes,2,opt,name=card_id,json=cardId,proto3" json:"card_id,omitempty"`                                         // Optional: Filter by specific card ID (will lookup linked account)
-	StartDate    *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=start_date,json=startDate,proto3" json:"start_date,omitempty"`                                // Optional: Start of date range
-	EndDate      *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=end_date,json=endDate,proto3" json:"end_date,omitempty"`                                      // Optional: End of date range
-	TransferType TransferType           `protobuf:"varint,5,opt,name=transfer_type,json=transferType,proto3,enum=pb.TransferType" json:"transfer_type,omitempty"` // Optional: Filter by type (INCOME, EXPENSE, INTERNAL)
-	Category     string                 `protobuf:"bytes,6,opt,name=category,proto3" json:"category,omitempty"`                                                   // Optional: Filter by category
-	// Pagination Options
-	PageNumber    int32 `protobuf:"varint,10,opt,name=page_number,json=pageNumber,proto3" json:"page_number,omitempty"` // Defaults to 1 if not provided
-	PageSize      int32 `protobuf:"varint,11,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`       // Defaults to a server-defined size (e.g., 20) if not provided
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetTransactionsRequest) Reset() {
-	*x = GetTransactionsRequest{}
-	mi := &file_transfer_proto_msgTypes[10]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetTransactionsRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetTransactionsRequest) ProtoMessage() {}
-
-func (x *GetTransactionsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_transfer_proto_msgTypes[10]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetTransactionsRequest.ProtoReflect.Descriptor instead.
-func (*GetTransactionsRequest) Descriptor() ([]byte, []int) {
-	return file_transfer_proto_rawDescGZIP(), []int{10}
-}
-
-func (x *GetTransactionsRequest) GetAccountId() uint64 {
-	if x != nil {
-		return x.AccountId
-	}
-	return 0
-}
-
-func (x *GetTransactionsRequest) GetCardId() string {
-	if x != nil {
-		return x.CardId
-	}
-	return ""
-}
-
-func (x *GetTransactionsRequest) GetStartDate() *timestamppb.Timestamp {
-	if x != nil {
-		return x.StartDate
-	}
-	return nil
-}
-
-func (x *GetTransactionsRequest) GetEndDate() *timestamppb.Timestamp {
-	if x != nil {
-		return x.EndDate
-	}
-	return nil
-}
-
-func (x *GetTransactionsRequest) GetTransferType() TransferType {
-	if x != nil {
-		return x.TransferType
-	}
-	return TransferType_TRANSFER_TYPE_UNSPECIFIED
-}
-
-func (x *GetTransactionsRequest) GetCategory() string {
-	if x != nil {
-		return x.Category
-	}
-	return ""
-}
-
-func (x *GetTransactionsRequest) GetPageNumber() int32 {
-	if x != nil {
-		return x.PageNumber
-	}
-	return 0
-}
-
-func (x *GetTransactionsRequest) GetPageSize() int32 {
-	if x != nil {
-		return x.PageSize
-	}
-	return 0
-}
-
-// Response message containing transaction history
-type GetTransactionsResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Transactions  []*TransferTransaction `protobuf:"bytes,1,rep,name=transactions,proto3" json:"transactions,omitempty"`
-	Pagination    *PaginationInfo        `protobuf:"bytes,2,opt,name=pagination,proto3" json:"pagination,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetTransactionsResponse) Reset() {
-	*x = GetTransactionsResponse{}
-	mi := &file_transfer_proto_msgTypes[11]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetTransactionsResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetTransactionsResponse) ProtoMessage() {}
-
-func (x *GetTransactionsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_transfer_proto_msgTypes[11]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetTransactionsResponse.ProtoReflect.Descriptor instead.
-func (*GetTransactionsResponse) Descriptor() ([]byte, []int) {
-	return file_transfer_proto_rawDescGZIP(), []int{11}
-}
-
-func (x *GetTransactionsResponse) GetTransactions() []*TransferTransaction {
-	if x != nil {
-		return x.Transactions
-	}
-	return nil
-}
-
-func (x *GetTransactionsResponse) GetPagination() *PaginationInfo {
-	if x != nil {
-		return x.Pagination
-	}
-	return nil
-}
-
 // Request message for getting transfer details
 type GetTransferDetailsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -1075,7 +919,7 @@ type GetTransferDetailsRequest struct {
 
 func (x *GetTransferDetailsRequest) Reset() {
 	*x = GetTransferDetailsRequest{}
-	mi := &file_transfer_proto_msgTypes[12]
+	mi := &file_transfer_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1087,7 +931,7 @@ func (x *GetTransferDetailsRequest) String() string {
 func (*GetTransferDetailsRequest) ProtoMessage() {}
 
 func (x *GetTransferDetailsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_transfer_proto_msgTypes[12]
+	mi := &file_transfer_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1100,7 +944,7 @@ func (x *GetTransferDetailsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetTransferDetailsRequest.ProtoReflect.Descriptor instead.
 func (*GetTransferDetailsRequest) Descriptor() ([]byte, []int) {
-	return file_transfer_proto_rawDescGZIP(), []int{12}
+	return file_transfer_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *GetTransferDetailsRequest) GetTransferId() uint64 {
@@ -1136,7 +980,7 @@ type GetTransferDetailsResponse struct {
 
 func (x *GetTransferDetailsResponse) Reset() {
 	*x = GetTransferDetailsResponse{}
-	mi := &file_transfer_proto_msgTypes[13]
+	mi := &file_transfer_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1148,7 +992,7 @@ func (x *GetTransferDetailsResponse) String() string {
 func (*GetTransferDetailsResponse) ProtoMessage() {}
 
 func (x *GetTransferDetailsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_transfer_proto_msgTypes[13]
+	mi := &file_transfer_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1161,7 +1005,7 @@ func (x *GetTransferDetailsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetTransferDetailsResponse.ProtoReflect.Descriptor instead.
 func (*GetTransferDetailsResponse) Descriptor() ([]byte, []int) {
-	return file_transfer_proto_rawDescGZIP(), []int{13}
+	return file_transfer_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *GetTransferDetailsResponse) GetTransferId() uint64 {
@@ -1360,26 +1204,7 @@ const file_transfer_proto_rawDesc = "" +
 	"\vtotal_pages\x18\x03 \x01(\x05R\n" +
 	"totalPages\x12\x1f\n" +
 	"\vtotal_items\x18\x04 \x01(\x03R\n" +
-	"totalItems\"\xda\x02\n" +
-	"\x16GetTransactionsRequest\x12\x1d\n" +
-	"\n" +
-	"account_id\x18\x01 \x01(\x04R\taccountId\x12\x17\n" +
-	"\acard_id\x18\x02 \x01(\tR\x06cardId\x129\n" +
-	"\n" +
-	"start_date\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\tstartDate\x125\n" +
-	"\bend_date\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\aendDate\x125\n" +
-	"\rtransfer_type\x18\x05 \x01(\x0e2\x10.pb.TransferTypeR\ftransferType\x12\x1a\n" +
-	"\bcategory\x18\x06 \x01(\tR\bcategory\x12\x1f\n" +
-	"\vpage_number\x18\n" +
-	" \x01(\x05R\n" +
-	"pageNumber\x12\x1b\n" +
-	"\tpage_size\x18\v \x01(\x05R\bpageSize:\x05\x92A\x02\n" +
-	"\x00\"\x8a\x01\n" +
-	"\x17GetTransactionsResponse\x12;\n" +
-	"\ftransactions\x18\x01 \x03(\v2\x17.pb.TransferTransactionR\ftransactions\x122\n" +
-	"\n" +
-	"pagination\x18\x02 \x01(\v2\x12.pb.PaginationInfoR\n" +
-	"pagination\"=\n" +
+	"totalItems\"=\n" +
 	"\x19GetTransferDetailsRequest\x12 \n" +
 	"\vtransfer_id\x18\x01 \x01(\x04R\vtransfer_id\"\xa5\x05\n" +
 	"\x1aGetTransferDetailsResponse\x12 \n" +
@@ -1418,14 +1243,12 @@ const file_transfer_proto_rawDesc = "" +
 	"\x11TIME_PERIOD_MONTH\x10\x02\x12\x17\n" +
 	"\x13TIME_PERIOD_QUARTER\x10\x03\x12\x14\n" +
 	"\x10TIME_PERIOD_YEAR\x10\x04\x12\x13\n" +
-	"\x0fTIME_PERIOD_ALL\x10\x052\xcd\a\n" +
+	"\x0fTIME_PERIOD_ALL\x10\x052\xc3\x05\n" +
 	"\x0fTransferService\x12\xc2\x01\n" +
 	"\x10InitiateTransfer\x12\x1b.pb.InitiateTransferRequest\x1a\x1c.pb.InitiateTransferResponse\"s\x92AX\n" +
 	"\ttransfers\x12\x17Initiate a new transfer\x1a2Initiates a new transfer with the provided details\x82\xd3\xe4\x93\x02\x12:\x01*\"\r/v1/transfers\x12\x85\x02\n" +
 	"\rGetStatistics\x12\x18.pb.GetStatisticsRequest\x1a\x19.pb.GetStatisticsResponse\"\xbe\x01\x92A\x9a\x01\n" +
-	"\tTransfers\x12\x18Get Financial Statistics\x1asRetrieves aggregated income, expense, and categorized statistics based on transfer history for a given time period.\x82\xd3\xe4\x93\x02\x1a\x12\x18/v1/transfers/statistics\x12\x87\x02\n" +
-	"\x0fGetTransactions\x12\x1a.pb.GetTransactionsRequest\x1a\x1b.pb.GetTransactionsResponse\"\xba\x01\x92A\x9e\x01\n" +
-	"\fTransactions\x12\x17Get Transaction History\x1auRetrieves a paginated list of user transactions, allowing filtering by account, card, date range, type, and category.\x82\xd3\xe4\x93\x02\x12\x12\x10/v1/transactions\x12\xe2\x01\n" +
+	"\tTransfers\x12\x18Get Financial Statistics\x1asRetrieves aggregated income, expense, and categorized statistics based on transfer history for a given time period.\x82\xd3\xe4\x93\x02\x1a\x12\x18/v1/transfers/statistics\x12\xe2\x01\n" +
 	"\x12GetTransferDetails\x12\x1d.pb.GetTransferDetailsRequest\x1a\x1e.pb.GetTransferDetailsResponse\"\x8c\x01\x92Af\n" +
 	"\tTransfers\x12\x14Get Transfer Details\x1aCRetrieves the details of a specific transfer transaction by its ID.\x82\xd3\xe4\x93\x02\x1d\x12\x1b/v1/transfers/{transfer_id}B\xda\x01\x92A\xc1\x01\x12.\n" +
 	"\x0eLazerVault API\x12\x17LazerVault Transfer API2\x031.0*\x02\x01\x022\x10application/json:\x10application/jsonZY\n" +
@@ -1448,7 +1271,7 @@ func file_transfer_proto_rawDescGZIP() []byte {
 }
 
 var file_transfer_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_transfer_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
+var file_transfer_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
 var file_transfer_proto_goTypes = []any{
 	(TransferType)(0),                  // 0: pb.TransferType
 	(TimePeriod)(0),                    // 1: pb.TimePeriod
@@ -1462,44 +1285,35 @@ var file_transfer_proto_goTypes = []any{
 	(*GetStatisticsRequest)(nil),       // 9: pb.GetStatisticsRequest
 	(*GetStatisticsResponse)(nil),      // 10: pb.GetStatisticsResponse
 	(*PaginationInfo)(nil),             // 11: pb.PaginationInfo
-	(*GetTransactionsRequest)(nil),     // 12: pb.GetTransactionsRequest
-	(*GetTransactionsResponse)(nil),    // 13: pb.GetTransactionsResponse
-	(*GetTransferDetailsRequest)(nil),  // 14: pb.GetTransferDetailsRequest
-	(*GetTransferDetailsResponse)(nil), // 15: pb.GetTransferDetailsResponse
-	(*timestamppb.Timestamp)(nil),      // 16: google.protobuf.Timestamp
+	(*GetTransferDetailsRequest)(nil),  // 12: pb.GetTransferDetailsRequest
+	(*GetTransferDetailsResponse)(nil), // 13: pb.GetTransferDetailsResponse
+	(*timestamppb.Timestamp)(nil),      // 14: google.protobuf.Timestamp
 }
 var file_transfer_proto_depIdxs = []int32{
 	0,  // 0: pb.TransferTransaction.transfer_type:type_name -> pb.TransferType
-	16, // 1: pb.TransferTransaction.created_at:type_name -> google.protobuf.Timestamp
-	16, // 2: pb.InitiateTransferResponse.created_at:type_name -> google.protobuf.Timestamp
-	16, // 3: pb.TimeSeriesPoint.timestamp:type_name -> google.protobuf.Timestamp
+	14, // 1: pb.TransferTransaction.created_at:type_name -> google.protobuf.Timestamp
+	14, // 2: pb.InitiateTransferResponse.created_at:type_name -> google.protobuf.Timestamp
+	14, // 3: pb.TimeSeriesPoint.timestamp:type_name -> google.protobuf.Timestamp
 	1,  // 4: pb.GetStatisticsRequest.time_period:type_name -> pb.TimePeriod
 	5,  // 5: pb.GetStatisticsResponse.expense_timeseries:type_name -> pb.TimeSeriesPoint
 	6,  // 6: pb.GetStatisticsResponse.expense_breakdown:type_name -> pb.CategorySummary
 	6,  // 7: pb.GetStatisticsResponse.income_breakdown:type_name -> pb.CategorySummary
 	7,  // 8: pb.GetStatisticsResponse.monthly_overview:type_name -> pb.MonthlyData
 	8,  // 9: pb.GetStatisticsResponse.comparison_metrics:type_name -> pb.ComparisonData
-	16, // 10: pb.GetTransactionsRequest.start_date:type_name -> google.protobuf.Timestamp
-	16, // 11: pb.GetTransactionsRequest.end_date:type_name -> google.protobuf.Timestamp
-	0,  // 12: pb.GetTransactionsRequest.transfer_type:type_name -> pb.TransferType
-	2,  // 13: pb.GetTransactionsResponse.transactions:type_name -> pb.TransferTransaction
-	11, // 14: pb.GetTransactionsResponse.pagination:type_name -> pb.PaginationInfo
-	16, // 15: pb.GetTransferDetailsResponse.created_at:type_name -> google.protobuf.Timestamp
-	16, // 16: pb.GetTransferDetailsResponse.completed_at:type_name -> google.protobuf.Timestamp
-	16, // 17: pb.GetTransferDetailsResponse.failed_at:type_name -> google.protobuf.Timestamp
-	3,  // 18: pb.TransferService.InitiateTransfer:input_type -> pb.InitiateTransferRequest
-	9,  // 19: pb.TransferService.GetStatistics:input_type -> pb.GetStatisticsRequest
-	12, // 20: pb.TransferService.GetTransactions:input_type -> pb.GetTransactionsRequest
-	14, // 21: pb.TransferService.GetTransferDetails:input_type -> pb.GetTransferDetailsRequest
-	4,  // 22: pb.TransferService.InitiateTransfer:output_type -> pb.InitiateTransferResponse
-	10, // 23: pb.TransferService.GetStatistics:output_type -> pb.GetStatisticsResponse
-	13, // 24: pb.TransferService.GetTransactions:output_type -> pb.GetTransactionsResponse
-	15, // 25: pb.TransferService.GetTransferDetails:output_type -> pb.GetTransferDetailsResponse
-	22, // [22:26] is the sub-list for method output_type
-	18, // [18:22] is the sub-list for method input_type
-	18, // [18:18] is the sub-list for extension type_name
-	18, // [18:18] is the sub-list for extension extendee
-	0,  // [0:18] is the sub-list for field type_name
+	14, // 10: pb.GetTransferDetailsResponse.created_at:type_name -> google.protobuf.Timestamp
+	14, // 11: pb.GetTransferDetailsResponse.completed_at:type_name -> google.protobuf.Timestamp
+	14, // 12: pb.GetTransferDetailsResponse.failed_at:type_name -> google.protobuf.Timestamp
+	3,  // 13: pb.TransferService.InitiateTransfer:input_type -> pb.InitiateTransferRequest
+	9,  // 14: pb.TransferService.GetStatistics:input_type -> pb.GetStatisticsRequest
+	12, // 15: pb.TransferService.GetTransferDetails:input_type -> pb.GetTransferDetailsRequest
+	4,  // 16: pb.TransferService.InitiateTransfer:output_type -> pb.InitiateTransferResponse
+	10, // 17: pb.TransferService.GetStatistics:output_type -> pb.GetStatisticsResponse
+	13, // 18: pb.TransferService.GetTransferDetails:output_type -> pb.GetTransferDetailsResponse
+	16, // [16:19] is the sub-list for method output_type
+	13, // [13:16] is the sub-list for method input_type
+	13, // [13:13] is the sub-list for extension type_name
+	13, // [13:13] is the sub-list for extension extendee
+	0,  // [0:13] is the sub-list for field type_name
 }
 
 func init() { file_transfer_proto_init() }
@@ -1508,14 +1322,14 @@ func file_transfer_proto_init() {
 		return
 	}
 	file_transfer_proto_msgTypes[1].OneofWrappers = []any{}
-	file_transfer_proto_msgTypes[13].OneofWrappers = []any{}
+	file_transfer_proto_msgTypes[11].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_transfer_proto_rawDesc), len(file_transfer_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   14,
+			NumMessages:   12,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

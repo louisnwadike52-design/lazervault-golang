@@ -5,7 +5,6 @@ import (
 	"lazervaultGo/database"
 	"lazervaultGo/grpcApi"
 	"lazervaultGo/mail"
-	"lazervaultGo/services"
 	"lazervaultGo/token"
 	"lazervaultGo/worker"
 
@@ -45,6 +44,7 @@ func main() {
 		log.Fatal().Err(err).Msg("cannot create token maker")
 	}
 
+	// 2. Initialize the mailer
 	mailer := mail.NewGmailSender(config.EmailSenderName, config.EmailSenderAddress, config.EmailSenderPassword)
 
 	// Setup Redis connection options
@@ -54,15 +54,13 @@ func main() {
 		DB:       0,  // Use default DB
 	}
 
-	// 1. Create the Task Distributor
-	taskDistributor := worker.NewRedisTaskDistributor(redisOpt)
-
-	// 2. Initialize AIChatService (needs distributor)
-	aiChatService := services.NewAIChatService(db, &config, taskDistributor)
-
 	// 3. Create the full Redis Worker (processor starts automatically inside)
-	//    Pass the initialized aiChatService to the worker constructor.
-	redisWorker := worker.NewRedisWorker(redisOpt, db, mailer, &config, aiChatService)
+	redisWorker := worker.NewRedisWorker(
+		redisOpt,
+		db,
+		mailer,
+		&config,
+	)
 
 	// 4. Create and initialize the gRPC/HTTP server
 	//    Pass the redisWorker (which contains distributor & processor)

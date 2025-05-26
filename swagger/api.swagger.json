@@ -38,6 +38,9 @@
       "name": "RecipientService"
     },
     {
+      "name": "TransactionService"
+    },
+    {
       "name": "TransferService"
     },
     {
@@ -1468,9 +1471,9 @@
     },
     "/v1/transactions": {
       "get": {
-        "summary": "Get Transaction History",
-        "description": "Retrieves a paginated list of user transactions, allowing filtering by account, card, date range, type, and category.",
-        "operationId": "TransferService_GetTransactions",
+        "summary": "Get Transactions",
+        "description": "Retrieves transactions based on provided filters.",
+        "operationId": "TransactionService_GetTransactions",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -1487,68 +1490,46 @@
         },
         "parameters": [
           {
-            "name": "accountId",
-            "description": "Filtering Options\n\nOptional: Filter by specific account ID",
+            "name": "userId",
             "in": "query",
             "required": false,
-            "type": "string",
-            "format": "uint64"
+            "type": "string"
           },
           {
-            "name": "cardId",
-            "description": "Optional: Filter by specific card ID (will lookup linked account)",
+            "name": "type",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "status",
             "in": "query",
             "required": false,
             "type": "string"
           },
           {
             "name": "startDate",
-            "description": "Optional: Start of date range",
-            "in": "query",
-            "required": false,
-            "type": "string",
-            "format": "date-time"
-          },
-          {
-            "name": "endDate",
-            "description": "Optional: End of date range",
-            "in": "query",
-            "required": false,
-            "type": "string",
-            "format": "date-time"
-          },
-          {
-            "name": "transferType",
-            "description": "Optional: Filter by type (INCOME, EXPENSE, INTERNAL)\n\n - TRANSFER_TYPE_INCOME: Incoming transfer (e.g., deposit, received payment)\n - TRANSFER_TYPE_EXPENSE: Outgoing transfer (e.g., payment, withdrawal)\n - TRANSFER_TYPE_INTERNAL: Transfer between user's own accounts",
-            "in": "query",
-            "required": false,
-            "type": "string",
-            "enum": [
-              "TRANSFER_TYPE_UNSPECIFIED",
-              "TRANSFER_TYPE_INCOME",
-              "TRANSFER_TYPE_EXPENSE",
-              "TRANSFER_TYPE_INTERNAL"
-            ],
-            "default": "TRANSFER_TYPE_UNSPECIFIED"
-          },
-          {
-            "name": "category",
-            "description": "Optional: Filter by category",
+            "description": "ISO 8601 format",
             "in": "query",
             "required": false,
             "type": "string"
           },
           {
-            "name": "pageNumber",
-            "description": "Pagination Options\n\nDefaults to 1 if not provided",
+            "name": "endDate",
+            "description": "ISO 8601 format",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "limit",
             "in": "query",
             "required": false,
             "type": "integer",
             "format": "int32"
           },
           {
-            "name": "pageSize",
-            "description": "Defaults to a server-defined size (e.g., 20) if not provided",
+            "name": "offset",
             "in": "query",
             "required": false,
             "type": "integer",
@@ -2773,14 +2754,22 @@
           "type": "array",
           "items": {
             "type": "object",
-            "$ref": "#/definitions/pbTransferTransaction"
+            "$ref": "#/definitions/pbTransaction"
           }
         },
-        "pagination": {
-          "$ref": "#/definitions/pbPaginationInfo"
+        "total": {
+          "type": "string",
+          "format": "int64"
+        },
+        "limit": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "offset": {
+          "type": "integer",
+          "format": "int32"
         }
-      },
-      "title": "Response message containing transaction history"
+      }
     },
     "pbGetTransferDetailsResponse": {
       "type": "object",
@@ -3414,39 +3403,28 @@
       },
       "title": "Represents aggregated data for a single month"
     },
-    "pbPaginationInfo": {
-      "type": "object",
-      "properties": {
-        "currentPage": {
-          "type": "integer",
-          "format": "int32"
-        },
-        "pageSize": {
-          "type": "integer",
-          "format": "int32"
-        },
-        "totalPages": {
-          "type": "integer",
-          "format": "int32"
-        },
-        "totalItems": {
-          "type": "string",
-          "format": "int64"
-        }
-      }
-    },
     "pbProcessChatRequest": {
       "type": "object",
       "properties": {
         "query": {
           "type": "string",
           "description": "The user's input/query to the AI."
+        },
+        "txHistory": {
+          "type": "string",
+          "description": "JSON string containing the last 5 transactions."
+        },
+        "userId": {
+          "type": "integer",
+          "format": "int64",
+          "description": "The ID of the user making the request."
         }
       },
       "description": "Payload containing the user's query for the AI chatbot.",
       "title": "AI Process Chat Request",
       "required": [
-        "query"
+        "query",
+        "userId"
       ]
     },
     "pbProcessChatResponse": {
@@ -3823,66 +3801,133 @@
       },
       "title": "Represents a single point in a time series chart"
     },
-    "pbTransferTransaction": {
+    "pbTransaction": {
       "type": "object",
       "properties": {
-        "transactionId": {
+        "id": {
           "type": "string",
-          "title": "Unique ID for the transfer"
+          "format": "uint64"
         },
-        "fromAccountId": {
+        "userId": {
           "type": "string",
-          "format": "uint64",
-          "title": "Source LazerVault account ID"
+          "format": "uint64"
         },
-        "toAccountId": {
-          "type": "string",
-          "format": "uint64",
-          "title": "Destination LazerVault account ID (if internal)"
+        "timestamp": {
+          "type": "string"
         },
-        "toRecipientId": {
-          "type": "string",
-          "title": "Destination Recipient ID (if external)"
+        "type": {
+          "type": "string"
         },
         "amount": {
           "type": "number",
-          "format": "double",
-          "title": "Amount transferred"
+          "format": "double"
         },
         "currency": {
-          "type": "string",
-          "title": "Currency code (e.g., \"GBP\")"
+          "type": "string"
         },
-        "transferType": {
-          "$ref": "#/definitions/pbTransferType",
-          "title": "Type of transfer (Income/Expense/Internal)"
-        },
-        "category": {
-          "type": "string",
-          "title": "User-defined or system-assigned category (e.g., \"Shopping\", \"Salary\")"
+        "status": {
+          "type": "string"
         },
         "description": {
-          "type": "string",
-          "title": "Optional description/note for the transfer"
+          "type": "string"
+        },
+        "reference": {
+          "type": "string"
+        },
+        "failureReason": {
+          "type": "string"
+        },
+        "completedAt": {
+          "type": "string"
+        },
+        "processingAt": {
+          "type": "string"
+        },
+        "failedAt": {
+          "type": "string"
+        },
+        "externalTransactionId": {
+          "type": "string"
+        },
+        "fromAccountId": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "toAccountId": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "depositSourceBankName": {
+          "type": "string"
+        },
+        "withdrawalTargetBankName": {
+          "type": "string"
+        },
+        "withdrawalTargetAccountNumber": {
+          "type": "string"
+        },
+        "withdrawalTargetSortCode": {
+          "type": "string"
+        },
+        "transferFee": {
+          "type": "number",
+          "format": "double"
+        },
+        "transferTotalAmount": {
+          "type": "number",
+          "format": "double"
+        },
+        "transferCategory": {
+          "type": "string"
+        },
+        "transferScheduledAt": {
+          "type": "string"
+        },
+        "senderInfo": {
+          "type": "string"
+        },
+        "recipientInfo": {
+          "type": "string"
+        },
+        "recipientId": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "exchangeFromCurrency": {
+          "type": "string"
+        },
+        "exchangeToCurrency": {
+          "type": "string"
+        },
+        "exchangeAmountFrom": {
+          "type": "number",
+          "format": "double"
+        },
+        "exchangeAmountTo": {
+          "type": "number",
+          "format": "double"
+        },
+        "exchangeRate": {
+          "type": "number",
+          "format": "double"
+        },
+        "exchangeFees": {
+          "type": "number",
+          "format": "double"
+        },
+        "exchangeReceiverDetails": {
+          "type": "string"
+        },
+        "relatedParty": {
+          "type": "string"
         },
         "createdAt": {
-          "type": "string",
-          "format": "date-time"
+          "type": "string"
+        },
+        "updatedAt": {
+          "type": "string"
         }
-      },
-      "title": "Main Transfer Transaction message"
-    },
-    "pbTransferType": {
-      "type": "string",
-      "enum": [
-        "TRANSFER_TYPE_UNSPECIFIED",
-        "TRANSFER_TYPE_INCOME",
-        "TRANSFER_TYPE_EXPENSE",
-        "TRANSFER_TYPE_INTERNAL"
-      ],
-      "default": "TRANSFER_TYPE_UNSPECIFIED",
-      "description": "- TRANSFER_TYPE_INCOME: Incoming transfer (e.g., deposit, received payment)\n - TRANSFER_TYPE_EXPENSE: Outgoing transfer (e.g., payment, withdrawal)\n - TRANSFER_TYPE_INTERNAL: Transfer between user's own accounts",
-      "title": "Transfer Type Enum"
+      }
     },
     "pbUpdateAccountCardDefaultStatusResponse": {
       "type": "object",

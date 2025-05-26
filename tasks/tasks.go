@@ -28,6 +28,9 @@ const (
 
 	// AI Chat History Tasks
 	TypeUpdateChatHistoryAndIndex = "ai_chat:update_history_and_index"
+
+	// Transaction File Tasks
+	TypeUpdateTxFileAndIndex = "txfile:update_and_index" // New task type
 )
 
 // Queue name constants
@@ -46,6 +49,12 @@ type UpdateChatHistoryAndIndexPayload struct {
 	Response string `json:"response"`
 }
 
+// Payload for updating transaction file and triggering AI indexing
+type UpdateTxFileAndIndexPayload struct {
+	UserID uint   `json:"user_id"`
+	TxData string `json:"tx_data"` // JSON string of recent transactions
+}
+
 // --- Task Constructors ---
 
 // NewUpdateChatHistoryAndIndexTask creates a new task payload
@@ -54,6 +63,15 @@ func NewUpdateChatHistoryAndIndexTask(userID uint, query, response string) ([]by
 		UserID:   userID,
 		Query:    query,
 		Response: response,
+	}
+	return json.Marshal(payload)
+}
+
+// NewUpdateTxFileAndIndexTask creates a new task payload for transaction file update
+func NewUpdateTxFileAndIndexTask(userID uint, txData string) ([]byte, error) {
+	payload := UpdateTxFileAndIndexPayload{
+		UserID: userID,
+		TxData: txData,
 	}
 	return json.Marshal(payload)
 }

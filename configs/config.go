@@ -74,6 +74,12 @@ func LoadConfig(path string) (config Config, err error) {
 	log.Println("Config loaded successfully")
 
 	err = viper.Unmarshal(&config)
+	if err == nil {
+		log.Printf("GCS_BUCKET_NAME from config: %s", config.GCSBucketName)
+		if envBucket := viper.GetString("GCS_BUCKET_NAME"); envBucket != config.GCSBucketName {
+			log.Printf("WARNING: GCS_BUCKET_NAME overridden by environment: %s", envBucket)
+		}
+	}
 	return
 }
 

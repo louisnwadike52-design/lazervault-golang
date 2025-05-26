@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"lazervaultGo/mail"
 	"lazervaultGo/models"
+	"lazervaultGo/services"
 	"lazervaultGo/tasks"
 	"math/rand"
 	"time"
@@ -16,7 +17,7 @@ import (
 )
 
 // HandleDepositProcessTask processes the deposit task.
-func HandleDepositProcessTask(ctx context.Context, t *asynq.Task, db *gorm.DB, mailer mail.EmailSender, distributor tasks.TaskDistributor) error {
+func HandleDepositProcessTask(ctx context.Context, t *asynq.Task, db *gorm.DB, mailer mail.EmailSender, distributor tasks.TaskDistributor, txService *services.TransactionService, txFileService *services.GenerateTxDataService) error {
 	var payload tasks.DepositProcessPayload
 	if err := json.Unmarshal(t.Payload(), &payload); err != nil {
 		return fmt.Errorf("failed to unmarshal deposit process payload: %w", asynq.SkipRetry)
@@ -155,20 +156,35 @@ func HandleDepositProcessTask(ctx context.Context, t *asynq.Task, db *gorm.DB, m
 	// --- Enqueue Tx File Update Task (AFTER success or failure processing) ---
 	// Need UserID which should be available on the deposit model
 	finalUserID := deposit.UserID
-	txFilePayloadBytes, err := tasks.NewGenerateTxDataFileTask(finalUserID)
-	if err != nil {
-		// Log critical error, but don't fail the deposit task itself for this
-		fmt.Printf("CRITICAL ERROR: Failed creating tx file generation payload for user %d after deposit %s: %v\n", finalUserID, depositID, err)
-	} else {
-		opts := []asynq.Option{
-			asynq.MaxRetry(3),
-			asynq.Timeout(10 * time.Minute),
-			asynq.Queue(tasks.QueueLow), // Use low priority queue
-		}
-		if err := distributor.DistributeTask(ctx, tasks.TypeGenerateTxDataFile, txFilePayloadBytes, opts...); err != nil {
-			// Log critical error
-			fmt.Printf("CRITICAL ERROR: Failed enqueuing tx file generation task for user %d after deposit %s: %v\n", finalUserID, depositID, err)
-		}
+
+	// Create a transaction record for the deposit
+	record := services.TransactionRecord{
+		UserID:                uint64(finalUserID),
+		Timestamp:             deposit.CreatedAt,
+		Type:                  "DEPOSIT",
+		Amount:                float64(deposit.Amount) / 100.0,
+		Currency:              deposit.Currency,
+		Status:                string(deposit.Status),
+		Description:           "Deposit from " + deposit.SourceBankName,
+		Reference:             deposit.ID,
+		ToAccountID:           &deposit.TargetAccountID,
+		FailureReason:         deposit.FailureReason,
+		CompletedAt:           deposit.CompletedAt,
+		ProcessingAt:          deposit.ProcessingAt,
+		FailedAt:              deposit.FailedAt,
+		ExternalTransactionID: deposit.ExternalTransactionID,
+		DepositSourceBankName: &deposit.SourceBankName,
+	}
+
+	// Create transaction record in database
+	if err := txService.CreateTransaction(ctx, record); err != nil {
+		fmt.Printf("CRITICAL ERROR: Failed to create transaction record for deposit %s: %v\n", deposit.ID, err)
+	}
+
+	// Append the transaction to the file
+	if err := txFileService.AppendTransactionToFile(ctx, finalUserID, record); err != nil {
+		// Log error but don't fail the deposit task itself
+		fmt.Printf("CRITICAL ERROR: Failed to append deposit %s to tx file for user %d: %v\n", deposit.ID, finalUserID, err)
 	}
 
 	return nil // Task processed

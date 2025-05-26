@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"lazervaultGo/mail"
 	"lazervaultGo/models"
+	"lazervaultGo/services"
 	"lazervaultGo/tasks"
 	"math/rand"
 	"time"
@@ -16,7 +17,7 @@ import (
 )
 
 // HandleWithdrawalProcessTask processes the withdrawal task.
-func HandleWithdrawalProcessTask(ctx context.Context, t *asynq.Task, db *gorm.DB, mailer mail.EmailSender, distributor tasks.TaskDistributor) error {
+func HandleWithdrawalProcessTask(ctx context.Context, t *asynq.Task, db *gorm.DB, mailer mail.EmailSender, distributor tasks.TaskDistributor, txService *services.TransactionService, txFileService *services.GenerateTxDataService) error {
 	var payload tasks.WithdrawalProcessPayload
 	if err := json.Unmarshal(t.Payload(), &payload); err != nil {
 		return fmt.Errorf("failed to unmarshal withdrawal process payload: %w", asynq.SkipRetry)
@@ -157,21 +158,40 @@ func HandleWithdrawalProcessTask(ctx context.Context, t *asynq.Task, db *gorm.DB
 	}
 
 	// --- Enqueue Tx File Update Task (AFTER success or failure processing) ---
-	txFilePayloadBytes, err := tasks.NewGenerateTxDataFileTask(finalUserID)
-	if err != nil {
-		// Log critical error, but don't fail the withdrawal task itself for this
-		fmt.Printf("CRITICAL ERROR: Failed creating tx file generation payload for user %d after withdrawal %s: %v\n", finalUserID, withdrawalID, err)
-	} else {
-		opts := []asynq.Option{
-			asynq.MaxRetry(3),
-			asynq.Timeout(10 * time.Minute),
-			asynq.Queue(tasks.QueueLow), // Use low priority queue
-		}
-		if err := distributor.DistributeTask(ctx, tasks.TypeGenerateTxDataFile, txFilePayloadBytes, opts...); err != nil {
-			// Log critical error
-			fmt.Printf("CRITICAL ERROR: Failed enqueuing tx file generation task for user %d after withdrawal %s: %v\n", finalUserID, withdrawalID, err)
-		}
+	// Need UserID which should be available on the withdrawal model
+	// finalUserID is already declared above, so we'll use it directly
+
+	// Create a transaction record for the withdrawal
+	record := services.TransactionRecord{
+		UserID:                        uint64(finalUserID),
+		Timestamp:                     withdrawal.CreatedAt,
+		Type:                          "WITHDRAWAL",
+		Amount:                        float64(withdrawal.Amount) / 100.0,
+		Currency:                      withdrawal.Currency,
+		Status:                        string(withdrawal.Status),
+		Description:                   "Withdrawal to " + withdrawal.TargetBankName,
+		Reference:                     withdrawal.ID,
+		FromAccountID:                 &withdrawal.SourceAccountID,
+		FailureReason:                 &withdrawal.FailureReason,
+		CompletedAt:                   withdrawal.CompletedAt,
+		ProcessingAt:                  withdrawal.ProcessingAt,
+		FailedAt:                      withdrawal.FailedAt,
+		ExternalTransactionID:         withdrawal.ExternalTransactionID,
+		WithdrawalTargetBankName:      &withdrawal.TargetBankName,
+		WithdrawalTargetAccountNumber: &withdrawal.TargetAccountNumber,
+		WithdrawalTargetSortCode:      &withdrawal.TargetSortCode,
 	}
 
-	return nil // Task processed (success or failure handled)
+	// Create transaction record in database
+	if err := txService.CreateTransaction(ctx, record); err != nil {
+		fmt.Printf("CRITICAL ERROR: Failed to create transaction record for withdrawal %s: %v\n", withdrawal.ID, err)
+	}
+
+	// Append the transaction to the file
+	if err := txFileService.AppendTransactionToFile(ctx, finalUserID, record); err != nil {
+		// Log error but don't fail the withdrawal task itself
+		fmt.Printf("CRITICAL ERROR: Failed to append withdrawal %s to tx file for user %d: %v\n", withdrawal.ID, finalUserID, err)
+	}
+
+	return nil // Task processed
 }
