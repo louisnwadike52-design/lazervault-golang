@@ -4,11 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"lazervaultGo/grpcApi/middleware" // Import middleware package
-	"lazervaultGo/models"             // For user lookup
+	"lazervaultGo/grpcApi/middleware"
+	"lazervaultGo/models"
 	"lazervaultGo/pb"
 	"lazervaultGo/services"
-	"lazervaultGo/token" // For getting payload from context
+	"lazervaultGo/token"
 	"strings"
 	"time"
 

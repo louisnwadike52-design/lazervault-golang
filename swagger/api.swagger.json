@@ -1332,6 +1332,53 @@
         ]
       }
     },
+    "/v1/recipients/search-by-account": {
+      "get": {
+        "summary": "Search saved recipients by account details",
+        "description": "Searches existing saved recipients by their account details. Returns a list of matching recipients with full details.",
+        "operationId": "RecipientService_SearchRecipientsByAccount",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbSearchRecipientsByAccountResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "accountNumber",
+            "description": "Required - account number to search for",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "sortCode",
+            "description": "Optional - sort code or routing number",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "bankName",
+            "description": "Optional - bank name (case-insensitive)",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "Recipients"
+        ]
+      }
+    },
     "/v1/recipients/search-by-name": {
       "get": {
         "summary": "Search saved recipients by name",
@@ -3624,6 +3671,19 @@
         }
       },
       "description": "Response for resetting password."
+    },
+    "pbSearchRecipientsByAccountResponse": {
+      "type": "object",
+      "properties": {
+        "recipients": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbRecipient"
+          },
+          "title": "Full recipient details for matches"
+        }
+      }
     },
     "pbSecuritySettings": {
       "type": "object",

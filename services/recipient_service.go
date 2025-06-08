@@ -33,6 +33,7 @@ type IRecipientService interface {
 	DeleteRecipient(ctx context.Context, userID uint, recipientID uint) error
 	GetRecipientByID(ctx context.Context, recipientID uint, requestingUserID uint) (*models.Recipient, error)
 	GetSimilarRecipientsByName(ctx context.Context, name string, userID uint) ([]*models.Recipient, error)
+	SearchRecipientsByAccount(ctx context.Context, accountNumber string, sortCode string, bankName string, userID uint) ([]*models.Recipient, error)
 }
 
 // --- Service Struct ---
@@ -220,6 +221,30 @@ func (s *RecipientService) GetSimilarRecipientsByName(ctx context.Context, name 
 
 	if err != nil {
 		return nil, fmt.Errorf("database error searching recipients by name: %w", err)
+	}
+
+	return recipients, nil
+}
+
+func (s *RecipientService) SearchRecipientsByAccount(ctx context.Context, accountNumber string, sortCode string, bankName string, userID uint) ([]*models.Recipient, error) {
+	var recipients []*models.Recipient
+
+	// Build query starting with required fields
+	query := s.db.WithContext(ctx).Where("owner_user_id = ? AND type = ? AND account_number = ?", userID, "external", accountNumber)
+
+	// Add optional sort_code if provided
+	if sortCode != "" {
+		query = query.Where("sort_code = ?", sortCode)
+	}
+
+	// Add optional bank_name if provided (case-insensitive)
+	if bankName != "" {
+		query = query.Where("LOWER(bank_name) LIKE ?", "%"+strings.ToLower(bankName)+"%")
+	}
+
+	err := query.Find(&recipients).Error
+	if err != nil {
+		return nil, fmt.Errorf("database error searching recipients by account: %w", err)
 	}
 
 	return recipients, nil

@@ -234,7 +234,7 @@ func (controller *InvoiceController) ListInvoices(ctx context.Context, req *pb.L
 
 	// --- Prepare Service Request ---
 	statusFilterString := ""                                                                     // Default to no filter
-	if req.StatusFilter != pb.InvoiceStatus_DRAFT || req.StatusFilter != pb.InvoiceStatus_PAID { // Check if filter is explicitly set (using hypothetical field)
+	if req.StatusFilter != pb.InvoiceStatus_DRAFT && req.StatusFilter != pb.InvoiceStatus_PAID { // Check if filter is explicitly set (using hypothetical field)
 		// TODO: Need a reliable way to check if the enum default (DRAFT) was explicitly sent
 		// For now, assume any non-zero value means filter is intended.
 		// A better approach might be to use wrappers.Int32Value or a separate bool field.

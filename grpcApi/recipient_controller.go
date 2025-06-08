@@ -189,6 +189,36 @@ func (c *RecipientController) GetSimilarRecipientsByName(ctx context.Context, re
 	}, nil
 }
 
+// SearchRecipientsByAccount handles the gRPC request to search for recipients by account details.
+func (c *RecipientController) SearchRecipientsByAccount(ctx context.Context, req *pb.SearchRecipientsByAccountRequest) (*pb.SearchRecipientsByAccountResponse, error) {
+	// Get authenticated user
+	user, err := getUserFromContext(ctx, c.userService)
+	if err != nil {
+		return nil, err // Propagate auth/user lookup errors
+	}
+
+	// Validate required field
+	if req.GetAccountNumber() == "" {
+		return nil, status.Error(codes.InvalidArgument, "account_number is required")
+	}
+
+	// Call the service layer method
+	foundRecipientModels, err := c.recipientService.SearchRecipientsByAccount(ctx, req.GetAccountNumber(), req.GetSortCode(), req.GetBankName(), user.ID)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to search for recipients by account: %v", err)
+	}
+
+	// Convert models to protos
+	protoRecipients := make([]*pb.Recipient, 0, len(foundRecipientModels))
+	for _, model := range foundRecipientModels {
+		protoRecipients = append(protoRecipients, services.ConvertRecipientToProto(model))
+	}
+
+	return &pb.SearchRecipientsByAccountResponse{
+		Recipients: protoRecipients,
+	}, nil
+}
+
 // Helper to convert models.Recipient to pb.FoundRecipientResult
 func ConvertRecipientModelToFoundRecipientResultProto(r *models.Recipient) *pb.FoundRecipientResult {
 	if r == nil {

@@ -840,6 +840,110 @@ func (x *GetSimilarRecipientsByNameResponse) GetFoundRecipients() []*FoundRecipi
 	return nil
 }
 
+type SearchRecipientsByAccountRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	AccountNumber string                 `protobuf:"bytes,1,opt,name=account_number,json=accountNumber,proto3" json:"account_number,omitempty"` // Required - account number to search for
+	SortCode      *string                `protobuf:"bytes,2,opt,name=sort_code,json=sortCode,proto3,oneof" json:"sort_code,omitempty"`          // Optional - sort code or routing number
+	BankName      *string                `protobuf:"bytes,3,opt,name=bank_name,json=bankName,proto3,oneof" json:"bank_name,omitempty"`          // Optional - bank name (case-insensitive)
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SearchRecipientsByAccountRequest) Reset() {
+	*x = SearchRecipientsByAccountRequest{}
+	mi := &file_recipient_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SearchRecipientsByAccountRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SearchRecipientsByAccountRequest) ProtoMessage() {}
+
+func (x *SearchRecipientsByAccountRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_recipient_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SearchRecipientsByAccountRequest.ProtoReflect.Descriptor instead.
+func (*SearchRecipientsByAccountRequest) Descriptor() ([]byte, []int) {
+	return file_recipient_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *SearchRecipientsByAccountRequest) GetAccountNumber() string {
+	if x != nil {
+		return x.AccountNumber
+	}
+	return ""
+}
+
+func (x *SearchRecipientsByAccountRequest) GetSortCode() string {
+	if x != nil && x.SortCode != nil {
+		return *x.SortCode
+	}
+	return ""
+}
+
+func (x *SearchRecipientsByAccountRequest) GetBankName() string {
+	if x != nil && x.BankName != nil {
+		return *x.BankName
+	}
+	return ""
+}
+
+type SearchRecipientsByAccountResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Recipients    []*Recipient           `protobuf:"bytes,1,rep,name=recipients,proto3" json:"recipients,omitempty"` // Full recipient details for matches
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SearchRecipientsByAccountResponse) Reset() {
+	*x = SearchRecipientsByAccountResponse{}
+	mi := &file_recipient_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SearchRecipientsByAccountResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SearchRecipientsByAccountResponse) ProtoMessage() {}
+
+func (x *SearchRecipientsByAccountResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_recipient_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SearchRecipientsByAccountResponse.ProtoReflect.Descriptor instead.
+func (*SearchRecipientsByAccountResponse) Descriptor() ([]byte, []int) {
+	return file_recipient_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *SearchRecipientsByAccountResponse) GetRecipients() []*Recipient {
+	if x != nil {
+		return x.Recipients
+	}
+	return nil
+}
+
 var File_recipient_proto protoreflect.FileDescriptor
 
 const file_recipient_proto_rawDesc = "" +
@@ -923,7 +1027,19 @@ const file_recipient_proto_rawDesc = "" +
 	"!GetSimilarRecipientsByNameRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\"i\n" +
 	"\"GetSimilarRecipientsByNameResponse\x12C\n" +
-	"\x10found_recipients\x18\x01 \x03(\v2\x18.pb.FoundRecipientResultR\x0ffoundRecipients2\xe5\x06\n" +
+	"\x10found_recipients\x18\x01 \x03(\v2\x18.pb.FoundRecipientResultR\x0ffoundRecipients\"\xa9\x01\n" +
+	" SearchRecipientsByAccountRequest\x12%\n" +
+	"\x0eaccount_number\x18\x01 \x01(\tR\raccountNumber\x12 \n" +
+	"\tsort_code\x18\x02 \x01(\tH\x00R\bsortCode\x88\x01\x01\x12 \n" +
+	"\tbank_name\x18\x03 \x01(\tH\x01R\bbankName\x88\x01\x01B\f\n" +
+	"\n" +
+	"_sort_codeB\f\n" +
+	"\n" +
+	"_bank_name\"R\n" +
+	"!SearchRecipientsByAccountResponse\x12-\n" +
+	"\n" +
+	"recipients\x18\x01 \x03(\v2\r.pb.RecipientR\n" +
+	"recipients2\xae\t\n" +
 	"\x10RecipientService\x12e\n" +
 	"\x0fCreateRecipient\x12\x1a.pb.CreateRecipientRequest\x1a\x1b.pb.CreateRecipientResponse\"\x19\x82\xd3\xe4\x93\x02\x13:\x01*\"\x0e/v1/recipients\x12_\n" +
 	"\x0eListRecipients\x12\x19.pb.ListRecipientsRequest\x1a\x1a.pb.ListRecipientsResponse\"\x16\x82\xd3\xe4\x93\x02\x10\x12\x0e/v1/recipients\x12t\n" +
@@ -932,7 +1048,10 @@ const file_recipient_proto_rawDesc = "" +
 	"\fGetRecipient\x12\x17.pb.GetRecipientRequest\x1a\x18.pb.GetRecipientResponse\"%\x82\xd3\xe4\x93\x02\x1f\x12\x1d/v1/recipients/{recipient_id}\x12\xb5\x02\n" +
 	"\x1aGetSimilarRecipientsByName\x12%.pb.GetSimilarRecipientsByNameRequest\x1a&.pb.GetSimilarRecipientsByNameResponse\"\xc7\x01\x92A\x9e\x01\n" +
 	"\n" +
-	"Recipients\x12\x1fSearch saved recipients by name\x1aoSearches existing saved recipients by their name. Returns a list of matching recipients with their ID and name.\x82\xd3\xe4\x93\x02\x1f\x12\x1d/v1/recipients/search-by-nameBm\x92AY\x12/\n" +
+	"Recipients\x12\x1fSearch saved recipients by name\x1aoSearches existing saved recipients by their name. Returns a list of matching recipients with their ID and name.\x82\xd3\xe4\x93\x02\x1f\x12\x1d/v1/recipients/search-by-name\x12\xc6\x02\n" +
+	"\x19SearchRecipientsByAccount\x12$.pb.SearchRecipientsByAccountRequest\x1a%.pb.SearchRecipientsByAccountResponse\"\xdb\x01\x92A\xaf\x01\n" +
+	"\n" +
+	"Recipients\x12*Search saved recipients by account details\x1auSearches existing saved recipients by their account details. Returns a list of matching recipients with full details.\x82\xd3\xe4\x93\x02\"\x12 /v1/recipients/search-by-accountBm\x92AY\x12/\n" +
 	"\x0eLazerVault API\x12\x18LazerVault Recipient API2\x031.0*\x02\x01\x022\x10application/json:\x10application/jsonZ\x0flazervaultGo/pbb\x06proto3"
 
 var (
@@ -947,7 +1066,7 @@ func file_recipient_proto_rawDescGZIP() []byte {
 	return file_recipient_proto_rawDescData
 }
 
-var file_recipient_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
+var file_recipient_proto_msgTypes = make([]protoimpl.MessageInfo, 16)
 var file_recipient_proto_goTypes = []any{
 	(*Recipient)(nil),                          // 0: pb.Recipient
 	(*CreateRecipientRequest)(nil),             // 1: pb.CreateRecipientRequest
@@ -963,41 +1082,46 @@ var file_recipient_proto_goTypes = []any{
 	(*FoundRecipientResult)(nil),               // 11: pb.FoundRecipientResult
 	(*GetSimilarRecipientsByNameRequest)(nil),  // 12: pb.GetSimilarRecipientsByNameRequest
 	(*GetSimilarRecipientsByNameResponse)(nil), // 13: pb.GetSimilarRecipientsByNameResponse
-	(*timestamppb.Timestamp)(nil),              // 14: google.protobuf.Timestamp
-	(*wrapperspb.StringValue)(nil),             // 15: google.protobuf.StringValue
-	(*wrapperspb.BoolValue)(nil),               // 16: google.protobuf.BoolValue
+	(*SearchRecipientsByAccountRequest)(nil),   // 14: pb.SearchRecipientsByAccountRequest
+	(*SearchRecipientsByAccountResponse)(nil),  // 15: pb.SearchRecipientsByAccountResponse
+	(*timestamppb.Timestamp)(nil),              // 16: google.protobuf.Timestamp
+	(*wrapperspb.StringValue)(nil),             // 17: google.protobuf.StringValue
+	(*wrapperspb.BoolValue)(nil),               // 18: google.protobuf.BoolValue
 }
 var file_recipient_proto_depIdxs = []int32{
-	14, // 0: pb.Recipient.created_at:type_name -> google.protobuf.Timestamp
-	14, // 1: pb.Recipient.updated_at:type_name -> google.protobuf.Timestamp
+	16, // 0: pb.Recipient.created_at:type_name -> google.protobuf.Timestamp
+	16, // 1: pb.Recipient.updated_at:type_name -> google.protobuf.Timestamp
 	0,  // 2: pb.CreateRecipientResponse.recipient:type_name -> pb.Recipient
 	0,  // 3: pb.ListRecipientsResponse.recipients:type_name -> pb.Recipient
-	15, // 4: pb.UpdateRecipientRequest.name:type_name -> google.protobuf.StringValue
-	16, // 5: pb.UpdateRecipientRequest.is_favorite:type_name -> google.protobuf.BoolValue
-	15, // 6: pb.UpdateRecipientRequest.account_number:type_name -> google.protobuf.StringValue
-	15, // 7: pb.UpdateRecipientRequest.sort_code:type_name -> google.protobuf.StringValue
-	15, // 8: pb.UpdateRecipientRequest.bank_name:type_name -> google.protobuf.StringValue
-	15, // 9: pb.UpdateRecipientRequest.country_code:type_name -> google.protobuf.StringValue
+	17, // 4: pb.UpdateRecipientRequest.name:type_name -> google.protobuf.StringValue
+	18, // 5: pb.UpdateRecipientRequest.is_favorite:type_name -> google.protobuf.BoolValue
+	17, // 6: pb.UpdateRecipientRequest.account_number:type_name -> google.protobuf.StringValue
+	17, // 7: pb.UpdateRecipientRequest.sort_code:type_name -> google.protobuf.StringValue
+	17, // 8: pb.UpdateRecipientRequest.bank_name:type_name -> google.protobuf.StringValue
+	17, // 9: pb.UpdateRecipientRequest.country_code:type_name -> google.protobuf.StringValue
 	0,  // 10: pb.UpdateRecipientResponse.recipient:type_name -> pb.Recipient
 	0,  // 11: pb.GetRecipientResponse.recipient:type_name -> pb.Recipient
 	11, // 12: pb.GetSimilarRecipientsByNameResponse.found_recipients:type_name -> pb.FoundRecipientResult
-	1,  // 13: pb.RecipientService.CreateRecipient:input_type -> pb.CreateRecipientRequest
-	3,  // 14: pb.RecipientService.ListRecipients:input_type -> pb.ListRecipientsRequest
-	5,  // 15: pb.RecipientService.UpdateRecipient:input_type -> pb.UpdateRecipientRequest
-	7,  // 16: pb.RecipientService.DeleteRecipient:input_type -> pb.DeleteRecipientRequest
-	9,  // 17: pb.RecipientService.GetRecipient:input_type -> pb.GetRecipientRequest
-	12, // 18: pb.RecipientService.GetSimilarRecipientsByName:input_type -> pb.GetSimilarRecipientsByNameRequest
-	2,  // 19: pb.RecipientService.CreateRecipient:output_type -> pb.CreateRecipientResponse
-	4,  // 20: pb.RecipientService.ListRecipients:output_type -> pb.ListRecipientsResponse
-	6,  // 21: pb.RecipientService.UpdateRecipient:output_type -> pb.UpdateRecipientResponse
-	8,  // 22: pb.RecipientService.DeleteRecipient:output_type -> pb.DeleteRecipientResponse
-	10, // 23: pb.RecipientService.GetRecipient:output_type -> pb.GetRecipientResponse
-	13, // 24: pb.RecipientService.GetSimilarRecipientsByName:output_type -> pb.GetSimilarRecipientsByNameResponse
-	19, // [19:25] is the sub-list for method output_type
-	13, // [13:19] is the sub-list for method input_type
-	13, // [13:13] is the sub-list for extension type_name
-	13, // [13:13] is the sub-list for extension extendee
-	0,  // [0:13] is the sub-list for field type_name
+	0,  // 13: pb.SearchRecipientsByAccountResponse.recipients:type_name -> pb.Recipient
+	1,  // 14: pb.RecipientService.CreateRecipient:input_type -> pb.CreateRecipientRequest
+	3,  // 15: pb.RecipientService.ListRecipients:input_type -> pb.ListRecipientsRequest
+	5,  // 16: pb.RecipientService.UpdateRecipient:input_type -> pb.UpdateRecipientRequest
+	7,  // 17: pb.RecipientService.DeleteRecipient:input_type -> pb.DeleteRecipientRequest
+	9,  // 18: pb.RecipientService.GetRecipient:input_type -> pb.GetRecipientRequest
+	12, // 19: pb.RecipientService.GetSimilarRecipientsByName:input_type -> pb.GetSimilarRecipientsByNameRequest
+	14, // 20: pb.RecipientService.SearchRecipientsByAccount:input_type -> pb.SearchRecipientsByAccountRequest
+	2,  // 21: pb.RecipientService.CreateRecipient:output_type -> pb.CreateRecipientResponse
+	4,  // 22: pb.RecipientService.ListRecipients:output_type -> pb.ListRecipientsResponse
+	6,  // 23: pb.RecipientService.UpdateRecipient:output_type -> pb.UpdateRecipientResponse
+	8,  // 24: pb.RecipientService.DeleteRecipient:output_type -> pb.DeleteRecipientResponse
+	10, // 25: pb.RecipientService.GetRecipient:output_type -> pb.GetRecipientResponse
+	13, // 26: pb.RecipientService.GetSimilarRecipientsByName:output_type -> pb.GetSimilarRecipientsByNameResponse
+	15, // 27: pb.RecipientService.SearchRecipientsByAccount:output_type -> pb.SearchRecipientsByAccountResponse
+	21, // [21:28] is the sub-list for method output_type
+	14, // [14:21] is the sub-list for method input_type
+	14, // [14:14] is the sub-list for extension type_name
+	14, // [14:14] is the sub-list for extension extendee
+	0,  // [0:14] is the sub-list for field type_name
 }
 
 func init() { file_recipient_proto_init() }
@@ -1008,13 +1132,14 @@ func file_recipient_proto_init() {
 	file_recipient_proto_msgTypes[0].OneofWrappers = []any{}
 	file_recipient_proto_msgTypes[1].OneofWrappers = []any{}
 	file_recipient_proto_msgTypes[5].OneofWrappers = []any{}
+	file_recipient_proto_msgTypes[14].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_recipient_proto_rawDesc), len(file_recipient_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   14,
+			NumMessages:   16,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

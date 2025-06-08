@@ -3,9 +3,9 @@ syntax = "proto3";
 package pb;
 
 import "google/protobuf/timestamp.proto";
+import "google/protobuf/wrappers.proto";
 import "google/api/annotations.proto";
 import "protoc-gen-openapiv2/options/annotations.proto";
-import "google/protobuf/wrappers.proto";
 
 option go_package = "lazervaultGo/pb";
 
@@ -128,6 +128,18 @@ message GetSimilarRecipientsByNameResponse {
   repeated FoundRecipientResult found_recipients = 1; // Changed from similar_users and type updated
 }
 
+// --- Search Recipients by Account Details ---
+
+message SearchRecipientsByAccountRequest {
+  string account_number = 1;        // Required - account number to search for
+  optional string sort_code = 2;    // Optional - sort code or routing number
+  optional string bank_name = 3;    // Optional - bank name (case-insensitive)
+}
+
+message SearchRecipientsByAccountResponse {
+  repeated Recipient recipients = 1; // Full recipient details for matches
+}
+
 // Service definition for managing recipients
 service RecipientService {
   // Creates a new recipient for the authenticated user.
@@ -177,6 +189,20 @@ service RecipientService {
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "Search saved recipients by name"
       description: "Searches existing saved recipients by their name. Returns a list of matching recipients with their ID and name."
+      tags: ["Recipients"]
+    };
+  }
+
+  // Searches for saved recipients by account details.
+  rpc SearchRecipientsByAccount(SearchRecipientsByAccountRequest) returns (SearchRecipientsByAccountResponse) {
+    option (google.api.http) = {
+      get: "/v1/recipients/search-by-account"
+      // Query parameters: account_number (required), sort_code (optional), bank_name (optional)
+      // e.g. /v1/recipients/search-by-account?account_number=12345678&sort_code=12-34-56&bank_name=lloyds
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Search saved recipients by account details"
+      description: "Searches existing saved recipients by their account details. Returns a list of matching recipients with full details."
       tags: ["Recipients"]
     };
   }

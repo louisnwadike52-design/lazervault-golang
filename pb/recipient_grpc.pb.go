@@ -25,6 +25,7 @@ const (
 	RecipientService_DeleteRecipient_FullMethodName            = "/pb.RecipientService/DeleteRecipient"
 	RecipientService_GetRecipient_FullMethodName               = "/pb.RecipientService/GetRecipient"
 	RecipientService_GetSimilarRecipientsByName_FullMethodName = "/pb.RecipientService/GetSimilarRecipientsByName"
+	RecipientService_SearchRecipientsByAccount_FullMethodName  = "/pb.RecipientService/SearchRecipientsByAccount"
 )
 
 // RecipientServiceClient is the client API for RecipientService service.
@@ -45,6 +46,8 @@ type RecipientServiceClient interface {
 	GetRecipient(ctx context.Context, in *GetRecipientRequest, opts ...grpc.CallOption) (*GetRecipientResponse, error)
 	// Searches for saved recipients by name.
 	GetSimilarRecipientsByName(ctx context.Context, in *GetSimilarRecipientsByNameRequest, opts ...grpc.CallOption) (*GetSimilarRecipientsByNameResponse, error)
+	// Searches for saved recipients by account details.
+	SearchRecipientsByAccount(ctx context.Context, in *SearchRecipientsByAccountRequest, opts ...grpc.CallOption) (*SearchRecipientsByAccountResponse, error)
 }
 
 type recipientServiceClient struct {
@@ -115,6 +118,16 @@ func (c *recipientServiceClient) GetSimilarRecipientsByName(ctx context.Context,
 	return out, nil
 }
 
+func (c *recipientServiceClient) SearchRecipientsByAccount(ctx context.Context, in *SearchRecipientsByAccountRequest, opts ...grpc.CallOption) (*SearchRecipientsByAccountResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SearchRecipientsByAccountResponse)
+	err := c.cc.Invoke(ctx, RecipientService_SearchRecipientsByAccount_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // RecipientServiceServer is the server API for RecipientService service.
 // All implementations must embed UnimplementedRecipientServiceServer
 // for forward compatibility.
@@ -133,6 +146,8 @@ type RecipientServiceServer interface {
 	GetRecipient(context.Context, *GetRecipientRequest) (*GetRecipientResponse, error)
 	// Searches for saved recipients by name.
 	GetSimilarRecipientsByName(context.Context, *GetSimilarRecipientsByNameRequest) (*GetSimilarRecipientsByNameResponse, error)
+	// Searches for saved recipients by account details.
+	SearchRecipientsByAccount(context.Context, *SearchRecipientsByAccountRequest) (*SearchRecipientsByAccountResponse, error)
 	mustEmbedUnimplementedRecipientServiceServer()
 }
 
@@ -160,6 +175,9 @@ func (UnimplementedRecipientServiceServer) GetRecipient(context.Context, *GetRec
 }
 func (UnimplementedRecipientServiceServer) GetSimilarRecipientsByName(context.Context, *GetSimilarRecipientsByNameRequest) (*GetSimilarRecipientsByNameResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetSimilarRecipientsByName not implemented")
+}
+func (UnimplementedRecipientServiceServer) SearchRecipientsByAccount(context.Context, *SearchRecipientsByAccountRequest) (*SearchRecipientsByAccountResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SearchRecipientsByAccount not implemented")
 }
 func (UnimplementedRecipientServiceServer) mustEmbedUnimplementedRecipientServiceServer() {}
 func (UnimplementedRecipientServiceServer) testEmbeddedByValue()                          {}
@@ -290,6 +308,24 @@ func _RecipientService_GetSimilarRecipientsByName_Handler(srv interface{}, ctx c
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RecipientService_SearchRecipientsByAccount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SearchRecipientsByAccountRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RecipientServiceServer).SearchRecipientsByAccount(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RecipientService_SearchRecipientsByAccount_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RecipientServiceServer).SearchRecipientsByAccount(ctx, req.(*SearchRecipientsByAccountRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // RecipientService_ServiceDesc is the grpc.ServiceDesc for RecipientService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -320,6 +356,10 @@ var RecipientService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetSimilarRecipientsByName",
 			Handler:    _RecipientService_GetSimilarRecipientsByName_Handler,
+		},
+		{
+			MethodName: "SearchRecipientsByAccount",
+			Handler:    _RecipientService_SearchRecipientsByAccount_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
