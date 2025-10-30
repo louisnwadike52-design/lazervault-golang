@@ -12,6 +12,7 @@ const (
 	AccountTypePersonal   = "personal"
 	AccountTypeSavings    = "savings"
 	AccountTypeInvestment = "investment"
+	AccountTypeBusiness   = "business"
 )
 
 // Constants for Account Status

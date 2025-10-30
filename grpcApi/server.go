@@ -2,32 +2,40 @@ package grpcApi
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"lazervaultGo/configs"
 	"lazervaultGo/grpcApi/middleware"
+	"lazervaultGo/models"
 	"lazervaultGo/pb"
 	"lazervaultGo/services"
 	"lazervaultGo/token"
 	"lazervaultGo/worker"
 	"net"
 	"net/http"
+	"strings"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/rs/cors"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/reflection"
+	"google.golang.org/grpc/status"
 	"gorm.io/gorm"
 )
 
 type Server struct {
-	config      *configs.Config
-	db          *gorm.DB
-	tokenMaker  token.Maker
-	grpcServer  *grpc.Server
-	httpServer  *http.Server
-	redisWorker *worker.RedisWorker
+	config                 *configs.Config
+	db                     *gorm.DB
+	tokenMaker             token.Maker
+	grpcServer             *grpc.Server
+	httpServer             *http.Server
+	redisWorker            *worker.RedisWorker
+	voiceSessionController *VoiceSessionController
+	userService            services.IUserService
 }
 
 func NewServer(
@@ -76,10 +84,50 @@ func NewServer(
 	aiChatController := NewAIChatController(aiChatService, userService)
 
 	// Initialize Voice Session Service
-	voiceSessionService := services.NewVoiceSessionService(db, config, tokenMaker)
+	voiceSessionService := services.NewVoiceSessionService(db, config, tokenMaker, aiChatService)
 
 	// Initialize Voice Session Controller
 	voiceSessionController := NewVoiceSessionController(voiceSessionService, userService)
+
+	// Initialize Facial Recognition Service
+	facialRecognitionService := services.NewFacialRecognitionService(config.AiServiceURL)
+
+	// Initialize Facial Recognition Controller
+	facialRecognitionController := NewFacialRecognitionController(facialRecognitionService)
+
+	// Initialize Invoice Payment Service
+	invoicePaymentService := services.NewInvoicePaymentService(db)
+
+	// Initialize Invoice Payment Controller
+	invoicePaymentController := NewInvoicePaymentController(invoicePaymentService, userService, db)
+
+	// Initialize Tagged Invoice Service
+	taggedInvoiceService := services.NewTaggedInvoiceService(db)
+
+	// Initialize Tagged Invoice Controller
+	taggedInvoiceController := NewTaggedInvoiceController(taggedInvoiceService, userService, db)
+
+	// Initialize Invoice Notification Service
+	invoiceNotificationService := services.NewInvoiceNotificationService(db)
+
+	// Initialize Invoice Notification Controller (not implemented yet)
+	_ = invoiceNotificationService
+
+	// Initialize Insurance Service
+	insuranceService := services.NewInsuranceService(db, distributor)
+
+	// Initialize Insurance Controller
+	insuranceController := NewInsuranceController(insuranceService)
+
+	// Initialize Invoice Controller
+	invoiceController := NewInvoiceController(invoiceService, userService)
+
+	// Store controllers in server for HTTP handlers
+	server.voiceSessionController = voiceSessionController
+	server.userService = userService
+
+	// Store facial recognition controller for custom HTTP handlers if needed
+	_ = facialRecognitionController
 
 	// Register gRPC services
 	pb.RegisterAuthServiceServer(grpcServer, NewAuthController(authService))
@@ -90,13 +138,17 @@ func NewServer(
 	pb.RegisterRecipientServiceServer(grpcServer, NewRecipientController(recipientService, userService))
 	pb.RegisterChatServiceServer(grpcServer, NewChatController(chatService))
 	pb.RegisterExchangeServiceServer(grpcServer, NewExchangeController(exchangeService, userService))
-	pb.RegisterInvoiceServiceServer(grpcServer, NewInvoiceController(invoiceService, userService))
+	pb.RegisterInvoiceServiceServer(grpcServer, invoiceController)
 	pb.RegisterDepositServiceServer(grpcServer, NewDepositController(depositService, userService))
 	pb.RegisterWithdrawServiceServer(grpcServer, NewWithdrawalController(withdrawalService, userService))
 	pb.RegisterGenerateTxDataServiceServer(grpcServer, generateTxDataController)
 	pb.RegisterTxFileServiceServer(grpcServer, txFileController)
 	pb.RegisterAIChatServiceServer(grpcServer, aiChatController)
 	pb.RegisterVoiceSessionServiceServer(grpcServer, voiceSessionController)
+	pb.RegisterFacialRecognitionServiceServer(grpcServer, facialRecognitionService)
+	pb.RegisterInvoicePaymentServiceServer(grpcServer, invoicePaymentController)
+	pb.RegisterTaggedInvoiceServiceServer(grpcServer, taggedInvoiceController)
+	pb.RegisterInsuranceServiceServer(grpcServer, insuranceController)
 	server.grpcServer = grpcServer
 
 	// Register reflection service on gRPC server.
@@ -185,6 +237,14 @@ func (s *Server) startHTTPServer() error {
 	if err := pb.RegisterVoiceSessionServiceHandlerFromEndpoint(ctx, gwmux, grpcDialAddr, opts); err != nil {
 		return fmt.Errorf("failed to register voice session service gateway: %w", err)
 	}
+	// Note: Invoice Payment and Tagged Invoice services don't have HTTP gateway support yet
+	// To enable HTTP endpoints, add google.api.http annotations to the proto files
+	if err := pb.RegisterFacialRecognitionServiceHandlerFromEndpoint(ctx, gwmux, grpcDialAddr, opts); err != nil {
+		return fmt.Errorf("failed to register facial recognition service gateway: %w", err)
+	}
+	if err := pb.RegisterInsuranceServiceHandlerFromEndpoint(ctx, gwmux, grpcDialAddr, opts); err != nil {
+		return fmt.Errorf("failed to register insurance gateway: %w", err)
+	}
 
 	// Create main HTTP mux for non-gRPC traffic (swagger, gateway)
 	httpMux := http.NewServeMux()
@@ -192,7 +252,12 @@ func (s *Server) startHTTPServer() error {
 	// Add Swagger handler
 	httpMux.Handle("/swagger/", http.StripPrefix("/swagger/", http.FileServer(http.Dir("./swagger"))))
 
-	// Add gateway handler
+	// Add custom voice note handler for multipart form uploads
+	httpMux.HandleFunc("/v1/voice/note/upload", func(w http.ResponseWriter, r *http.Request) {
+		s.handleVoiceNoteUpload(w, r, s.voiceSessionController, s.userService)
+	})
+
+	// Add gateway handler (this should come last to catch all other routes)
 	httpMux.Handle("/", gwmux)
 
 	// Setup CORS for HTTP traffic (gateway, swagger)
@@ -262,4 +327,155 @@ func (s *Server) Stop() {
 			fmt.Printf("Error shutting down HTTP server: %v\n", err)
 		}
 	}
+}
+
+func (s *Server) handleVoiceNoteUpload(w http.ResponseWriter, r *http.Request, voiceSessionController *VoiceSessionController, userService services.IUserService) {
+	// Set CORS headers
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+
+	// Handle preflight requests
+	if r.Method == "OPTIONS" {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	// Only allow POST method
+	if r.Method != "POST" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Parse multipart form (25MB max)
+	err := r.ParseMultipartForm(25 << 20)
+	if err != nil {
+		http.Error(w, "Failed to parse multipart form", http.StatusBadRequest)
+		return
+	}
+
+	// Extract JWT token from Authorization header
+	authHeader := r.Header.Get("Authorization")
+	if authHeader == "" {
+		http.Error(w, "Authorization header is required", http.StatusUnauthorized)
+		return
+	}
+
+	// Validate Bearer token format
+	const bearerPrefix = "Bearer "
+	if !strings.HasPrefix(authHeader, bearerPrefix) {
+		http.Error(w, "Authorization header must be Bearer token", http.StatusUnauthorized)
+		return
+	}
+
+	jwtToken := authHeader[len(bearerPrefix):]
+	if jwtToken == "" {
+		http.Error(w, "JWT token is required", http.StatusUnauthorized)
+		return
+	}
+
+	// Verify and parse JWT token to get user info
+	payload, err := s.tokenMaker.VerifyToken(jwtToken)
+	if err != nil {
+		http.Error(w, "Invalid JWT token", http.StatusUnauthorized)
+		return
+	}
+
+	// Get user from token payload
+	user, err := getUserByEmail(userService, s.db, payload.Email)
+	if err != nil {
+		http.Error(w, "User not found", http.StatusUnauthorized)
+		return
+	}
+
+	userID := user.ID
+	// Note: tx_history is automatically fetched by the service, not sent from frontend
+
+	// Get audio file
+	file, fileHeader, err := r.FormFile("audio_file")
+	if err != nil {
+		http.Error(w, "audio_file is required", http.StatusBadRequest)
+		return
+	}
+	defer file.Close()
+
+	// Read file content
+	audioContent, err := io.ReadAll(file)
+	if err != nil {
+		http.Error(w, "Failed to read audio file", http.StatusInternalServerError)
+		return
+	}
+
+	// Create gRPC request (tx_history will be fetched automatically by service)
+	req := &pb.ProcessVoiceNoteRequest{
+		TxHistory: "", // Empty - service will fetch transaction history automatically
+	}
+
+	// Create context with authentication payload (like other gRPC endpoints)
+	ctx := r.Context()
+	ctx = context.WithValue(ctx, middleware.AuthorizationPayloadKey, payload)
+	ctx = context.WithValue(ctx, middleware.AccessTokenKey, jwtToken)
+
+	// Call the controller multipart method with audio data
+	resp, err := voiceSessionController.ProcessVoiceNoteMultipart(ctx, userID, jwtToken, audioContent, fileHeader.Filename, fileHeader.Header.Get("Content-Type"), req)
+	if err != nil {
+		// Handle gRPC errors
+		if st, ok := status.FromError(err); ok {
+			switch st.Code() {
+			case codes.InvalidArgument:
+				http.Error(w, st.Message(), http.StatusBadRequest)
+			case codes.Unauthenticated:
+				http.Error(w, st.Message(), http.StatusUnauthorized)
+			case codes.Internal:
+				http.Error(w, st.Message(), http.StatusInternalServerError)
+			case codes.Unavailable:
+				http.Error(w, st.Message(), http.StatusServiceUnavailable)
+			default:
+				http.Error(w, st.Message(), http.StatusInternalServerError)
+			}
+		} else {
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+		}
+		return
+	}
+
+	// Set response headers
+	w.Header().Set("Content-Type", "application/json")
+
+	// Convert gRPC response to JSON
+	jsonResp, err := json.Marshal(map[string]interface{}{
+		"success":            resp.Success,
+		"msg":                resp.Msg,
+		"response":           resp.Response,
+		"transcribed_text":   resp.TranscribedText,
+		"processing_time_ms": resp.ProcessingTimeMs,
+	})
+	if err != nil {
+		http.Error(w, "Failed to marshal response", http.StatusInternalServerError)
+		return
+	}
+
+	// Send response
+	w.WriteHeader(http.StatusOK)
+	w.Write(jsonResp)
+}
+
+// Helper function to get user by ID
+func getUserByID(userService services.IUserService, db *gorm.DB, userID uint) (*models.User, error) {
+	// This is a simplified implementation - you may need to adjust based on your UserService interface
+	user, err := models.User{}.FindById(db, userID)
+	if err != nil {
+		return nil, err
+	}
+	return user, nil
+}
+
+// Helper function to get user by email
+func getUserByEmail(userService services.IUserService, db *gorm.DB, email string) (*models.User, error) {
+	// Find user by email using the existing model method
+	user, err := models.User{}.GetUserByEmail(db, email)
+	if err != nil {
+		return nil, err
+	}
+	return user, nil
 }

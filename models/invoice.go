@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	"gorm.io/datatypes"
 	"gorm.io/gorm"
 )
@@ -27,30 +28,35 @@ type InvoiceItem struct {
 	TotalPrice  float64 `json:"total_price"`
 }
 
-// Invoice represents an invoice document in the database
+// Invoice represents an invoice in the system
 type Invoice struct {
-	ID              string         `gorm:"type:uuid;primaryKey;default:uuid_generate_v4()"`
-	UserID          string         `gorm:"type:uuid;not null;index"`                                   // User who issued the invoice
-	InvoiceNumber   string         `gorm:"type:varchar(100);not null;uniqueIndex:idx_user_invoice_no"` // Must be unique per user
-	CustomerDetails datatypes.JSON `gorm:"type:jsonb;not null"`
-	Items           datatypes.JSON `gorm:"type:jsonb;not null"` // Store array of InvoiceItem as JSON
-	Subtotal        float64        `gorm:"not null"`
-	Tax             float64        `gorm:"default:0.0"`
-	TotalAmount     float64        `gorm:"not null"`
-	CurrencyCode    string         `gorm:"type:varchar(10);not null"`
-	IssueDate       time.Time      `gorm:"not null"`
-	DueDate         time.Time      `gorm:"not null;index"`
-	Status          string         `gorm:"type:varchar(20);not null;index"` // e.g., DRAFT, SENT, PAID
-	Notes           string         `gorm:"type:text"`
-	CreatedAt       time.Time      `gorm:"default:CURRENT_TIMESTAMP;index"`
-	UpdatedAt       time.Time
-	DeletedAt       gorm.DeletedAt `gorm:"index"`
-
-	// User User `gorm:"foreignKey:UserID"` // Optional relation
+	ID               string               `json:"id" gorm:"primaryKey;type:uuid;default:gen_random_uuid()"`
+	UserID           string               `json:"user_id" gorm:"type:uuid;not null"`
+	RecipientID      string               `json:"recipient_id" gorm:"type:uuid;not null"`
+	Title            string               `json:"title" gorm:"size:255;not null"`
+	Description      string               `json:"description" gorm:"type:text"`
+	Amount           float64              `json:"amount" gorm:"type:decimal(15,2);not null"`
+	Currency         string               `json:"currency" gorm:"size:10;not null"`
+	DueDate          time.Time            `json:"due_date"`
+	IsPaid           bool                 `json:"is_paid" gorm:"default:false"`
+	PaymentMethodID  *string              `json:"payment_method_id" gorm:"type:uuid"`
+	PaymentReference string               `json:"payment_reference" gorm:"size:255"`
+	Status           InvoicePaymentStatus `json:"status" gorm:"size:50;not null;default:'pending'"`
+	Metadata         datatypes.JSON       `json:"metadata" gorm:"type:jsonb"`
+	CreatedAt        time.Time            `json:"created_at" gorm:"autoCreateTime"`
+	UpdatedAt        time.Time            `json:"updated_at" gorm:"autoUpdateTime"`
 }
 
-// TableName specifies the table name
-func (Invoice) TableName() string {
+// BeforeCreate hook to ensure ID is set
+func (i *Invoice) BeforeCreate(tx *gorm.DB) error {
+	if i.ID == "" {
+		i.ID = uuid.New().String()
+	}
+	return nil
+}
+
+// TableName specifies the table name for Invoice
+func (i *Invoice) TableName() string {
 	return "invoices"
 }
 

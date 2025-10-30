@@ -188,11 +188,11 @@ const file_user_proto_rawDesc = "" +
 	"\vUserService\x12\x9c\x01\n" +
 	"\n" +
 	"CreateUser\x12\x15.pb.CreateUserRequest\x1a\x16.pb.CreateUserResponse\"_\x92AH\n" +
-	"\x05users\x12\x11Create a new user\x1a,Creates a new user with the provided details\x82\xd3\xe4\x93\x02\x0e:\x01*\"\t/v1/usersB\xaf\x01\x92A\x96\x01\x12*\n" +
+	"\x05users\x12\x11Create a new user\x1a,Creates a new user with the provided details\x82\xd3\xe4\x93\x02\x0e:\x01*\"\t/v1/usersB\xab\x01\x92A\x96\x01\x12*\n" +
 	"\x0eLazerVault API\x12\x13LazerVault User API2\x031.0*\x02\x01\x022\x10application/json:\x10application/jsonZ@\n" +
 	">\n" +
 	"\n" +
-	"bearerAuth\x120\b\x02\x12\x1bBearer token authentication\x1a\rAuthorization \x02Z\x13lazervaultGolang/pbb\x06proto3"
+	"bearerAuth\x120\b\x02\x12\x1bBearer token authentication\x1a\rAuthorization \x02Z\x0flazervaultGo/pbb\x06proto3"
 
 var (
 	file_user_proto_rawDescOnce sync.Once

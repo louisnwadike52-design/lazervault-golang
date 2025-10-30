@@ -31,6 +31,34 @@ message StartVoiceSessionResponse {
     string agent_id = 3;          // An identifier for the agent (optional, could be fixed).
 }
 
+// Voice note processing request - accepts multipart form data file upload
+message ProcessVoiceNoteRequest {
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+        json_schema: {
+            title: "Process Voice Note Request";
+            description: "Request to process an audio file via multipart form upload.";
+        }
+    };
+    
+    string tx_history = 1 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {description: "Optional JSON string containing recent transactions."}];
+}
+
+// Voice note processing response
+message ProcessVoiceNoteResponse {
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+        json_schema: {
+            title: "Process Voice Note Response";
+            description: "Response containing AI analysis and transcription of the voice note.";
+        }
+    };
+    
+    bool success = 1 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {description: "Indicates if the voice note was successfully processed."}];
+    string msg = 2 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {description: "Status message related to the processing."}];
+    string response = 3 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {description: "AI's response based on the voice note content."}];
+    string transcribed_text = 4 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {description: "Transcribed text from the audio file."}];
+    int64 processing_time_ms = 5 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {description: "Processing time in milliseconds."}];
+}
+
 service VoiceSessionService {
     // Starts a new voice session by creating a LiveKit room,
     // generating a token for the client, and dispatching an agent.
@@ -43,6 +71,24 @@ service VoiceSessionService {
             summary: "Start Voice Session";
             description: "Initiates a voice session with an AI agent, returns LiveKit room details and client token.";
             tags: ["Voice Session"];
+            security: {
+              security_requirement: {
+                key: "bearer"
+              }
+            }
+        };
+    }
+
+    // Processes a voice note and returns AI response with transcription
+    rpc ProcessVoiceNote(ProcessVoiceNoteRequest) returns (ProcessVoiceNoteResponse) {
+        option (google.api.http) = {
+            post: "/v1/voice/note/upload"
+            body: "*"
+        };
+        option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            summary: "Process Voice Note";
+            description: "Upload and process an audio file via multipart form data. File should be uploaded as 'audio_file' field.";
+            tags: ["Voice Note"];
             security: {
               security_requirement: {
                 key: "bearer"

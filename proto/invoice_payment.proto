@@ -1,0 +1,549 @@
+syntax = "proto3";
+
+package pb;
+
+option go_package = "lazervaultGo/pb";
+
+import "google/protobuf/timestamp.proto";
+import "common.proto";
+
+// Invoice Payment Details Message
+message InvoicePaymentDetails {
+  PaymentMethodType method = 1;
+  double amount = 2;
+  string currency = 3;
+  string card_last4 = 4;
+  string account_id = 5;
+  string reference = 6;
+  map<string, string> metadata = 7;
+  string crypto_wallet_address = 8;
+  string crypto_transaction_hash = 9;
+  double fee_amount = 10;
+  string payment_processor = 11;
+}
+
+// Invoice Payment Result Message
+message InvoicePaymentResult {
+  bool success = 1;
+  string transaction_id = 2;
+  string payment_reference = 3;
+  string error_message = 4;
+  InvoicePaymentStatus status = 5;
+  google.protobuf.Timestamp processed_at = 6;
+  double amount_processed = 7;
+  double fee_amount = 8;
+  string receipt_url = 9;
+  string confirmation_code = 10;
+}
+
+// Invoice Payment Transaction Message
+message InvoicePaymentTransaction {
+  string transaction_id = 1;
+  string invoice_id = 2;
+  string user_id = 3;
+  double amount = 4;
+  string currency = 5;
+  PaymentMethodType payment_method = 6;
+  InvoicePaymentStatus status = 7;
+  google.protobuf.Timestamp created_at = 8;
+  google.protobuf.Timestamp processed_at = 9;
+  string reference = 10;
+  string description = 11;
+  double fee_amount = 12;
+  map<string, string> metadata = 13;
+  string payment_processor_id = 14;
+  string receipt_url = 15;
+}
+
+// User Account Balance Message
+message UserAccountBalance {
+  string user_id = 1;
+  string currency = 2;
+  double available_balance = 3;
+  double pending_balance = 4;
+  double total_balance = 5;
+  AccountType account_type = 6;
+  string account_number = 7;
+  google.protobuf.Timestamp last_updated = 8;
+  string account_name = 9;
+  bool is_primary = 10;
+}
+
+// Payment Method Message
+message PaymentMethod {
+  string method_id = 1;
+  string user_id = 2;
+  PaymentMethodType type = 3;
+  string display_name = 4;
+  string last4 = 5;
+  string brand = 6;
+  bool is_default = 7;
+  bool is_verified = 8;
+  google.protobuf.Timestamp expires_at = 9;
+  google.protobuf.Timestamp created_at = 10;
+  map<string, string> metadata = 11;
+  string billing_address = 12;
+}
+
+// Crypto Wallet Message
+message CryptoWallet {
+  string wallet_id = 1;
+  string user_id = 2;
+  string wallet_address = 3;
+  string currency = 4;
+  double balance = 5;
+  bool is_verified = 6;
+  google.protobuf.Timestamp created_at = 7;
+  google.protobuf.Timestamp last_sync = 8;
+  string network = 9;
+  string wallet_type = 10;
+}
+
+// Payment Extension Request Message
+message PaymentExtensionRequest {
+  string extension_id = 1;
+  string invoice_id = 2;
+  string user_id = 3;
+  google.protobuf.Timestamp new_due_date = 4;
+  string reason = 5;
+  string status = 6;
+  google.protobuf.Timestamp requested_at = 7;
+  google.protobuf.Timestamp approved_at = 8;
+  string approved_by = 9;
+  string rejection_reason = 10;
+}
+
+// Payment Dispute Message
+message PaymentDispute {
+  string dispute_id = 1;
+  string transaction_id = 2;
+  string invoice_id = 3;
+  string user_id = 4;
+  string reason = 5;
+  string description = 6;
+  DisputeStatus status = 7;
+  double amount = 8;
+  string currency = 9;
+  google.protobuf.Timestamp created_at = 10;
+  google.protobuf.Timestamp resolved_at = 11;
+  string resolution = 12;
+  repeated string evidence_files = 13;
+}
+
+// Core Invoice Payment Operations
+message ProcessInvoicePaymentRequest {
+  string invoice_id = 1;
+  string payment_method_id = 2;
+  double amount = 3;
+  string currency = 4;
+  string description = 5;
+  map<string, string> metadata = 6;
+  bool save_payment_method = 7;
+  string billing_address = 8;
+}
+
+message ProcessInvoicePaymentResponse {
+  InvoicePaymentResult result = 1;
+  string message = 2;
+  bool success = 3;
+  string next_action = 4;
+  map<string, string> additional_data = 5;
+}
+
+message ProcessPartialInvoicePaymentRequest {
+  string invoice_id = 1;
+  string payment_method_id = 2;
+  double partial_amount = 3;
+  string currency = 4;
+  string description = 5;
+  map<string, string> metadata = 6;
+}
+
+message ProcessPartialInvoicePaymentResponse {
+  InvoicePaymentResult result = 1;
+  double remaining_amount = 2;
+  string message = 3;
+  bool success = 4;
+}
+
+message ValidateInvoicePaymentRequest {
+  string invoice_id = 1;
+  string payment_method_id = 2;
+  double amount = 3;
+  string currency = 4;
+}
+
+message ValidateInvoicePaymentResponse {
+  bool is_valid = 1;
+  string validation_message = 2;
+  repeated string errors = 3;
+  double available_balance = 4;
+  double payment_fees = 5;
+}
+
+message GetInvoicePaymentStatusRequest {
+  string transaction_id = 1;
+}
+
+message GetInvoicePaymentStatusResponse {
+  InvoicePaymentTransaction transaction = 1;
+  InvoicePaymentStatus current_status = 2;
+  string status_message = 3;
+  google.protobuf.Timestamp last_updated = 4;
+}
+
+message CancelInvoicePaymentRequest {
+  string transaction_id = 1;
+  string reason = 2;
+}
+
+message CancelInvoicePaymentResponse {
+  bool success = 1;
+  string message = 2;
+  InvoicePaymentStatus new_status = 3;
+  double refund_amount = 4;
+}
+
+// Payment Methods Management
+message GetUserInvoicePaymentMethodsRequest {
+  PaymentMethodType type_filter = 1;
+}
+
+message GetUserInvoicePaymentMethodsResponse {
+  repeated PaymentMethod payment_methods = 1;
+  PaymentMethod default_method = 2;
+}
+
+message AddInvoicePaymentMethodRequest {
+  PaymentMethodType type = 1;
+  string display_name = 2;
+  map<string, string> payment_details = 3;
+  bool set_as_default = 4;
+  string billing_address = 5;
+}
+
+message AddInvoicePaymentMethodResponse {
+  PaymentMethod payment_method = 1;
+  bool success = 2;
+  string message = 3;
+  string verification_url = 4;
+}
+
+message RemoveInvoicePaymentMethodRequest {
+  string method_id = 1;
+}
+
+message RemoveInvoicePaymentMethodResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message ValidateInvoicePaymentMethodRequest {
+  string method_id = 1;
+  double test_amount = 2;
+}
+
+message ValidateInvoicePaymentMethodResponse {
+  bool is_valid = 1;
+  string validation_message = 2;
+  google.protobuf.Timestamp validated_at = 3;
+}
+
+message UpdateInvoicePaymentMethodRequest {
+  string method_id = 1;
+  string display_name = 2;
+  bool is_default = 3;
+  string billing_address = 4;
+  map<string, string> metadata = 5;
+}
+
+message UpdateInvoicePaymentMethodResponse {
+  PaymentMethod payment_method = 1;
+  bool success = 2;
+  string message = 3;
+}
+
+// Account Balance Operations
+message GetUserAccountBalanceRequest {
+  string currency = 1;
+  AccountType account_type = 2;
+}
+
+message GetUserAccountBalanceResponse {
+  repeated UserAccountBalance accounts = 1;
+  double total_balance = 2;
+  string primary_currency = 3;
+}
+
+message GetAccountBalanceHistoryRequest {
+  string account_id = 1;
+  google.protobuf.Timestamp start_date = 2;
+  google.protobuf.Timestamp end_date = 3;
+  int32 page_size = 4;
+  string page_token = 5;
+}
+
+message GetAccountBalanceHistoryResponse {
+  repeated BalanceHistoryEntry entries = 1;
+  string next_page_token = 2;
+}
+
+message BalanceHistoryEntry {
+  google.protobuf.Timestamp timestamp = 1;
+  double balance = 2;
+  double change_amount = 3;
+  string transaction_type = 4;
+  string description = 5;
+  string reference = 6;
+}
+
+message TransferFundsForInvoicePaymentRequest {
+  string from_account_id = 1;
+  string to_account_id = 2;
+  double amount = 3;
+  string currency = 4;
+  string invoice_id = 5;
+  string description = 6;
+}
+
+message TransferFundsForInvoicePaymentResponse {
+  bool success = 1;
+  string transaction_id = 2;
+  string message = 3;
+  double new_balance = 4;
+}
+
+// Cryptocurrency Operations
+message ProcessCryptoInvoicePaymentRequest {
+  string invoice_id = 1;
+  string wallet_address = 2;
+  string currency = 3;
+  double amount = 4;
+  string transaction_hash = 5;
+  string network = 6;
+}
+
+message ProcessCryptoInvoicePaymentResponse {
+  bool success = 1;
+  string transaction_id = 2;
+  string confirmation_status = 3;
+  int32 confirmations_required = 4;
+  int32 current_confirmations = 5;
+  string message = 6;
+}
+
+message GetCryptoWalletBalanceRequest {
+  string wallet_address = 1;
+  string currency = 2;
+  string network = 3;
+}
+
+message GetCryptoWalletBalanceResponse {
+  double balance = 1;
+  string currency = 2;
+  google.protobuf.Timestamp last_updated = 3;
+  string network = 4;
+}
+
+message ValidateCryptoWalletRequest {
+  string wallet_address = 1;
+  string currency = 2;
+  string network = 3;
+}
+
+message ValidateCryptoWalletResponse {
+  bool is_valid = 1;
+  string validation_message = 2;
+  bool is_contract = 3;
+  string wallet_type = 4;
+}
+
+message GetCryptoInvoicePaymentStatusRequest {
+  string transaction_hash = 1;
+  string network = 2;
+}
+
+message GetCryptoInvoicePaymentStatusResponse {
+  string status = 1;
+  int32 confirmations = 2;
+  int32 required_confirmations = 3;
+  double amount = 4;
+  string currency = 5;
+  google.protobuf.Timestamp timestamp = 6;
+}
+
+// Payment Extensions and Disputes
+message RequestInvoicePaymentExtensionRequest {
+  string invoice_id = 1;
+  google.protobuf.Timestamp new_due_date = 2;
+  string reason = 3;
+  string justification = 4;
+}
+
+message RequestInvoicePaymentExtensionResponse {
+  PaymentExtensionRequest extension_request = 1;
+  bool success = 2;
+  string message = 3;
+  string request_id = 4;
+}
+
+message ApproveInvoicePaymentExtensionRequest {
+  string request_id = 1;
+  bool approved = 2;
+  string approval_reason = 3;
+  google.protobuf.Timestamp approved_date = 4;
+}
+
+message ApproveInvoicePaymentExtensionResponse {
+  bool success = 1;
+  string message = 2;
+  PaymentExtensionRequest updated_request = 3;
+}
+
+message DisputeInvoicePaymentRequest {
+  string transaction_id = 1;
+  string reason = 2;
+  string description = 3;
+  repeated string evidence_files = 4;
+  double disputed_amount = 5;
+}
+
+message DisputeInvoicePaymentResponse {
+  PaymentDispute dispute = 1;
+  bool success = 2;
+  string message = 3;
+  string dispute_id = 4;
+}
+
+message ResolveInvoicePaymentDisputeRequest {
+  string dispute_id = 1;
+  string resolution = 2;
+  double refund_amount = 3;
+  string resolution_notes = 4;
+}
+
+message ResolveInvoicePaymentDisputeResponse {
+  bool success = 1;
+  string message = 2;
+  PaymentDispute updated_dispute = 3;
+  string refund_transaction_id = 4;
+}
+
+// Payment History and Analytics
+message GetInvoicePaymentHistoryRequest {
+  google.protobuf.Timestamp start_date = 1;
+  google.protobuf.Timestamp end_date = 2;
+  int32 page_size = 3;
+  string page_token = 4;
+  InvoicePaymentStatus status_filter = 5;
+}
+
+message GetInvoicePaymentHistoryResponse {
+  repeated InvoicePaymentTransaction transactions = 1;
+  string next_page_token = 2;
+  uint64 total_count = 3;
+}
+
+message GetInvoicePaymentStatisticsRequest {
+  google.protobuf.Timestamp start_date = 1;
+  google.protobuf.Timestamp end_date = 2;
+}
+
+message GetInvoicePaymentStatisticsResponse {
+  uint64 total_payments = 1;
+  uint64 successful_payments = 2;
+  uint64 failed_payments = 3;
+  double total_amount = 4;
+  double total_fees = 5;
+  double average_payment_amount = 6;
+  map<string, uint64> payment_method_usage = 7;
+  double success_rate = 8;
+}
+
+message GetRecentInvoicePaymentTransactionsRequest {
+  int32 limit = 1;
+}
+
+message GetRecentInvoicePaymentTransactionsResponse {
+  repeated InvoicePaymentTransaction transactions = 1;
+}
+
+// Receipt Operations
+message GenerateInvoicePaymentReceiptRequest {
+  string transaction_id = 1;
+  string template_id = 2;
+  bool include_invoice_details = 3;
+}
+
+message GenerateInvoicePaymentReceiptResponse {
+  string receipt_url = 1;
+  bytes receipt_data = 2;
+  string message = 3;
+  bool success = 4;
+}
+
+message EmailInvoicePaymentReceiptRequest {
+  string transaction_id = 1;
+  string recipient_email = 2;
+  string custom_message = 3;
+}
+
+message EmailInvoicePaymentReceiptResponse {
+  bool success = 1;
+  string message = 2;
+  string tracking_id = 3;
+}
+
+message GetInvoicePaymentReceiptRequest {
+  string transaction_id = 1;
+}
+
+message GetInvoicePaymentReceiptResponse {
+  string receipt_url = 1;
+  bytes receipt_data = 2;
+  google.protobuf.Timestamp generated_at = 3;
+}
+
+// Invoice Payment Service Definition
+service InvoicePaymentService {
+  // Core Invoice Payment Operations
+  rpc ProcessInvoicePayment(ProcessInvoicePaymentRequest) returns (ProcessInvoicePaymentResponse);
+  rpc ProcessPartialInvoicePayment(ProcessPartialInvoicePaymentRequest) returns (ProcessPartialInvoicePaymentResponse);
+  rpc ValidateInvoicePayment(ValidateInvoicePaymentRequest) returns (ValidateInvoicePaymentResponse);
+  rpc GetInvoicePaymentStatus(GetInvoicePaymentStatusRequest) returns (GetInvoicePaymentStatusResponse);
+  rpc CancelInvoicePayment(CancelInvoicePaymentRequest) returns (CancelInvoicePaymentResponse);
+
+  // Invoice Payment Methods Management
+  rpc GetUserInvoicePaymentMethods(GetUserInvoicePaymentMethodsRequest) returns (GetUserInvoicePaymentMethodsResponse);
+  rpc AddInvoicePaymentMethod(AddInvoicePaymentMethodRequest) returns (AddInvoicePaymentMethodResponse);
+  rpc RemoveInvoicePaymentMethod(RemoveInvoicePaymentMethodRequest) returns (RemoveInvoicePaymentMethodResponse);
+  rpc ValidateInvoicePaymentMethod(ValidateInvoicePaymentMethodRequest) returns (ValidateInvoicePaymentMethodResponse);
+  rpc UpdateInvoicePaymentMethod(UpdateInvoicePaymentMethodRequest) returns (UpdateInvoicePaymentMethodResponse);
+
+  // Account Balance for Invoice Payments
+  rpc GetUserAccountBalance(GetUserAccountBalanceRequest) returns (GetUserAccountBalanceResponse);
+  rpc GetAccountBalanceHistory(GetAccountBalanceHistoryRequest) returns (GetAccountBalanceHistoryResponse);
+  rpc TransferFundsForInvoicePayment(TransferFundsForInvoicePaymentRequest) returns (TransferFundsForInvoicePaymentResponse);
+
+  // Cryptocurrency Invoice Payments
+  rpc ProcessCryptoInvoicePayment(ProcessCryptoInvoicePaymentRequest) returns (ProcessCryptoInvoicePaymentResponse);
+  rpc GetCryptoWalletBalance(GetCryptoWalletBalanceRequest) returns (GetCryptoWalletBalanceResponse);
+  rpc ValidateCryptoWallet(ValidateCryptoWalletRequest) returns (ValidateCryptoWalletResponse);
+  rpc GetCryptoInvoicePaymentStatus(GetCryptoInvoicePaymentStatusRequest) returns (GetCryptoInvoicePaymentStatusResponse);
+
+  // Invoice Payment Extensions and Disputes
+  rpc RequestInvoicePaymentExtension(RequestInvoicePaymentExtensionRequest) returns (RequestInvoicePaymentExtensionResponse);
+  rpc ApproveInvoicePaymentExtension(ApproveInvoicePaymentExtensionRequest) returns (ApproveInvoicePaymentExtensionResponse);
+  rpc DisputeInvoicePayment(DisputeInvoicePaymentRequest) returns (DisputeInvoicePaymentResponse);
+  rpc ResolveInvoicePaymentDispute(ResolveInvoicePaymentDisputeRequest) returns (ResolveInvoicePaymentDisputeResponse);
+
+  // Invoice Payment History and Analytics
+  rpc GetInvoicePaymentHistory(GetInvoicePaymentHistoryRequest) returns (GetInvoicePaymentHistoryResponse);
+  rpc GetInvoicePaymentStatistics(GetInvoicePaymentStatisticsRequest) returns (GetInvoicePaymentStatisticsResponse);
+  rpc GetRecentInvoicePaymentTransactions(GetRecentInvoicePaymentTransactionsRequest) returns (GetRecentInvoicePaymentTransactionsResponse);
+
+  // Transaction Receipts
+  rpc GenerateInvoicePaymentReceipt(GenerateInvoicePaymentReceiptRequest) returns (GenerateInvoicePaymentReceiptResponse);
+  rpc EmailInvoicePaymentReceipt(EmailInvoicePaymentReceiptRequest) returns (EmailInvoicePaymentReceiptResponse);
+  rpc GetInvoicePaymentReceipt(GetInvoicePaymentReceiptRequest) returns (GetInvoicePaymentReceiptResponse);
+} 

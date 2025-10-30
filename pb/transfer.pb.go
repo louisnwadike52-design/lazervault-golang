@@ -841,74 +841,6 @@ func (x *GetStatisticsResponse) GetComparisonMetrics() *ComparisonData {
 	return nil
 }
 
-type PaginationInfo struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	CurrentPage   int32                  `protobuf:"varint,1,opt,name=current_page,json=currentPage,proto3" json:"current_page,omitempty"`
-	PageSize      int32                  `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
-	TotalPages    int32                  `protobuf:"varint,3,opt,name=total_pages,json=totalPages,proto3" json:"total_pages,omitempty"`
-	TotalItems    int64                  `protobuf:"varint,4,opt,name=total_items,json=totalItems,proto3" json:"total_items,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *PaginationInfo) Reset() {
-	*x = PaginationInfo{}
-	mi := &file_transfer_proto_msgTypes[9]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *PaginationInfo) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*PaginationInfo) ProtoMessage() {}
-
-func (x *PaginationInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_transfer_proto_msgTypes[9]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use PaginationInfo.ProtoReflect.Descriptor instead.
-func (*PaginationInfo) Descriptor() ([]byte, []int) {
-	return file_transfer_proto_rawDescGZIP(), []int{9}
-}
-
-func (x *PaginationInfo) GetCurrentPage() int32 {
-	if x != nil {
-		return x.CurrentPage
-	}
-	return 0
-}
-
-func (x *PaginationInfo) GetPageSize() int32 {
-	if x != nil {
-		return x.PageSize
-	}
-	return 0
-}
-
-func (x *PaginationInfo) GetTotalPages() int32 {
-	if x != nil {
-		return x.TotalPages
-	}
-	return 0
-}
-
-func (x *PaginationInfo) GetTotalItems() int64 {
-	if x != nil {
-		return x.TotalItems
-	}
-	return 0
-}
-
 // Request message for getting transfer details
 type GetTransferDetailsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -919,7 +851,7 @@ type GetTransferDetailsRequest struct {
 
 func (x *GetTransferDetailsRequest) Reset() {
 	*x = GetTransferDetailsRequest{}
-	mi := &file_transfer_proto_msgTypes[10]
+	mi := &file_transfer_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -931,7 +863,7 @@ func (x *GetTransferDetailsRequest) String() string {
 func (*GetTransferDetailsRequest) ProtoMessage() {}
 
 func (x *GetTransferDetailsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_transfer_proto_msgTypes[10]
+	mi := &file_transfer_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -944,7 +876,7 @@ func (x *GetTransferDetailsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetTransferDetailsRequest.ProtoReflect.Descriptor instead.
 func (*GetTransferDetailsRequest) Descriptor() ([]byte, []int) {
-	return file_transfer_proto_rawDescGZIP(), []int{10}
+	return file_transfer_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *GetTransferDetailsRequest) GetTransferId() uint64 {
@@ -980,7 +912,7 @@ type GetTransferDetailsResponse struct {
 
 func (x *GetTransferDetailsResponse) Reset() {
 	*x = GetTransferDetailsResponse{}
-	mi := &file_transfer_proto_msgTypes[11]
+	mi := &file_transfer_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -992,7 +924,7 @@ func (x *GetTransferDetailsResponse) String() string {
 func (*GetTransferDetailsResponse) ProtoMessage() {}
 
 func (x *GetTransferDetailsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_transfer_proto_msgTypes[11]
+	mi := &file_transfer_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1005,7 +937,7 @@ func (x *GetTransferDetailsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetTransferDetailsResponse.ProtoReflect.Descriptor instead.
 func (*GetTransferDetailsResponse) Descriptor() ([]byte, []int) {
-	return file_transfer_proto_rawDescGZIP(), []int{11}
+	return file_transfer_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *GetTransferDetailsResponse) GetTransferId() uint64 {
@@ -1197,14 +1129,7 @@ const file_transfer_proto_rawDesc = "" +
 	"\x11expense_breakdown\x18\x04 \x03(\v2\x13.pb.CategorySummaryR\x10expenseBreakdown\x12>\n" +
 	"\x10income_breakdown\x18\x05 \x03(\v2\x13.pb.CategorySummaryR\x0fincomeBreakdown\x12:\n" +
 	"\x10monthly_overview\x18\x06 \x03(\v2\x0f.pb.MonthlyDataR\x0fmonthlyOverview\x12A\n" +
-	"\x12comparison_metrics\x18\a \x01(\v2\x12.pb.ComparisonDataR\x11comparisonMetrics\"\x92\x01\n" +
-	"\x0ePaginationInfo\x12!\n" +
-	"\fcurrent_page\x18\x01 \x01(\x05R\vcurrentPage\x12\x1b\n" +
-	"\tpage_size\x18\x02 \x01(\x05R\bpageSize\x12\x1f\n" +
-	"\vtotal_pages\x18\x03 \x01(\x05R\n" +
-	"totalPages\x12\x1f\n" +
-	"\vtotal_items\x18\x04 \x01(\x03R\n" +
-	"totalItems\"=\n" +
+	"\x12comparison_metrics\x18\a \x01(\v2\x12.pb.ComparisonDataR\x11comparisonMetrics\"=\n" +
 	"\x19GetTransferDetailsRequest\x12 \n" +
 	"\vtransfer_id\x18\x01 \x01(\x04R\vtransfer_id\"\xa5\x05\n" +
 	"\x1aGetTransferDetailsResponse\x12 \n" +
@@ -1271,7 +1196,7 @@ func file_transfer_proto_rawDescGZIP() []byte {
 }
 
 var file_transfer_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_transfer_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
+var file_transfer_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
 var file_transfer_proto_goTypes = []any{
 	(TransferType)(0),                  // 0: pb.TransferType
 	(TimePeriod)(0),                    // 1: pb.TimePeriod
@@ -1284,31 +1209,30 @@ var file_transfer_proto_goTypes = []any{
 	(*ComparisonData)(nil),             // 8: pb.ComparisonData
 	(*GetStatisticsRequest)(nil),       // 9: pb.GetStatisticsRequest
 	(*GetStatisticsResponse)(nil),      // 10: pb.GetStatisticsResponse
-	(*PaginationInfo)(nil),             // 11: pb.PaginationInfo
-	(*GetTransferDetailsRequest)(nil),  // 12: pb.GetTransferDetailsRequest
-	(*GetTransferDetailsResponse)(nil), // 13: pb.GetTransferDetailsResponse
-	(*timestamppb.Timestamp)(nil),      // 14: google.protobuf.Timestamp
+	(*GetTransferDetailsRequest)(nil),  // 11: pb.GetTransferDetailsRequest
+	(*GetTransferDetailsResponse)(nil), // 12: pb.GetTransferDetailsResponse
+	(*timestamppb.Timestamp)(nil),      // 13: google.protobuf.Timestamp
 }
 var file_transfer_proto_depIdxs = []int32{
 	0,  // 0: pb.TransferTransaction.transfer_type:type_name -> pb.TransferType
-	14, // 1: pb.TransferTransaction.created_at:type_name -> google.protobuf.Timestamp
-	14, // 2: pb.InitiateTransferResponse.created_at:type_name -> google.protobuf.Timestamp
-	14, // 3: pb.TimeSeriesPoint.timestamp:type_name -> google.protobuf.Timestamp
+	13, // 1: pb.TransferTransaction.created_at:type_name -> google.protobuf.Timestamp
+	13, // 2: pb.InitiateTransferResponse.created_at:type_name -> google.protobuf.Timestamp
+	13, // 3: pb.TimeSeriesPoint.timestamp:type_name -> google.protobuf.Timestamp
 	1,  // 4: pb.GetStatisticsRequest.time_period:type_name -> pb.TimePeriod
 	5,  // 5: pb.GetStatisticsResponse.expense_timeseries:type_name -> pb.TimeSeriesPoint
 	6,  // 6: pb.GetStatisticsResponse.expense_breakdown:type_name -> pb.CategorySummary
 	6,  // 7: pb.GetStatisticsResponse.income_breakdown:type_name -> pb.CategorySummary
 	7,  // 8: pb.GetStatisticsResponse.monthly_overview:type_name -> pb.MonthlyData
 	8,  // 9: pb.GetStatisticsResponse.comparison_metrics:type_name -> pb.ComparisonData
-	14, // 10: pb.GetTransferDetailsResponse.created_at:type_name -> google.protobuf.Timestamp
-	14, // 11: pb.GetTransferDetailsResponse.completed_at:type_name -> google.protobuf.Timestamp
-	14, // 12: pb.GetTransferDetailsResponse.failed_at:type_name -> google.protobuf.Timestamp
+	13, // 10: pb.GetTransferDetailsResponse.created_at:type_name -> google.protobuf.Timestamp
+	13, // 11: pb.GetTransferDetailsResponse.completed_at:type_name -> google.protobuf.Timestamp
+	13, // 12: pb.GetTransferDetailsResponse.failed_at:type_name -> google.protobuf.Timestamp
 	3,  // 13: pb.TransferService.InitiateTransfer:input_type -> pb.InitiateTransferRequest
 	9,  // 14: pb.TransferService.GetStatistics:input_type -> pb.GetStatisticsRequest
-	12, // 15: pb.TransferService.GetTransferDetails:input_type -> pb.GetTransferDetailsRequest
+	11, // 15: pb.TransferService.GetTransferDetails:input_type -> pb.GetTransferDetailsRequest
 	4,  // 16: pb.TransferService.InitiateTransfer:output_type -> pb.InitiateTransferResponse
 	10, // 17: pb.TransferService.GetStatistics:output_type -> pb.GetStatisticsResponse
-	13, // 18: pb.TransferService.GetTransferDetails:output_type -> pb.GetTransferDetailsResponse
+	12, // 18: pb.TransferService.GetTransferDetails:output_type -> pb.GetTransferDetailsResponse
 	16, // [16:19] is the sub-list for method output_type
 	13, // [13:16] is the sub-list for method input_type
 	13, // [13:13] is the sub-list for extension type_name
@@ -1322,14 +1246,14 @@ func file_transfer_proto_init() {
 		return
 	}
 	file_transfer_proto_msgTypes[1].OneofWrappers = []any{}
-	file_transfer_proto_msgTypes[11].OneofWrappers = []any{}
+	file_transfer_proto_msgTypes[10].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_transfer_proto_rawDesc), len(file_transfer_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   12,
+			NumMessages:   11,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

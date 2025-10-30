@@ -74,11 +74,14 @@ func (c *RecipientController) ListRecipients(ctx context.Context, req *pb.ListRe
 	return &pb.ListRecipientsResponse{
 		Recipients: protoRecipients,
 	}, nil
+
 }
 
 // UpdateRecipient handles the gRPC request to update a recipient.
 func (c *RecipientController) UpdateRecipient(ctx context.Context, req *pb.UpdateRecipientRequest) (*pb.UpdateRecipientResponse, error) {
+
 	user, err := getUserFromContext(ctx, c.userService)
+
 	if err != nil {
 		return nil, err
 	}
@@ -101,6 +104,7 @@ func (c *RecipientController) UpdateRecipient(ctx context.Context, req *pb.Updat
 	return &pb.UpdateRecipientResponse{
 		Recipient: services.ConvertRecipientToProto(updatedModel),
 	}, nil
+
 }
 
 // DeleteRecipient handles the gRPC request to delete a recipient.
@@ -111,11 +115,13 @@ func (c *RecipientController) DeleteRecipient(ctx context.Context, req *pb.Delet
 	}
 
 	recipientID := uint(req.GetRecipientId())
+
 	if recipientID == 0 {
 		return nil, status.Error(codes.InvalidArgument, "recipient_id is required")
 	}
 
 	err = c.recipientService.DeleteRecipient(ctx, user.ID, recipientID)
+
 	if err != nil {
 		// Map service errors
 		if errors.Is(err, services.ErrRecipientNotFound) {
@@ -129,11 +135,14 @@ func (c *RecipientController) DeleteRecipient(ctx context.Context, req *pb.Delet
 	return &pb.DeleteRecipientResponse{
 		Message: "Recipient deleted successfully",
 	}, nil
+
 }
 
 // GetRecipient handles the gRPC request to retrieve a specific recipient.
 func (c *RecipientController) GetRecipient(ctx context.Context, req *pb.GetRecipientRequest) (*pb.GetRecipientResponse, error) {
+
 	user, err := getUserFromContext(ctx, c.userService)
+
 	if err != nil {
 		return nil, err // Propagate auth/user lookup errors
 	}

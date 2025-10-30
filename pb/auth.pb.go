@@ -1052,8 +1052,8 @@ const file_auth_proto_rawDesc = "" +
 	"\x04Auth\x12\x16Verify Transaction PIN\x1a2Verifies the authenticated user's transaction PIN.b\f\n" +
 	"\n" +
 	"\n" +
-	"\x06bearer\x12\x00\x82\xd3\xe4\x93\x02\x18:\x01*\"\x13/v1/auth/verify-pinBv\x92A^\x124\n" +
-	"\x0eLazerVault API\x12\x1dLazerVault Authentication API2\x031.0*\x02\x01\x022\x10application/json:\x10application/jsonZ\x13lazervaultGolang/pbb\x06proto3"
+	"\x06bearer\x12\x00\x82\xd3\xe4\x93\x02\x18:\x01*\"\x13/v1/auth/verify-pinBr\x92A^\x124\n" +
+	"\x0eLazerVault API\x12\x1dLazerVault Authentication API2\x031.0*\x02\x01\x022\x10application/json:\x10application/jsonZ\x0flazervaultGo/pbb\x06proto3"
 
 var (
 	file_auth_proto_rawDescOnce sync.Once

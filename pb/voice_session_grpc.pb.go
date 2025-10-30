@@ -20,6 +20,7 @@ const _ = grpc.SupportPackageIsVersion9
 
 const (
 	VoiceSessionService_StartVoiceSession_FullMethodName = "/pb.VoiceSessionService/StartVoiceSession"
+	VoiceSessionService_ProcessVoiceNote_FullMethodName  = "/pb.VoiceSessionService/ProcessVoiceNote"
 )
 
 // VoiceSessionServiceClient is the client API for VoiceSessionService service.
@@ -29,6 +30,8 @@ type VoiceSessionServiceClient interface {
 	// Starts a new voice session by creating a LiveKit room,
 	// generating a token for the client, and dispatching an agent.
 	StartVoiceSession(ctx context.Context, in *StartVoiceSessionRequest, opts ...grpc.CallOption) (*StartVoiceSessionResponse, error)
+	// Processes a voice note and returns AI response with transcription
+	ProcessVoiceNote(ctx context.Context, in *ProcessVoiceNoteRequest, opts ...grpc.CallOption) (*ProcessVoiceNoteResponse, error)
 }
 
 type voiceSessionServiceClient struct {
@@ -49,6 +52,16 @@ func (c *voiceSessionServiceClient) StartVoiceSession(ctx context.Context, in *S
 	return out, nil
 }
 
+func (c *voiceSessionServiceClient) ProcessVoiceNote(ctx context.Context, in *ProcessVoiceNoteRequest, opts ...grpc.CallOption) (*ProcessVoiceNoteResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ProcessVoiceNoteResponse)
+	err := c.cc.Invoke(ctx, VoiceSessionService_ProcessVoiceNote_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // VoiceSessionServiceServer is the server API for VoiceSessionService service.
 // All implementations must embed UnimplementedVoiceSessionServiceServer
 // for forward compatibility.
@@ -56,6 +69,8 @@ type VoiceSessionServiceServer interface {
 	// Starts a new voice session by creating a LiveKit room,
 	// generating a token for the client, and dispatching an agent.
 	StartVoiceSession(context.Context, *StartVoiceSessionRequest) (*StartVoiceSessionResponse, error)
+	// Processes a voice note and returns AI response with transcription
+	ProcessVoiceNote(context.Context, *ProcessVoiceNoteRequest) (*ProcessVoiceNoteResponse, error)
 	mustEmbedUnimplementedVoiceSessionServiceServer()
 }
 
@@ -68,6 +83,9 @@ type UnimplementedVoiceSessionServiceServer struct{}
 
 func (UnimplementedVoiceSessionServiceServer) StartVoiceSession(context.Context, *StartVoiceSessionRequest) (*StartVoiceSessionResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method StartVoiceSession not implemented")
+}
+func (UnimplementedVoiceSessionServiceServer) ProcessVoiceNote(context.Context, *ProcessVoiceNoteRequest) (*ProcessVoiceNoteResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ProcessVoiceNote not implemented")
 }
 func (UnimplementedVoiceSessionServiceServer) mustEmbedUnimplementedVoiceSessionServiceServer() {}
 func (UnimplementedVoiceSessionServiceServer) testEmbeddedByValue()                             {}
@@ -108,6 +126,24 @@ func _VoiceSessionService_StartVoiceSession_Handler(srv interface{}, ctx context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _VoiceSessionService_ProcessVoiceNote_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ProcessVoiceNoteRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(VoiceSessionServiceServer).ProcessVoiceNote(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: VoiceSessionService_ProcessVoiceNote_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(VoiceSessionServiceServer).ProcessVoiceNote(ctx, req.(*ProcessVoiceNoteRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // VoiceSessionService_ServiceDesc is the grpc.ServiceDesc for VoiceSessionService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -118,6 +154,10 @@ var VoiceSessionService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "StartVoiceSession",
 			Handler:    _VoiceSessionService_StartVoiceSession_Handler,
+		},
+		{
+			MethodName: "ProcessVoiceNote",
+			Handler:    _VoiceSessionService_ProcessVoiceNote_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

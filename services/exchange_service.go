@@ -5,26 +5,18 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"lazervaultGo/models" // Correct path
-	"lazervaultGo/pb"     // Correct path
-	"lazervaultGo/tasks"  // Added tasks import
+	"lazervaultGo/models"
+	"lazervaultGo/pb"
+	"lazervaultGo/tasks"
 	"math/rand"
 	"time"
 
-	"github.com/hibiken/asynq" // Added asynq import
+	"github.com/hibiken/asynq"
 	"gorm.io/datatypes"
 	"gorm.io/gorm"
 )
 
-var (
-	ErrInvalidCurrency     = errors.New("invalid or unsupported currency code")
-	ErrInvalidAmount       = errors.New("invalid transfer amount")
-	ErrRateNotFound        = errors.New("exchange rate not available for the currency pair")
-	ErrTransferFailed      = errors.New("failed to initiate transfer")
-	ErrInvalidReceiver     = errors.New("invalid receiver details")
-	ErrTransactionNotFound = errors.New("exchange transaction not found")
-	ErrInsufficientFunds   = errors.New("insufficient funds") // Placeholder for later
-)
+// Using common errors from errors.go
 
 // Mock rates - Replace with a real rate provider service
 var mockRates = map[string]map[string]float64{
@@ -93,7 +85,7 @@ type InitiateTransferServiceRequest struct {
 func (s *ExchangeService) InitiateInternationalTransfer(ctx context.Context, req *InitiateTransferServiceRequest) (*models.ExchangeTransaction, error) {
 	// Validate input
 	if req.UserID == 0 {
-		return nil, ErrInvalidUserID // Re-use from chat service or define new
+		return nil, ErrInvalidUserID
 	}
 	if req.FromCurrency == "" || req.ToCurrency == "" {
 		return nil, ErrInvalidCurrency
@@ -203,7 +195,7 @@ type GetRecentExchangesServiceRequest struct {
 	PageToken string // Use transaction ID as page token
 }
 
-// GetRecentExchanges retrieves recent transactions for a user
+// GetRecentExchanges retrieves a paginated list of recent exchanges
 func (s *ExchangeService) GetRecentExchanges(ctx context.Context, req *GetRecentExchangesServiceRequest) ([]models.ExchangeTransaction, string, error) {
 	if req.UserID == 0 {
 		return nil, "", ErrInvalidUserID
@@ -218,7 +210,7 @@ func (s *ExchangeService) GetRecentExchanges(ctx context.Context, req *GetRecent
 	query := s.db.WithContext(ctx).Model(&models.ExchangeTransaction{}).
 		Where("user_id = ?", req.UserID)
 
-	// Keyset Pagination using CreatedAt and ID
+	// Pagination based on transaction ID
 	if req.PageToken != "" {
 		var lastTx models.ExchangeTransaction
 		err := s.db.WithContext(ctx).Select("created_at").First(&lastTx, "id = ? AND user_id = ?", req.PageToken, req.UserID).Error
@@ -228,21 +220,20 @@ func (s *ExchangeService) GetRecentExchanges(ctx context.Context, req *GetRecent
 			}
 			return nil, "", fmt.Errorf("failed to query page token transaction: %w", err)
 		}
-		// Fetch transactions older than the one identified by the token
 		query = query.Where("(created_at, id) < (?, ?)", lastTx.CreatedAt, req.PageToken)
 	}
 
-	// Order by creation time descending (most recent first), ID secondary for stable order
+	// Order by creation time descending, ID secondary
 	err := query.Order("created_at desc, id desc").Limit(pageSize + 1).Find(&transactions).Error
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, "", fmt.Errorf("failed to retrieve exchange history: %w", err)
+		return nil, "", fmt.Errorf("failed to retrieve transactions: %w", err)
 	}
 
 	// Determine next page token
 	nextPageToken := ""
 	if len(transactions) > pageSize {
 		nextPageToken = transactions[pageSize-1].ID
-		transactions = transactions[:pageSize] // Trim the extra message
+		transactions = transactions[:pageSize] // Trim the extra transaction
 	}
 
 	return transactions, nextPageToken, nil

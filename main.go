@@ -28,7 +28,7 @@ func main() {
 
 	migrator := database.NewMigrator(db)
 
-	// // Drop all tables
+	// Drop all tables
 	// if err := migrator.DropAllTables(); err != nil {
 	// 	log.Fatal().Err(err).Msg("cannot drop tables") // Adjusted if uncommented
 	// }

@@ -1,0 +1,311 @@
+syntax = "proto3";
+
+package pb;
+
+option go_package = "lazervaultGo/pb";
+
+import "google/protobuf/timestamp.proto";
+import "common.proto";
+
+// Tagged Invoice Message
+message TaggedInvoice {
+  string id = 1;
+  string invoice_id = 2;
+  string user_id = 3;
+  InvoicePaymentStatus payment_status = 4;
+  InvoicePriority priority = 5;
+  bool is_viewed = 6;
+  google.protobuf.Timestamp tagged_at = 7;
+  google.protobuf.Timestamp viewed_at = 8;
+  google.protobuf.Timestamp reminder_date = 9;
+  bool reminder_sent = 10;
+  string notes = 11;
+  double amount = 12;
+  string currency = 13;
+  google.protobuf.Timestamp created_at = 14;
+  google.protobuf.Timestamp updated_at = 15;
+}
+
+// Payment Reminder Message
+message PaymentReminder {
+  string invoice_id = 1;
+  string user_id = 2;
+  google.protobuf.Timestamp reminder_date = 3;
+  string status = 4;
+}
+
+// Invoice Payment Notification Message
+message InvoicePaymentNotification {
+  string notification_id = 1;
+  string invoice_id = 2;
+  string user_id = 3;
+  string notification_type = 4;
+  string title = 5;
+  string message = 6;
+  bool is_read = 7;
+  google.protobuf.Timestamp created_at = 8;
+  google.protobuf.Timestamp read_at = 9;
+}
+
+// Tagged Invoice Retrieval
+message GetTaggedInvoicesRequest {
+  int32 page_size = 1;
+  string page_token = 2;
+  InvoicePaymentStatus status_filter = 3;
+  InvoicePriority priority_filter = 4;
+}
+
+message GetTaggedInvoicesResponse {
+  repeated TaggedInvoice invoices = 1;
+  string next_page_token = 2;
+  uint64 total_count = 3;
+  TaggedInvoicesSummary summary = 4;
+}
+
+message TaggedInvoicesSummary {
+  uint64 total_invoices = 1;
+  uint64 pending_invoices = 2;
+  uint64 overdue_invoices = 3;
+  uint64 paid_invoices = 4;
+  double total_amount = 5;
+  double pending_amount = 6;
+  double overdue_amount = 7;
+}
+
+message GetTaggedInvoicesByStatusRequest {
+  InvoicePaymentStatus status = 1;
+  int32 page_size = 2;
+  string page_token = 3;
+}
+
+message GetTaggedInvoicesByStatusResponse {
+  repeated TaggedInvoice invoices = 1;
+  string next_page_token = 2;
+  uint64 total_count = 3;
+}
+
+message GetTaggedInvoiceByIdRequest {
+  string invoice_id = 1;
+}
+
+message GetTaggedInvoiceByIdResponse {
+  TaggedInvoice invoice = 1;
+}
+
+message GetOverdueTaggedInvoicesRequest {
+  int32 page_size = 1;
+  string page_token = 2;
+  int32 days_overdue = 3;
+}
+
+message GetOverdueTaggedInvoicesResponse {
+  repeated TaggedInvoice invoices = 1;
+  string next_page_token = 2;
+  uint64 total_count = 3;
+  double total_overdue_amount = 4;
+}
+
+message GetUpcomingTaggedInvoicesRequest {
+  int32 days_ahead = 1;
+  int32 page_size = 2;
+  string page_token = 3;
+}
+
+message GetUpcomingTaggedInvoicesResponse {
+  repeated TaggedInvoice invoices = 1;
+  string next_page_token = 2;
+  uint64 total_count = 3;
+}
+
+message SearchTaggedInvoicesRequest {
+  string query = 1;
+  int32 page_size = 2;
+  string page_token = 3;
+  repeated InvoicePaymentStatus statuses = 4;
+  repeated InvoicePriority priorities = 5;
+  google.protobuf.Timestamp start_date = 6;
+  google.protobuf.Timestamp end_date = 7;
+}
+
+message SearchTaggedInvoicesResponse {
+  repeated TaggedInvoice invoices = 1;
+  string next_page_token = 2;
+  uint64 total_count = 3;
+}
+
+message FilterTaggedInvoicesByPriorityRequest {
+  InvoicePriority priority = 1;
+  int32 page_size = 2;
+  string page_token = 3;
+}
+
+message FilterTaggedInvoicesByPriorityResponse {
+  repeated TaggedInvoice invoices = 1;
+  string next_page_token = 2;
+  uint64 total_count = 3;
+}
+
+message FilterTaggedInvoicesByDateRangeRequest {
+  google.protobuf.Timestamp start_date = 1;
+  google.protobuf.Timestamp end_date = 2;
+  int32 page_size = 3;
+  string page_token = 4;
+}
+
+message FilterTaggedInvoicesByDateRangeResponse {
+  repeated TaggedInvoice invoices = 1;
+  string next_page_token = 2;
+  uint64 total_count = 3;
+}
+
+message FilterTaggedInvoicesByAmountRequest {
+  double min_amount = 1;
+  double max_amount = 2;
+  int32 page_size = 3;
+  string page_token = 4;
+}
+
+message FilterTaggedInvoicesByAmountResponse {
+  repeated TaggedInvoice invoices = 1;
+  string next_page_token = 2;
+  uint64 total_count = 3;
+}
+
+message MarkTaggedInvoiceAsViewedRequest {
+  string invoice_id = 1;
+}
+
+message MarkTaggedInvoiceAsViewedResponse {
+  TaggedInvoice invoice = 1;
+  bool success = 2;
+  string message = 3;
+}
+
+message SetInvoicePaymentReminderRequest {
+  string invoice_id = 1;
+  google.protobuf.Timestamp reminder_date = 2;
+}
+
+message SetInvoicePaymentReminderResponse {
+  PaymentReminder reminder = 1;
+  bool success = 2;
+  string message = 3;
+}
+
+message RequestTaggedInvoiceDetailsRequest {
+  string invoice_id = 1;
+}
+
+message RequestTaggedInvoiceDetailsResponse {
+  bool success = 1;
+  string message = 2;
+  string request_id = 3;
+}
+
+message GetInvoicePaymentNotificationsRequest {
+  int32 page_size = 1;
+  string page_token = 2;
+  bool unread_only = 3;
+}
+
+message GetInvoicePaymentNotificationsResponse {
+  repeated InvoicePaymentNotification notifications = 1;
+  string next_page_token = 2;
+  uint64 total_count = 3;
+  uint64 unread_count = 4;
+}
+
+message UpdateTaggedInvoiceStatusRequest {
+  string invoice_id = 1;
+  InvoicePaymentStatus new_status = 2;
+  string notes = 3;
+}
+
+message UpdateTaggedInvoiceStatusResponse {
+  TaggedInvoice invoice = 1;
+  bool success = 2;
+  string message = 3;
+}
+
+message DeleteTaggedInvoiceRequest {
+  string invoice_id = 1;
+}
+
+message DeleteTaggedInvoiceResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message MarkMultipleInvoicesAsViewedRequest {
+  repeated string invoice_ids = 1;
+}
+
+message MarkMultipleInvoicesAsViewedResponse {
+  bool success = 1;
+  string message = 2;
+  uint64 updated_count = 3;
+}
+
+message BulkSetPaymentRemindersRequest {
+  repeated string invoice_ids = 1;
+  google.protobuf.Timestamp reminder_date = 2;
+}
+
+message BulkSetPaymentRemindersResponse {
+  bool success = 1;
+  string message = 2;
+  uint64 updated_count = 3;
+}
+
+message GetTaggedInvoiceStatisticsRequest {
+  // No fields needed - user derived from auth token
+}
+
+message GetTaggedInvoiceStatisticsResponse {
+  TaggedInvoiceStatistics statistics = 1;
+}
+
+message TaggedInvoiceStatistics {
+  uint64 total_invoices = 1;
+  uint64 pending_invoices = 2;
+  uint64 overdue_invoices = 3;
+  uint64 completed_invoices = 4;
+  double total_amount = 5;
+  double pending_amount = 6;
+  double overdue_amount = 7;
+  double completed_amount = 8;
+  double average_amount = 9;
+  InvoicePriority most_common_priority = 10;
+}
+
+service TaggedInvoiceService {
+  // Core Tagged Invoice Operations
+  rpc GetTaggedInvoices(GetTaggedInvoicesRequest) returns (GetTaggedInvoicesResponse);
+  rpc GetTaggedInvoicesByStatus(GetTaggedInvoicesByStatusRequest) returns (GetTaggedInvoicesByStatusResponse);
+  rpc GetTaggedInvoiceById(GetTaggedInvoiceByIdRequest) returns (GetTaggedInvoiceByIdResponse);
+  rpc GetOverdueTaggedInvoices(GetOverdueTaggedInvoicesRequest) returns (GetOverdueTaggedInvoicesResponse);
+  rpc GetUpcomingTaggedInvoices(GetUpcomingTaggedInvoicesRequest) returns (GetUpcomingTaggedInvoicesResponse);
+
+  // Search and Filtering
+  rpc SearchTaggedInvoices(SearchTaggedInvoicesRequest) returns (SearchTaggedInvoicesResponse);
+  rpc FilterTaggedInvoicesByPriority(FilterTaggedInvoicesByPriorityRequest) returns (FilterTaggedInvoicesByPriorityResponse);
+  rpc FilterTaggedInvoicesByDateRange(FilterTaggedInvoicesByDateRangeRequest) returns (FilterTaggedInvoicesByDateRangeResponse);
+  rpc FilterTaggedInvoicesByAmount(FilterTaggedInvoicesByAmountRequest) returns (FilterTaggedInvoicesByAmountResponse);
+
+  // Tagged Invoice Actions
+  rpc MarkTaggedInvoiceAsViewed(MarkTaggedInvoiceAsViewedRequest) returns (MarkTaggedInvoiceAsViewedResponse);
+  rpc SetInvoicePaymentReminder(SetInvoicePaymentReminderRequest) returns (SetInvoicePaymentReminderResponse);
+  rpc RequestTaggedInvoiceDetails(RequestTaggedInvoiceDetailsRequest) returns (RequestTaggedInvoiceDetailsResponse);
+  rpc GetInvoicePaymentNotifications(GetInvoicePaymentNotificationsRequest) returns (GetInvoicePaymentNotificationsResponse);
+
+  // Status Management
+  rpc UpdateTaggedInvoiceStatus(UpdateTaggedInvoiceStatusRequest) returns (UpdateTaggedInvoiceStatusResponse);
+  rpc DeleteTaggedInvoice(DeleteTaggedInvoiceRequest) returns (DeleteTaggedInvoiceResponse);
+
+  // Bulk Operations
+  rpc MarkMultipleInvoicesAsViewed(MarkMultipleInvoicesAsViewedRequest) returns (MarkMultipleInvoicesAsViewedResponse);
+  rpc BulkSetPaymentReminders(BulkSetPaymentRemindersRequest) returns (BulkSetPaymentRemindersResponse);
+
+  // Statistics
+  rpc GetTaggedInvoiceStatistics(GetTaggedInvoiceStatisticsRequest) returns (GetTaggedInvoiceStatisticsResponse);
+} 

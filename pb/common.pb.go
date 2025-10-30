@@ -22,6 +22,307 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// Invoice Payment Status Enum - comprehensive status for all invoice payment scenarios
+type InvoicePaymentStatus int32
+
+const (
+	InvoicePaymentStatus_INVOICE_PAYMENT_STATUS_PENDING        InvoicePaymentStatus = 0
+	InvoicePaymentStatus_INVOICE_PAYMENT_STATUS_PROCESSING     InvoicePaymentStatus = 1
+	InvoicePaymentStatus_INVOICE_PAYMENT_STATUS_COMPLETED      InvoicePaymentStatus = 2
+	InvoicePaymentStatus_INVOICE_PAYMENT_STATUS_FAILED         InvoicePaymentStatus = 3
+	InvoicePaymentStatus_INVOICE_PAYMENT_STATUS_CANCELLED      InvoicePaymentStatus = 4
+	InvoicePaymentStatus_INVOICE_PAYMENT_STATUS_PARTIALLY_PAID InvoicePaymentStatus = 5
+	InvoicePaymentStatus_INVOICE_PAYMENT_STATUS_REFUNDED       InvoicePaymentStatus = 6
+	InvoicePaymentStatus_INVOICE_PAYMENT_STATUS_DISPUTED       InvoicePaymentStatus = 7
+	InvoicePaymentStatus_INVOICE_PAYMENT_STATUS_OVERDUE        InvoicePaymentStatus = 8
+)
+
+// Enum value maps for InvoicePaymentStatus.
+var (
+	InvoicePaymentStatus_name = map[int32]string{
+		0: "INVOICE_PAYMENT_STATUS_PENDING",
+		1: "INVOICE_PAYMENT_STATUS_PROCESSING",
+		2: "INVOICE_PAYMENT_STATUS_COMPLETED",
+		3: "INVOICE_PAYMENT_STATUS_FAILED",
+		4: "INVOICE_PAYMENT_STATUS_CANCELLED",
+		5: "INVOICE_PAYMENT_STATUS_PARTIALLY_PAID",
+		6: "INVOICE_PAYMENT_STATUS_REFUNDED",
+		7: "INVOICE_PAYMENT_STATUS_DISPUTED",
+		8: "INVOICE_PAYMENT_STATUS_OVERDUE",
+	}
+	InvoicePaymentStatus_value = map[string]int32{
+		"INVOICE_PAYMENT_STATUS_PENDING":        0,
+		"INVOICE_PAYMENT_STATUS_PROCESSING":     1,
+		"INVOICE_PAYMENT_STATUS_COMPLETED":      2,
+		"INVOICE_PAYMENT_STATUS_FAILED":         3,
+		"INVOICE_PAYMENT_STATUS_CANCELLED":      4,
+		"INVOICE_PAYMENT_STATUS_PARTIALLY_PAID": 5,
+		"INVOICE_PAYMENT_STATUS_REFUNDED":       6,
+		"INVOICE_PAYMENT_STATUS_DISPUTED":       7,
+		"INVOICE_PAYMENT_STATUS_OVERDUE":        8,
+	}
+)
+
+func (x InvoicePaymentStatus) Enum() *InvoicePaymentStatus {
+	p := new(InvoicePaymentStatus)
+	*p = x
+	return p
+}
+
+func (x InvoicePaymentStatus) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (InvoicePaymentStatus) Descriptor() protoreflect.EnumDescriptor {
+	return file_common_proto_enumTypes[0].Descriptor()
+}
+
+func (InvoicePaymentStatus) Type() protoreflect.EnumType {
+	return &file_common_proto_enumTypes[0]
+}
+
+func (x InvoicePaymentStatus) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use InvoicePaymentStatus.Descriptor instead.
+func (InvoicePaymentStatus) EnumDescriptor() ([]byte, []int) {
+	return file_common_proto_rawDescGZIP(), []int{0}
+}
+
+// Payment Method Type Enum
+type PaymentMethodType int32
+
+const (
+	PaymentMethodType_PAYMENT_METHOD_TYPE_ACCOUNT_BALANCE PaymentMethodType = 0
+	PaymentMethodType_PAYMENT_METHOD_TYPE_CREDIT_CARD     PaymentMethodType = 1
+	PaymentMethodType_PAYMENT_METHOD_TYPE_DEBIT_CARD      PaymentMethodType = 2
+	PaymentMethodType_PAYMENT_METHOD_TYPE_PAYPAL          PaymentMethodType = 3
+	PaymentMethodType_PAYMENT_METHOD_TYPE_APPLE_PAY       PaymentMethodType = 4
+	PaymentMethodType_PAYMENT_METHOD_TYPE_GOOGLE_PAY      PaymentMethodType = 5
+	PaymentMethodType_PAYMENT_METHOD_TYPE_BITCOIN         PaymentMethodType = 6
+	PaymentMethodType_PAYMENT_METHOD_TYPE_ETHEREUM        PaymentMethodType = 7
+	PaymentMethodType_PAYMENT_METHOD_TYPE_USDC            PaymentMethodType = 8
+	PaymentMethodType_PAYMENT_METHOD_TYPE_BANK_TRANSFER   PaymentMethodType = 9
+)
+
+// Enum value maps for PaymentMethodType.
+var (
+	PaymentMethodType_name = map[int32]string{
+		0: "PAYMENT_METHOD_TYPE_ACCOUNT_BALANCE",
+		1: "PAYMENT_METHOD_TYPE_CREDIT_CARD",
+		2: "PAYMENT_METHOD_TYPE_DEBIT_CARD",
+		3: "PAYMENT_METHOD_TYPE_PAYPAL",
+		4: "PAYMENT_METHOD_TYPE_APPLE_PAY",
+		5: "PAYMENT_METHOD_TYPE_GOOGLE_PAY",
+		6: "PAYMENT_METHOD_TYPE_BITCOIN",
+		7: "PAYMENT_METHOD_TYPE_ETHEREUM",
+		8: "PAYMENT_METHOD_TYPE_USDC",
+		9: "PAYMENT_METHOD_TYPE_BANK_TRANSFER",
+	}
+	PaymentMethodType_value = map[string]int32{
+		"PAYMENT_METHOD_TYPE_ACCOUNT_BALANCE": 0,
+		"PAYMENT_METHOD_TYPE_CREDIT_CARD":     1,
+		"PAYMENT_METHOD_TYPE_DEBIT_CARD":      2,
+		"PAYMENT_METHOD_TYPE_PAYPAL":          3,
+		"PAYMENT_METHOD_TYPE_APPLE_PAY":       4,
+		"PAYMENT_METHOD_TYPE_GOOGLE_PAY":      5,
+		"PAYMENT_METHOD_TYPE_BITCOIN":         6,
+		"PAYMENT_METHOD_TYPE_ETHEREUM":        7,
+		"PAYMENT_METHOD_TYPE_USDC":            8,
+		"PAYMENT_METHOD_TYPE_BANK_TRANSFER":   9,
+	}
+)
+
+func (x PaymentMethodType) Enum() *PaymentMethodType {
+	p := new(PaymentMethodType)
+	*p = x
+	return p
+}
+
+func (x PaymentMethodType) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (PaymentMethodType) Descriptor() protoreflect.EnumDescriptor {
+	return file_common_proto_enumTypes[1].Descriptor()
+}
+
+func (PaymentMethodType) Type() protoreflect.EnumType {
+	return &file_common_proto_enumTypes[1]
+}
+
+func (x PaymentMethodType) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use PaymentMethodType.Descriptor instead.
+func (PaymentMethodType) EnumDescriptor() ([]byte, []int) {
+	return file_common_proto_rawDescGZIP(), []int{1}
+}
+
+// Account Type Enum
+type AccountType int32
+
+const (
+	AccountType_ACCOUNT_TYPE_PERSONAL   AccountType = 0
+	AccountType_ACCOUNT_TYPE_SAVINGS    AccountType = 1
+	AccountType_ACCOUNT_TYPE_INVESTMENT AccountType = 2
+	AccountType_ACCOUNT_TYPE_BUSINESS   AccountType = 3
+)
+
+// Enum value maps for AccountType.
+var (
+	AccountType_name = map[int32]string{
+		0: "ACCOUNT_TYPE_PERSONAL",
+		1: "ACCOUNT_TYPE_SAVINGS",
+		2: "ACCOUNT_TYPE_INVESTMENT",
+		3: "ACCOUNT_TYPE_BUSINESS",
+	}
+	AccountType_value = map[string]int32{
+		"ACCOUNT_TYPE_PERSONAL":   0,
+		"ACCOUNT_TYPE_SAVINGS":    1,
+		"ACCOUNT_TYPE_INVESTMENT": 2,
+		"ACCOUNT_TYPE_BUSINESS":   3,
+	}
+)
+
+func (x AccountType) Enum() *AccountType {
+	p := new(AccountType)
+	*p = x
+	return p
+}
+
+func (x AccountType) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (AccountType) Descriptor() protoreflect.EnumDescriptor {
+	return file_common_proto_enumTypes[2].Descriptor()
+}
+
+func (AccountType) Type() protoreflect.EnumType {
+	return &file_common_proto_enumTypes[2]
+}
+
+func (x AccountType) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use AccountType.Descriptor instead.
+func (AccountType) EnumDescriptor() ([]byte, []int) {
+	return file_common_proto_rawDescGZIP(), []int{2}
+}
+
+// Dispute Status Enum
+type DisputeStatus int32
+
+const (
+	DisputeStatus_DISPUTE_STATUS_PENDING       DisputeStatus = 0
+	DisputeStatus_DISPUTE_STATUS_INVESTIGATING DisputeStatus = 1
+	DisputeStatus_DISPUTE_STATUS_RESOLVED      DisputeStatus = 2
+	DisputeStatus_DISPUTE_STATUS_REJECTED      DisputeStatus = 3
+	DisputeStatus_DISPUTE_STATUS_ESCALATED     DisputeStatus = 4
+)
+
+// Enum value maps for DisputeStatus.
+var (
+	DisputeStatus_name = map[int32]string{
+		0: "DISPUTE_STATUS_PENDING",
+		1: "DISPUTE_STATUS_INVESTIGATING",
+		2: "DISPUTE_STATUS_RESOLVED",
+		3: "DISPUTE_STATUS_REJECTED",
+		4: "DISPUTE_STATUS_ESCALATED",
+	}
+	DisputeStatus_value = map[string]int32{
+		"DISPUTE_STATUS_PENDING":       0,
+		"DISPUTE_STATUS_INVESTIGATING": 1,
+		"DISPUTE_STATUS_RESOLVED":      2,
+		"DISPUTE_STATUS_REJECTED":      3,
+		"DISPUTE_STATUS_ESCALATED":     4,
+	}
+)
+
+func (x DisputeStatus) Enum() *DisputeStatus {
+	p := new(DisputeStatus)
+	*p = x
+	return p
+}
+
+func (x DisputeStatus) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (DisputeStatus) Descriptor() protoreflect.EnumDescriptor {
+	return file_common_proto_enumTypes[3].Descriptor()
+}
+
+func (DisputeStatus) Type() protoreflect.EnumType {
+	return &file_common_proto_enumTypes[3]
+}
+
+func (x DisputeStatus) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use DisputeStatus.Descriptor instead.
+func (DisputeStatus) EnumDescriptor() ([]byte, []int) {
+	return file_common_proto_rawDescGZIP(), []int{3}
+}
+
+// Invoice Priority Enum
+type InvoicePriority int32
+
+const (
+	InvoicePriority_INVOICE_PRIORITY_LOW    InvoicePriority = 0
+	InvoicePriority_INVOICE_PRIORITY_MEDIUM InvoicePriority = 1
+	InvoicePriority_INVOICE_PRIORITY_HIGH   InvoicePriority = 2
+	InvoicePriority_INVOICE_PRIORITY_URGENT InvoicePriority = 3
+)
+
+// Enum value maps for InvoicePriority.
+var (
+	InvoicePriority_name = map[int32]string{
+		0: "INVOICE_PRIORITY_LOW",
+		1: "INVOICE_PRIORITY_MEDIUM",
+		2: "INVOICE_PRIORITY_HIGH",
+		3: "INVOICE_PRIORITY_URGENT",
+	}
+	InvoicePriority_value = map[string]int32{
+		"INVOICE_PRIORITY_LOW":    0,
+		"INVOICE_PRIORITY_MEDIUM": 1,
+		"INVOICE_PRIORITY_HIGH":   2,
+		"INVOICE_PRIORITY_URGENT": 3,
+	}
+)
+
+func (x InvoicePriority) Enum() *InvoicePriority {
+	p := new(InvoicePriority)
+	*p = x
+	return p
+}
+
+func (x InvoicePriority) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (InvoicePriority) Descriptor() protoreflect.EnumDescriptor {
+	return file_common_proto_enumTypes[4].Descriptor()
+}
+
+func (InvoicePriority) Type() protoreflect.EnumType {
+	return &file_common_proto_enumTypes[4]
+}
+
+func (x InvoicePriority) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use InvoicePriority.Descriptor instead.
+func (InvoicePriority) EnumDescriptor() ([]byte, []int) {
+	return file_common_proto_rawDescGZIP(), []int{4}
+}
+
 // Base user type
 type User struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
@@ -275,6 +576,91 @@ func (x *Session) GetRefreshTokenExpiresAt() *timestamppb.Timestamp {
 	return nil
 }
 
+// Pagination Info - Common pagination structure
+type PaginationInfo struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	CurrentPage   int32                  `protobuf:"varint,1,opt,name=current_page,json=currentPage,proto3" json:"current_page,omitempty"`
+	TotalPages    int32                  `protobuf:"varint,2,opt,name=total_pages,json=totalPages,proto3" json:"total_pages,omitempty"`
+	TotalItems    int32                  `protobuf:"varint,3,opt,name=total_items,json=totalItems,proto3" json:"total_items,omitempty"`
+	ItemsPerPage  int32                  `protobuf:"varint,4,opt,name=items_per_page,json=itemsPerPage,proto3" json:"items_per_page,omitempty"`
+	HasNext       bool                   `protobuf:"varint,5,opt,name=has_next,json=hasNext,proto3" json:"has_next,omitempty"`
+	HasPrev       bool                   `protobuf:"varint,6,opt,name=has_prev,json=hasPrev,proto3" json:"has_prev,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PaginationInfo) Reset() {
+	*x = PaginationInfo{}
+	mi := &file_common_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PaginationInfo) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PaginationInfo) ProtoMessage() {}
+
+func (x *PaginationInfo) ProtoReflect() protoreflect.Message {
+	mi := &file_common_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PaginationInfo.ProtoReflect.Descriptor instead.
+func (*PaginationInfo) Descriptor() ([]byte, []int) {
+	return file_common_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *PaginationInfo) GetCurrentPage() int32 {
+	if x != nil {
+		return x.CurrentPage
+	}
+	return 0
+}
+
+func (x *PaginationInfo) GetTotalPages() int32 {
+	if x != nil {
+		return x.TotalPages
+	}
+	return 0
+}
+
+func (x *PaginationInfo) GetTotalItems() int32 {
+	if x != nil {
+		return x.TotalItems
+	}
+	return 0
+}
+
+func (x *PaginationInfo) GetItemsPerPage() int32 {
+	if x != nil {
+		return x.ItemsPerPage
+	}
+	return 0
+}
+
+func (x *PaginationInfo) GetHasNext() bool {
+	if x != nil {
+		return x.HasNext
+	}
+	return false
+}
+
+func (x *PaginationInfo) GetHasPrev() bool {
+	if x != nil {
+		return x.HasPrev
+	}
+	return false
+}
+
 var File_common_proto protoreflect.FileDescriptor
 
 const file_common_proto_rawDesc = "" +
@@ -307,7 +693,53 @@ const file_common_proto_rawDesc = "" +
 	"\faccess_token\x18\x03 \x01(\tR\vaccessToken\x12#\n" +
 	"\rrefresh_token\x18\x04 \x01(\tR\frefreshToken\x12Q\n" +
 	"\x17access_token_expires_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\x14accessTokenExpiresAt\x12S\n" +
-	"\x18refresh_token_expires_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\x15refreshTokenExpiresAtB\x15Z\x13lazervaultGolang/pbb\x06proto3"
+	"\x18refresh_token_expires_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\x15refreshTokenExpiresAt\"\xd1\x01\n" +
+	"\x0ePaginationInfo\x12!\n" +
+	"\fcurrent_page\x18\x01 \x01(\x05R\vcurrentPage\x12\x1f\n" +
+	"\vtotal_pages\x18\x02 \x01(\x05R\n" +
+	"totalPages\x12\x1f\n" +
+	"\vtotal_items\x18\x03 \x01(\x05R\n" +
+	"totalItems\x12$\n" +
+	"\x0eitems_per_page\x18\x04 \x01(\x05R\fitemsPerPage\x12\x19\n" +
+	"\bhas_next\x18\x05 \x01(\bR\ahasNext\x12\x19\n" +
+	"\bhas_prev\x18\x06 \x01(\bR\ahasPrev*\xe9\x02\n" +
+	"\x14InvoicePaymentStatus\x12\"\n" +
+	"\x1eINVOICE_PAYMENT_STATUS_PENDING\x10\x00\x12%\n" +
+	"!INVOICE_PAYMENT_STATUS_PROCESSING\x10\x01\x12$\n" +
+	" INVOICE_PAYMENT_STATUS_COMPLETED\x10\x02\x12!\n" +
+	"\x1dINVOICE_PAYMENT_STATUS_FAILED\x10\x03\x12$\n" +
+	" INVOICE_PAYMENT_STATUS_CANCELLED\x10\x04\x12)\n" +
+	"%INVOICE_PAYMENT_STATUS_PARTIALLY_PAID\x10\x05\x12#\n" +
+	"\x1fINVOICE_PAYMENT_STATUS_REFUNDED\x10\x06\x12#\n" +
+	"\x1fINVOICE_PAYMENT_STATUS_DISPUTED\x10\a\x12\"\n" +
+	"\x1eINVOICE_PAYMENT_STATUS_OVERDUE\x10\b*\xf4\x02\n" +
+	"\x11PaymentMethodType\x12'\n" +
+	"#PAYMENT_METHOD_TYPE_ACCOUNT_BALANCE\x10\x00\x12#\n" +
+	"\x1fPAYMENT_METHOD_TYPE_CREDIT_CARD\x10\x01\x12\"\n" +
+	"\x1ePAYMENT_METHOD_TYPE_DEBIT_CARD\x10\x02\x12\x1e\n" +
+	"\x1aPAYMENT_METHOD_TYPE_PAYPAL\x10\x03\x12!\n" +
+	"\x1dPAYMENT_METHOD_TYPE_APPLE_PAY\x10\x04\x12\"\n" +
+	"\x1ePAYMENT_METHOD_TYPE_GOOGLE_PAY\x10\x05\x12\x1f\n" +
+	"\x1bPAYMENT_METHOD_TYPE_BITCOIN\x10\x06\x12 \n" +
+	"\x1cPAYMENT_METHOD_TYPE_ETHEREUM\x10\a\x12\x1c\n" +
+	"\x18PAYMENT_METHOD_TYPE_USDC\x10\b\x12%\n" +
+	"!PAYMENT_METHOD_TYPE_BANK_TRANSFER\x10\t*z\n" +
+	"\vAccountType\x12\x19\n" +
+	"\x15ACCOUNT_TYPE_PERSONAL\x10\x00\x12\x18\n" +
+	"\x14ACCOUNT_TYPE_SAVINGS\x10\x01\x12\x1b\n" +
+	"\x17ACCOUNT_TYPE_INVESTMENT\x10\x02\x12\x19\n" +
+	"\x15ACCOUNT_TYPE_BUSINESS\x10\x03*\xa5\x01\n" +
+	"\rDisputeStatus\x12\x1a\n" +
+	"\x16DISPUTE_STATUS_PENDING\x10\x00\x12 \n" +
+	"\x1cDISPUTE_STATUS_INVESTIGATING\x10\x01\x12\x1b\n" +
+	"\x17DISPUTE_STATUS_RESOLVED\x10\x02\x12\x1b\n" +
+	"\x17DISPUTE_STATUS_REJECTED\x10\x03\x12\x1c\n" +
+	"\x18DISPUTE_STATUS_ESCALATED\x10\x04*\x80\x01\n" +
+	"\x0fInvoicePriority\x12\x18\n" +
+	"\x14INVOICE_PRIORITY_LOW\x10\x00\x12\x1b\n" +
+	"\x17INVOICE_PRIORITY_MEDIUM\x10\x01\x12\x19\n" +
+	"\x15INVOICE_PRIORITY_HIGH\x10\x02\x12\x1b\n" +
+	"\x17INVOICE_PRIORITY_URGENT\x10\x03B\x11Z\x0flazervaultGo/pbb\x06proto3"
 
 var (
 	file_common_proto_rawDescOnce sync.Once
@@ -321,20 +753,27 @@ func file_common_proto_rawDescGZIP() []byte {
 	return file_common_proto_rawDescData
 }
 
-var file_common_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_common_proto_enumTypes = make([]protoimpl.EnumInfo, 5)
+var file_common_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_common_proto_goTypes = []any{
-	(*User)(nil),                  // 0: pb.User
-	(*Data)(nil),                  // 1: pb.Data
-	(*Session)(nil),               // 2: pb.Session
-	(*timestamppb.Timestamp)(nil), // 3: google.protobuf.Timestamp
+	(InvoicePaymentStatus)(0),     // 0: pb.InvoicePaymentStatus
+	(PaymentMethodType)(0),        // 1: pb.PaymentMethodType
+	(AccountType)(0),              // 2: pb.AccountType
+	(DisputeStatus)(0),            // 3: pb.DisputeStatus
+	(InvoicePriority)(0),          // 4: pb.InvoicePriority
+	(*User)(nil),                  // 5: pb.User
+	(*Data)(nil),                  // 6: pb.Data
+	(*Session)(nil),               // 7: pb.Session
+	(*PaginationInfo)(nil),        // 8: pb.PaginationInfo
+	(*timestamppb.Timestamp)(nil), // 9: google.protobuf.Timestamp
 }
 var file_common_proto_depIdxs = []int32{
-	3, // 0: pb.User.created_at:type_name -> google.protobuf.Timestamp
-	3, // 1: pb.User.updated_at:type_name -> google.protobuf.Timestamp
-	0, // 2: pb.Data.user:type_name -> pb.User
-	2, // 3: pb.Data.session:type_name -> pb.Session
-	3, // 4: pb.Session.access_token_expires_at:type_name -> google.protobuf.Timestamp
-	3, // 5: pb.Session.refresh_token_expires_at:type_name -> google.protobuf.Timestamp
+	9, // 0: pb.User.created_at:type_name -> google.protobuf.Timestamp
+	9, // 1: pb.User.updated_at:type_name -> google.protobuf.Timestamp
+	5, // 2: pb.Data.user:type_name -> pb.User
+	7, // 3: pb.Data.session:type_name -> pb.Session
+	9, // 4: pb.Session.access_token_expires_at:type_name -> google.protobuf.Timestamp
+	9, // 5: pb.Session.refresh_token_expires_at:type_name -> google.protobuf.Timestamp
 	6, // [6:6] is the sub-list for method output_type
 	6, // [6:6] is the sub-list for method input_type
 	6, // [6:6] is the sub-list for extension type_name
@@ -353,13 +792,14 @@ func file_common_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_common_proto_rawDesc), len(file_common_proto_rawDesc)),
-			NumEnums:      0,
-			NumMessages:   3,
+			NumEnums:      5,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
 		GoTypes:           file_common_proto_goTypes,
 		DependencyIndexes: file_common_proto_depIdxs,
+		EnumInfos:         file_common_proto_enumTypes,
 		MessageInfos:      file_common_proto_msgTypes,
 	}.Build()
 	File_common_proto = out.File

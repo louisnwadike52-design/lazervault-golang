@@ -155,13 +155,6 @@ message GetStatisticsResponse {
 
 // --- Transaction History ---
 
-message PaginationInfo {
-  int32 current_page = 1;
-  int32 page_size = 2;
-  int32 total_pages = 3;
-  int64 total_items = 4;
-}
-
 // Request message for getting transfer details
 message GetTransferDetailsRequest {
     uint64 transfer_id = 1 [json_name = "transfer_id"]; // ID of the transfer to retrieve

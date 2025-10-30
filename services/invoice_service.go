@@ -2,34 +2,42 @@ package services
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"lazervaultGo/models" // Correct path
-	"lazervaultGo/pb"     // Correct path
+
+	// Correct path
 	"time"
 
-	"gorm.io/datatypes"
 	"gorm.io/gorm"
 )
 
-var (
-	ErrInvoiceNotFound       = errors.New("invoice not found")
-	ErrInvalidInvoiceData    = errors.New("invalid invoice data")
-	ErrInvoiceItemInvalid    = errors.New("invoice contains invalid item data")
-	ErrInvoiceCreationFailed = errors.New("failed to create invoice")
-)
+// Using common errors from errors.go
 
 const DefaultInvoicePageSize = 20
 
 // IInvoiceService defines the interface for invoice operations
 type IInvoiceService interface {
-	CreateInvoice(ctx context.Context, req *CreateInvoiceServiceRequest) (*models.Invoice, error)
-	GetInvoice(ctx context.Context, userID, invoiceID string) (*models.Invoice, error)
-	ListInvoices(ctx context.Context, req *ListInvoicesServiceRequest) ([]models.Invoice, string, error)
+	GetInvoices(ctx context.Context, userID string, page, limit int) ([]*models.Invoice, int64, error)
+	GetInvoiceById(ctx context.Context, userID, invoiceID string) (*models.Invoice, error)
+	CreateInvoice(ctx context.Context, invoice *models.Invoice) (*models.Invoice, error)
+	UpdateInvoice(ctx context.Context, invoice *models.Invoice) (*models.Invoice, error)
+	DeleteInvoice(ctx context.Context, userID, invoiceID string) error
+	GetInvoicesByStatus(ctx context.Context, userID string, isPaid bool, page, limit int) ([]*models.Invoice, int64, error)
+	MarkInvoiceAsPaid(ctx context.Context, userID, invoiceID, paymentMethodID, paymentReference string) (*models.Invoice, error)
+	SendInvoice(ctx context.Context, userID, invoiceID string) error
+	ListInvoices(ctx context.Context, req *ListInvoicesServiceRequest) ([]*models.Invoice, string, error)
 }
 
-// InvoiceService implements the IInvoiceService
+// ListInvoicesServiceRequest contains parameters for listing invoices
+type ListInvoicesServiceRequest struct {
+	UserID       string
+	PageSize     int
+	PageToken    string
+	StatusFilter string
+}
+
+// InvoiceService implements IInvoiceService
 type InvoiceService struct {
 	db *gorm.DB
 	// Add dependencies later if needed
@@ -62,169 +70,220 @@ type CreateInvoiceServiceRequest struct {
 	Notes           string
 }
 
-// CreateInvoice handles validating input and creating a new invoice record
-func (s *InvoiceService) CreateInvoice(ctx context.Context, req *CreateInvoiceServiceRequest) (*models.Invoice, error) {
-	// --- Validation ---
-	if req.UserID == "" {
-		return nil, ErrInvalidUserID // Reuse error
-	}
-	if req.CustomerDetails.Name == "" {
-		return nil, fmt.Errorf("%w: customer name is required", ErrInvalidInvoiceData)
-	}
-	if len(req.Items) == 0 {
-		return nil, fmt.Errorf("%w: invoice must contain at least one item", ErrInvalidInvoiceData)
-	}
-	if req.CurrencyCode == "" {
-		return nil, fmt.Errorf("%w: currency code is required", ErrInvalidInvoiceData)
-	}
-	if req.DueDate.IsZero() || req.DueDate.Before(time.Now()) {
-		return nil, fmt.Errorf("%w: due date must be in the future", ErrInvalidInvoiceData)
+// CreateInvoice handles creating a new invoice record
+func (s *InvoiceService) CreateInvoice(ctx context.Context, invoice *models.Invoice) (*models.Invoice, error) {
+	if err := s.validateInvoice(invoice); err != nil {
+		return nil, err
 	}
 
-	var subtotal float64
-	calculatedItems := make([]models.InvoiceItem, len(req.Items))
-	for i, item := range req.Items {
-		if item.Description == "" || item.Quantity <= 0 || item.UnitPrice < 0 {
-			return nil, fmt.Errorf("%w at index %d: description, positive quantity, and non-negative unit price required", ErrInvoiceItemInvalid, i)
-		}
-		total := float64(item.Quantity) * item.UnitPrice
-		subtotal += total
-		calculatedItems[i] = item             // Use original item
-		calculatedItems[i].TotalPrice = total // Set calculated total
-	}
-
-	totalAmount := subtotal + req.Tax
-
-	// Marshal embedded JSON fields
-	customerJSON, err := json.Marshal(req.CustomerDetails)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal customer details: %w", err)
-	}
-	itemsJSON, err := json.Marshal(calculatedItems)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal invoice items: %w", err)
-	}
-
-	// --- Database Interaction (Transactional) ---
-	tx := s.db.WithContext(ctx).Begin()
-	if tx.Error != nil {
-		return nil, fmt.Errorf("failed to begin transaction: %w", tx.Error)
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
-			panic(r)
-		} else if tx.Error != nil {
-			tx.Rollback()
-		}
-	}()
-
-	// Generate Invoice Number using the service method
-	invoiceNumber, err := s.generateInvoiceNumber(tx, req.UserID) // Call service method
-	if err != nil {
-		// tx.Rollback() handled by defer
-		return nil, fmt.Errorf("failed to generate invoice number: %w", err)
-	}
-
-	// Create Invoice model
-	invoice := &models.Invoice{
-		UserID:          req.UserID,
-		InvoiceNumber:   invoiceNumber,
-		CustomerDetails: datatypes.JSON(customerJSON),
-		Items:           datatypes.JSON(itemsJSON),
-		Subtotal:        subtotal,
-		Tax:             req.Tax,
-		TotalAmount:     totalAmount,
-		CurrencyCode:    req.CurrencyCode,
-		IssueDate:       time.Now().UTC(),
-		DueDate:         req.DueDate,
-		Status:          pb.InvoiceStatus_DRAFT.String(), // Start as DRAFT (Will error until proto generated)
-		Notes:           req.Notes,
-		CreatedAt:       time.Now().UTC(), // GORM default might handle this
-	}
-
-	if err := tx.Create(invoice).Error; err != nil {
-		// tx.Rollback() handled by defer
+	if err := s.db.WithContext(ctx).Create(invoice).Error; err != nil {
 		return nil, fmt.Errorf("%w: %v", ErrInvoiceCreationFailed, err)
-	}
-
-	if err := tx.Commit().Error; err != nil {
-		return nil, fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
 	return invoice, nil
 }
 
-// GetInvoice retrieves a single invoice by ID for a specific user
-func (s *InvoiceService) GetInvoice(ctx context.Context, userID, invoiceID string) (*models.Invoice, error) {
-	if userID == "" || invoiceID == "" {
-		return nil, ErrInvalidUserID // Or a more specific error
+// GetInvoices retrieves a paginated list of invoices
+func (s *InvoiceService) GetInvoices(ctx context.Context, userID string, page, limit int) ([]*models.Invoice, int64, error) {
+	var invoices []*models.Invoice
+	var total int64
+
+	if limit <= 0 {
+		limit = DefaultInvoicePageSize
+	}
+	offset := (page - 1) * limit
+
+	tx := s.db.WithContext(ctx).Model(&models.Invoice{})
+	if userID != "" {
+		tx = tx.Where("user_id = ?", userID)
 	}
 
+	if err := tx.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	if err := tx.Offset(offset).Limit(limit).Find(&invoices).Error; err != nil {
+		return nil, 0, err
+	}
+
+	return invoices, total, nil
+}
+
+// GetInvoiceById retrieves a single invoice by ID
+func (s *InvoiceService) GetInvoiceById(ctx context.Context, userID, invoiceID string) (*models.Invoice, error) {
 	var invoice models.Invoice
-	err := s.db.WithContext(ctx).Where("id = ? AND user_id = ?", invoiceID, userID).First(&invoice).Error
-	if err != nil {
+	if err := s.db.WithContext(ctx).Where("id = ? AND user_id = ?", invoiceID, userID).First(&invoice).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, ErrInvoiceNotFound
 		}
-		return nil, fmt.Errorf("database error retrieving invoice: %w", err)
+		return nil, err
 	}
 	return &invoice, nil
 }
 
-// ListInvoicesServiceRequest contains parameters for listing invoices
-type ListInvoicesServiceRequest struct {
-	UserID       string
-	PageSize     int
-	PageToken    string // Use invoice ID as page token
-	StatusFilter string // Status string (e.g., "DRAFT", "PAID") - empty means no filter
+// UpdateInvoice updates an existing invoice
+func (s *InvoiceService) UpdateInvoice(ctx context.Context, invoice *models.Invoice) (*models.Invoice, error) {
+	if err := s.validateInvoice(invoice); err != nil {
+		return nil, err
+	}
+
+	var existing models.Invoice
+	if err := s.db.WithContext(ctx).Where("id = ? AND user_id = ?", invoice.ID, invoice.UserID).First(&existing).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrInvoiceNotFound
+		}
+		return nil, err
+	}
+
+	if err := s.db.WithContext(ctx).Model(&existing).Updates(invoice).Error; err != nil {
+		return nil, err
+	}
+
+	return &existing, nil
 }
 
-// ListInvoices retrieves a paginated list of invoices for a user
-func (s *InvoiceService) ListInvoices(ctx context.Context, req *ListInvoicesServiceRequest) ([]models.Invoice, string, error) {
-	if req.UserID == "" {
-		return nil, "", ErrInvalidUserID
+// DeleteInvoice deletes an invoice
+func (s *InvoiceService) DeleteInvoice(ctx context.Context, userID, invoiceID string) error {
+	result := s.db.WithContext(ctx).Where("id = ? AND user_id = ?", invoiceID, userID).Delete(&models.Invoice{})
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return ErrInvoiceNotFound
+	}
+	return nil
+}
+
+// GetInvoicesByStatus retrieves invoices filtered by payment status
+func (s *InvoiceService) GetInvoicesByStatus(ctx context.Context, userID string, isPaid bool, page, limit int) ([]*models.Invoice, int64, error) {
+	var invoices []*models.Invoice
+	var total int64
+
+	if limit <= 0 {
+		limit = DefaultInvoicePageSize
+	}
+	offset := (page - 1) * limit
+
+	tx := s.db.WithContext(ctx).Model(&models.Invoice{}).Where("user_id = ? AND is_paid = ?", userID, isPaid)
+
+	if err := tx.Count(&total).Error; err != nil {
+		return nil, 0, err
 	}
 
-	pageSize := req.PageSize
-	if pageSize <= 0 {
-		pageSize = DefaultInvoicePageSize
+	if err := tx.Offset(offset).Limit(limit).Find(&invoices).Error; err != nil {
+		return nil, 0, err
 	}
 
-	var invoices []models.Invoice
-	query := s.db.WithContext(ctx).Model(&models.Invoice{}).
-		Where("user_id = ?", req.UserID)
+	return invoices, total, nil
+}
 
-	// Apply status filter if provided
-	if req.StatusFilter != "" {
-		// Validate status filter? Optional.
-		query = query.Where("status = ?", req.StatusFilter)
-	}
-
-	// Keyset Pagination using CreatedAt and ID
-	if req.PageToken != "" {
-		var lastInv models.Invoice
-		err := s.db.WithContext(ctx).Select("created_at").First(&lastInv, "id = ? AND user_id = ?", req.PageToken, req.UserID).Error
-		if err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return []models.Invoice{}, "", fmt.Errorf("invalid page token: %w", err)
-			}
-			return nil, "", fmt.Errorf("failed to query page token invoice: %w", err)
+// MarkInvoiceAsPaid marks an invoice as paid
+func (s *InvoiceService) MarkInvoiceAsPaid(ctx context.Context, userID, invoiceID, paymentMethodID, paymentReference string) (*models.Invoice, error) {
+	var invoice models.Invoice
+	if err := s.db.WithContext(ctx).Where("id = ? AND user_id = ?", invoiceID, userID).First(&invoice).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrInvoiceNotFound
 		}
-		query = query.Where("(created_at, id) < (?, ?)", lastInv.CreatedAt, req.PageToken)
+		return nil, err
 	}
 
-	// Order by creation time descending, ID secondary
-	err := query.Order("created_at desc, id desc").Limit(pageSize + 1).Find(&invoices).Error
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, "", fmt.Errorf("failed to retrieve invoices: %w", err)
+	invoice.IsPaid = true
+	invoice.PaymentMethodID = &paymentMethodID
+	invoice.PaymentReference = paymentReference
+	invoice.Status = models.InvoicePaymentStatusCompleted
+
+	if err := s.db.WithContext(ctx).Save(&invoice).Error; err != nil {
+		return nil, err
 	}
 
-	// Determine next page token
-	nextPageToken := ""
-	if len(invoices) > pageSize {
-		nextPageToken = invoices[pageSize-1].ID
-		invoices = invoices[:pageSize] // Trim the extra invoice
+	return &invoice, nil
+}
+
+// SendInvoice sends an invoice to the recipient
+func (s *InvoiceService) SendInvoice(ctx context.Context, userID, invoiceID string) error {
+	var invoice models.Invoice
+	if err := s.db.WithContext(ctx).Where("id = ? AND user_id = ?", invoiceID, userID).First(&invoice).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ErrInvoiceNotFound
+		}
+		return err
+	}
+
+	// TODO: Implement invoice sending logic
+	// This could involve:
+	// 1. Generating PDF
+	// 2. Sending email
+	// 3. Updating invoice status
+	// 4. Recording notification/email history
+
+	return nil
+}
+
+// validateInvoice validates invoice data
+func (s *InvoiceService) validateInvoice(invoice *models.Invoice) error {
+	if invoice == nil {
+		return ErrInvalidInvoiceData
+	}
+
+	if invoice.UserID == "" {
+		return fmt.Errorf("%w: user ID is required", ErrInvalidInvoiceData)
+	}
+
+	if invoice.RecipientID == "" {
+		return fmt.Errorf("%w: recipient ID is required", ErrInvalidInvoiceData)
+	}
+
+	if invoice.Title == "" {
+		return fmt.Errorf("%w: title is required", ErrInvalidInvoiceData)
+	}
+
+	if invoice.Amount <= 0 {
+		return fmt.Errorf("%w: amount must be positive", ErrInvalidInvoiceData)
+	}
+
+	if invoice.Currency == "" {
+		return fmt.Errorf("%w: currency is required", ErrInvalidInvoiceData)
+	}
+
+	if invoice.DueDate.IsZero() || invoice.DueDate.Before(time.Now()) {
+		return fmt.Errorf("%w: due date must be in the future", ErrInvalidInvoiceData)
+	}
+
+	return nil
+}
+
+// ListInvoices retrieves a paginated list of invoices with optional status filter
+func (s *InvoiceService) ListInvoices(ctx context.Context, req *ListInvoicesServiceRequest) ([]*models.Invoice, string, error) {
+	var invoices []*models.Invoice
+
+	if req.PageSize <= 0 {
+		req.PageSize = DefaultInvoicePageSize
+	}
+
+	tx := s.db.WithContext(ctx).Model(&models.Invoice{})
+	if req.UserID != "" {
+		tx = tx.Where("user_id = ?", req.UserID)
+	}
+	if req.StatusFilter != "" {
+		tx = tx.Where("status = ?", req.StatusFilter)
+	}
+
+	// Handle pagination
+	if req.PageToken != "" {
+		// Assuming PageToken is a base64 encoded cursor
+		// In a real implementation, you would decode and use the cursor
+		tx = tx.Where("id > ?", req.PageToken)
+	}
+
+	if err := tx.Limit(req.PageSize + 1).Find(&invoices).Error; err != nil {
+		return nil, "", err
+	}
+
+	// Check if there are more results
+	var nextPageToken string
+	if len(invoices) > req.PageSize {
+		nextPageToken = invoices[req.PageSize-1].ID // Use the last ID as the next page token
+		invoices = invoices[:req.PageSize]          // Remove the extra item
 	}
 
 	return invoices, nextPageToken, nil

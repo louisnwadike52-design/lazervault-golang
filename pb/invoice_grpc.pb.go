@@ -19,23 +19,38 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	InvoiceService_CreateInvoice_FullMethodName = "/pb.InvoiceService/CreateInvoice"
-	InvoiceService_GetInvoice_FullMethodName    = "/pb.InvoiceService/GetInvoice"
-	InvoiceService_ListInvoices_FullMethodName  = "/pb.InvoiceService/ListInvoices"
+	InvoiceService_GetInvoices_FullMethodName         = "/pb.InvoiceService/GetInvoices"
+	InvoiceService_GetInvoiceById_FullMethodName      = "/pb.InvoiceService/GetInvoiceById"
+	InvoiceService_CreateInvoice_FullMethodName       = "/pb.InvoiceService/CreateInvoice"
+	InvoiceService_UpdateInvoice_FullMethodName       = "/pb.InvoiceService/UpdateInvoice"
+	InvoiceService_DeleteInvoice_FullMethodName       = "/pb.InvoiceService/DeleteInvoice"
+	InvoiceService_GetInvoicesByStatus_FullMethodName = "/pb.InvoiceService/GetInvoicesByStatus"
+	InvoiceService_MarkInvoiceAsPaid_FullMethodName   = "/pb.InvoiceService/MarkInvoiceAsPaid"
+	InvoiceService_SendInvoice_FullMethodName         = "/pb.InvoiceService/SendInvoice"
 )
 
 // InvoiceServiceClient is the client API for InvoiceService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 //
-// --- Service Definition ---
+// InvoiceService provides methods for managing invoices
 type InvoiceServiceClient interface {
+	// Get all invoices for a user
+	GetInvoices(ctx context.Context, in *GetInvoicesRequest, opts ...grpc.CallOption) (*GetInvoicesResponse, error)
+	// Get a specific invoice by ID
+	GetInvoiceById(ctx context.Context, in *GetInvoiceByIdRequest, opts ...grpc.CallOption) (*GetInvoiceByIdResponse, error)
 	// Create a new invoice
 	CreateInvoice(ctx context.Context, in *CreateInvoiceRequest, opts ...grpc.CallOption) (*CreateInvoiceResponse, error)
-	// Get a specific invoice by ID
-	GetInvoice(ctx context.Context, in *GetInvoiceRequest, opts ...grpc.CallOption) (*Invoice, error)
-	// List invoices for the authenticated user
-	ListInvoices(ctx context.Context, in *ListInvoicesRequest, opts ...grpc.CallOption) (*ListInvoicesResponse, error)
+	// Update an existing invoice
+	UpdateInvoice(ctx context.Context, in *UpdateInvoiceRequest, opts ...grpc.CallOption) (*UpdateInvoiceResponse, error)
+	// Delete an invoice
+	DeleteInvoice(ctx context.Context, in *DeleteInvoiceRequest, opts ...grpc.CallOption) (*DeleteInvoiceResponse, error)
+	// Get invoices by status
+	GetInvoicesByStatus(ctx context.Context, in *GetInvoicesByStatusRequest, opts ...grpc.CallOption) (*GetInvoicesByStatusResponse, error)
+	// Mark invoice as paid
+	MarkInvoiceAsPaid(ctx context.Context, in *MarkInvoiceAsPaidRequest, opts ...grpc.CallOption) (*MarkInvoiceAsPaidResponse, error)
+	// Send invoice to recipient
+	SendInvoice(ctx context.Context, in *SendInvoiceRequest, opts ...grpc.CallOption) (*SendInvoiceResponse, error)
 }
 
 type invoiceServiceClient struct {
@@ -44,6 +59,26 @@ type invoiceServiceClient struct {
 
 func NewInvoiceServiceClient(cc grpc.ClientConnInterface) InvoiceServiceClient {
 	return &invoiceServiceClient{cc}
+}
+
+func (c *invoiceServiceClient) GetInvoices(ctx context.Context, in *GetInvoicesRequest, opts ...grpc.CallOption) (*GetInvoicesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetInvoicesResponse)
+	err := c.cc.Invoke(ctx, InvoiceService_GetInvoices_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *invoiceServiceClient) GetInvoiceById(ctx context.Context, in *GetInvoiceByIdRequest, opts ...grpc.CallOption) (*GetInvoiceByIdResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetInvoiceByIdResponse)
+	err := c.cc.Invoke(ctx, InvoiceService_GetInvoiceById_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *invoiceServiceClient) CreateInvoice(ctx context.Context, in *CreateInvoiceRequest, opts ...grpc.CallOption) (*CreateInvoiceResponse, error) {
@@ -56,20 +91,50 @@ func (c *invoiceServiceClient) CreateInvoice(ctx context.Context, in *CreateInvo
 	return out, nil
 }
 
-func (c *invoiceServiceClient) GetInvoice(ctx context.Context, in *GetInvoiceRequest, opts ...grpc.CallOption) (*Invoice, error) {
+func (c *invoiceServiceClient) UpdateInvoice(ctx context.Context, in *UpdateInvoiceRequest, opts ...grpc.CallOption) (*UpdateInvoiceResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(Invoice)
-	err := c.cc.Invoke(ctx, InvoiceService_GetInvoice_FullMethodName, in, out, cOpts...)
+	out := new(UpdateInvoiceResponse)
+	err := c.cc.Invoke(ctx, InvoiceService_UpdateInvoice_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *invoiceServiceClient) ListInvoices(ctx context.Context, in *ListInvoicesRequest, opts ...grpc.CallOption) (*ListInvoicesResponse, error) {
+func (c *invoiceServiceClient) DeleteInvoice(ctx context.Context, in *DeleteInvoiceRequest, opts ...grpc.CallOption) (*DeleteInvoiceResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ListInvoicesResponse)
-	err := c.cc.Invoke(ctx, InvoiceService_ListInvoices_FullMethodName, in, out, cOpts...)
+	out := new(DeleteInvoiceResponse)
+	err := c.cc.Invoke(ctx, InvoiceService_DeleteInvoice_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *invoiceServiceClient) GetInvoicesByStatus(ctx context.Context, in *GetInvoicesByStatusRequest, opts ...grpc.CallOption) (*GetInvoicesByStatusResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetInvoicesByStatusResponse)
+	err := c.cc.Invoke(ctx, InvoiceService_GetInvoicesByStatus_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *invoiceServiceClient) MarkInvoiceAsPaid(ctx context.Context, in *MarkInvoiceAsPaidRequest, opts ...grpc.CallOption) (*MarkInvoiceAsPaidResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(MarkInvoiceAsPaidResponse)
+	err := c.cc.Invoke(ctx, InvoiceService_MarkInvoiceAsPaid_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *invoiceServiceClient) SendInvoice(ctx context.Context, in *SendInvoiceRequest, opts ...grpc.CallOption) (*SendInvoiceResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SendInvoiceResponse)
+	err := c.cc.Invoke(ctx, InvoiceService_SendInvoice_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -80,14 +145,24 @@ func (c *invoiceServiceClient) ListInvoices(ctx context.Context, in *ListInvoice
 // All implementations must embed UnimplementedInvoiceServiceServer
 // for forward compatibility.
 //
-// --- Service Definition ---
+// InvoiceService provides methods for managing invoices
 type InvoiceServiceServer interface {
+	// Get all invoices for a user
+	GetInvoices(context.Context, *GetInvoicesRequest) (*GetInvoicesResponse, error)
+	// Get a specific invoice by ID
+	GetInvoiceById(context.Context, *GetInvoiceByIdRequest) (*GetInvoiceByIdResponse, error)
 	// Create a new invoice
 	CreateInvoice(context.Context, *CreateInvoiceRequest) (*CreateInvoiceResponse, error)
-	// Get a specific invoice by ID
-	GetInvoice(context.Context, *GetInvoiceRequest) (*Invoice, error)
-	// List invoices for the authenticated user
-	ListInvoices(context.Context, *ListInvoicesRequest) (*ListInvoicesResponse, error)
+	// Update an existing invoice
+	UpdateInvoice(context.Context, *UpdateInvoiceRequest) (*UpdateInvoiceResponse, error)
+	// Delete an invoice
+	DeleteInvoice(context.Context, *DeleteInvoiceRequest) (*DeleteInvoiceResponse, error)
+	// Get invoices by status
+	GetInvoicesByStatus(context.Context, *GetInvoicesByStatusRequest) (*GetInvoicesByStatusResponse, error)
+	// Mark invoice as paid
+	MarkInvoiceAsPaid(context.Context, *MarkInvoiceAsPaidRequest) (*MarkInvoiceAsPaidResponse, error)
+	// Send invoice to recipient
+	SendInvoice(context.Context, *SendInvoiceRequest) (*SendInvoiceResponse, error)
 	mustEmbedUnimplementedInvoiceServiceServer()
 }
 
@@ -98,14 +173,29 @@ type InvoiceServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedInvoiceServiceServer struct{}
 
+func (UnimplementedInvoiceServiceServer) GetInvoices(context.Context, *GetInvoicesRequest) (*GetInvoicesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetInvoices not implemented")
+}
+func (UnimplementedInvoiceServiceServer) GetInvoiceById(context.Context, *GetInvoiceByIdRequest) (*GetInvoiceByIdResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetInvoiceById not implemented")
+}
 func (UnimplementedInvoiceServiceServer) CreateInvoice(context.Context, *CreateInvoiceRequest) (*CreateInvoiceResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateInvoice not implemented")
 }
-func (UnimplementedInvoiceServiceServer) GetInvoice(context.Context, *GetInvoiceRequest) (*Invoice, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetInvoice not implemented")
+func (UnimplementedInvoiceServiceServer) UpdateInvoice(context.Context, *UpdateInvoiceRequest) (*UpdateInvoiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateInvoice not implemented")
 }
-func (UnimplementedInvoiceServiceServer) ListInvoices(context.Context, *ListInvoicesRequest) (*ListInvoicesResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ListInvoices not implemented")
+func (UnimplementedInvoiceServiceServer) DeleteInvoice(context.Context, *DeleteInvoiceRequest) (*DeleteInvoiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteInvoice not implemented")
+}
+func (UnimplementedInvoiceServiceServer) GetInvoicesByStatus(context.Context, *GetInvoicesByStatusRequest) (*GetInvoicesByStatusResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetInvoicesByStatus not implemented")
+}
+func (UnimplementedInvoiceServiceServer) MarkInvoiceAsPaid(context.Context, *MarkInvoiceAsPaidRequest) (*MarkInvoiceAsPaidResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method MarkInvoiceAsPaid not implemented")
+}
+func (UnimplementedInvoiceServiceServer) SendInvoice(context.Context, *SendInvoiceRequest) (*SendInvoiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SendInvoice not implemented")
 }
 func (UnimplementedInvoiceServiceServer) mustEmbedUnimplementedInvoiceServiceServer() {}
 func (UnimplementedInvoiceServiceServer) testEmbeddedByValue()                        {}
@@ -128,6 +218,42 @@ func RegisterInvoiceServiceServer(s grpc.ServiceRegistrar, srv InvoiceServiceSer
 	s.RegisterService(&InvoiceService_ServiceDesc, srv)
 }
 
+func _InvoiceService_GetInvoices_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetInvoicesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(InvoiceServiceServer).GetInvoices(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: InvoiceService_GetInvoices_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(InvoiceServiceServer).GetInvoices(ctx, req.(*GetInvoicesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _InvoiceService_GetInvoiceById_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetInvoiceByIdRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(InvoiceServiceServer).GetInvoiceById(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: InvoiceService_GetInvoiceById_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(InvoiceServiceServer).GetInvoiceById(ctx, req.(*GetInvoiceByIdRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _InvoiceService_CreateInvoice_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(CreateInvoiceRequest)
 	if err := dec(in); err != nil {
@@ -146,38 +272,92 @@ func _InvoiceService_CreateInvoice_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
-func _InvoiceService_GetInvoice_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetInvoiceRequest)
+func _InvoiceService_UpdateInvoice_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateInvoiceRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(InvoiceServiceServer).GetInvoice(ctx, in)
+		return srv.(InvoiceServiceServer).UpdateInvoice(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: InvoiceService_GetInvoice_FullMethodName,
+		FullMethod: InvoiceService_UpdateInvoice_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(InvoiceServiceServer).GetInvoice(ctx, req.(*GetInvoiceRequest))
+		return srv.(InvoiceServiceServer).UpdateInvoice(ctx, req.(*UpdateInvoiceRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _InvoiceService_ListInvoices_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ListInvoicesRequest)
+func _InvoiceService_DeleteInvoice_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteInvoiceRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(InvoiceServiceServer).ListInvoices(ctx, in)
+		return srv.(InvoiceServiceServer).DeleteInvoice(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: InvoiceService_ListInvoices_FullMethodName,
+		FullMethod: InvoiceService_DeleteInvoice_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(InvoiceServiceServer).ListInvoices(ctx, req.(*ListInvoicesRequest))
+		return srv.(InvoiceServiceServer).DeleteInvoice(ctx, req.(*DeleteInvoiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _InvoiceService_GetInvoicesByStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetInvoicesByStatusRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(InvoiceServiceServer).GetInvoicesByStatus(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: InvoiceService_GetInvoicesByStatus_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(InvoiceServiceServer).GetInvoicesByStatus(ctx, req.(*GetInvoicesByStatusRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _InvoiceService_MarkInvoiceAsPaid_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MarkInvoiceAsPaidRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(InvoiceServiceServer).MarkInvoiceAsPaid(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: InvoiceService_MarkInvoiceAsPaid_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(InvoiceServiceServer).MarkInvoiceAsPaid(ctx, req.(*MarkInvoiceAsPaidRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _InvoiceService_SendInvoice_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SendInvoiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(InvoiceServiceServer).SendInvoice(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: InvoiceService_SendInvoice_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(InvoiceServiceServer).SendInvoice(ctx, req.(*SendInvoiceRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -190,16 +370,36 @@ var InvoiceService_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*InvoiceServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
+			MethodName: "GetInvoices",
+			Handler:    _InvoiceService_GetInvoices_Handler,
+		},
+		{
+			MethodName: "GetInvoiceById",
+			Handler:    _InvoiceService_GetInvoiceById_Handler,
+		},
+		{
 			MethodName: "CreateInvoice",
 			Handler:    _InvoiceService_CreateInvoice_Handler,
 		},
 		{
-			MethodName: "GetInvoice",
-			Handler:    _InvoiceService_GetInvoice_Handler,
+			MethodName: "UpdateInvoice",
+			Handler:    _InvoiceService_UpdateInvoice_Handler,
 		},
 		{
-			MethodName: "ListInvoices",
-			Handler:    _InvoiceService_ListInvoices_Handler,
+			MethodName: "DeleteInvoice",
+			Handler:    _InvoiceService_DeleteInvoice_Handler,
+		},
+		{
+			MethodName: "GetInvoicesByStatus",
+			Handler:    _InvoiceService_GetInvoicesByStatus_Handler,
+		},
+		{
+			MethodName: "MarkInvoiceAsPaid",
+			Handler:    _InvoiceService_MarkInvoiceAsPaid_Handler,
+		},
+		{
+			MethodName: "SendInvoice",
+			Handler:    _InvoiceService_SendInvoice_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

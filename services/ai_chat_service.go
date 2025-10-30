@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/csv"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -13,8 +14,11 @@ import (
 	"lazervaultGo/pb"
 	"lazervaultGo/tasks"
 	"log" // Use standard Go log package
+	"math/rand"
+	"mime/multipart"
 	"net/http"
 	"os"
+	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
@@ -182,9 +186,14 @@ func NewAIChatService(db *gorm.DB, config *configs.Config, taskDistributor tasks
 	}
 }
 
-// ProcessChat handles the primary AI chat request.
+// ProcessChat handles the primary AI chat request with file support.
 func (s *AIChatService) ProcessChat(ctx context.Context, userID uint, accessToken string, req *pb.ProcessChatRequest) (*pb.ProcessChatResponse, error) {
-	log.Printf("INFO: ProcessChat Service: Received request for User ID: %d", userID)
+	hasFile := req.GetUploadedFile() != nil
+	var fileInfo string
+	if hasFile {
+		fileInfo = fmt.Sprintf(" with file: %s", req.GetUploadedFile().GetFilename())
+	}
+	log.Printf("INFO: ProcessChat Service: Received request for User ID: %d%s", userID, fileInfo)
 
 	if req.GetQuery() == "" {
 		log.Println("WARN: ProcessChat Service: Received empty query")
@@ -202,111 +211,158 @@ func (s *AIChatService) ProcessChat(ctx context.Context, userID uint, accessToke
 		txHistoryList = []map[string]interface{}{} // fallback to empty list
 	}
 
+	// Check if file is present
+	hasFiles := req.GetUploadedFile() != nil
+
+	if hasFiles {
+		log.Printf("INFO: ProcessChat: Processing uploaded file: %s", req.GetUploadedFile().GetFilename())
+		// Validate file has content
+		if len(req.GetUploadedFile().GetFileContent()) == 0 {
+			log.Printf("ERROR: ProcessChat: Uploaded file has no content for User ID %d", userID)
+			return nil, status.Error(codes.InvalidArgument, "uploaded file has no content")
+		}
+	}
+
 	userIDStr := strconv.FormatUint(uint64(userID), 10)
+
+	// Convert tx_history to JSON string as expected by AI service
+	txHistoryJSON, _ := json.Marshal(txHistoryList)
+
+	// Remove access_token from payload since we'll pass it via header
 	chatbotReqPayload := map[string]interface{}{
-		"query":        req.GetQuery(),
-		"user_id":      userIDStr,
-		"tx_history":   txHistoryList, // pass as a list, not a string
-		"access_token": accessToken,   // include the access token
-	}
-	payloadBytes, err := json.Marshal(chatbotReqPayload)
-	if err != nil {
-		log.Printf("ERROR: ProcessChat: Failed to marshal request payload for /api/chat: %v", err)
-		return nil, status.Error(codes.Internal, "failed to prepare request for AI service")
+		"query":      req.GetQuery(),
+		"user_id":    userIDStr,
+		"tx_history": string(txHistoryJSON), // Send as JSON string
 	}
 
-	log.Printf("INFO: ProcessChat: Sending query to AI Chatbot at %s/api/chat", s.config.AiServiceURL)
-	chatEndpointURL := s.config.AiServiceURL + "/api/chat" // Use specific /api/chat path
-	httpReq, err := http.NewRequestWithContext(ctx, "POST", chatEndpointURL, bytes.NewBuffer(payloadBytes))
-	if err != nil {
-		log.Printf("ERROR: ProcessChat: Failed to create HTTP request for /api/chat: %v", err)
-		return nil, status.Error(codes.Internal, "failed to prepare request for AI service")
-	}
-	httpReq.Header.Set("Content-Type", "application/json")
+	// Always use the same /api/chat endpoint
+	chatEndpointURL := s.config.AiServiceURL + "/api/chat"
+	var httpResp *http.Response
 
-	log.Printf("INFO: ProcessChat: Request payload to /api/chat: %s", string(payloadBytes))
-	httpResp, err := s.httpClient.Do(httpReq)
+	if hasFiles {
+		// Use multipart form data when files are present
+		log.Printf("INFO: ProcessChat: Sending request with files to AI Chatbot at %s", chatEndpointURL)
+		// Pass the original uploaded file directly to match AI service expectation
+		httpResp, err = s.sendFilesToAIService(ctx, chatEndpointURL, accessToken, chatbotReqPayload, []*pb.ChatFile{req.GetUploadedFile()})
+	} else {
+		// Use regular JSON request when no files
+		log.Printf("INFO: ProcessChat: Sending text-only query to AI Chatbot at %s", chatEndpointURL)
+		payloadBytes, marshalErr := json.Marshal(chatbotReqPayload)
+		if marshalErr != nil {
+			log.Printf("ERROR: ProcessChat: Failed to marshal request payload: %v", marshalErr)
+			return nil, status.Error(codes.Internal, "failed to prepare request for AI service")
+		}
+
+		httpReq, reqErr := http.NewRequestWithContext(ctx, "POST", chatEndpointURL, bytes.NewBuffer(payloadBytes))
+		if reqErr != nil {
+			log.Printf("ERROR: ProcessChat: Failed to create HTTP request: %v", reqErr)
+			return nil, status.Error(codes.Internal, "failed to prepare request for AI service")
+		}
+		httpReq.Header.Set("Content-Type", "application/json")
+		httpReq.Header.Set("Authorization", fmt.Sprintf("Bearer %s", accessToken))
+
+		httpResp, err = s.httpClient.Do(httpReq)
+	}
+
 	if err != nil {
-		log.Printf("ERROR: ProcessChat: HTTP request to /api/chat failed. err: %v, URL: %s", err, chatEndpointURL)
+		log.Printf("ERROR: ProcessChat: HTTP request to AI service failed: %v", err)
 		if os.IsTimeout(err) {
-			log.Printf("ERROR: ProcessChat: Request to /api/chat timed out after %v", s.httpClient.Timeout)
+			log.Printf("ERROR: ProcessChat: Request timed out after %v", s.httpClient.Timeout)
 			return nil, status.Error(codes.DeadlineExceeded, "AI service request timed out")
 		}
 		if strings.Contains(err.Error(), "connection refused") {
-			log.Printf("ERROR: ProcessChat: Connection refused for /api/chat at %s", chatEndpointURL)
+			log.Printf("ERROR: ProcessChat: Connection refused to AI service")
 			return nil, status.Error(codes.Unavailable, "AI service is not running or not accessible")
 		}
 		return nil, ErrAIChatbotRequestFailed
 	}
 	defer httpResp.Body.Close()
 
-	log.Printf("INFO: ProcessChat: Received response from /api/chat - Status: %d", httpResp.StatusCode)
+	log.Printf("INFO: ProcessChat: Received response from AI service - Status: %d", httpResp.StatusCode)
 
-	// --- Handle Chatbot Response --- //
+	// Read response body
 	bodyBytes, readErr := io.ReadAll(httpResp.Body)
 	if readErr != nil {
-		log.Printf("WARN: ProcessChat: Failed to read response body from /api/chat (Status %d). err: %v", httpResp.StatusCode, readErr)
-		// Continue processing if possible, but response might be incomplete
+		log.Printf("WARN: ProcessChat: Failed to read response body (Status %d): %v", httpResp.StatusCode, readErr)
 	}
 
 	if httpResp.StatusCode != http.StatusOK {
-		log.Printf("ERROR: ProcessChat: Chatbot request to /api/chat failed with status %d. Body: %s", httpResp.StatusCode, string(bodyBytes))
-		// Map common errors
+		log.Printf("ERROR: ProcessChat: AI service request failed with status %d. Body: %s", httpResp.StatusCode, string(bodyBytes))
 		switch httpResp.StatusCode {
 		case http.StatusBadRequest:
-			return nil, status.Errorf(codes.InvalidArgument, "AI chatbot rejected request (status %d)", httpResp.StatusCode)
+			return nil, status.Errorf(codes.InvalidArgument, "AI service rejected request (status %d)", httpResp.StatusCode)
 		case http.StatusUnauthorized, http.StatusForbidden:
-			return nil, status.Errorf(codes.Unauthenticated, "Authentication failed with AI chatbot (status %d)", httpResp.StatusCode)
+			return nil, status.Errorf(codes.Unauthenticated, "Authentication failed with AI service (status %d)", httpResp.StatusCode)
 		case http.StatusNotFound:
-			return nil, status.Errorf(codes.NotFound, "AI chatbot endpoint '/api/chat' not found (status %d)", httpResp.StatusCode)
+			return nil, status.Errorf(codes.NotFound, "AI service endpoint not found (status %d)", httpResp.StatusCode)
 		default:
 			return nil, ErrAIChatbotRequestFailed
 		}
 	}
 
-	// --- Parse Successful Response --- //
-	var chatbotRespPayload map[string]string
-	if err := json.Unmarshal(bodyBytes, &chatbotRespPayload); err != nil {
-		log.Printf("ERROR: ProcessChat: Failed to unmarshal response from /api/chat: %v", err)
-		return nil, status.Error(codes.Internal, "failed to parse AI service response")
+	// Parse AI service response
+	var response *pb.ProcessChatResponse
+	if hasFiles {
+		// Parse enhanced response with potential file data
+		response, err = s.parseAIServiceResponse(bodyBytes)
+		if err != nil {
+			log.Printf("ERROR: ProcessChat: Failed to parse AI service response: %v", err)
+			return nil, status.Error(codes.Internal, "failed to parse AI service response")
+		}
+	} else {
+		// Parse simple text response
+		var chatbotRespPayload map[string]string
+		if err := json.Unmarshal(bodyBytes, &chatbotRespPayload); err != nil {
+			log.Printf("ERROR: ProcessChat: Failed to unmarshal AI response: %v", err)
+			return nil, status.Error(codes.Internal, "failed to parse AI service response")
+		}
+
+		aiResponse := chatbotRespPayload["response"]
+		if aiResponse == "" {
+			log.Printf("ERROR: ProcessChat: Empty response from AI service for User ID %d", userID)
+			return nil, status.Error(codes.Internal, "received empty response from AI service")
+		}
+
+		response = &pb.ProcessChatResponse{
+			Success:  true,
+			Msg:      "Successfully processed AI chat request",
+			Query:    req.GetQuery(),
+			Response: aiResponse,
+		}
 	}
 
-	aiResponse := chatbotRespPayload["response"]
-	if aiResponse == "" {
-		log.Printf("ERROR: ProcessChat: Empty response from AI chatbot for User ID %d", userID)
-		return nil, status.Error(codes.Internal, "received empty response from AI service")
-	}
+	// Ensure query is set in response
+	response.Query = req.GetQuery()
 
-	// Save chat entry to database
-	if err := s.SaveChatEntry(ctx, userID, req.GetQuery(), aiResponse); err != nil {
+	// Save chat entry to database (save the text response, files are handled separately)
+	if err := s.SaveChatEntry(ctx, userID, req.GetQuery(), response.GetResponse()); err != nil {
 		log.Printf("ERROR: ProcessChat: Failed to save chat entry to database for User ID %d: %v", userID, err)
 		// Continue even if save fails, as we want to return the AI response to the user
 	}
 
-	// Return the AI response
-	return &pb.ProcessChatResponse{
-		Success:  true,
-		Msg:      "Successfully processed AI chat request",
-		Query:    req.GetQuery(),
-		Response: aiResponse,
-	}, nil
+	log.Printf("INFO: ProcessChat: Successfully processed request for User ID %d", userID)
+	return response, nil
 }
 
 // --- Helper Functions --- //
 
 // SaveChatEntry saves a single chat interaction to the database.
 func (s *AIChatService) SaveChatEntry(ctx context.Context, userID uint, query, response string) error {
+
 	chatEntry := models.AIChatHistory{
 		UserID:    userID,
 		Query:     query,
 		Response:  response,
 		CreatedAt: time.Now(),
 	}
+
 	if err := s.db.WithContext(ctx).Create(&chatEntry).Error; err != nil {
 		log.Printf("ERROR: SaveChatEntry: Failed to save chat history to DB for User ID %d: %v", userID, err)
 		return fmt.Errorf("db error saving chat entry: %w", err)
 	}
+
 	log.Printf("INFO: SaveChatEntry: Saved chat history entry for User ID: %d", userID)
+
 	return nil
 }
 
@@ -344,6 +400,7 @@ func (s *AIChatService) UpdateChatHistoryFile(ctx context.Context, userID uint) 
 		UserID:   userID,
 		FilePath: publicURL, // Store the public URL
 	}
+
 	if errDb := s.db.WithContext(ctx).Clauses(clause.OnConflict{
 		Columns:   []clause.Column{{Name: "user_id"}},
 		DoUpdates: clause.AssignmentColumns([]string{"file_path", "updated_at"}),
@@ -353,6 +410,7 @@ func (s *AIChatService) UpdateChatHistoryFile(ctx context.Context, userID uint) 
 	}
 
 	log.Printf("INFO: UpdateChatHistoryFile: Completed file update and saved public URL for User ID: %d", userID)
+
 	return nil
 }
 
@@ -609,5 +667,239 @@ func (s *AIChatService) GetAIChatHistory(ctx context.Context, userID uint) (*pb.
 	}
 
 	log.Printf("INFO: GetAIChatHistory: Retrieved %d AI history entries for User ID: %d", len(pbHistory), userID)
-	return &pb.GetAIChatHistoryResponse{History: pbHistory}, nil
+	return &pb.GetAIChatHistoryResponse{
+		History: pbHistory,
+	}, nil
+}
+
+// --- File Handling Functions ---
+
+// generateFileID creates a unique file identifier
+func (s *AIChatService) generateFileID() string {
+	bytes := make([]byte, 16)
+	rand.Read(bytes)
+	return hex.EncodeToString(bytes)
+}
+
+// uploadFileToGCS uploads a file to Google Cloud Storage and returns the public URL
+func (s *AIChatService) uploadFileToGCS(ctx context.Context, userID uint, fileContent []byte, filename, contentType string) (string, error) {
+	client, err := s.getGCSClient(ctx)
+	if err != nil {
+		return "", fmt.Errorf("failed to get GCS client: %w", err)
+	}
+	defer client.Close()
+
+	// Generate unique object name
+	fileID := s.generateFileID()
+	extension := filepath.Ext(filename)
+	objectName := fmt.Sprintf("chat-files/user_%d/%s_%s%s", userID, fileID, time.Now().Format("20060102_150405"), extension)
+
+	bucket := client.Bucket(s.config.GCSBucketName)
+	obj := bucket.Object(objectName)
+	writer := obj.NewWriter(ctx)
+	writer.ContentType = contentType
+
+	if _, err := writer.Write(fileContent); err != nil {
+		writer.Close()
+		return "", fmt.Errorf("failed to write file to GCS: %w", err)
+	}
+
+	if err := writer.Close(); err != nil {
+		return "", fmt.Errorf("failed to close GCS writer: %w", err)
+	}
+
+	// Make the object publicly readable
+	if err := obj.ACL().Set(ctx, storage.AllUsers, storage.RoleReader); err != nil {
+		log.Printf("WARN: Failed to make object public: %v", err)
+	}
+
+	publicURL := fmt.Sprintf("https://storage.googleapis.com/%s/%s", s.config.GCSBucketName, objectName)
+	return publicURL, nil
+}
+
+// convertProtoChatFileToMap converts a protobuf ChatFile to a map for AI service
+func (s *AIChatService) convertProtoChatFileToMap(file *pb.ChatFile) map[string]interface{} {
+	return map[string]interface{}{
+		"file_id":          file.GetFileId(),
+		"filename":         file.GetFilename(),
+		"content_type":     file.GetContentType(),
+		"file_size":        file.GetFileSize(),
+		"file_url":         file.GetFileUrl(),
+		"upload_timestamp": file.GetUploadTimestamp(),
+	}
+}
+
+// processUploadedFiles handles file uploads and preparation for AI service
+func (s *AIChatService) processUploadedFiles(ctx context.Context, userID uint, files []*pb.ChatFile) ([]*pb.ChatFile, error) {
+	var processedFiles []*pb.ChatFile
+
+	for _, file := range files {
+		// Generate file ID if not provided
+		fileID := file.GetFileId()
+		if fileID == "" {
+			fileID = s.generateFileID()
+		}
+
+		// Upload file to GCS if file content is provided
+		var fileURL string
+		if len(file.GetFileContent()) > 0 {
+			url, err := s.uploadFileToGCS(ctx, userID, file.GetFileContent(), file.GetFilename(), file.GetContentType())
+			if err != nil {
+				log.Printf("ERROR: Failed to upload file %s to GCS: %v", file.GetFilename(), err)
+				return nil, fmt.Errorf("failed to upload file %s: %w", file.GetFilename(), err)
+			}
+			fileURL = url
+		} else {
+			fileURL = file.GetFileUrl()
+		}
+
+		processedFile := &pb.ChatFile{
+			FileId:          fileID,
+			Filename:        file.GetFilename(),
+			ContentType:     file.GetContentType(),
+			FileSize:        file.GetFileSize(),
+			FileUrl:         fileURL,
+			UploadTimestamp: time.Now().Format(time.RFC3339),
+		}
+
+		processedFiles = append(processedFiles, processedFile)
+	}
+
+	return processedFiles, nil
+}
+
+// sendFilesToAIService sends files and query to AI microservice with multipart form data
+func (s *AIChatService) sendFilesToAIService(ctx context.Context, endpointURL string, accessToken string, payload map[string]interface{}, files []*pb.ChatFile) (*http.Response, error) {
+	var buf bytes.Buffer
+	writer := multipart.NewWriter(&buf)
+
+	// Add form fields exactly as expected by AI service
+	if err := writer.WriteField("query", payload["query"].(string)); err != nil {
+		return nil, fmt.Errorf("failed to write query field: %w", err)
+	}
+	if err := writer.WriteField("user_id", payload["user_id"].(string)); err != nil {
+		return nil, fmt.Errorf("failed to write user_id field: %w", err)
+	}
+	if err := writer.WriteField("tx_history", payload["tx_history"].(string)); err != nil {
+		return nil, fmt.Errorf("failed to write tx_history field: %w", err)
+	}
+
+	// Add file (expecting single file named "file")
+	for _, file := range files {
+		if len(file.GetFileContent()) > 0 {
+			// Add file content to the multipart form
+			part, err := writer.CreateFormFile("file", file.GetFilename())
+			if err != nil {
+				return nil, fmt.Errorf("failed to create form file for %s: %w", file.GetFilename(), err)
+			}
+
+			if _, err := part.Write(file.GetFileContent()); err != nil {
+				return nil, fmt.Errorf("failed to write file content for %s: %w", file.GetFilename(), err)
+			}
+		}
+		break // Only handle first file to match single file expectation
+	}
+
+	if err := writer.Close(); err != nil {
+		return nil, fmt.Errorf("failed to close multipart writer: %w", err)
+	}
+
+	// Create request using the provided endpoint URL
+	req, err := http.NewRequestWithContext(ctx, "POST", endpointURL, &buf)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", accessToken))
+
+	return s.httpClient.Do(req)
+}
+
+// parseAIServiceResponse parses the response from AI service that may include files
+func (s *AIChatService) parseAIServiceResponse(responseBody []byte) (*pb.ProcessChatResponse, error) {
+	var aiResponse struct {
+		Response       string                   `json:"response"`
+		GeneratedFiles []map[string]interface{} `json:"generated_files,omitempty"`
+		FileAnalysis   map[string]interface{}   `json:"file_analysis,omitempty"`
+	}
+
+	if err := json.Unmarshal(responseBody, &aiResponse); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal AI response: %w", err)
+	}
+
+	response := &pb.ProcessChatResponse{
+		Success:  true,
+		Msg:      "Successfully processed AI chat request with files",
+		Response: aiResponse.Response,
+	}
+
+	// Process generated files
+	if len(aiResponse.GeneratedFiles) > 0 {
+		for _, fileData := range aiResponse.GeneratedFiles {
+			chatFile := &pb.ChatFile{
+				FileId:      getStringFromMap(fileData, "file_id"),
+				Filename:    getStringFromMap(fileData, "filename"),
+				ContentType: getStringFromMap(fileData, "content_type"),
+				FileUrl:     getStringFromMap(fileData, "file_url"),
+			}
+			if sizeFloat, ok := fileData["file_size"].(float64); ok {
+				chatFile.FileSize = int64(sizeFloat)
+			}
+			response.GeneratedFiles = append(response.GeneratedFiles, chatFile)
+		}
+	}
+
+	// Process file analysis
+	if aiResponse.FileAnalysis != nil {
+		fileAnalysis := &pb.FileAnalysis{
+			Summary: getStringFromMap(aiResponse.FileAnalysis, "summary"),
+		}
+
+		if results, ok := aiResponse.FileAnalysis["results"].([]interface{}); ok {
+			for _, resultData := range results {
+				if resultMap, ok := resultData.(map[string]interface{}); ok {
+					analysisResult := &pb.FileAnalysisResult{
+						FileId:            getStringFromMap(resultMap, "file_id"),
+						Filename:          getStringFromMap(resultMap, "filename"),
+						AnalysisType:      getStringFromMap(resultMap, "analysis_type"),
+						AnalysisResult:    getStringFromMap(resultMap, "analysis_result"),
+						ProcessingSuccess: getBoolFromMap(resultMap, "processing_success"),
+						ErrorMessage:      getStringFromMap(resultMap, "error_message"),
+					}
+
+					// Process metadata
+					if metadata, ok := resultMap["metadata"].(map[string]interface{}); ok {
+						analysisResult.Metadata = make(map[string]string)
+						for key, value := range metadata {
+							if strValue, ok := value.(string); ok {
+								analysisResult.Metadata[key] = strValue
+							}
+						}
+					}
+
+					fileAnalysis.Results = append(fileAnalysis.Results, analysisResult)
+				}
+			}
+		}
+
+		response.FileAnalysis = fileAnalysis
+	}
+
+	return response, nil
+}
+
+// Helper functions for extracting values from maps
+func getStringFromMap(m map[string]interface{}, key string) string {
+	if value, ok := m[key].(string); ok {
+		return value
+	}
+	return ""
+}
+
+func getBoolFromMap(m map[string]interface{}, key string) bool {
+	if value, ok := m[key].(bool); ok {
+		return value
+	}
+	return false
 }

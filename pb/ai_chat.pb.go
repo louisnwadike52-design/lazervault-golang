@@ -25,10 +25,12 @@ const (
 
 // Request message for the AI Chat endpoint
 type ProcessChatRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Query         string                 `protobuf:"bytes,1,opt,name=query,proto3" json:"query,omitempty"`
-	TxHistory     string                 `protobuf:"bytes,2,opt,name=tx_history,json=txHistory,proto3" json:"tx_history,omitempty"`
-	UserId        uint32                 `protobuf:"varint,3,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	Query     string                 `protobuf:"bytes,1,opt,name=query,proto3" json:"query,omitempty"`
+	TxHistory string                 `protobuf:"bytes,2,opt,name=tx_history,json=txHistory,proto3" json:"tx_history,omitempty"`
+	UserId    uint32                 `protobuf:"varint,3,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	// Optional file handling field
+	UploadedFile  *ChatFile `protobuf:"bytes,4,opt,name=uploaded_file,json=uploadedFile,proto3,oneof" json:"uploaded_file,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -84,15 +86,25 @@ func (x *ProcessChatRequest) GetUserId() uint32 {
 	return 0
 }
 
+func (x *ProcessChatRequest) GetUploadedFile() *ChatFile {
+	if x != nil {
+		return x.UploadedFile
+	}
+	return nil
+}
+
 // Response message for the AI Chat endpoint
 type ProcessChatResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
-	Msg           string                 `protobuf:"bytes,2,opt,name=msg,proto3" json:"msg,omitempty"`
-	Query         string                 `protobuf:"bytes,3,opt,name=query,proto3" json:"query,omitempty"`
-	Response      string                 `protobuf:"bytes,4,opt,name=response,proto3" json:"response,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	Success  bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
+	Msg      string                 `protobuf:"bytes,2,opt,name=msg,proto3" json:"msg,omitempty"`
+	Query    string                 `protobuf:"bytes,3,opt,name=query,proto3" json:"query,omitempty"`
+	Response string                 `protobuf:"bytes,4,opt,name=response,proto3" json:"response,omitempty"`
+	// Optional file handling response fields (for future AI service enhancements)
+	GeneratedFiles []*ChatFile   `protobuf:"bytes,5,rep,name=generated_files,json=generatedFiles,proto3" json:"generated_files,omitempty"`
+	FileAnalysis   *FileAnalysis `protobuf:"bytes,6,opt,name=file_analysis,json=fileAnalysis,proto3" json:"file_analysis,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *ProcessChatResponse) Reset() {
@@ -153,6 +165,261 @@ func (x *ProcessChatResponse) GetResponse() string {
 	return ""
 }
 
+func (x *ProcessChatResponse) GetGeneratedFiles() []*ChatFile {
+	if x != nil {
+		return x.GeneratedFiles
+	}
+	return nil
+}
+
+func (x *ProcessChatResponse) GetFileAnalysis() *FileAnalysis {
+	if x != nil {
+		return x.FileAnalysis
+	}
+	return nil
+}
+
+// Represents a file in chat context
+type ChatFile struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// For uploads - client provides these fields
+	Filename    string `protobuf:"bytes,1,opt,name=filename,proto3" json:"filename,omitempty"`
+	ContentType string `protobuf:"bytes,2,opt,name=content_type,json=contentType,proto3" json:"content_type,omitempty"`
+	FileContent []byte `protobuf:"bytes,3,opt,name=file_content,json=fileContent,proto3" json:"file_content,omitempty"`
+	// For responses - server provides these fields
+	FileId          string `protobuf:"bytes,4,opt,name=file_id,json=fileId,proto3" json:"file_id,omitempty"`
+	FileUrl         string `protobuf:"bytes,5,opt,name=file_url,json=fileUrl,proto3" json:"file_url,omitempty"`
+	FileSize        int64  `protobuf:"varint,6,opt,name=file_size,json=fileSize,proto3" json:"file_size,omitempty"`
+	UploadTimestamp string `protobuf:"bytes,7,opt,name=upload_timestamp,json=uploadTimestamp,proto3" json:"upload_timestamp,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *ChatFile) Reset() {
+	*x = ChatFile{}
+	mi := &file_ai_chat_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ChatFile) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ChatFile) ProtoMessage() {}
+
+func (x *ChatFile) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_chat_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ChatFile.ProtoReflect.Descriptor instead.
+func (*ChatFile) Descriptor() ([]byte, []int) {
+	return file_ai_chat_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *ChatFile) GetFilename() string {
+	if x != nil {
+		return x.Filename
+	}
+	return ""
+}
+
+func (x *ChatFile) GetContentType() string {
+	if x != nil {
+		return x.ContentType
+	}
+	return ""
+}
+
+func (x *ChatFile) GetFileContent() []byte {
+	if x != nil {
+		return x.FileContent
+	}
+	return nil
+}
+
+func (x *ChatFile) GetFileId() string {
+	if x != nil {
+		return x.FileId
+	}
+	return ""
+}
+
+func (x *ChatFile) GetFileUrl() string {
+	if x != nil {
+		return x.FileUrl
+	}
+	return ""
+}
+
+func (x *ChatFile) GetFileSize() int64 {
+	if x != nil {
+		return x.FileSize
+	}
+	return 0
+}
+
+func (x *ChatFile) GetUploadTimestamp() string {
+	if x != nil {
+		return x.UploadTimestamp
+	}
+	return ""
+}
+
+// File analysis results from AI
+type FileAnalysis struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Results       []*FileAnalysisResult  `protobuf:"bytes,1,rep,name=results,proto3" json:"results,omitempty"`
+	Summary       string                 `protobuf:"bytes,2,opt,name=summary,proto3" json:"summary,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *FileAnalysis) Reset() {
+	*x = FileAnalysis{}
+	mi := &file_ai_chat_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *FileAnalysis) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FileAnalysis) ProtoMessage() {}
+
+func (x *FileAnalysis) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_chat_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FileAnalysis.ProtoReflect.Descriptor instead.
+func (*FileAnalysis) Descriptor() ([]byte, []int) {
+	return file_ai_chat_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *FileAnalysis) GetResults() []*FileAnalysisResult {
+	if x != nil {
+		return x.Results
+	}
+	return nil
+}
+
+func (x *FileAnalysis) GetSummary() string {
+	if x != nil {
+		return x.Summary
+	}
+	return ""
+}
+
+// Individual file analysis result
+type FileAnalysisResult struct {
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	FileId            string                 `protobuf:"bytes,1,opt,name=file_id,json=fileId,proto3" json:"file_id,omitempty"`
+	Filename          string                 `protobuf:"bytes,2,opt,name=filename,proto3" json:"filename,omitempty"`
+	AnalysisType      string                 `protobuf:"bytes,3,opt,name=analysis_type,json=analysisType,proto3" json:"analysis_type,omitempty"`
+	AnalysisResult    string                 `protobuf:"bytes,4,opt,name=analysis_result,json=analysisResult,proto3" json:"analysis_result,omitempty"`
+	Metadata          map[string]string      `protobuf:"bytes,5,rep,name=metadata,proto3" json:"metadata,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	ProcessingSuccess bool                   `protobuf:"varint,6,opt,name=processing_success,json=processingSuccess,proto3" json:"processing_success,omitempty"`
+	ErrorMessage      string                 `protobuf:"bytes,7,opt,name=error_message,json=errorMessage,proto3" json:"error_message,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *FileAnalysisResult) Reset() {
+	*x = FileAnalysisResult{}
+	mi := &file_ai_chat_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *FileAnalysisResult) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FileAnalysisResult) ProtoMessage() {}
+
+func (x *FileAnalysisResult) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_chat_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FileAnalysisResult.ProtoReflect.Descriptor instead.
+func (*FileAnalysisResult) Descriptor() ([]byte, []int) {
+	return file_ai_chat_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *FileAnalysisResult) GetFileId() string {
+	if x != nil {
+		return x.FileId
+	}
+	return ""
+}
+
+func (x *FileAnalysisResult) GetFilename() string {
+	if x != nil {
+		return x.Filename
+	}
+	return ""
+}
+
+func (x *FileAnalysisResult) GetAnalysisType() string {
+	if x != nil {
+		return x.AnalysisType
+	}
+	return ""
+}
+
+func (x *FileAnalysisResult) GetAnalysisResult() string {
+	if x != nil {
+		return x.AnalysisResult
+	}
+	return ""
+}
+
+func (x *FileAnalysisResult) GetMetadata() map[string]string {
+	if x != nil {
+		return x.Metadata
+	}
+	return nil
+}
+
+func (x *FileAnalysisResult) GetProcessingSuccess() bool {
+	if x != nil {
+		return x.ProcessingSuccess
+	}
+	return false
+}
+
+func (x *FileAnalysisResult) GetErrorMessage() string {
+	if x != nil {
+		return x.ErrorMessage
+	}
+	return ""
+}
+
 // Request message for triggering chat history indexing for the authenticated user
 type IndexChatHistoryRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -162,7 +429,7 @@ type IndexChatHistoryRequest struct {
 
 func (x *IndexChatHistoryRequest) Reset() {
 	*x = IndexChatHistoryRequest{}
-	mi := &file_ai_chat_proto_msgTypes[2]
+	mi := &file_ai_chat_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -174,7 +441,7 @@ func (x *IndexChatHistoryRequest) String() string {
 func (*IndexChatHistoryRequest) ProtoMessage() {}
 
 func (x *IndexChatHistoryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_chat_proto_msgTypes[2]
+	mi := &file_ai_chat_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -187,7 +454,7 @@ func (x *IndexChatHistoryRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use IndexChatHistoryRequest.ProtoReflect.Descriptor instead.
 func (*IndexChatHistoryRequest) Descriptor() ([]byte, []int) {
-	return file_ai_chat_proto_rawDescGZIP(), []int{2}
+	return file_ai_chat_proto_rawDescGZIP(), []int{5}
 }
 
 // Response message for chat history indexing trigger
@@ -201,7 +468,7 @@ type IndexChatHistoryResponse struct {
 
 func (x *IndexChatHistoryResponse) Reset() {
 	*x = IndexChatHistoryResponse{}
-	mi := &file_ai_chat_proto_msgTypes[3]
+	mi := &file_ai_chat_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -213,7 +480,7 @@ func (x *IndexChatHistoryResponse) String() string {
 func (*IndexChatHistoryResponse) ProtoMessage() {}
 
 func (x *IndexChatHistoryResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_chat_proto_msgTypes[3]
+	mi := &file_ai_chat_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -226,7 +493,7 @@ func (x *IndexChatHistoryResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use IndexChatHistoryResponse.ProtoReflect.Descriptor instead.
 func (*IndexChatHistoryResponse) Descriptor() ([]byte, []int) {
-	return file_ai_chat_proto_rawDescGZIP(), []int{3}
+	return file_ai_chat_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *IndexChatHistoryResponse) GetSuccess() bool {
@@ -252,7 +519,7 @@ type IndexTransactionFileRequest struct {
 
 func (x *IndexTransactionFileRequest) Reset() {
 	*x = IndexTransactionFileRequest{}
-	mi := &file_ai_chat_proto_msgTypes[4]
+	mi := &file_ai_chat_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -264,7 +531,7 @@ func (x *IndexTransactionFileRequest) String() string {
 func (*IndexTransactionFileRequest) ProtoMessage() {}
 
 func (x *IndexTransactionFileRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_chat_proto_msgTypes[4]
+	mi := &file_ai_chat_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -277,7 +544,7 @@ func (x *IndexTransactionFileRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use IndexTransactionFileRequest.ProtoReflect.Descriptor instead.
 func (*IndexTransactionFileRequest) Descriptor() ([]byte, []int) {
-	return file_ai_chat_proto_rawDescGZIP(), []int{4}
+	return file_ai_chat_proto_rawDescGZIP(), []int{7}
 }
 
 // Response message for transaction file indexing trigger
@@ -291,7 +558,7 @@ type IndexTransactionFileResponse struct {
 
 func (x *IndexTransactionFileResponse) Reset() {
 	*x = IndexTransactionFileResponse{}
-	mi := &file_ai_chat_proto_msgTypes[5]
+	mi := &file_ai_chat_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -303,7 +570,7 @@ func (x *IndexTransactionFileResponse) String() string {
 func (*IndexTransactionFileResponse) ProtoMessage() {}
 
 func (x *IndexTransactionFileResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_chat_proto_msgTypes[5]
+	mi := &file_ai_chat_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -316,7 +583,7 @@ func (x *IndexTransactionFileResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use IndexTransactionFileResponse.ProtoReflect.Descriptor instead.
 func (*IndexTransactionFileResponse) Descriptor() ([]byte, []int) {
-	return file_ai_chat_proto_rawDescGZIP(), []int{5}
+	return file_ai_chat_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *IndexTransactionFileResponse) GetSuccess() bool {
@@ -345,7 +612,7 @@ type AIChatHistoryEntry struct {
 
 func (x *AIChatHistoryEntry) Reset() {
 	*x = AIChatHistoryEntry{}
-	mi := &file_ai_chat_proto_msgTypes[6]
+	mi := &file_ai_chat_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -357,7 +624,7 @@ func (x *AIChatHistoryEntry) String() string {
 func (*AIChatHistoryEntry) ProtoMessage() {}
 
 func (x *AIChatHistoryEntry) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_chat_proto_msgTypes[6]
+	mi := &file_ai_chat_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -370,7 +637,7 @@ func (x *AIChatHistoryEntry) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AIChatHistoryEntry.ProtoReflect.Descriptor instead.
 func (*AIChatHistoryEntry) Descriptor() ([]byte, []int) {
-	return file_ai_chat_proto_rawDescGZIP(), []int{6}
+	return file_ai_chat_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *AIChatHistoryEntry) GetQuery() string {
@@ -403,7 +670,7 @@ type GetAIChatHistoryRequest struct {
 
 func (x *GetAIChatHistoryRequest) Reset() {
 	*x = GetAIChatHistoryRequest{}
-	mi := &file_ai_chat_proto_msgTypes[7]
+	mi := &file_ai_chat_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -415,7 +682,7 @@ func (x *GetAIChatHistoryRequest) String() string {
 func (*GetAIChatHistoryRequest) ProtoMessage() {}
 
 func (x *GetAIChatHistoryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_chat_proto_msgTypes[7]
+	mi := &file_ai_chat_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -428,7 +695,7 @@ func (x *GetAIChatHistoryRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAIChatHistoryRequest.ProtoReflect.Descriptor instead.
 func (*GetAIChatHistoryRequest) Descriptor() ([]byte, []int) {
-	return file_ai_chat_proto_rawDescGZIP(), []int{7}
+	return file_ai_chat_proto_rawDescGZIP(), []int{10}
 }
 
 // Response message containing the user's AI chat history
@@ -441,7 +708,7 @@ type GetAIChatHistoryResponse struct {
 
 func (x *GetAIChatHistoryResponse) Reset() {
 	*x = GetAIChatHistoryResponse{}
-	mi := &file_ai_chat_proto_msgTypes[8]
+	mi := &file_ai_chat_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -453,7 +720,7 @@ func (x *GetAIChatHistoryResponse) String() string {
 func (*GetAIChatHistoryResponse) ProtoMessage() {}
 
 func (x *GetAIChatHistoryResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_chat_proto_msgTypes[8]
+	mi := &file_ai_chat_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -466,7 +733,7 @@ func (x *GetAIChatHistoryResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAIChatHistoryResponse.ProtoReflect.Descriptor instead.
 func (*GetAIChatHistoryResponse) Descriptor() ([]byte, []int) {
-	return file_ai_chat_proto_rawDescGZIP(), []int{8}
+	return file_ai_chat_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *GetAIChatHistoryResponse) GetHistory() []*AIChatHistoryEntry {
@@ -480,19 +747,48 @@ var File_ai_chat_proto protoreflect.FileDescriptor
 
 const file_ai_chat_proto_rawDesc = "" +
 	"\n" +
-	"\rai_chat.proto\x12\x02pb\x1a\x1cgoogle/api/annotations.proto\x1a.protoc-gen-openapiv2/options/annotations.proto\"\xd8\x02\n" +
+	"\rai_chat.proto\x12\x02pb\x1a\x1cgoogle/api/annotations.proto\x1a.protoc-gen-openapiv2/options/annotations.proto\"\xf1\x03\n" +
 	"\x12ProcessChatRequest\x12<\n" +
 	"\x05query\x18\x01 \x01(\tB&\x92A#2!The user's input/query to the AI.R\x05query\x12S\n" +
 	"\n" +
 	"tx_history\x18\x02 \x01(\tB4\x92A12/JSON string containing the last 5 transactions.R\ttxHistory\x12D\n" +
-	"\auser_id\x18\x03 \x01(\rB+\x92A(2&The ID of the user making the request.R\x06userId:i\x92Af\n" +
-	"d*\x17AI Process Chat Request27Payload containing the user's query for the AI chatbot.\xd2\x01\x05query\xd2\x01\auser_id\"\xfa\x02\n" +
+	"\auser_id\x18\x03 \x01(\rB+\x92A(2&The ID of the user making the request.R\x06userId\x12r\n" +
+	"\ruploaded_file\x18\x04 \x01(\v2\f.pb.ChatFileB:\x92A725Optional file uploaded by the user for AI processing.H\x00R\fuploadedFile\x88\x01\x01:|\x92Ay\n" +
+	"w*\x17AI Process Chat Request2JPayload containing the user's query for the AI chatbot with optional file.\xd2\x01\x05query\xd2\x01\auser_idB\x10\n" +
+	"\x0e_uploaded_file\"\xcc\x04\n" +
 	"\x13ProcessChatResponse\x12Q\n" +
 	"\asuccess\x18\x01 \x01(\bB7\x92A422Indicates if the query was successfully processed.R\asuccess\x12B\n" +
 	"\x03msg\x18\x02 \x01(\tB0\x92A-2+A status message related to the processing.R\x03msg\x12?\n" +
 	"\x05query\x18\x03 \x01(\tB)\x92A&2$The original query sent by the user.R\x05query\x123\n" +
-	"\bresponse\x18\x04 \x01(\tB\x17\x92A\x142\x12The AI's response.R\bresponse:V\x92AS\n" +
-	"Q*\x18AI Process Chat Response25Contains the AI chatbot's response along with status.\"\x92\x01\n" +
+	"\bresponse\x18\x04 \x01(\tB\x17\x92A\x142\x12The AI's response.R\bresponse\x12o\n" +
+	"\x0fgenerated_files\x18\x05 \x03(\v2\f.pb.ChatFileB8\x92A523Files generated by the AI in response to the query.R\x0egeneratedFiles\x12_\n" +
+	"\rfile_analysis\x18\x06 \x01(\v2\x10.pb.FileAnalysisB(\x92A%2#Analysis results of uploaded files.R\ffileAnalysis:V\x92AS\n" +
+	"Q*\x18AI Process Chat Response25Contains the AI chatbot's response along with status.\"\xcf\x05\n" +
+	"\bChatFile\x12J\n" +
+	"\bfilename\x18\x01 \x01(\tB.\x92A+2)Original filename (required for uploads).R\bfilename\x12U\n" +
+	"\fcontent_type\x18\x02 \x01(\tB2\x92A/2-MIME type of the file (required for uploads).R\vcontentType\x12Z\n" +
+	"\ffile_content\x18\x03 \x01(\fB7\x92A422Binary content of the file (required for uploads).R\vfileContent\x12M\n" +
+	"\afile_id\x18\x04 \x01(\tB4\x92A12/Unique identifier for the file (set by server).R\x06fileId\x12e\n" +
+	"\bfile_url\x18\x05 \x01(\tBJ\x92AG2EURL to access the file (set by server for downloads/generated files).R\afileUrl\x12L\n" +
+	"\tfile_size\x18\x06 \x01(\x03B/\x92A,2*Size of the file in bytes (set by server).R\bfileSize\x12m\n" +
+	"\x10upload_timestamp\x18\a \x01(\tBB\x92A?2=When the file was uploaded in RFC3339 format (set by server).R\x0fuploadTimestamp:Q\x92AN\n" +
+	"L*\tChat File2?Represents a file in the chat context (for upload or download).\"\x80\x02\n" +
+	"\fFileAnalysis\x12`\n" +
+	"\aresults\x18\x01 \x03(\v2\x16.pb.FileAnalysisResultB.\x92A+2)Analysis results for each processed file.R\aresults\x12@\n" +
+	"\asummary\x18\x02 \x01(\tB&\x92A#2!Overall summary of file analysis.R\asummary:L\x92AI\n" +
+	"G*\rFile Analysis26Analysis results from AI processing of uploaded files.\"\xfa\x05\n" +
+	"\x12FileAnalysisResult\x126\n" +
+	"\afile_id\x18\x01 \x01(\tB\x1d\x92A\x1a2\x18ID of the analyzed file.R\x06fileId\x12;\n" +
+	"\bfilename\x18\x02 \x01(\tB\x1f\x92A\x1c2\x1aName of the analyzed file.R\bfilename\x12\x85\x01\n" +
+	"\ranalysis_type\x18\x03 \x01(\tB`\x92A]2[Type of analysis performed (e.g., 'text_extraction', 'image_recognition', 'data_analysis').R\fanalysisType\x12H\n" +
+	"\x0fanalysis_result\x18\x04 \x01(\tB\x1f\x92A\x1c2\x1aDetailed analysis results.R\x0eanalysisResult\x12s\n" +
+	"\bmetadata\x18\x05 \x03(\v2$.pb.FileAnalysisResult.MetadataEntryB1\x92A.2,Additional metadata extracted from the file.R\bmetadata\x12[\n" +
+	"\x12processing_success\x18\x06 \x01(\bB,\x92A)2'Whether file processing was successful.R\x11processingSuccess\x12M\n" +
+	"\rerror_message\x18\a \x01(\tB(\x92A%2#Error message if processing failed.R\ferrorMessage\x1a;\n" +
+	"\rMetadataEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01:?\x92A<\n" +
+	":*\x14File Analysis Result2\"Analysis result for a single file.\"\x92\x01\n" +
 	"\x17IndexChatHistoryRequest:w\x92At\n" +
 	"r*\x1aIndex Chat History Request2TTriggers the indexing process for the authenticated user's latest chat history file.\"\xb7\x02\n" +
 	"\x18IndexChatHistoryResponse\x12Y\n" +
@@ -559,33 +855,42 @@ func file_ai_chat_proto_rawDescGZIP() []byte {
 	return file_ai_chat_proto_rawDescData
 }
 
-var file_ai_chat_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_ai_chat_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
 var file_ai_chat_proto_goTypes = []any{
 	(*ProcessChatRequest)(nil),           // 0: pb.ProcessChatRequest
 	(*ProcessChatResponse)(nil),          // 1: pb.ProcessChatResponse
-	(*IndexChatHistoryRequest)(nil),      // 2: pb.IndexChatHistoryRequest
-	(*IndexChatHistoryResponse)(nil),     // 3: pb.IndexChatHistoryResponse
-	(*IndexTransactionFileRequest)(nil),  // 4: pb.IndexTransactionFileRequest
-	(*IndexTransactionFileResponse)(nil), // 5: pb.IndexTransactionFileResponse
-	(*AIChatHistoryEntry)(nil),           // 6: pb.AIChatHistoryEntry
-	(*GetAIChatHistoryRequest)(nil),      // 7: pb.GetAIChatHistoryRequest
-	(*GetAIChatHistoryResponse)(nil),     // 8: pb.GetAIChatHistoryResponse
+	(*ChatFile)(nil),                     // 2: pb.ChatFile
+	(*FileAnalysis)(nil),                 // 3: pb.FileAnalysis
+	(*FileAnalysisResult)(nil),           // 4: pb.FileAnalysisResult
+	(*IndexChatHistoryRequest)(nil),      // 5: pb.IndexChatHistoryRequest
+	(*IndexChatHistoryResponse)(nil),     // 6: pb.IndexChatHistoryResponse
+	(*IndexTransactionFileRequest)(nil),  // 7: pb.IndexTransactionFileRequest
+	(*IndexTransactionFileResponse)(nil), // 8: pb.IndexTransactionFileResponse
+	(*AIChatHistoryEntry)(nil),           // 9: pb.AIChatHistoryEntry
+	(*GetAIChatHistoryRequest)(nil),      // 10: pb.GetAIChatHistoryRequest
+	(*GetAIChatHistoryResponse)(nil),     // 11: pb.GetAIChatHistoryResponse
+	nil,                                  // 12: pb.FileAnalysisResult.MetadataEntry
 }
 var file_ai_chat_proto_depIdxs = []int32{
-	6, // 0: pb.GetAIChatHistoryResponse.history:type_name -> pb.AIChatHistoryEntry
-	0, // 1: pb.AIChatService.ProcessChat:input_type -> pb.ProcessChatRequest
-	2, // 2: pb.AIChatService.IndexChatHistory:input_type -> pb.IndexChatHistoryRequest
-	4, // 3: pb.AIChatService.IndexTransactionFile:input_type -> pb.IndexTransactionFileRequest
-	7, // 4: pb.AIChatService.GetAIChatHistory:input_type -> pb.GetAIChatHistoryRequest
-	1, // 5: pb.AIChatService.ProcessChat:output_type -> pb.ProcessChatResponse
-	3, // 6: pb.AIChatService.IndexChatHistory:output_type -> pb.IndexChatHistoryResponse
-	5, // 7: pb.AIChatService.IndexTransactionFile:output_type -> pb.IndexTransactionFileResponse
-	8, // 8: pb.AIChatService.GetAIChatHistory:output_type -> pb.GetAIChatHistoryResponse
-	5, // [5:9] is the sub-list for method output_type
-	1, // [1:5] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	2,  // 0: pb.ProcessChatRequest.uploaded_file:type_name -> pb.ChatFile
+	2,  // 1: pb.ProcessChatResponse.generated_files:type_name -> pb.ChatFile
+	3,  // 2: pb.ProcessChatResponse.file_analysis:type_name -> pb.FileAnalysis
+	4,  // 3: pb.FileAnalysis.results:type_name -> pb.FileAnalysisResult
+	12, // 4: pb.FileAnalysisResult.metadata:type_name -> pb.FileAnalysisResult.MetadataEntry
+	9,  // 5: pb.GetAIChatHistoryResponse.history:type_name -> pb.AIChatHistoryEntry
+	0,  // 6: pb.AIChatService.ProcessChat:input_type -> pb.ProcessChatRequest
+	5,  // 7: pb.AIChatService.IndexChatHistory:input_type -> pb.IndexChatHistoryRequest
+	7,  // 8: pb.AIChatService.IndexTransactionFile:input_type -> pb.IndexTransactionFileRequest
+	10, // 9: pb.AIChatService.GetAIChatHistory:input_type -> pb.GetAIChatHistoryRequest
+	1,  // 10: pb.AIChatService.ProcessChat:output_type -> pb.ProcessChatResponse
+	6,  // 11: pb.AIChatService.IndexChatHistory:output_type -> pb.IndexChatHistoryResponse
+	8,  // 12: pb.AIChatService.IndexTransactionFile:output_type -> pb.IndexTransactionFileResponse
+	11, // 13: pb.AIChatService.GetAIChatHistory:output_type -> pb.GetAIChatHistoryResponse
+	10, // [10:14] is the sub-list for method output_type
+	6,  // [6:10] is the sub-list for method input_type
+	6,  // [6:6] is the sub-list for extension type_name
+	6,  // [6:6] is the sub-list for extension extendee
+	0,  // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_ai_chat_proto_init() }
@@ -593,13 +898,14 @@ func file_ai_chat_proto_init() {
 	if File_ai_chat_proto != nil {
 		return
 	}
+	file_ai_chat_proto_msgTypes[0].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_chat_proto_rawDesc), len(file_ai_chat_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   9,
+			NumMessages:   13,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

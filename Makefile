@@ -46,3 +46,20 @@ tail-http2:
 grant-ADC: 
 	gcloud auth application-default set-quota-project lazervault-460507
 
+# Facial Recognition Service Commands
+facial-recognition-build:
+	@echo "Building facial recognition gateway..."
+	docker build -f Dockerfile.facial-recognition -t facial-recognition-gateway:latest .
+
+facial-recognition-run:
+	@echo "Running facial recognition services..."
+	docker-compose -f docker-compose.facial-recognition.yml up --build
+
+facial-recognition-test:
+	@echo "Testing facial recognition endpoints..."
+	./scripts/test-facial-recognition.sh
+
+facial-recognition-clean:
+	@echo "Cleaning up facial recognition containers..."
+	docker-compose -f docker-compose.facial-recognition.yml down -v
+

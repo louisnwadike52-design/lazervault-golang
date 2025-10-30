@@ -29,13 +29,26 @@
       "name": "ExchangeService"
     },
     {
+      "name": "FacialRecognitionService",
+      "description": "AI-powered facial recognition service for user authentication and verification."
+    },
+    {
       "name": "GenerateTxDataService"
+    },
+    {
+      "name": "InsuranceService"
+    },
+    {
+      "name": "InvoicePaymentService"
     },
     {
       "name": "InvoiceService"
     },
     {
       "name": "RecipientService"
+    },
+    {
+      "name": "TaggedInvoiceService"
     },
     {
       "name": "TransactionService"
@@ -420,7 +433,7 @@
         "parameters": [
           {
             "name": "body",
-            "description": "Payload containing the user's query for the AI chatbot.",
+            "description": "Payload containing the user's query for the AI chatbot with optional file.",
             "in": "body",
             "required": true,
             "schema": {
@@ -1156,16 +1169,40 @@
         ]
       }
     },
-    "/v1/invoices": {
+    "/v1/face/health": {
       "get": {
-        "summary": "List Invoices",
-        "description": "Retrieves a paginated list of invoices for the authenticated user, optionally filtered by status.",
-        "operationId": "InvoiceService_ListInvoices",
+        "summary": "Health Check",
+        "description": "Check the health and availability of the facial recognition service",
+        "operationId": "FacialRecognitionService_HealthCheck",
         "responses": {
           "200": {
-            "description": "OK",
+            "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/pbListInvoicesResponse"
+              "$ref": "#/definitions/pbHealthCheckResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "System"
+        ]
+      }
+    },
+    "/v1/face/register": {
+      "post": {
+        "summary": "Register Face",
+        "description": "Register a new face for a user with optional duplicate detection. Supports JPG/PNG images up to 32MB.",
+        "operationId": "FacialRecognitionService_RegisterFace",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbRegisterFaceResponse"
             }
           },
           "default": {
@@ -1177,47 +1214,826 @@
         },
         "parameters": [
           {
-            "name": "pageSize",
-            "description": "Number of invoices per page. Default: 20.",
+            "name": "body",
+            "description": "Request to register a new face for facial recognition",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/pbRegisterFaceRequest"
+            }
+          }
+        ],
+        "tags": [
+          "Facial Recognition"
+        ],
+        "consumes": [
+          "multipart/form-data"
+        ],
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/v1/face/verify": {
+      "post": {
+        "summary": "Verify Face",
+        "description": "Verify a user's identity by comparing their face against registered faces. Returns confidence score and verification result.",
+        "operationId": "FacialRecognitionService_VerifyFace",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbVerifyFaceResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "Request to verify a user's face against registered faces",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/pbVerifyFaceRequest"
+            }
+          }
+        ],
+        "tags": [
+          "Facial Recognition"
+        ],
+        "consumes": [
+          "multipart/form-data"
+        ],
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/v1/insurance": {
+      "get": {
+        "summary": "Insurance Policy Management",
+        "operationId": "InsuranceService_GetUserInsurances",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbGetUserInsurancesResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "page",
             "in": "query",
             "required": false,
             "type": "integer",
             "format": "int32"
           },
           {
-            "name": "pageToken",
-            "description": "Token for fetching the next page. Optional.",
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "tags": [
+          "InsuranceService"
+        ]
+      },
+      "post": {
+        "operationId": "InsuranceService_CreateInsurance",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbCreateInsuranceResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/pbCreateInsuranceRequest"
+            }
+          }
+        ],
+        "tags": [
+          "InsuranceService"
+        ]
+      },
+      "put": {
+        "operationId": "InsuranceService_UpdateInsurance",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbUpdateInsuranceResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/pbUpdateInsuranceRequest"
+            }
+          }
+        ],
+        "tags": [
+          "InsuranceService"
+        ]
+      }
+    },
+    "/v1/insurance/claims": {
+      "get": {
+        "operationId": "InsuranceService_GetUserClaims",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbGetUserClaimsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "tags": [
+          "InsuranceService"
+        ]
+      },
+      "post": {
+        "operationId": "InsuranceService_CreateClaim",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbCreateClaimResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/pbCreateClaimRequest"
+            }
+          }
+        ],
+        "tags": [
+          "InsuranceService"
+        ]
+      },
+      "put": {
+        "operationId": "InsuranceService_UpdateClaim",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbUpdateClaimResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/pbUpdateClaimRequest"
+            }
+          }
+        ],
+        "tags": [
+          "InsuranceService"
+        ]
+      }
+    },
+    "/v1/insurance/claims/{id}": {
+      "get": {
+        "operationId": "InsuranceService_GetClaimById",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbGetClaimByIdResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "InsuranceService"
+        ]
+      }
+    },
+    "/v1/insurance/payments": {
+      "get": {
+        "operationId": "InsuranceService_GetUserPayments",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbGetUserPaymentsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "tags": [
+          "InsuranceService"
+        ]
+      },
+      "post": {
+        "operationId": "InsuranceService_CreatePayment",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbCreatePaymentResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/pbCreatePaymentRequest"
+            }
+          }
+        ],
+        "tags": [
+          "InsuranceService"
+        ]
+      }
+    },
+    "/v1/insurance/payments/overdue": {
+      "get": {
+        "operationId": "InsuranceService_GetOverduePayments",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbGetOverduePaymentsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "InsuranceService"
+        ]
+      }
+    },
+    "/v1/insurance/payments/statistics": {
+      "get": {
+        "operationId": "InsuranceService_GetPaymentStatistics",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbGetPaymentStatisticsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "startDate",
             "in": "query",
             "required": false,
             "type": "string"
           },
           {
-            "name": "statusFilter",
-            "description": "Optional filter\n\nOptional filter by invoice status.",
+            "name": "endDate",
             "in": "query",
             "required": false,
-            "type": "string",
-            "enum": [
-              "DRAFT",
-              "SENT",
-              "PAID",
-              "VOID",
-              "OVERDUE"
-            ],
-            "default": "DRAFT"
+            "type": "string"
           }
         ],
         "tags": [
-          "Invoice"
+          "InsuranceService"
+        ]
+      }
+    },
+    "/v1/insurance/payments/{id}": {
+      "get": {
+        "operationId": "InsuranceService_GetPaymentById",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbGetPaymentByIdResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "InsuranceService"
+        ]
+      }
+    },
+    "/v1/insurance/payments/{paymentId}/process": {
+      "post": {
+        "operationId": "InsuranceService_ProcessPayment",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbProcessPaymentResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "paymentId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/InsuranceServiceProcessPaymentBody"
+            }
+          }
+        ],
+        "tags": [
+          "InsuranceService"
+        ]
+      }
+    },
+    "/v1/insurance/payments/{paymentId}/receipt": {
+      "post": {
+        "summary": "Receipt Management",
+        "operationId": "InsuranceService_GeneratePaymentReceipt",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbGeneratePaymentReceiptResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "paymentId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "InsuranceService"
+        ]
+      }
+    },
+    "/v1/insurance/receipts": {
+      "get": {
+        "operationId": "InsuranceService_GetUserReceipts",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbGetUserReceiptsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "tags": [
+          "InsuranceService"
+        ]
+      }
+    },
+    "/v1/insurance/search": {
+      "get": {
+        "operationId": "InsuranceService_SearchInsurances",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbSearchInsurancesResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "query",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "tags": [
+          "InsuranceService"
+        ]
+      }
+    },
+    "/v1/insurance/statistics": {
+      "get": {
+        "summary": "Statistics",
+        "operationId": "InsuranceService_GetInsuranceStatistics",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbGetInsuranceStatisticsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "InsuranceService"
+        ]
+      }
+    },
+    "/v1/insurance/{id}": {
+      "get": {
+        "operationId": "InsuranceService_GetInsuranceById",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbGetInsuranceByIdResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "InsuranceService"
+        ]
+      },
+      "delete": {
+        "operationId": "InsuranceService_DeleteInsurance",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbDeleteInsuranceResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "InsuranceService"
+        ]
+      }
+    },
+    "/v1/insurance/{insuranceId}/claims": {
+      "get": {
+        "summary": "Claims Management",
+        "operationId": "InsuranceService_GetInsuranceClaims",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbGetInsuranceClaimsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "insuranceId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "tags": [
+          "InsuranceService"
+        ]
+      }
+    },
+    "/v1/insurance/{insuranceId}/payments": {
+      "get": {
+        "summary": "Payment Management",
+        "operationId": "InsuranceService_GetInsurancePayments",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbGetInsurancePaymentsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "insuranceId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "tags": [
+          "InsuranceService"
+        ]
+      }
+    },
+    "/v1/invoices": {
+      "get": {
+        "summary": "Get all invoices for a user",
+        "operationId": "InvoiceService_GetInvoices",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbGetInvoicesResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "tags": [
+          "InvoiceService"
         ]
       },
       "post": {
-        "summary": "Create Invoice",
-        "description": "Creates a new invoice for the authenticated user.",
+        "summary": "Create a new invoice",
         "operationId": "InvoiceService_CreateInvoice",
         "responses": {
           "200": {
-            "description": "Invoice Created Successfully",
+            "description": "A successful response.",
             "schema": {
               "$ref": "#/definitions/pbCreateInvoiceResponse"
             }
@@ -1232,7 +2048,6 @@
         "parameters": [
           {
             "name": "body",
-            "description": "Payload to create a new invoice.",
             "in": "body",
             "required": true,
             "schema": {
@@ -1241,20 +2056,64 @@
           }
         ],
         "tags": [
-          "Invoice"
+          "InvoiceService"
+        ]
+      }
+    },
+    "/v1/invoices/status": {
+      "get": {
+        "summary": "Get invoices by status",
+        "operationId": "InvoiceService_GetInvoicesByStatus",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbGetInvoicesByStatusResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "isPaid",
+            "in": "query",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "tags": [
+          "InvoiceService"
         ]
       }
     },
     "/v1/invoices/{invoiceId}": {
       "get": {
-        "summary": "Get Invoice",
-        "description": "Retrieves the details of a specific invoice by its ID.",
-        "operationId": "InvoiceService_GetInvoice",
+        "summary": "Get a specific invoice by ID",
+        "operationId": "InvoiceService_GetInvoiceById",
         "responses": {
           "200": {
-            "description": "OK",
+            "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/pbInvoice"
+              "$ref": "#/definitions/pbGetInvoiceByIdResponse"
             }
           },
           "default": {
@@ -1267,14 +2126,149 @@
         "parameters": [
           {
             "name": "invoiceId",
-            "description": "The unique ID of the invoice to retrieve.",
             "in": "path",
             "required": true,
             "type": "string"
           }
         ],
         "tags": [
-          "Invoice"
+          "InvoiceService"
+        ]
+      },
+      "delete": {
+        "summary": "Delete an invoice",
+        "operationId": "InvoiceService_DeleteInvoice",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbDeleteInvoiceResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "invoiceId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "InvoiceService"
+        ]
+      },
+      "put": {
+        "summary": "Update an existing invoice",
+        "operationId": "InvoiceService_UpdateInvoice",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbUpdateInvoiceResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "invoiceId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/InvoiceServiceUpdateInvoiceBody"
+            }
+          }
+        ],
+        "tags": [
+          "InvoiceService"
+        ]
+      }
+    },
+    "/v1/invoices/{invoiceId}/mark-paid": {
+      "post": {
+        "summary": "Mark invoice as paid",
+        "operationId": "InvoiceService_MarkInvoiceAsPaid",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbMarkInvoiceAsPaidResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "invoiceId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/InvoiceServiceMarkInvoiceAsPaidBody"
+            }
+          }
+        ],
+        "tags": [
+          "InvoiceService"
+        ]
+      }
+    },
+    "/v1/invoices/{invoiceId}/send": {
+      "post": {
+        "summary": "Send invoice to recipient",
+        "operationId": "InvoiceService_SendInvoice",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbSendInvoiceResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "invoiceId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "InvoiceService"
         ]
       }
     },
@@ -1794,6 +2788,46 @@
         ]
       }
     },
+    "/v1/voice/note/upload": {
+      "post": {
+        "summary": "Process Voice Note",
+        "description": "Upload and process an audio file via multipart form data. File should be uploaded as 'audio_file' field.",
+        "operationId": "VoiceSessionService_ProcessVoiceNote",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbProcessVoiceNoteResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "Request to process an audio file via multipart form upload.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/pbProcessVoiceNoteRequest"
+            }
+          }
+        ],
+        "tags": [
+          "Voice Note"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/v1/voice/session/start": {
       "post": {
         "summary": "Start Voice Session",
@@ -1960,6 +2994,57 @@
         }
       },
       "title": "UpdateSecuritySettings"
+    },
+    "InsuranceServiceProcessPaymentBody": {
+      "type": "object",
+      "properties": {
+        "paymentMethod": {
+          "type": "string"
+        },
+        "paymentDetails": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "InvoiceServiceMarkInvoiceAsPaidBody": {
+      "type": "object",
+      "properties": {
+        "paymentMethod": {
+          "$ref": "#/definitions/pbPaymentMethod"
+        },
+        "paymentReference": {
+          "type": "string"
+        }
+      },
+      "title": "MarkInvoiceAsPaidRequest represents a request to mark an invoice as paid"
+    },
+    "InvoiceServiceUpdateInvoiceBody": {
+      "type": "object",
+      "properties": {
+        "recipientId": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "amount": {
+          "type": "number",
+          "format": "double"
+        },
+        "currency": {
+          "type": "string"
+        },
+        "dueDate": {
+          "type": "string"
+        }
+      },
+      "title": "UpdateInvoiceRequest represents a request to update an existing invoice"
     },
     "RecipientServiceUpdateRecipientBody": {
       "type": "object",
@@ -2160,6 +3245,17 @@
       },
       "title": "AccountSummary: Used for listing accounts (e.g., in the carousel)"
     },
+    "pbAccountType": {
+      "type": "string",
+      "enum": [
+        "ACCOUNT_TYPE_PERSONAL",
+        "ACCOUNT_TYPE_SAVINGS",
+        "ACCOUNT_TYPE_INVESTMENT",
+        "ACCOUNT_TYPE_BUSINESS"
+      ],
+      "default": "ACCOUNT_TYPE_PERSONAL",
+      "title": "Account Type Enum"
+    },
     "pbAddAccountCardResponse": {
       "type": "object",
       "properties": {
@@ -2169,6 +3265,96 @@
         }
       },
       "title": "Response after adding a card"
+    },
+    "pbAddInvoicePaymentMethodResponse": {
+      "type": "object",
+      "properties": {
+        "paymentMethod": {
+          "$ref": "#/definitions/pbPaymentMethod"
+        },
+        "success": {
+          "type": "boolean"
+        },
+        "message": {
+          "type": "string"
+        },
+        "verificationUrl": {
+          "type": "string"
+        }
+      }
+    },
+    "pbApproveInvoicePaymentExtensionResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "message": {
+          "type": "string"
+        },
+        "updatedRequest": {
+          "$ref": "#/definitions/pbPaymentExtensionRequest"
+        }
+      }
+    },
+    "pbBalanceHistoryEntry": {
+      "type": "object",
+      "properties": {
+        "timestamp": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "balance": {
+          "type": "number",
+          "format": "double"
+        },
+        "changeAmount": {
+          "type": "number",
+          "format": "double"
+        },
+        "transactionType": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "reference": {
+          "type": "string"
+        }
+      }
+    },
+    "pbBulkSetPaymentRemindersResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "message": {
+          "type": "string"
+        },
+        "updatedCount": {
+          "type": "string",
+          "format": "uint64"
+        }
+      }
+    },
+    "pbCancelInvoicePaymentResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "message": {
+          "type": "string"
+        },
+        "newStatus": {
+          "$ref": "#/definitions/pbInvoicePaymentStatus"
+        },
+        "refundAmount": {
+          "type": "number",
+          "format": "double"
+        }
+      }
     },
     "pbCategorySummary": {
       "type": "object",
@@ -2188,6 +3374,45 @@
         }
       },
       "title": "Represents summary data for a specific category"
+    },
+    "pbChatFile": {
+      "type": "object",
+      "properties": {
+        "filename": {
+          "type": "string",
+          "description": "Original filename (required for uploads).",
+          "title": "For uploads - client provides these fields"
+        },
+        "contentType": {
+          "type": "string",
+          "description": "MIME type of the file (required for uploads)."
+        },
+        "fileContent": {
+          "type": "string",
+          "format": "byte",
+          "description": "Binary content of the file (required for uploads)."
+        },
+        "fileId": {
+          "type": "string",
+          "description": "Unique identifier for the file (set by server).",
+          "title": "For responses - server provides these fields"
+        },
+        "fileUrl": {
+          "type": "string",
+          "description": "URL to access the file (set by server for downloads/generated files)."
+        },
+        "fileSize": {
+          "type": "string",
+          "format": "int64",
+          "description": "Size of the file in bytes (set by server)."
+        },
+        "uploadTimestamp": {
+          "type": "string",
+          "description": "When the file was uploaded in RFC3339 format (set by server)."
+        }
+      },
+      "description": "Represents a file in the chat context (for upload or download).",
+      "title": "Chat File"
     },
     "pbChatMessage": {
       "type": "object",
@@ -2288,50 +3513,74 @@
       },
       "description": "Response message after creating an account."
     },
+    "pbCreateClaimRequest": {
+      "type": "object",
+      "properties": {
+        "claim": {
+          "$ref": "#/definitions/pbInsuranceClaim"
+        }
+      }
+    },
+    "pbCreateClaimResponse": {
+      "type": "object",
+      "properties": {
+        "claim": {
+          "$ref": "#/definitions/pbInsuranceClaim"
+        },
+        "success": {
+          "type": "boolean"
+        },
+        "msg": {
+          "type": "string"
+        }
+      }
+    },
+    "pbCreateInsuranceRequest": {
+      "type": "object",
+      "properties": {
+        "insurance": {
+          "$ref": "#/definitions/pbInsurance"
+        }
+      }
+    },
+    "pbCreateInsuranceResponse": {
+      "type": "object",
+      "properties": {
+        "insurance": {
+          "$ref": "#/definitions/pbInsurance"
+        },
+        "success": {
+          "type": "boolean"
+        },
+        "msg": {
+          "type": "string"
+        }
+      }
+    },
     "pbCreateInvoiceRequest": {
       "type": "object",
       "properties": {
-        "customerDetails": {
-          "$ref": "#/definitions/pbCustomerDetails",
-          "description": "Details of the customer being invoiced.",
-          "title": "invoice_number can be auto-generated or provided\nstring invoice_number = 1 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {description: \"Optional custom invoice number.\"}];"
+        "recipientId": {
+          "type": "string"
         },
-        "items": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/pbInvoiceItem"
-          },
-          "description": "Line items for the invoice."
+        "title": {
+          "type": "string"
         },
-        "tax": {
+        "description": {
+          "type": "string"
+        },
+        "amount": {
           "type": "number",
-          "format": "double",
-          "description": "Optional tax amount."
+          "format": "double"
         },
-        "currencyCode": {
-          "type": "string",
-          "description": "3-letter currency code (e.g., USD)."
+        "currency": {
+          "type": "string"
         },
         "dueDate": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Payment due date."
-        },
-        "notes": {
-          "type": "string",
-          "description": "Optional notes or terms.",
-          "title": "Status usually starts as DRAFT or SENT"
+          "type": "string"
         }
       },
-      "description": "Payload to create a new invoice.",
-      "title": "Create Invoice Request",
-      "required": [
-        "customerDetails",
-        "items",
-        "currencyCode",
-        "dueDate"
-      ]
+      "title": "CreateInvoiceRequest represents a request to create a new invoice"
     },
     "pbCreateInvoiceResponse": {
       "type": "object",
@@ -2340,8 +3589,29 @@
           "$ref": "#/definitions/pbInvoice"
         }
       },
-      "description": "Contains the details of the newly created invoice.",
-      "title": "Create Invoice Response"
+      "title": "CreateInvoiceResponse represents a response containing the created invoice"
+    },
+    "pbCreatePaymentRequest": {
+      "type": "object",
+      "properties": {
+        "payment": {
+          "$ref": "#/definitions/pbInsurancePayment"
+        }
+      }
+    },
+    "pbCreatePaymentResponse": {
+      "type": "object",
+      "properties": {
+        "payment": {
+          "$ref": "#/definitions/pbInsurancePayment"
+        },
+        "success": {
+          "type": "boolean"
+        },
+        "msg": {
+          "type": "string"
+        }
+      }
     },
     "pbCreateRecipientRequest": {
       "type": "object",
@@ -2423,23 +3693,6 @@
         }
       }
     },
-    "pbCustomerDetails": {
-      "type": "object",
-      "properties": {
-        "name": {
-          "type": "string"
-        },
-        "email": {
-          "type": "string",
-          "title": "Optional"
-        },
-        "address": {
-          "type": "string",
-          "title": "Optional"
-        }
-      },
-      "title": "Represents customer details associated with an invoice"
-    },
     "pbData": {
       "type": "object",
       "properties": {
@@ -2451,12 +3704,43 @@
         }
       }
     },
+    "pbDeleteInsuranceResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "msg": {
+          "type": "string"
+        }
+      }
+    },
+    "pbDeleteInvoiceResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        }
+      },
+      "title": "DeleteInvoiceResponse represents a response after deleting an invoice"
+    },
     "pbDeleteRecipientResponse": {
       "type": "object",
       "properties": {
         "message": {
           "type": "string",
           "title": "e.g., \"Recipient deleted successfully\""
+        }
+      }
+    },
+    "pbDeleteTaggedInvoiceResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "message": {
+          "type": "string"
         }
       }
     },
@@ -2472,6 +3756,82 @@
       "default": "DEPOSIT_STATUS_UNSPECIFIED",
       "description": "- DEPOSIT_STATUS_FAILED: Note: This represents final failure *after* processing attempt",
       "title": "Represents the status of a deposit transaction"
+    },
+    "pbDisputeInvoicePaymentResponse": {
+      "type": "object",
+      "properties": {
+        "dispute": {
+          "$ref": "#/definitions/pbPaymentDispute"
+        },
+        "success": {
+          "type": "boolean"
+        },
+        "message": {
+          "type": "string"
+        },
+        "disputeId": {
+          "type": "string"
+        }
+      }
+    },
+    "pbDisputeStatus": {
+      "type": "string",
+      "enum": [
+        "DISPUTE_STATUS_PENDING",
+        "DISPUTE_STATUS_INVESTIGATING",
+        "DISPUTE_STATUS_RESOLVED",
+        "DISPUTE_STATUS_REJECTED",
+        "DISPUTE_STATUS_ESCALATED"
+      ],
+      "default": "DISPUTE_STATUS_PENDING",
+      "title": "Dispute Status Enum"
+    },
+    "pbDuplicateDetails": {
+      "type": "object",
+      "properties": {
+        "isDuplicate": {
+          "type": "boolean"
+        },
+        "threshold": {
+          "type": "number",
+          "format": "double"
+        },
+        "totalMatches": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "primaryMatch": {
+          "$ref": "#/definitions/pbPrimaryMatch"
+        },
+        "allMatches": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbMatch"
+          }
+        },
+        "message": {
+          "type": "string"
+        },
+        "securityNote": {
+          "type": "string"
+        }
+      },
+      "title": "Duplicate Details for Registration"
+    },
+    "pbEmailInvoicePaymentReceiptResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "message": {
+          "type": "string"
+        },
+        "trackingId": {
+          "type": "string"
+        }
+      }
     },
     "pbExchangeStatus": {
       "type": "string",
@@ -2537,6 +3897,120 @@
       },
       "title": "Represents a recorded exchange transaction"
     },
+    "pbFileAnalysis": {
+      "type": "object",
+      "properties": {
+        "results": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbFileAnalysisResult"
+          },
+          "description": "Analysis results for each processed file."
+        },
+        "summary": {
+          "type": "string",
+          "description": "Overall summary of file analysis."
+        }
+      },
+      "description": "Analysis results from AI processing of uploaded files.",
+      "title": "File Analysis"
+    },
+    "pbFileAnalysisResult": {
+      "type": "object",
+      "properties": {
+        "fileId": {
+          "type": "string",
+          "description": "ID of the analyzed file."
+        },
+        "filename": {
+          "type": "string",
+          "description": "Name of the analyzed file."
+        },
+        "analysisType": {
+          "type": "string",
+          "description": "Type of analysis performed (e.g., 'text_extraction', 'image_recognition', 'data_analysis')."
+        },
+        "analysisResult": {
+          "type": "string",
+          "description": "Detailed analysis results."
+        },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Additional metadata extracted from the file."
+        },
+        "processingSuccess": {
+          "type": "boolean",
+          "description": "Whether file processing was successful."
+        },
+        "errorMessage": {
+          "type": "string",
+          "description": "Error message if processing failed."
+        }
+      },
+      "description": "Analysis result for a single file.",
+      "title": "File Analysis Result"
+    },
+    "pbFilterTaggedInvoicesByAmountResponse": {
+      "type": "object",
+      "properties": {
+        "invoices": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbTaggedInvoice"
+          }
+        },
+        "nextPageToken": {
+          "type": "string"
+        },
+        "totalCount": {
+          "type": "string",
+          "format": "uint64"
+        }
+      }
+    },
+    "pbFilterTaggedInvoicesByDateRangeResponse": {
+      "type": "object",
+      "properties": {
+        "invoices": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbTaggedInvoice"
+          }
+        },
+        "nextPageToken": {
+          "type": "string"
+        },
+        "totalCount": {
+          "type": "string",
+          "format": "uint64"
+        }
+      }
+    },
+    "pbFilterTaggedInvoicesByPriorityResponse": {
+      "type": "object",
+      "properties": {
+        "invoices": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbTaggedInvoice"
+          }
+        },
+        "nextPageToken": {
+          "type": "string"
+        },
+        "totalCount": {
+          "type": "string",
+          "format": "uint64"
+        }
+      }
+    },
     "pbFoundRecipientResult": {
       "type": "object",
       "properties": {
@@ -2550,6 +4024,41 @@
         }
       },
       "title": "Renamed from SimilarRecipientUser and fields adjusted"
+    },
+    "pbGenerateInvoicePaymentReceiptResponse": {
+      "type": "object",
+      "properties": {
+        "receiptUrl": {
+          "type": "string"
+        },
+        "receiptData": {
+          "type": "string",
+          "format": "byte"
+        },
+        "message": {
+          "type": "string"
+        },
+        "success": {
+          "type": "boolean"
+        }
+      }
+    },
+    "pbGeneratePaymentReceiptResponse": {
+      "type": "object",
+      "properties": {
+        "receiptUrl": {
+          "type": "string"
+        },
+        "receiptId": {
+          "type": "string"
+        },
+        "success": {
+          "type": "boolean"
+        },
+        "msg": {
+          "type": "string"
+        }
+      }
     },
     "pbGenerateUserTxDataFileRequest": {
       "type": "object",
@@ -2585,6 +4094,21 @@
       },
       "description": "A list of AI chat history entries for the user.",
       "title": "Get AI Chat History Response"
+    },
+    "pbGetAccountBalanceHistoryResponse": {
+      "type": "object",
+      "properties": {
+        "entries": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbBalanceHistoryEntry"
+          }
+        },
+        "nextPageToken": {
+          "type": "string"
+        }
+      }
     },
     "pbGetAccountCardsResponse": {
       "type": "object",
@@ -2625,6 +4149,66 @@
       },
       "description": "Contains a list of messages and pagination info.",
       "title": "Get Chat History Response"
+    },
+    "pbGetClaimByIdResponse": {
+      "type": "object",
+      "properties": {
+        "claim": {
+          "$ref": "#/definitions/pbInsuranceClaim"
+        },
+        "success": {
+          "type": "boolean"
+        },
+        "msg": {
+          "type": "string"
+        }
+      }
+    },
+    "pbGetCryptoInvoicePaymentStatusResponse": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string"
+        },
+        "confirmations": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "requiredConfirmations": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "amount": {
+          "type": "number",
+          "format": "double"
+        },
+        "currency": {
+          "type": "string"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "pbGetCryptoWalletBalanceResponse": {
+      "type": "object",
+      "properties": {
+        "balance": {
+          "type": "number",
+          "format": "double"
+        },
+        "currency": {
+          "type": "string"
+        },
+        "lastUpdated": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "network": {
+          "type": "string"
+        }
+      }
     },
     "pbGetDepositDetailsResponse": {
       "type": "object",
@@ -2706,6 +4290,356 @@
       "description": "Contains the current exchange rate.",
       "title": "Get Exchange Rate Response"
     },
+    "pbGetInsuranceByIdResponse": {
+      "type": "object",
+      "properties": {
+        "insurance": {
+          "$ref": "#/definitions/pbInsurance"
+        },
+        "success": {
+          "type": "boolean"
+        },
+        "msg": {
+          "type": "string"
+        }
+      }
+    },
+    "pbGetInsuranceClaimsResponse": {
+      "type": "object",
+      "properties": {
+        "claims": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbInsuranceClaim"
+          }
+        },
+        "pagination": {
+          "$ref": "#/definitions/pbPaginationInfo"
+        },
+        "success": {
+          "type": "boolean"
+        },
+        "msg": {
+          "type": "string"
+        }
+      }
+    },
+    "pbGetInsurancePaymentsResponse": {
+      "type": "object",
+      "properties": {
+        "payments": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbInsurancePayment"
+          }
+        },
+        "pagination": {
+          "$ref": "#/definitions/pbPaginationInfo"
+        },
+        "success": {
+          "type": "boolean"
+        },
+        "msg": {
+          "type": "string"
+        }
+      }
+    },
+    "pbGetInsuranceStatisticsResponse": {
+      "type": "object",
+      "properties": {
+        "totalPolicies": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "activePolicies": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "expiredPolicies": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "totalCoverageAmount": {
+          "type": "number",
+          "format": "double"
+        },
+        "totalPremiumAmount": {
+          "type": "number",
+          "format": "double"
+        },
+        "policiesByType": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "success": {
+          "type": "boolean"
+        },
+        "msg": {
+          "type": "string"
+        }
+      }
+    },
+    "pbGetInvoiceByIdResponse": {
+      "type": "object",
+      "properties": {
+        "invoice": {
+          "$ref": "#/definitions/pbInvoice"
+        }
+      },
+      "title": "GetInvoiceByIdResponse represents a response containing a single invoice"
+    },
+    "pbGetInvoicePaymentHistoryResponse": {
+      "type": "object",
+      "properties": {
+        "transactions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbInvoicePaymentTransaction"
+          }
+        },
+        "nextPageToken": {
+          "type": "string"
+        },
+        "totalCount": {
+          "type": "string",
+          "format": "uint64"
+        }
+      }
+    },
+    "pbGetInvoicePaymentNotificationsResponse": {
+      "type": "object",
+      "properties": {
+        "notifications": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbInvoicePaymentNotification"
+          }
+        },
+        "nextPageToken": {
+          "type": "string"
+        },
+        "totalCount": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "unreadCount": {
+          "type": "string",
+          "format": "uint64"
+        }
+      }
+    },
+    "pbGetInvoicePaymentReceiptResponse": {
+      "type": "object",
+      "properties": {
+        "receiptUrl": {
+          "type": "string"
+        },
+        "receiptData": {
+          "type": "string",
+          "format": "byte"
+        },
+        "generatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "pbGetInvoicePaymentStatisticsResponse": {
+      "type": "object",
+      "properties": {
+        "totalPayments": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "successfulPayments": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "failedPayments": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "totalAmount": {
+          "type": "number",
+          "format": "double"
+        },
+        "totalFees": {
+          "type": "number",
+          "format": "double"
+        },
+        "averagePaymentAmount": {
+          "type": "number",
+          "format": "double"
+        },
+        "paymentMethodUsage": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "format": "uint64"
+          }
+        },
+        "successRate": {
+          "type": "number",
+          "format": "double"
+        }
+      }
+    },
+    "pbGetInvoicePaymentStatusResponse": {
+      "type": "object",
+      "properties": {
+        "transaction": {
+          "$ref": "#/definitions/pbInvoicePaymentTransaction"
+        },
+        "currentStatus": {
+          "$ref": "#/definitions/pbInvoicePaymentStatus"
+        },
+        "statusMessage": {
+          "type": "string"
+        },
+        "lastUpdated": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "pbGetInvoicesByStatusResponse": {
+      "type": "object",
+      "properties": {
+        "invoices": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbInvoice"
+          }
+        },
+        "total": {
+          "type": "string",
+          "format": "int64"
+        }
+      },
+      "title": "GetInvoicesByStatusResponse represents a response containing a list of invoices filtered by status"
+    },
+    "pbGetInvoicesResponse": {
+      "type": "object",
+      "properties": {
+        "invoices": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbInvoice"
+          }
+        },
+        "total": {
+          "type": "string",
+          "format": "int64"
+        }
+      },
+      "title": "GetInvoicesResponse represents a response containing a list of invoices"
+    },
+    "pbGetOverduePaymentsResponse": {
+      "type": "object",
+      "properties": {
+        "payments": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbInsurancePayment"
+          }
+        },
+        "success": {
+          "type": "boolean"
+        },
+        "msg": {
+          "type": "string"
+        }
+      }
+    },
+    "pbGetOverdueTaggedInvoicesResponse": {
+      "type": "object",
+      "properties": {
+        "invoices": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbTaggedInvoice"
+          }
+        },
+        "nextPageToken": {
+          "type": "string"
+        },
+        "totalCount": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "totalOverdueAmount": {
+          "type": "number",
+          "format": "double"
+        }
+      }
+    },
+    "pbGetPaymentByIdResponse": {
+      "type": "object",
+      "properties": {
+        "payment": {
+          "$ref": "#/definitions/pbInsurancePayment"
+        },
+        "success": {
+          "type": "boolean"
+        },
+        "msg": {
+          "type": "string"
+        }
+      }
+    },
+    "pbGetPaymentStatisticsResponse": {
+      "type": "object",
+      "properties": {
+        "totalPayments": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "completedPayments": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "pendingPayments": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "failedPayments": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "totalAmount": {
+          "type": "number",
+          "format": "double"
+        },
+        "completedAmount": {
+          "type": "number",
+          "format": "double"
+        },
+        "paymentsByMethod": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "success": {
+          "type": "boolean"
+        },
+        "msg": {
+          "type": "string"
+        }
+      }
+    },
     "pbGetRecentExchangesResponse": {
       "type": "object",
       "properties": {
@@ -2722,6 +4656,18 @@
       },
       "description": "List of recent international exchange transactions.",
       "title": "Get Recent Exchanges Response"
+    },
+    "pbGetRecentInvoicePaymentTransactionsResponse": {
+      "type": "object",
+      "properties": {
+        "transactions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbInvoicePaymentTransaction"
+          }
+        }
+      }
     },
     "pbGetRecipientResponse": {
       "type": "object",
@@ -2793,6 +4739,63 @@
         }
       },
       "title": "Response message containing calculated statistics"
+    },
+    "pbGetTaggedInvoiceByIdResponse": {
+      "type": "object",
+      "properties": {
+        "invoice": {
+          "$ref": "#/definitions/pbTaggedInvoice"
+        }
+      }
+    },
+    "pbGetTaggedInvoiceStatisticsResponse": {
+      "type": "object",
+      "properties": {
+        "statistics": {
+          "$ref": "#/definitions/pbTaggedInvoiceStatistics"
+        }
+      }
+    },
+    "pbGetTaggedInvoicesByStatusResponse": {
+      "type": "object",
+      "properties": {
+        "invoices": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbTaggedInvoice"
+          }
+        },
+        "nextPageToken": {
+          "type": "string"
+        },
+        "totalCount": {
+          "type": "string",
+          "format": "uint64"
+        }
+      }
+    },
+    "pbGetTaggedInvoicesResponse": {
+      "type": "object",
+      "properties": {
+        "invoices": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbTaggedInvoice"
+          }
+        },
+        "nextPageToken": {
+          "type": "string"
+        },
+        "totalCount": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "summary": {
+          "$ref": "#/definitions/pbTaggedInvoicesSummary"
+        }
+      }
     },
     "pbGetTransactionsResponse": {
       "type": "object",
@@ -2897,6 +4900,44 @@
       },
       "title": "Response message containing transfer details"
     },
+    "pbGetUpcomingTaggedInvoicesResponse": {
+      "type": "object",
+      "properties": {
+        "invoices": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbTaggedInvoice"
+          }
+        },
+        "nextPageToken": {
+          "type": "string"
+        },
+        "totalCount": {
+          "type": "string",
+          "format": "uint64"
+        }
+      }
+    },
+    "pbGetUserAccountBalanceResponse": {
+      "type": "object",
+      "properties": {
+        "accounts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbUserAccountBalance"
+          }
+        },
+        "totalBalance": {
+          "type": "number",
+          "format": "double"
+        },
+        "primaryCurrency": {
+          "type": "string"
+        }
+      }
+    },
     "pbGetUserAccountsResponse": {
       "type": "object",
       "properties": {
@@ -2906,6 +4947,104 @@
             "type": "object",
             "$ref": "#/definitions/pbAccountSummary"
           }
+        }
+      }
+    },
+    "pbGetUserClaimsResponse": {
+      "type": "object",
+      "properties": {
+        "claims": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbInsuranceClaim"
+          }
+        },
+        "pagination": {
+          "$ref": "#/definitions/pbPaginationInfo"
+        },
+        "success": {
+          "type": "boolean"
+        },
+        "msg": {
+          "type": "string"
+        }
+      }
+    },
+    "pbGetUserInsurancesResponse": {
+      "type": "object",
+      "properties": {
+        "insurances": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbInsurance"
+          }
+        },
+        "pagination": {
+          "$ref": "#/definitions/pbPaginationInfo"
+        },
+        "success": {
+          "type": "boolean"
+        },
+        "msg": {
+          "type": "string"
+        }
+      }
+    },
+    "pbGetUserInvoicePaymentMethodsResponse": {
+      "type": "object",
+      "properties": {
+        "paymentMethods": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbPaymentMethod"
+          }
+        },
+        "defaultMethod": {
+          "$ref": "#/definitions/pbPaymentMethod"
+        }
+      }
+    },
+    "pbGetUserPaymentsResponse": {
+      "type": "object",
+      "properties": {
+        "payments": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbInsurancePayment"
+          }
+        },
+        "pagination": {
+          "$ref": "#/definitions/pbPaginationInfo"
+        },
+        "success": {
+          "type": "boolean"
+        },
+        "msg": {
+          "type": "string"
+        }
+      }
+    },
+    "pbGetUserReceiptsResponse": {
+      "type": "object",
+      "properties": {
+        "receiptUrls": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "pagination": {
+          "$ref": "#/definitions/pbPaginationInfo"
+        },
+        "success": {
+          "type": "boolean"
+        },
+        "msg": {
+          "type": "string"
         }
       }
     },
@@ -2979,6 +5118,25 @@
         }
       },
       "title": "Response containing details of a specific withdrawal transaction"
+    },
+    "pbHealthCheckResponse": {
+      "type": "object",
+      "properties": {
+        "healthy": {
+          "type": "boolean"
+        },
+        "message": {
+          "type": "string"
+        },
+        "service_version": {
+          "type": "string"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "title": "Health Check Response"
     },
     "pbIndexChatHistoryRequest": {
       "type": "object",
@@ -3239,63 +5397,264 @@
       },
       "title": "Response after initiating a withdrawal (Acknowledgement)"
     },
-    "pbInvoice": {
+    "pbInsurance": {
       "type": "object",
       "properties": {
-        "invoiceId": {
+        "id": {
+          "type": "string"
+        },
+        "policyNumber": {
+          "type": "string"
+        },
+        "policyHolderName": {
+          "type": "string"
+        },
+        "policyHolderEmail": {
+          "type": "string"
+        },
+        "policyHolderPhone": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "provider": {
+          "type": "string"
+        },
+        "providerLogo": {
+          "type": "string"
+        },
+        "premiumAmount": {
+          "type": "number",
+          "format": "double"
+        },
+        "coverageAmount": {
+          "type": "number",
+          "format": "double"
+        },
+        "currency": {
+          "type": "string"
+        },
+        "startDate": {
+          "type": "string"
+        },
+        "endDate": {
+          "type": "string"
+        },
+        "nextPaymentDate": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "beneficiaries": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "coverageDetails": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "description": {
           "type": "string"
         },
         "userId": {
-          "type": "string",
-          "title": "ID of the user/business issuing the invoice"
+          "type": "string"
         },
-        "invoiceNumber": {
-          "type": "string",
-          "title": "User-friendly invoice number (e.g., INV-001)"
+        "createdAt": {
+          "type": "string"
         },
-        "customerDetails": {
-          "$ref": "#/definitions/pbCustomerDetails"
+        "updatedAt": {
+          "type": "string"
+        }
+      },
+      "title": "Data Models"
+    },
+    "pbInsuranceClaim": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
         },
-        "items": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/pbInvoiceItem"
-          }
+        "claimNumber": {
+          "type": "string"
         },
-        "subtotal": {
-          "type": "number",
-          "format": "double",
-          "title": "Sum of item totals"
+        "insuranceId": {
+          "type": "string"
         },
-        "tax": {
-          "type": "number",
-          "format": "double",
-          "title": "Optional tax amount"
+        "policyNumber": {
+          "type": "string"
         },
-        "totalAmount": {
-          "type": "number",
-          "format": "double",
-          "title": "subtotal + tax"
-        },
-        "currencyCode": {
-          "type": "string",
-          "title": "e.g., USD, GBP"
-        },
-        "issueDate": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "dueDate": {
-          "type": "string",
-          "format": "date-time"
+        "type": {
+          "type": "string"
         },
         "status": {
-          "$ref": "#/definitions/pbInvoiceStatus"
+          "type": "string"
         },
-        "notes": {
-          "type": "string",
-          "title": "Optional notes"
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "claimAmount": {
+          "type": "number",
+          "format": "double"
+        },
+        "approvedAmount": {
+          "type": "number",
+          "format": "double"
+        },
+        "currency": {
+          "type": "string"
+        },
+        "incidentDate": {
+          "type": "string"
+        },
+        "incidentLocation": {
+          "type": "string"
+        },
+        "attachments": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "documents": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "additionalInfo": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "rejectionReason": {
+          "type": "string"
+        },
+        "settlementDate": {
+          "type": "string"
+        },
+        "settlementDetails": {
+          "type": "string"
+        },
+        "userId": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string"
+        },
+        "updatedAt": {
+          "type": "string"
+        }
+      }
+    },
+    "pbInsurancePayment": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "insuranceId": {
+          "type": "string"
+        },
+        "policyNumber": {
+          "type": "string"
+        },
+        "amount": {
+          "type": "number",
+          "format": "double"
+        },
+        "currency": {
+          "type": "string"
+        },
+        "paymentMethod": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "transactionId": {
+          "type": "string"
+        },
+        "referenceNumber": {
+          "type": "string"
+        },
+        "paymentDate": {
+          "type": "string"
+        },
+        "dueDate": {
+          "type": "string"
+        },
+        "processedAt": {
+          "type": "string"
+        },
+        "paymentDetails": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "failureReason": {
+          "type": "string"
+        },
+        "receiptUrl": {
+          "type": "string"
+        },
+        "userId": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string"
+        },
+        "updatedAt": {
+          "type": "string"
+        }
+      }
+    },
+    "pbInvoice": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "userId": {
+          "type": "string"
+        },
+        "recipientId": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "amount": {
+          "type": "number",
+          "format": "double"
+        },
+        "currency": {
+          "type": "string"
+        },
+        "dueDate": {
+          "type": "string"
+        },
+        "isPaid": {
+          "type": "boolean"
+        },
+        "paymentMethodId": {
+          "type": "string"
+        },
+        "paymentReference": {
+          "type": "string"
         },
         "createdAt": {
           "type": "string",
@@ -3303,66 +5662,169 @@
         },
         "updatedAt": {
           "type": "string",
-          "format": "date-time",
-          "title": "google.protobuf.Timestamp paid_date = 16; // Optional"
+          "format": "date-time"
         }
       },
-      "title": "Represents an invoice"
+      "title": "Invoice represents an invoice in the system"
     },
-    "pbInvoiceItem": {
+    "pbInvoicePaymentNotification": {
       "type": "object",
       "properties": {
-        "itemId": {
+        "notificationId": {
+          "type": "string"
+        },
+        "invoiceId": {
+          "type": "string"
+        },
+        "userId": {
+          "type": "string"
+        },
+        "notificationType": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "isRead": {
+          "type": "boolean"
+        },
+        "createdAt": {
           "type": "string",
-          "title": "Optional: ID if linked to a product catalog"
+          "format": "date-time"
+        },
+        "readAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "title": "Invoice Payment Notification Message"
+    },
+    "pbInvoicePaymentResult": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "transactionId": {
+          "type": "string"
+        },
+        "paymentReference": {
+          "type": "string"
+        },
+        "errorMessage": {
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/definitions/pbInvoicePaymentStatus"
+        },
+        "processedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "amountProcessed": {
+          "type": "number",
+          "format": "double"
+        },
+        "feeAmount": {
+          "type": "number",
+          "format": "double"
+        },
+        "receiptUrl": {
+          "type": "string"
+        },
+        "confirmationCode": {
+          "type": "string"
+        }
+      },
+      "title": "Invoice Payment Result Message"
+    },
+    "pbInvoicePaymentStatus": {
+      "type": "string",
+      "enum": [
+        "INVOICE_PAYMENT_STATUS_PENDING",
+        "INVOICE_PAYMENT_STATUS_PROCESSING",
+        "INVOICE_PAYMENT_STATUS_COMPLETED",
+        "INVOICE_PAYMENT_STATUS_FAILED",
+        "INVOICE_PAYMENT_STATUS_CANCELLED",
+        "INVOICE_PAYMENT_STATUS_PARTIALLY_PAID",
+        "INVOICE_PAYMENT_STATUS_REFUNDED",
+        "INVOICE_PAYMENT_STATUS_DISPUTED",
+        "INVOICE_PAYMENT_STATUS_OVERDUE"
+      ],
+      "default": "INVOICE_PAYMENT_STATUS_PENDING",
+      "title": "Invoice Payment Status Enum - comprehensive status for all invoice payment scenarios"
+    },
+    "pbInvoicePaymentTransaction": {
+      "type": "object",
+      "properties": {
+        "transactionId": {
+          "type": "string"
+        },
+        "invoiceId": {
+          "type": "string"
+        },
+        "userId": {
+          "type": "string"
+        },
+        "amount": {
+          "type": "number",
+          "format": "double"
+        },
+        "currency": {
+          "type": "string"
+        },
+        "paymentMethod": {
+          "$ref": "#/definitions/pbPaymentMethodType"
+        },
+        "status": {
+          "$ref": "#/definitions/pbInvoicePaymentStatus"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "processedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "reference": {
+          "type": "string"
         },
         "description": {
           "type": "string"
         },
-        "quantity": {
-          "type": "integer",
-          "format": "int32"
-        },
-        "unitPrice": {
+        "feeAmount": {
           "type": "number",
           "format": "double"
         },
-        "totalPrice": {
-          "type": "number",
-          "format": "double",
-          "title": "quantity * unit_price (calculated or provided)"
-        }
-      },
-      "title": "Represents a single line item in an invoice"
-    },
-    "pbInvoiceStatus": {
-      "type": "string",
-      "enum": [
-        "DRAFT",
-        "SENT",
-        "PAID",
-        "VOID",
-        "OVERDUE"
-      ],
-      "default": "DRAFT",
-      "title": "Enum for invoice status"
-    },
-    "pbListInvoicesResponse": {
-      "type": "object",
-      "properties": {
-        "invoices": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/pbInvoice"
+        "metadata": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
           }
         },
-        "nextPageToken": {
+        "paymentProcessorId": {
+          "type": "string"
+        },
+        "receiptUrl": {
           "type": "string"
         }
       },
-      "description": "Contains a list of invoices and pagination info.",
-      "title": "List Invoices Response"
+      "title": "Invoice Payment Transaction Message"
+    },
+    "pbInvoicePriority": {
+      "type": "string",
+      "enum": [
+        "INVOICE_PRIORITY_LOW",
+        "INVOICE_PRIORITY_MEDIUM",
+        "INVOICE_PRIORITY_HIGH",
+        "INVOICE_PRIORITY_URGENT"
+      ],
+      "default": "INVOICE_PRIORITY_LOW",
+      "title": "Invoice Priority Enum"
     },
     "pbListRecipientsResponse": {
       "type": "object",
@@ -3420,6 +5882,63 @@
         }
       }
     },
+    "pbMarkInvoiceAsPaidResponse": {
+      "type": "object",
+      "properties": {
+        "invoice": {
+          "$ref": "#/definitions/pbInvoice"
+        }
+      },
+      "title": "MarkInvoiceAsPaidResponse represents a response containing the updated invoice"
+    },
+    "pbMarkMultipleInvoicesAsViewedResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "message": {
+          "type": "string"
+        },
+        "updatedCount": {
+          "type": "string",
+          "format": "uint64"
+        }
+      }
+    },
+    "pbMarkTaggedInvoiceAsViewedResponse": {
+      "type": "object",
+      "properties": {
+        "invoice": {
+          "$ref": "#/definitions/pbTaggedInvoice"
+        },
+        "success": {
+          "type": "boolean"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "pbMatch": {
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string"
+        },
+        "faceId": {
+          "type": "string"
+        },
+        "confidence": {
+          "type": "number",
+          "format": "double"
+        },
+        "registeredAt": {
+          "type": "string"
+        }
+      },
+      "title": "Match Details"
+    },
     "pbMessageType": {
       "type": "string",
       "enum": [
@@ -3450,6 +5969,226 @@
       },
       "title": "Represents aggregated data for a single month"
     },
+    "pbPaginationInfo": {
+      "type": "object",
+      "properties": {
+        "currentPage": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "totalPages": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "totalItems": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "itemsPerPage": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "hasNext": {
+          "type": "boolean"
+        },
+        "hasPrev": {
+          "type": "boolean"
+        }
+      },
+      "title": "Pagination Info - Common pagination structure"
+    },
+    "pbPaymentDispute": {
+      "type": "object",
+      "properties": {
+        "disputeId": {
+          "type": "string"
+        },
+        "transactionId": {
+          "type": "string"
+        },
+        "invoiceId": {
+          "type": "string"
+        },
+        "userId": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/definitions/pbDisputeStatus"
+        },
+        "amount": {
+          "type": "number",
+          "format": "double"
+        },
+        "currency": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "resolvedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "resolution": {
+          "type": "string"
+        },
+        "evidenceFiles": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "title": "Payment Dispute Message"
+    },
+    "pbPaymentExtensionRequest": {
+      "type": "object",
+      "properties": {
+        "extensionId": {
+          "type": "string"
+        },
+        "invoiceId": {
+          "type": "string"
+        },
+        "userId": {
+          "type": "string"
+        },
+        "newDueDate": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "requestedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "approvedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "approvedBy": {
+          "type": "string"
+        },
+        "rejectionReason": {
+          "type": "string"
+        }
+      },
+      "title": "Payment Extension Request Message"
+    },
+    "pbPaymentMethod": {
+      "type": "object",
+      "properties": {
+        "methodId": {
+          "type": "string"
+        },
+        "userId": {
+          "type": "string"
+        },
+        "type": {
+          "$ref": "#/definitions/pbPaymentMethodType"
+        },
+        "displayName": {
+          "type": "string"
+        },
+        "last4": {
+          "type": "string"
+        },
+        "brand": {
+          "type": "string"
+        },
+        "isDefault": {
+          "type": "boolean"
+        },
+        "isVerified": {
+          "type": "boolean"
+        },
+        "expiresAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "billingAddress": {
+          "type": "string"
+        }
+      },
+      "title": "Payment Method Message"
+    },
+    "pbPaymentMethodType": {
+      "type": "string",
+      "enum": [
+        "PAYMENT_METHOD_TYPE_ACCOUNT_BALANCE",
+        "PAYMENT_METHOD_TYPE_CREDIT_CARD",
+        "PAYMENT_METHOD_TYPE_DEBIT_CARD",
+        "PAYMENT_METHOD_TYPE_PAYPAL",
+        "PAYMENT_METHOD_TYPE_APPLE_PAY",
+        "PAYMENT_METHOD_TYPE_GOOGLE_PAY",
+        "PAYMENT_METHOD_TYPE_BITCOIN",
+        "PAYMENT_METHOD_TYPE_ETHEREUM",
+        "PAYMENT_METHOD_TYPE_USDC",
+        "PAYMENT_METHOD_TYPE_BANK_TRANSFER"
+      ],
+      "default": "PAYMENT_METHOD_TYPE_ACCOUNT_BALANCE",
+      "title": "Payment Method Type Enum"
+    },
+    "pbPaymentReminder": {
+      "type": "object",
+      "properties": {
+        "invoiceId": {
+          "type": "string"
+        },
+        "userId": {
+          "type": "string"
+        },
+        "reminderDate": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "status": {
+          "type": "string"
+        }
+      },
+      "title": "Payment Reminder Message"
+    },
+    "pbPrimaryMatch": {
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string"
+        },
+        "faceId": {
+          "type": "string"
+        },
+        "confidence": {
+          "type": "number",
+          "format": "double"
+        },
+        "registeredAt": {
+          "type": "string"
+        }
+      },
+      "title": "Primary Match Details"
+    },
     "pbProcessChatRequest": {
       "type": "object",
       "properties": {
@@ -3465,9 +6204,14 @@
           "type": "integer",
           "format": "int64",
           "description": "The ID of the user making the request."
+        },
+        "uploadedFile": {
+          "$ref": "#/definitions/pbChatFile",
+          "description": "Optional file uploaded by the user for AI processing.",
+          "title": "Optional file handling field"
         }
       },
-      "description": "Payload containing the user's query for the AI chatbot.",
+      "description": "Payload containing the user's query for the AI chatbot with optional file.",
       "title": "AI Process Chat Request",
       "required": [
         "query",
@@ -3492,10 +6236,151 @@
         "response": {
           "type": "string",
           "description": "The AI's response."
+        },
+        "generatedFiles": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbChatFile"
+          },
+          "description": "Files generated by the AI in response to the query.",
+          "title": "Optional file handling response fields (for future AI service enhancements)"
+        },
+        "fileAnalysis": {
+          "$ref": "#/definitions/pbFileAnalysis",
+          "description": "Analysis results of uploaded files."
         }
       },
       "description": "Contains the AI chatbot's response along with status.",
       "title": "AI Process Chat Response"
+    },
+    "pbProcessCryptoInvoicePaymentResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "transactionId": {
+          "type": "string"
+        },
+        "confirmationStatus": {
+          "type": "string"
+        },
+        "confirmationsRequired": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "currentConfirmations": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "pbProcessInvoicePaymentResponse": {
+      "type": "object",
+      "properties": {
+        "result": {
+          "$ref": "#/definitions/pbInvoicePaymentResult"
+        },
+        "message": {
+          "type": "string"
+        },
+        "success": {
+          "type": "boolean"
+        },
+        "nextAction": {
+          "type": "string"
+        },
+        "additionalData": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "pbProcessPartialInvoicePaymentResponse": {
+      "type": "object",
+      "properties": {
+        "result": {
+          "$ref": "#/definitions/pbInvoicePaymentResult"
+        },
+        "remainingAmount": {
+          "type": "number",
+          "format": "double"
+        },
+        "message": {
+          "type": "string"
+        },
+        "success": {
+          "type": "boolean"
+        }
+      }
+    },
+    "pbProcessPaymentResponse": {
+      "type": "object",
+      "properties": {
+        "payment": {
+          "$ref": "#/definitions/pbInsurancePayment"
+        },
+        "transactionId": {
+          "type": "string"
+        },
+        "referenceNumber": {
+          "type": "string"
+        },
+        "receiptUrl": {
+          "type": "string"
+        },
+        "success": {
+          "type": "boolean"
+        },
+        "msg": {
+          "type": "string"
+        }
+      }
+    },
+    "pbProcessVoiceNoteRequest": {
+      "type": "object",
+      "properties": {
+        "txHistory": {
+          "type": "string",
+          "description": "Optional JSON string containing recent transactions."
+        }
+      },
+      "description": "Request to process an audio file via multipart form upload.",
+      "title": "Process Voice Note Request"
+    },
+    "pbProcessVoiceNoteResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "description": "Indicates if the voice note was successfully processed."
+        },
+        "msg": {
+          "type": "string",
+          "description": "Status message related to the processing."
+        },
+        "response": {
+          "type": "string",
+          "description": "AI's response based on the voice note content."
+        },
+        "transcribedText": {
+          "type": "string",
+          "description": "Transcribed text from the audio file."
+        },
+        "processingTimeMs": {
+          "type": "string",
+          "format": "int64",
+          "description": "Processing time in milliseconds."
+        }
+      },
+      "description": "Response containing AI analysis and transcription of the voice note.",
+      "title": "Process Voice Note Response"
     },
     "pbReceiverDetails": {
       "type": "object",
@@ -3592,6 +6477,76 @@
         }
       }
     },
+    "pbRegisterFaceRequest": {
+      "type": "object",
+      "properties": {
+        "user_id": {
+          "type": "string"
+        },
+        "face_id": {
+          "type": "string"
+        },
+        "allow_duplicates": {
+          "type": "boolean"
+        },
+        "duplicate_threshold": {
+          "type": "number",
+          "format": "double"
+        },
+        "image_data": {
+          "type": "string",
+          "format": "byte"
+        },
+        "image_filename": {
+          "type": "string"
+        },
+        "image_content_type": {
+          "type": "string"
+        }
+      },
+      "description": "Request to register a new face for facial recognition",
+      "title": "Register Face Request",
+      "required": [
+        "user_id",
+        "image_data"
+      ]
+    },
+    "pbRegisterFaceResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "faceId": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "error": {
+          "type": "string"
+        },
+        "numFacesDetected": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "duplicateDetails": {
+          "$ref": "#/definitions/pbDuplicateDetails"
+        }
+      },
+      "title": "Register Face Response"
+    },
+    "pbRemoveInvoicePaymentMethodResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
     "pbRequestEmailVerificationRequest": {
       "type": "object",
       "description": "Request to send a verification email to the authenticated user.\nNo parameters needed as user is identified via auth token."
@@ -3609,6 +6564,23 @@
         }
       },
       "description": "Response for requesting email verification."
+    },
+    "pbRequestInvoicePaymentExtensionResponse": {
+      "type": "object",
+      "properties": {
+        "extensionRequest": {
+          "$ref": "#/definitions/pbPaymentExtensionRequest"
+        },
+        "success": {
+          "type": "boolean"
+        },
+        "message": {
+          "type": "string"
+        },
+        "requestId": {
+          "type": "string"
+        }
+      }
     },
     "pbRequestPasswordResetRequest": {
       "type": "object",
@@ -3635,6 +6607,20 @@
         }
       },
       "description": "Response for requesting password reset."
+    },
+    "pbRequestTaggedInvoiceDetailsResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "message": {
+          "type": "string"
+        },
+        "requestId": {
+          "type": "string"
+        }
+      }
     },
     "pbResetPasswordRequest": {
       "type": "object",
@@ -3672,6 +6658,44 @@
       },
       "description": "Response for resetting password."
     },
+    "pbResolveInvoicePaymentDisputeResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "message": {
+          "type": "string"
+        },
+        "updatedDispute": {
+          "$ref": "#/definitions/pbPaymentDispute"
+        },
+        "refundTransactionId": {
+          "type": "string"
+        }
+      }
+    },
+    "pbSearchInsurancesResponse": {
+      "type": "object",
+      "properties": {
+        "insurances": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbInsurance"
+          }
+        },
+        "pagination": {
+          "$ref": "#/definitions/pbPaginationInfo"
+        },
+        "success": {
+          "type": "boolean"
+        },
+        "msg": {
+          "type": "string"
+        }
+      }
+    },
     "pbSearchRecipientsByAccountResponse": {
       "type": "object",
       "properties": {
@@ -3682,6 +6706,25 @@
             "$ref": "#/definitions/pbRecipient"
           },
           "title": "Full recipient details for matches"
+        }
+      }
+    },
+    "pbSearchTaggedInvoicesResponse": {
+      "type": "object",
+      "properties": {
+        "invoices": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbTaggedInvoice"
+          }
+        },
+        "nextPageToken": {
+          "type": "string"
+        },
+        "totalCount": {
+          "type": "string",
+          "format": "uint64"
         }
       }
     },
@@ -3699,6 +6742,15 @@
         }
       },
       "title": "SecuritySettings: Used for updating security flags"
+    },
+    "pbSendInvoiceResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        }
+      },
+      "title": "SendInvoiceResponse represents a response after sending an invoice"
     },
     "pbSendMessageRequest": {
       "type": "object",
@@ -3770,6 +6822,20 @@
         }
       }
     },
+    "pbSetInvoicePaymentReminderResponse": {
+      "type": "object",
+      "properties": {
+        "reminder": {
+          "$ref": "#/definitions/pbPaymentReminder"
+        },
+        "success": {
+          "type": "boolean"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
     "pbSignInWithAppleRequest": {
       "type": "object",
       "properties": {
@@ -3830,6 +6896,140 @@
         "agentId": {
           "type": "string",
           "description": "An identifier for the agent (optional, could be fixed)."
+        }
+      }
+    },
+    "pbTaggedInvoice": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "invoiceId": {
+          "type": "string"
+        },
+        "userId": {
+          "type": "string"
+        },
+        "paymentStatus": {
+          "$ref": "#/definitions/pbInvoicePaymentStatus"
+        },
+        "priority": {
+          "$ref": "#/definitions/pbInvoicePriority"
+        },
+        "isViewed": {
+          "type": "boolean"
+        },
+        "taggedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "viewedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "reminderDate": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "reminderSent": {
+          "type": "boolean"
+        },
+        "notes": {
+          "type": "string"
+        },
+        "amount": {
+          "type": "number",
+          "format": "double"
+        },
+        "currency": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "title": "Tagged Invoice Message"
+    },
+    "pbTaggedInvoiceStatistics": {
+      "type": "object",
+      "properties": {
+        "totalInvoices": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "pendingInvoices": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "overdueInvoices": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "completedInvoices": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "totalAmount": {
+          "type": "number",
+          "format": "double"
+        },
+        "pendingAmount": {
+          "type": "number",
+          "format": "double"
+        },
+        "overdueAmount": {
+          "type": "number",
+          "format": "double"
+        },
+        "completedAmount": {
+          "type": "number",
+          "format": "double"
+        },
+        "averageAmount": {
+          "type": "number",
+          "format": "double"
+        },
+        "mostCommonPriority": {
+          "$ref": "#/definitions/pbInvoicePriority"
+        }
+      }
+    },
+    "pbTaggedInvoicesSummary": {
+      "type": "object",
+      "properties": {
+        "totalInvoices": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "pendingInvoices": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "overdueInvoices": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "paidInvoices": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "totalAmount": {
+          "type": "number",
+          "format": "double"
+        },
+        "pendingAmount": {
+          "type": "number",
+          "format": "double"
+        },
+        "overdueAmount": {
+          "type": "number",
+          "format": "double"
         }
       }
     },
@@ -3989,6 +7189,24 @@
         }
       }
     },
+    "pbTransferFundsForInvoicePaymentResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "transactionId": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "newBalance": {
+          "type": "number",
+          "format": "double"
+        }
+      }
+    },
     "pbUpdateAccountCardDefaultStatusResponse": {
       "type": "object",
       "properties": {
@@ -4007,6 +7225,73 @@
         }
       }
     },
+    "pbUpdateClaimRequest": {
+      "type": "object",
+      "properties": {
+        "claim": {
+          "$ref": "#/definitions/pbInsuranceClaim"
+        }
+      }
+    },
+    "pbUpdateClaimResponse": {
+      "type": "object",
+      "properties": {
+        "claim": {
+          "$ref": "#/definitions/pbInsuranceClaim"
+        },
+        "success": {
+          "type": "boolean"
+        },
+        "msg": {
+          "type": "string"
+        }
+      }
+    },
+    "pbUpdateInsuranceRequest": {
+      "type": "object",
+      "properties": {
+        "insurance": {
+          "$ref": "#/definitions/pbInsurance"
+        }
+      }
+    },
+    "pbUpdateInsuranceResponse": {
+      "type": "object",
+      "properties": {
+        "insurance": {
+          "$ref": "#/definitions/pbInsurance"
+        },
+        "success": {
+          "type": "boolean"
+        },
+        "msg": {
+          "type": "string"
+        }
+      }
+    },
+    "pbUpdateInvoicePaymentMethodResponse": {
+      "type": "object",
+      "properties": {
+        "paymentMethod": {
+          "$ref": "#/definitions/pbPaymentMethod"
+        },
+        "success": {
+          "type": "boolean"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "pbUpdateInvoiceResponse": {
+      "type": "object",
+      "properties": {
+        "invoice": {
+          "$ref": "#/definitions/pbInvoice"
+        }
+      },
+      "title": "UpdateInvoiceResponse represents a response containing the updated invoice"
+    },
     "pbUpdateRecipientResponse": {
       "type": "object",
       "properties": {
@@ -4021,6 +7306,20 @@
         "account": {
           "$ref": "#/definitions/pbAccountDetails",
           "title": "Return updated details"
+        }
+      }
+    },
+    "pbUpdateTaggedInvoiceStatusResponse": {
+      "type": "object",
+      "properties": {
+        "invoice": {
+          "$ref": "#/definitions/pbTaggedInvoice"
+        },
+        "success": {
+          "type": "boolean"
+        },
+        "message": {
+          "type": "string"
         }
       }
     },
@@ -4063,6 +7362,103 @@
       },
       "title": "Base user type"
     },
+    "pbUserAccountBalance": {
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string"
+        },
+        "currency": {
+          "type": "string"
+        },
+        "availableBalance": {
+          "type": "number",
+          "format": "double"
+        },
+        "pendingBalance": {
+          "type": "number",
+          "format": "double"
+        },
+        "totalBalance": {
+          "type": "number",
+          "format": "double"
+        },
+        "accountType": {
+          "$ref": "#/definitions/pbAccountType"
+        },
+        "accountNumber": {
+          "type": "string"
+        },
+        "lastUpdated": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "accountName": {
+          "type": "string"
+        },
+        "isPrimary": {
+          "type": "boolean"
+        }
+      },
+      "title": "User Account Balance Message"
+    },
+    "pbValidateCryptoWalletResponse": {
+      "type": "object",
+      "properties": {
+        "isValid": {
+          "type": "boolean"
+        },
+        "validationMessage": {
+          "type": "string"
+        },
+        "isContract": {
+          "type": "boolean"
+        },
+        "walletType": {
+          "type": "string"
+        }
+      }
+    },
+    "pbValidateInvoicePaymentMethodResponse": {
+      "type": "object",
+      "properties": {
+        "isValid": {
+          "type": "boolean"
+        },
+        "validationMessage": {
+          "type": "string"
+        },
+        "validatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "pbValidateInvoicePaymentResponse": {
+      "type": "object",
+      "properties": {
+        "isValid": {
+          "type": "boolean"
+        },
+        "validationMessage": {
+          "type": "string"
+        },
+        "errors": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "availableBalance": {
+          "type": "number",
+          "format": "double"
+        },
+        "paymentFees": {
+          "type": "number",
+          "format": "double"
+        }
+      }
+    },
     "pbVerifyEmailRequest": {
       "type": "object",
       "properties": {
@@ -4089,6 +7485,67 @@
         }
       },
       "description": "Response for verifying an email."
+    },
+    "pbVerifyFaceRequest": {
+      "type": "object",
+      "properties": {
+        "user_id": {
+          "type": "string"
+        },
+        "threshold": {
+          "type": "number",
+          "format": "double"
+        },
+        "image_data": {
+          "type": "string",
+          "format": "byte"
+        },
+        "image_filename": {
+          "type": "string"
+        },
+        "image_content_type": {
+          "type": "string"
+        }
+      },
+      "description": "Request to verify a user's face against registered faces",
+      "title": "Verify Face Request",
+      "required": [
+        "user_id",
+        "image_data"
+      ]
+    },
+    "pbVerifyFaceResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "verified": {
+          "type": "boolean"
+        },
+        "confidence": {
+          "type": "number",
+          "format": "double"
+        },
+        "matchedFaceId": {
+          "type": "string"
+        },
+        "threshold": {
+          "type": "number",
+          "format": "double"
+        },
+        "distance": {
+          "type": "number",
+          "format": "double"
+        },
+        "message": {
+          "type": "string"
+        },
+        "error": {
+          "type": "string"
+        }
+      },
+      "title": "Verify Face Response"
     },
     "pbVerifyPinRequest": {
       "type": "object",

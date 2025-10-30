@@ -1,0 +1,208 @@
+syntax = "proto3";
+
+package pb;
+
+import "google/protobuf/timestamp.proto";
+import "google/api/annotations.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+
+option go_package = "lazervaultGo/pb";
+
+// OpenAPI v2 documentation options for the Facial Recognition Service
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+  info: {
+    title: "LazerVault Facial Recognition Service";
+    version: "1.0";
+    description: "AI-powered facial recognition service for user authentication and verification";
+    contact: {
+      name: "LazerVault Support";
+      url: "https://github.com/LazerVault";
+      email: "support@lazervault.example";
+    };
+  };
+  security_definitions: {
+    security: {
+      key: "bearer"
+      value: {
+        type: TYPE_API_KEY
+        in: IN_HEADER
+        name: "Authorization"
+        description: "Authentication token, prefixed by Bearer: Bearer <token>"
+      }
+    }
+    security: {
+      key: "ApiKeyAuth"
+      value: {
+        type: TYPE_API_KEY
+        in: IN_HEADER
+        name: "X-API-Key"
+        description: "API key for authentication"
+      }
+    }
+  }
+  security: {
+    security_requirement: {
+      key: "bearer"
+    }
+  }
+  security: {
+    security_requirement: {
+      key: "ApiKeyAuth"
+    }
+  }
+};
+
+// Facial Recognition Service
+service FacialRecognitionService {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_tag) = {
+    description: "AI-powered facial recognition service for user authentication and verification."
+  };
+
+  // Register a face for a user with duplicate detection
+  rpc RegisterFace(RegisterFaceRequest) returns (RegisterFaceResponse) {
+    option (google.api.http) = {
+      post: "/v1/face/register"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Register Face"
+      description: "Register a new face for a user with optional duplicate detection. Supports JPG/PNG images up to 32MB."
+      tags: ["Facial Recognition"]
+      consumes: ["multipart/form-data"]
+      security: {
+        security_requirement: { key: "bearer" }
+      }
+      security: {
+        security_requirement: { key: "ApiKeyAuth" }
+      }
+    };
+  }
+
+  // Verify a face against registered faces
+  rpc VerifyFace(VerifyFaceRequest) returns (VerifyFaceResponse) {
+    option (google.api.http) = {
+      post: "/v1/face/verify"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Verify Face"
+      description: "Verify a user's identity by comparing their face against registered faces. Returns confidence score and verification result."
+      tags: ["Facial Recognition"]
+      consumes: ["multipart/form-data"]
+      security: {
+        security_requirement: { key: "bearer" }
+      }
+      security: {
+        security_requirement: { key: "ApiKeyAuth" }
+      }
+    };
+  }
+
+  // Health check for the facial recognition service
+  rpc HealthCheck(HealthCheckRequest) returns (HealthCheckResponse) {
+    option (google.api.http) = {
+      get: "/v1/face/health"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Health Check"
+      description: "Check the health and availability of the facial recognition service"
+      tags: ["System"]
+    };
+  }
+}
+
+// Register Face Request
+message RegisterFaceRequest {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+      title: "Register Face Request"
+      description: "Request to register a new face for facial recognition"
+      required: ["user_id", "image_data"]
+    }
+  };
+
+  string user_id = 1 [json_name = "user_id"];
+  string face_id = 2 [json_name = "face_id"];
+  bool allow_duplicates = 3 [json_name = "allow_duplicates"];
+  double duplicate_threshold = 4 [json_name = "duplicate_threshold"];
+  bytes image_data = 5 [json_name = "image_data"];
+  string image_filename = 6 [json_name = "image_filename"];
+  string image_content_type = 7 [json_name = "image_content_type"];
+}
+
+// Register Face Response
+message RegisterFaceResponse {
+  bool success = 1;
+  string face_id = 2;
+  string message = 3;
+  string error = 4;
+  int32 num_faces_detected = 5;
+  DuplicateDetails duplicate_details = 6;
+}
+
+// Verify Face Request
+message VerifyFaceRequest {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+      title: "Verify Face Request"
+      description: "Request to verify a user's face against registered faces"
+      required: ["user_id", "image_data"]
+    }
+  };
+
+  string user_id = 1 [json_name = "user_id"];
+  double threshold = 2 [json_name = "threshold"];
+  bytes image_data = 3 [json_name = "image_data"];
+  string image_filename = 4 [json_name = "image_filename"];
+  string image_content_type = 5 [json_name = "image_content_type"];
+}
+
+// Verify Face Response
+message VerifyFaceResponse {
+  bool success = 1;
+  bool verified = 2;
+  double confidence = 3;
+  string matched_face_id = 4;
+  double threshold = 5;
+  double distance = 6;
+  string message = 7;
+  string error = 8;
+}
+
+// Duplicate Details for Registration
+message DuplicateDetails {
+  bool is_duplicate = 1;
+  double threshold = 2;
+  int32 total_matches = 3;
+  PrimaryMatch primary_match = 4;
+  repeated Match all_matches = 5;
+  string message = 6;
+  string security_note = 7;
+}
+
+// Primary Match Details
+message PrimaryMatch {
+  string user_id = 1;
+  string face_id = 2;
+  double confidence = 3;
+  string registered_at = 4;
+}
+
+// Match Details
+message Match {
+  string user_id = 1;
+  string face_id = 2;
+  double confidence = 3;
+  string registered_at = 4;
+}
+
+// Health Check Request
+message HealthCheckRequest {}
+
+// Health Check Response
+message HealthCheckResponse {
+  bool healthy = 1 [json_name = "healthy"];
+  string message = 2 [json_name = "message"];
+  string service_version = 3 [json_name = "service_version"];
+  google.protobuf.Timestamp timestamp = 4 [json_name = "timestamp"];
+} 

@@ -119,6 +119,128 @@ func (x *StartVoiceSessionResponse) GetAgentId() string {
 	return ""
 }
 
+// Voice note processing request - accepts multipart form data file upload
+type ProcessVoiceNoteRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TxHistory     string                 `protobuf:"bytes,1,opt,name=tx_history,json=txHistory,proto3" json:"tx_history,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ProcessVoiceNoteRequest) Reset() {
+	*x = ProcessVoiceNoteRequest{}
+	mi := &file_voice_session_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ProcessVoiceNoteRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ProcessVoiceNoteRequest) ProtoMessage() {}
+
+func (x *ProcessVoiceNoteRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_voice_session_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ProcessVoiceNoteRequest.ProtoReflect.Descriptor instead.
+func (*ProcessVoiceNoteRequest) Descriptor() ([]byte, []int) {
+	return file_voice_session_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *ProcessVoiceNoteRequest) GetTxHistory() string {
+	if x != nil {
+		return x.TxHistory
+	}
+	return ""
+}
+
+// Voice note processing response
+type ProcessVoiceNoteResponse struct {
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	Success          bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
+	Msg              string                 `protobuf:"bytes,2,opt,name=msg,proto3" json:"msg,omitempty"`
+	Response         string                 `protobuf:"bytes,3,opt,name=response,proto3" json:"response,omitempty"`
+	TranscribedText  string                 `protobuf:"bytes,4,opt,name=transcribed_text,json=transcribedText,proto3" json:"transcribed_text,omitempty"`
+	ProcessingTimeMs int64                  `protobuf:"varint,5,opt,name=processing_time_ms,json=processingTimeMs,proto3" json:"processing_time_ms,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *ProcessVoiceNoteResponse) Reset() {
+	*x = ProcessVoiceNoteResponse{}
+	mi := &file_voice_session_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ProcessVoiceNoteResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ProcessVoiceNoteResponse) ProtoMessage() {}
+
+func (x *ProcessVoiceNoteResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_voice_session_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ProcessVoiceNoteResponse.ProtoReflect.Descriptor instead.
+func (*ProcessVoiceNoteResponse) Descriptor() ([]byte, []int) {
+	return file_voice_session_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *ProcessVoiceNoteResponse) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
+func (x *ProcessVoiceNoteResponse) GetMsg() string {
+	if x != nil {
+		return x.Msg
+	}
+	return ""
+}
+
+func (x *ProcessVoiceNoteResponse) GetResponse() string {
+	if x != nil {
+		return x.Response
+	}
+	return ""
+}
+
+func (x *ProcessVoiceNoteResponse) GetTranscribedText() string {
+	if x != nil {
+		return x.TranscribedText
+	}
+	return ""
+}
+
+func (x *ProcessVoiceNoteResponse) GetProcessingTimeMs() int64 {
+	if x != nil {
+		return x.ProcessingTimeMs
+	}
+	return 0
+}
+
 var File_voice_session_proto protoreflect.FileDescriptor
 
 const file_voice_session_proto_rawDesc = "" +
@@ -128,13 +250,30 @@ const file_voice_session_proto_rawDesc = "" +
 	"\x19StartVoiceSessionResponse\x12\x1b\n" +
 	"\troom_name\x18\x01 \x01(\tR\broomName\x12#\n" +
 	"\rlivekit_token\x18\x02 \x01(\tR\flivekitToken\x12\x19\n" +
-	"\bagent_id\x18\x03 \x01(\tR\aagentId2\x9f\x02\n" +
+	"\bagent_id\x18\x03 \x01(\tR\aagentId\"\xd3\x01\n" +
+	"\x17ProcessVoiceNoteRequest\x12X\n" +
+	"\n" +
+	"tx_history\x18\x01 \x01(\tB9\x92A624Optional JSON string containing recent transactions.R\ttxHistory:^\x92A[\n" +
+	"Y*\x1aProcess Voice Note Request2;Request to process an audio file via multipart form upload.\"\x9b\x04\n" +
+	"\x18ProcessVoiceNoteResponse\x12V\n" +
+	"\asuccess\x18\x01 \x01(\bB<\x92A927Indicates if the voice note was successfully processed.R\asuccess\x12@\n" +
+	"\x03msg\x18\x02 \x01(\tB.\x92A+2)Status message related to the processing.R\x03msg\x12O\n" +
+	"\bresponse\x18\x03 \x01(\tB3\x92A02.AI's response based on the voice note content.R\bresponse\x12U\n" +
+	"\x10transcribed_text\x18\x04 \x01(\tB*\x92A'2%Transcribed text from the audio file.R\x0ftranscribedText\x12S\n" +
+	"\x12processing_time_ms\x18\x05 \x01(\x03B%\x92A\"2 Processing time in milliseconds.R\x10processingTimeMs:h\x92Ae\n" +
+	"c*\x1bProcess Voice Note Response2DResponse containing AI analysis and transcription of the voice note.2\xae\x04\n" +
 	"\x13VoiceSessionService\x12\x87\x02\n" +
 	"\x11StartVoiceSession\x12\x1c.pb.StartVoiceSessionRequest\x1a\x1d.pb.StartVoiceSessionResponse\"\xb4\x01\x92A\x8e\x01\n" +
 	"\rVoice Session\x12\x13Start Voice Session\x1aZInitiates a voice session with an AI agent, returns LiveKit room details and client token.b\f\n" +
 	"\n" +
 	"\n" +
-	"\x06bearer\x12\x00\x82\xd3\xe4\x93\x02\x1c:\x01*\"\x17/v1/voice/session/startBq\x92A]\x123\n" +
+	"\x06bearer\x12\x00\x82\xd3\xe4\x93\x02\x1c:\x01*\"\x17/v1/voice/session/start\x12\x8c\x02\n" +
+	"\x10ProcessVoiceNote\x12\x1b.pb.ProcessVoiceNoteRequest\x1a\x1c.pb.ProcessVoiceNoteResponse\"\xbc\x01\x92A\x98\x01\n" +
+	"\n" +
+	"Voice Note\x12\x12Process Voice Note\x1ahUpload and process an audio file via multipart form data. File should be uploaded as 'audio_file' field.b\f\n" +
+	"\n" +
+	"\n" +
+	"\x06bearer\x12\x00\x82\xd3\xe4\x93\x02\x1a:\x01*\"\x15/v1/voice/note/uploadBq\x92A]\x123\n" +
 	"\x0eLazerVault API\x12\x1cLazerVault Voice Session API2\x031.0*\x02\x01\x022\x10application/json:\x10application/jsonZ\x0flazervaultGo/pbb\x06proto3"
 
 var (
@@ -149,16 +288,20 @@ func file_voice_session_proto_rawDescGZIP() []byte {
 	return file_voice_session_proto_rawDescData
 }
 
-var file_voice_session_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_voice_session_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_voice_session_proto_goTypes = []any{
 	(*StartVoiceSessionRequest)(nil),  // 0: pb.StartVoiceSessionRequest
 	(*StartVoiceSessionResponse)(nil), // 1: pb.StartVoiceSessionResponse
+	(*ProcessVoiceNoteRequest)(nil),   // 2: pb.ProcessVoiceNoteRequest
+	(*ProcessVoiceNoteResponse)(nil),  // 3: pb.ProcessVoiceNoteResponse
 }
 var file_voice_session_proto_depIdxs = []int32{
 	0, // 0: pb.VoiceSessionService.StartVoiceSession:input_type -> pb.StartVoiceSessionRequest
-	1, // 1: pb.VoiceSessionService.StartVoiceSession:output_type -> pb.StartVoiceSessionResponse
-	1, // [1:2] is the sub-list for method output_type
-	0, // [0:1] is the sub-list for method input_type
+	2, // 1: pb.VoiceSessionService.ProcessVoiceNote:input_type -> pb.ProcessVoiceNoteRequest
+	1, // 2: pb.VoiceSessionService.StartVoiceSession:output_type -> pb.StartVoiceSessionResponse
+	3, // 3: pb.VoiceSessionService.ProcessVoiceNote:output_type -> pb.ProcessVoiceNoteResponse
+	2, // [2:4] is the sub-list for method output_type
+	0, // [0:2] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
@@ -175,7 +318,7 @@ func file_voice_session_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_voice_session_proto_rawDesc), len(file_voice_session_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   2,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

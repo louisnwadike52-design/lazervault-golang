@@ -17,13 +17,7 @@ import (
 
 const DefaultPageSize = 50
 
-var (
-	ErrInvalidUserID      = errors.New("invalid sender or receiver user ID")
-	ErrMessageNotFound    = errors.New("message not found")
-	ErrReplyToMsgNotFound = errors.New("reply-to message not found")
-	ErrInvalidMessageType = errors.New("invalid message type")
-	ErrContentRequired    = errors.New("message content is required")
-)
+// Using common errors from errors.go
 
 // subscriber represents a single client subscribed to chat updates
 type subscriber struct {
@@ -198,100 +192,74 @@ func (s *ChatService) GetChatHistory(ctx context.Context, req *GetChatHistorySer
 		// Fetch messages older than the message identified by the token
 		// Using (timestamp, id) for more robust keyset pagination
 		query = query.Where("(timestamp, id) < (?, ?)", lastMsg.Timestamp, req.PageToken)
-
-		// Simple timestamp only pagination (less robust):
-		// var tokenTime time.Time
-		// Placeholder: For now, we ignore page_token and just limit
-		// A real implementation would parse the token and add a WHERE clause like:
-		// query = query.Where("timestamp < ?", tokenTime)
 	}
 
-	// Order by timestamp descending (most recent first) and limit
-	// Add +1 to page size to check if there's a next page
-	err := query.Order("timestamp desc, id desc").Limit(pageSize + 1).Find(&messages).Error // Add secondary sort by ID
+	// Order by timestamp descending, ID secondary
+	err := query.Order("timestamp desc, id desc").Limit(pageSize + 1).Find(&messages).Error
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, "", fmt.Errorf("failed to retrieve chat history: %w", err)
+		return nil, "", fmt.Errorf("failed to retrieve messages: %w", err)
 	}
 
 	// Determine next page token
 	nextPageToken := ""
 	if len(messages) > pageSize {
-		// There are more messages, set the token based on the last message retrieved (which is the pageSize-th item)
-		nextPageToken = messages[pageSize-1].ID // Use the ID of the last message in the current page
-		messages = messages[:pageSize]          // Trim the extra message used for check
+		nextPageToken = messages[pageSize-1].ID
+		messages = messages[:pageSize] // Trim the extra message
 	}
-
-	// Reverse the messages slice so the oldest message is first in the result (optional, depends on desired API output)
-	// for i, j := 0, len(messages)-1; i < j; i, j = i+1, j-1 {
-	// 	messages[i], messages[j] = messages[j], messages[i]
-	// }
 
 	return messages, nextPageToken, nil
 }
 
-// StreamChatHistoryServiceRequest contains parameters for streaming messages
+// StreamChatHistoryServiceRequest contains parameters for streaming chat messages
 type StreamChatHistoryServiceRequest struct {
 	UserID1 string // Authenticated user
 	UserID2 string // Peer user
 }
 
-// StreamChatMessages subscribes a client to real-time updates for a chat
-// It returns a channel to receive messages and a function to unsubscribe.
+// StreamChatMessages sets up a subscription for real-time chat messages
 func (s *ChatService) StreamChatMessages(ctx context.Context, req *StreamChatHistoryServiceRequest) (<-chan *models.ChatMessage, func(), error) {
 	if req.UserID1 == "" || req.UserID2 == "" {
 		return nil, nil, ErrInvalidUserID
 	}
 
-	// TODO: Add authorization check if needed (e.g., ensure UserID1 matches authenticated user)
-
 	chatId := getChatIdentifier(req.UserID1, req.UserID2)
-	clientChan := make(chan *models.ChatMessage, 10) // Buffered channel
-
+	msgChan := make(chan *models.ChatMessage, 100) // Buffered channel to prevent blocking
 	sub := &subscriber{
-		id:      fmt.Sprintf("%s_%d", chatId, time.Now().UnixNano()), // Simple unique ID
-		msgChan: clientChan,
+		id:      fmt.Sprintf("%s_%d", chatId, time.Now().UnixNano()),
+		msgChan: msgChan,
 	}
 
-	s.mu.Lock() // Write lock to modify subscriptions
+	// Add subscriber to the subscriptions map
+	s.mu.Lock()
 	s.subscriptions[chatId] = append(s.subscriptions[chatId], sub)
 	s.mu.Unlock()
 
-	fmt.Printf("Subscriber %s added for chat %s\n", sub.id, chatId)
-
-	// Unsubscribe function to be called when the client disconnects
-	unsubscribe := func() {
+	// Create cleanup function
+	cleanup := func() {
 		s.mu.Lock()
 		defer s.mu.Unlock()
 
-		currentSubs := s.subscriptions[chatId]
-		newSubs := make([]*subscriber, 0, len(currentSubs)-1)
-		found := false
-		for _, s := range currentSubs {
-			if s.id != sub.id {
-				newSubs = append(newSubs, s)
-			} else {
-				found = true
+		subs := s.subscriptions[chatId]
+		for i, existingSub := range subs {
+			if existingSub.id == sub.id {
+				// Remove subscriber
+				s.subscriptions[chatId] = append(subs[:i], subs[i+1:]...)
+				close(msgChan)
+				break
 			}
 		}
 
-		if found {
-			if len(newSubs) > 0 {
-				s.subscriptions[chatId] = newSubs
-			} else {
-				delete(s.subscriptions, chatId) // Clean up map if no subscribers left
-			}
-			close(sub.msgChan) // Close the channel to signal controller
-			fmt.Printf("Subscriber %s removed for chat %s\n", sub.id, chatId)
-		} else {
-			fmt.Printf("Warning: Subscriber %s not found for removal in chat %s\n", sub.id, chatId)
+		// If no more subscribers for this chat, remove the chat entry
+		if len(s.subscriptions[chatId]) == 0 {
+			delete(s.subscriptions, chatId)
 		}
 	}
 
-	// Monitor context cancellation in a goroutine to trigger unsubscribe
+	// Start goroutine to handle context cancellation
 	go func() {
-		<-ctx.Done() // Wait for client disconnection (context cancellation)
-		unsubscribe()
+		<-ctx.Done()
+		cleanup()
 	}()
 
-	return clientChan, unsubscribe, nil
+	return msgChan, cleanup, nil
 }

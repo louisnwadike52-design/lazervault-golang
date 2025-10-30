@@ -1,7 +1,7 @@
 syntax = "proto3";
 
 package pb;
-option go_package = "lazervaultGolang/pb";
+option go_package = "lazervaultGo/pb";
 
 import "google/protobuf/timestamp.proto";
 
@@ -33,4 +33,66 @@ message Session {
     string refresh_token = 4;
     google.protobuf.Timestamp access_token_expires_at = 5;
     google.protobuf.Timestamp refresh_token_expires_at = 6;
+}
+
+// Invoice Payment Status Enum - comprehensive status for all invoice payment scenarios
+enum InvoicePaymentStatus {
+  INVOICE_PAYMENT_STATUS_PENDING = 0;
+  INVOICE_PAYMENT_STATUS_PROCESSING = 1;
+  INVOICE_PAYMENT_STATUS_COMPLETED = 2;
+  INVOICE_PAYMENT_STATUS_FAILED = 3;
+  INVOICE_PAYMENT_STATUS_CANCELLED = 4;
+  INVOICE_PAYMENT_STATUS_PARTIALLY_PAID = 5;
+  INVOICE_PAYMENT_STATUS_REFUNDED = 6;
+  INVOICE_PAYMENT_STATUS_DISPUTED = 7;
+  INVOICE_PAYMENT_STATUS_OVERDUE = 8;
+}
+
+// Payment Method Type Enum
+enum PaymentMethodType {
+  PAYMENT_METHOD_TYPE_ACCOUNT_BALANCE = 0;
+  PAYMENT_METHOD_TYPE_CREDIT_CARD = 1;
+  PAYMENT_METHOD_TYPE_DEBIT_CARD = 2;
+  PAYMENT_METHOD_TYPE_PAYPAL = 3;
+  PAYMENT_METHOD_TYPE_APPLE_PAY = 4;
+  PAYMENT_METHOD_TYPE_GOOGLE_PAY = 5;
+  PAYMENT_METHOD_TYPE_BITCOIN = 6;
+  PAYMENT_METHOD_TYPE_ETHEREUM = 7;
+  PAYMENT_METHOD_TYPE_USDC = 8;
+  PAYMENT_METHOD_TYPE_BANK_TRANSFER = 9;
+}
+
+// Account Type Enum
+enum AccountType {
+  ACCOUNT_TYPE_PERSONAL = 0;
+  ACCOUNT_TYPE_SAVINGS = 1;
+  ACCOUNT_TYPE_INVESTMENT = 2;
+  ACCOUNT_TYPE_BUSINESS = 3;
+}
+
+// Dispute Status Enum
+enum DisputeStatus {
+  DISPUTE_STATUS_PENDING = 0;
+  DISPUTE_STATUS_INVESTIGATING = 1;
+  DISPUTE_STATUS_RESOLVED = 2;
+  DISPUTE_STATUS_REJECTED = 3;
+  DISPUTE_STATUS_ESCALATED = 4;
+}
+
+// Invoice Priority Enum
+enum InvoicePriority {
+  INVOICE_PRIORITY_LOW = 0;
+  INVOICE_PRIORITY_MEDIUM = 1;
+  INVOICE_PRIORITY_HIGH = 2;
+  INVOICE_PRIORITY_URGENT = 3;
+}
+
+// Pagination Info - Common pagination structure
+message PaginationInfo {
+    int32 current_page = 1;
+    int32 total_pages = 2;
+    int32 total_items = 3;
+    int32 items_per_page = 4;
+    bool has_next = 5;
+    bool has_prev = 6;
 }

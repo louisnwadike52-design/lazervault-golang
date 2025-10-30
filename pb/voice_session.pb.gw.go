@@ -59,6 +59,30 @@ func local_request_VoiceSessionService_StartVoiceSession_0(ctx context.Context, 
 	return msg, metadata, err
 }
 
+func request_VoiceSessionService_ProcessVoiceNote_0(ctx context.Context, marshaler runtime.Marshaler, client VoiceSessionServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+	var (
+		protoReq ProcessVoiceNoteRequest
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+	msg, err := client.ProcessVoiceNote(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
+	return msg, metadata, err
+}
+
+func local_request_VoiceSessionService_ProcessVoiceNote_0(ctx context.Context, marshaler runtime.Marshaler, server VoiceSessionServiceServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+	var (
+		protoReq ProcessVoiceNoteRequest
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+	msg, err := server.ProcessVoiceNote(ctx, &protoReq)
+	return msg, metadata, err
+}
+
 // RegisterVoiceSessionServiceHandlerServer registers the http handlers for service VoiceSessionService to "mux".
 // UnaryRPC     :call VoiceSessionServiceServer directly.
 // StreamingRPC :currently unsupported pending https://github.com/grpc/grpc-go/issues/906.
@@ -84,6 +108,26 @@ func RegisterVoiceSessionServiceHandlerServer(ctx context.Context, mux *runtime.
 			return
 		}
 		forward_VoiceSessionService_StartVoiceSession_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
+	})
+	mux.Handle(http.MethodPost, pattern_VoiceSessionService_ProcessVoiceNote_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+		ctx, cancel := context.WithCancel(req.Context())
+		defer cancel()
+		var stream runtime.ServerTransportStream
+		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
+		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
+		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/pb.VoiceSessionService/ProcessVoiceNote", runtime.WithHTTPPathPattern("/v1/voice/note/upload"))
+		if err != nil {
+			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		resp, md, err := local_request_VoiceSessionService_ProcessVoiceNote_0(annotatedContext, inboundMarshaler, server, req, pathParams)
+		md.HeaderMD, md.TrailerMD = metadata.Join(md.HeaderMD, stream.Header()), metadata.Join(md.TrailerMD, stream.Trailer())
+		annotatedContext = runtime.NewServerMetadataContext(annotatedContext, md)
+		if err != nil {
+			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		forward_VoiceSessionService_ProcessVoiceNote_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
 	})
 
 	return nil
@@ -142,13 +186,32 @@ func RegisterVoiceSessionServiceHandlerClient(ctx context.Context, mux *runtime.
 		}
 		forward_VoiceSessionService_StartVoiceSession_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
 	})
+	mux.Handle(http.MethodPost, pattern_VoiceSessionService_ProcessVoiceNote_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+		ctx, cancel := context.WithCancel(req.Context())
+		defer cancel()
+		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/pb.VoiceSessionService/ProcessVoiceNote", runtime.WithHTTPPathPattern("/v1/voice/note/upload"))
+		if err != nil {
+			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		resp, md, err := request_VoiceSessionService_ProcessVoiceNote_0(annotatedContext, inboundMarshaler, client, req, pathParams)
+		annotatedContext = runtime.NewServerMetadataContext(annotatedContext, md)
+		if err != nil {
+			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		forward_VoiceSessionService_ProcessVoiceNote_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
+	})
 	return nil
 }
 
 var (
 	pattern_VoiceSessionService_StartVoiceSession_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 2, 3}, []string{"v1", "voice", "session", "start"}, ""))
+	pattern_VoiceSessionService_ProcessVoiceNote_0  = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 2, 3}, []string{"v1", "voice", "note", "upload"}, ""))
 )
 
 var (
 	forward_VoiceSessionService_StartVoiceSession_0 = runtime.ForwardResponseMessage
+	forward_VoiceSessionService_ProcessVoiceNote_0  = runtime.ForwardResponseMessage
 )

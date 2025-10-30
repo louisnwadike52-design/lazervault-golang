@@ -2,7 +2,6 @@ package grpcApi
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"lazervaultGo/grpcApi/middleware"
@@ -38,52 +37,25 @@ func convertInvoiceToProto(inv *models.Invoice) (*pb.Invoice, error) {
 		return nil, nil
 	}
 
-	// Unmarshal Customer Details
-	var customerDetails models.CustomerDetails
-	if err := json.Unmarshal(inv.CustomerDetails, &customerDetails); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal customer details for invoice %s: %w", inv.ID, err)
+	var paymentMethodId string
+	if inv.PaymentMethodID != nil {
+		paymentMethodId = *inv.PaymentMethodID
 	}
-	pbCustomer := &pb.CustomerDetails{
-		Name:    customerDetails.Name,
-		Email:   customerDetails.Email,
-		Address: customerDetails.Address,
-	}
-
-	// Unmarshal Items
-	var items []models.InvoiceItem
-	if err := json.Unmarshal(inv.Items, &items); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal items for invoice %s: %w", inv.ID, err)
-	}
-	pbItems := make([]*pb.InvoiceItem, len(items))
-	for i, item := range items {
-		pbItems[i] = &pb.InvoiceItem{
-			ItemId:      item.ItemID,
-			Description: item.Description,
-			Quantity:    item.Quantity,
-			UnitPrice:   item.UnitPrice,
-			TotalPrice:  item.TotalPrice,
-		}
-	}
-
-	// Convert status string to enum
-	statusEnum, _ := pb.InvoiceStatus_value[inv.Status]
 
 	return &pb.Invoice{
-		InvoiceId:       inv.ID,
-		UserId:          inv.UserID,
-		InvoiceNumber:   inv.InvoiceNumber,
-		CustomerDetails: pbCustomer,
-		Items:           pbItems,
-		Subtotal:        inv.Subtotal,
-		Tax:             inv.Tax,
-		TotalAmount:     inv.TotalAmount,
-		CurrencyCode:    inv.CurrencyCode,
-		IssueDate:       timestamppb.New(inv.IssueDate),
-		DueDate:         timestamppb.New(inv.DueDate),
-		Status:          pb.InvoiceStatus(statusEnum),
-		Notes:           inv.Notes,
-		CreatedAt:       timestamppb.New(inv.CreatedAt),
-		UpdatedAt:       timestamppb.New(inv.UpdatedAt),
+		Id:               inv.ID,
+		UserId:           inv.UserID,
+		RecipientId:      inv.RecipientID,
+		Title:            inv.Title,
+		Description:      inv.Description,
+		Amount:           inv.Amount,
+		Currency:         inv.Currency,
+		DueDate:          inv.DueDate.Format(time.RFC3339),
+		IsPaid:           inv.IsPaid,
+		PaymentMethodId:  paymentMethodId,
+		PaymentReference: inv.PaymentReference,
+		CreatedAt:        timestamppb.New(inv.CreatedAt),
+		UpdatedAt:        timestamppb.New(inv.UpdatedAt),
 	}, nil
 }
 
@@ -94,23 +66,24 @@ func (controller *InvoiceController) CreateInvoice(ctx context.Context, req *pb.
 		return nil, status.Errorf(codes.Unauthenticated, "unable to retrieve payload from context")
 	}
 
-	// --- Validation (Basic - Service layer does more thorough checks) ---
-	if req.CustomerDetails == nil || req.CustomerDetails.Name == "" {
-		return nil, status.Errorf(codes.InvalidArgument, "customer_details with name is required")
+	// --- Validation ---
+	if req.Title == "" {
+		return nil, status.Errorf(codes.InvalidArgument, "title is required")
 	}
-	if len(req.Items) == 0 {
-		return nil, status.Errorf(codes.InvalidArgument, "at least one item is required")
+	if req.Amount <= 0 {
+		return nil, status.Errorf(codes.InvalidArgument, "amount must be positive")
 	}
-	for i, item := range req.Items {
-		if item.Description == "" || item.Quantity <= 0 || item.UnitPrice < 0 {
-			return nil, status.Errorf(codes.InvalidArgument, "item at index %d is invalid (missing description, non-positive quantity, or negative unit price)", i)
-		}
+	if req.Currency == "" {
+		return nil, status.Errorf(codes.InvalidArgument, "currency is required")
 	}
-	if req.CurrencyCode == "" {
-		return nil, status.Errorf(codes.InvalidArgument, "currency_code is required")
+
+	// Parse due date
+	dueDate, err := time.Parse(time.RFC3339, req.DueDate)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid due_date format: %v", err)
 	}
-	if req.DueDate == nil || !req.DueDate.IsValid() || req.DueDate.AsTime().Before(time.Now()) {
-		return nil, status.Errorf(codes.InvalidArgument, "due_date is required and must be in the future")
+	if dueDate.Before(time.Now()) {
+		return nil, status.Errorf(codes.InvalidArgument, "due_date must be in the future")
 	}
 
 	// --- Get User ID ---
@@ -121,43 +94,26 @@ func (controller *InvoiceController) CreateInvoice(ctx context.Context, req *pb.
 		}
 		return nil, status.Errorf(codes.Internal, "failed to retrieve user details: %v", err)
 	}
-	userID := user.ID // Assuming user model has ID (uint)
 
-	// --- Prepare Service Request ---
-	modelItems := make([]models.InvoiceItem, len(req.Items))
-	for i, item := range req.Items {
-		modelItems[i] = models.InvoiceItem{
-			ItemID:      item.ItemId,
-			Description: item.Description,
-			Quantity:    item.Quantity,
-			UnitPrice:   item.UnitPrice,
-			// TotalPrice will be calculated by the service
-		}
-	}
-
-	serviceReq := &services.CreateInvoiceServiceRequest{
-		UserID: fmt.Sprint(userID), // Convert uint user ID to string
-		CustomerDetails: models.CustomerDetails{
-			Name:    req.CustomerDetails.GetName(),
-			Email:   req.CustomerDetails.GetEmail(),
-			Address: req.CustomerDetails.GetAddress(),
-		},
-		Items:        modelItems,
-		Tax:          req.GetTax(),
-		CurrencyCode: req.GetCurrencyCode(),
-		DueDate:      req.DueDate.AsTime(),
-		Notes:        req.GetNotes(),
+	// --- Create Invoice ---
+	invoice := &models.Invoice{
+		UserID:      fmt.Sprint(user.ID),
+		RecipientID: req.RecipientId,
+		Title:       req.Title,
+		Description: req.Description,
+		Amount:      req.Amount,
+		Currency:    req.Currency,
+		DueDate:     dueDate,
 	}
 
 	// --- Call Service ---
-	createdInvoice, err := controller.invoiceService.CreateInvoice(ctx, serviceReq)
+	createdInvoice, err := controller.invoiceService.CreateInvoice(ctx, invoice)
 	if err != nil {
 		switch {
-		case errors.Is(err, services.ErrInvalidInvoiceData), errors.Is(err, services.ErrInvoiceItemInvalid):
+		case errors.Is(err, services.ErrInvalidInvoiceData):
 			return nil, status.Errorf(codes.InvalidArgument, "invalid invoice data: %v", err)
 		case errors.Is(err, services.ErrInvoiceCreationFailed):
 			return nil, status.Errorf(codes.Internal, "failed to create invoice: %v", err)
-		// Handle other specific errors (like DB constraint errors if not wrapped)
 		default:
 			return nil, status.Errorf(codes.Internal, "failed to create invoice: %v", err)
 		}
@@ -166,26 +122,20 @@ func (controller *InvoiceController) CreateInvoice(ctx context.Context, req *pb.
 	// --- Convert Response ---
 	pbInvoice, err := convertInvoiceToProto(createdInvoice)
 	if err != nil {
-		// Log error but return success as invoice was created
-		fmt.Printf("Error converting created invoice %s to proto: %v\n", createdInvoice.ID, err)
-		// return nil, status.Errorf(codes.Internal, "failed to format response: %v", err)
+		return nil, status.Errorf(codes.Internal, "failed to format invoice response: %v", err)
 	}
 
 	return &pb.CreateInvoiceResponse{Invoice: pbInvoice}, nil
 }
 
-// GetInvoice handles the gRPC request
-func (controller *InvoiceController) GetInvoice(ctx context.Context, req *pb.GetInvoiceRequest) (*pb.Invoice, error) {
+// GetInvoices retrieves a paginated list of invoices
+func (controller *InvoiceController) GetInvoices(ctx context.Context, req *pb.GetInvoicesRequest) (*pb.GetInvoicesResponse, error) {
 	authPayload, ok := ctx.Value(middleware.AuthorizationPayloadKey).(*token.Payload)
 	if !ok {
 		return nil, status.Errorf(codes.Unauthenticated, "unable to retrieve payload from context")
 	}
 
-	if req.GetInvoiceId() == "" {
-		return nil, status.Errorf(codes.InvalidArgument, "invoice_id is required")
-	}
-
-	// --- Get User ID ---
+	// Get user ID from auth
 	user, err := controller.userService.GetUserByEmail(ctx, authPayload.Email)
 	if err != nil {
 		if errors.Is(err, services.ErrUserNotFound) {
@@ -193,36 +143,132 @@ func (controller *InvoiceController) GetInvoice(ctx context.Context, req *pb.Get
 		}
 		return nil, status.Errorf(codes.Internal, "failed to retrieve user details: %v", err)
 	}
-	userID := user.ID // Assuming user model has ID (uint)
 
-	// --- Call Service ---
-	invoice, err := controller.invoiceService.GetInvoice(ctx, fmt.Sprint(userID), req.GetInvoiceId())
+	// Call Service
+	invoices, total, err := controller.invoiceService.GetInvoices(ctx, fmt.Sprint(user.ID), int(req.Page), int(req.Limit))
 	if err != nil {
-		switch {
-		case errors.Is(err, services.ErrInvoiceNotFound):
-			return nil, status.Errorf(codes.NotFound, "invoice not found")
-		default:
-			return nil, status.Errorf(codes.Internal, "failed to get invoice: %v", err)
-		}
+		return nil, status.Errorf(codes.Internal, "failed to get invoices: %v", err)
 	}
 
-	// --- Convert Response ---
+	// Convert Response
+	pbInvoices := make([]*pb.Invoice, len(invoices))
+	for i, invoice := range invoices {
+		pbInvoice, err := convertInvoiceToProto(invoice)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "failed to format invoice response: %v", err)
+		}
+		pbInvoices[i] = pbInvoice
+	}
+
+	return &pb.GetInvoicesResponse{
+		Invoices: pbInvoices,
+		Total:    total,
+	}, nil
+}
+
+// GetInvoiceById retrieves a single invoice by ID
+func (controller *InvoiceController) GetInvoiceById(ctx context.Context, req *pb.GetInvoiceByIdRequest) (*pb.GetInvoiceByIdResponse, error) {
+	authPayload, ok := ctx.Value(middleware.AuthorizationPayloadKey).(*token.Payload)
+	if !ok {
+		return nil, status.Errorf(codes.Unauthenticated, "unable to retrieve payload from context")
+	}
+
+	// Get user ID from auth
+	user, err := controller.userService.GetUserByEmail(ctx, authPayload.Email)
+	if err != nil {
+		if errors.Is(err, services.ErrUserNotFound) {
+			return nil, status.Errorf(codes.Unauthenticated, "user associated with token not found")
+		}
+		return nil, status.Errorf(codes.Internal, "failed to retrieve user details: %v", err)
+	}
+
+	// Call Service
+	invoice, err := controller.invoiceService.GetInvoiceById(ctx, fmt.Sprint(user.ID), req.InvoiceId)
+	if err != nil {
+		if errors.Is(err, services.ErrInvoiceNotFound) {
+			return nil, status.Errorf(codes.NotFound, "invoice not found")
+		}
+		return nil, status.Errorf(codes.Internal, "failed to get invoice: %v", err)
+	}
+
+	// Convert Response
 	pbInvoice, err := convertInvoiceToProto(invoice)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to format invoice response: %v", err)
 	}
 
-	return pbInvoice, nil
+	return &pb.GetInvoiceByIdResponse{Invoice: pbInvoice}, nil
 }
 
-// ListInvoices handles the gRPC request
-func (controller *InvoiceController) ListInvoices(ctx context.Context, req *pb.ListInvoicesRequest) (*pb.ListInvoicesResponse, error) {
+// UpdateInvoice handles the request to update an existing invoice
+func (c *InvoiceController) UpdateInvoice(ctx context.Context, req *pb.UpdateInvoiceRequest) (*pb.UpdateInvoiceResponse, error) {
+	user, err := getUserFromContext(ctx, c.userService)
+	if err != nil {
+		return nil, err
+	}
+
+	dueDate, err := time.Parse(time.RFC3339, req.DueDate)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid due date format")
+	}
+
+	invoice := &models.Invoice{
+		ID:          req.InvoiceId,
+		UserID:      fmt.Sprint(user.ID),
+		RecipientID: req.RecipientId,
+		Title:       req.Title,
+		Description: req.Description,
+		Amount:      req.Amount,
+		Currency:    req.Currency,
+		DueDate:     dueDate,
+	}
+
+	updatedInvoice, err := c.invoiceService.UpdateInvoice(ctx, invoice)
+	if err != nil {
+		if errors.Is(err, services.ErrInvoiceNotFound) {
+			return nil, status.Error(codes.NotFound, "invoice not found")
+		}
+		return nil, status.Errorf(codes.Internal, "failed to update invoice: %v", err)
+	}
+
+	pbInvoice, err := convertInvoiceToProto(updatedInvoice)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to format invoice response: %v", err)
+	}
+
+	return &pb.UpdateInvoiceResponse{
+		Invoice: pbInvoice,
+	}, nil
+}
+
+// DeleteInvoice handles the request to delete an invoice
+func (c *InvoiceController) DeleteInvoice(ctx context.Context, req *pb.DeleteInvoiceRequest) (*pb.DeleteInvoiceResponse, error) {
+	user, err := getUserFromContext(ctx, c.userService)
+	if err != nil {
+		return nil, err
+	}
+
+	err = c.invoiceService.DeleteInvoice(ctx, fmt.Sprint(user.ID), req.InvoiceId)
+	if err != nil {
+		if errors.Is(err, services.ErrInvoiceNotFound) {
+			return nil, status.Error(codes.NotFound, "invoice not found")
+		}
+		return nil, status.Errorf(codes.Internal, "failed to delete invoice: %v", err)
+	}
+
+	return &pb.DeleteInvoiceResponse{
+		Success: true,
+	}, nil
+}
+
+// GetInvoicesByStatus handles the gRPC request
+func (controller *InvoiceController) GetInvoicesByStatus(ctx context.Context, req *pb.GetInvoicesByStatusRequest) (*pb.GetInvoicesByStatusResponse, error) {
 	authPayload, ok := ctx.Value(middleware.AuthorizationPayloadKey).(*token.Payload)
 	if !ok {
 		return nil, status.Errorf(codes.Unauthenticated, "unable to retrieve payload from context")
 	}
 
-	// --- Get User ID ---
+	// Get user ID from auth
 	user, err := controller.userService.GetUserByEmail(ctx, authPayload.Email)
 	if err != nil {
 		if errors.Is(err, services.ErrUserNotFound) {
@@ -230,46 +276,114 @@ func (controller *InvoiceController) ListInvoices(ctx context.Context, req *pb.L
 		}
 		return nil, status.Errorf(codes.Internal, "failed to retrieve user details: %v", err)
 	}
-	userID := user.ID // Assuming user model has ID (uint)
 
-	// --- Prepare Service Request ---
-	statusFilterString := ""                                                                     // Default to no filter
-	if req.StatusFilter != pb.InvoiceStatus_DRAFT && req.StatusFilter != pb.InvoiceStatus_PAID { // Check if filter is explicitly set (using hypothetical field)
-		// TODO: Need a reliable way to check if the enum default (DRAFT) was explicitly sent
-		// For now, assume any non-zero value means filter is intended.
-		// A better approach might be to use wrappers.Int32Value or a separate bool field.
-		if req.StatusFilter != pb.InvoiceStatus_DRAFT {
-			statusFilterString = req.StatusFilter.String()
-		}
-	}
-
-	serviceReq := &services.ListInvoicesServiceRequest{
-		UserID:       fmt.Sprint(userID),
-		PageSize:     int(req.GetPageSize()),
-		PageToken:    req.GetPageToken(),
-		StatusFilter: statusFilterString,
-	}
-
-	// --- Call Service ---
-	invoices, nextToken, err := controller.invoiceService.ListInvoices(ctx, serviceReq)
+	// Get invoices
+	invoices, total, err := controller.invoiceService.GetInvoicesByStatus(ctx, fmt.Sprint(user.ID), req.IsPaid, int(req.Page), int(req.Limit))
 	if err != nil {
-		// Handle potential pagination token errors specifically if service returns them
-		return nil, status.Errorf(codes.Internal, "failed to list invoices: %v", err)
+		return nil, status.Errorf(codes.Internal, "failed to get invoices: %v", err)
 	}
 
-	// --- Convert Response ---
-	pbInvoices := make([]*pb.Invoice, 0, len(invoices))
-	for _, inv := range invoices {
-		pbInv, err := convertInvoiceToProto(&inv)
+	// Convert to proto
+	pbInvoices := make([]*pb.Invoice, len(invoices))
+	for i, invoice := range invoices {
+		pbInvoice, err := convertInvoiceToProto(invoice)
 		if err != nil {
-			fmt.Printf("Error converting invoice %s to proto: %v\n", inv.ID, err)
-			continue // Skip problematic invoice
+			return nil, status.Errorf(codes.Internal, "failed to format invoice response: %v", err)
 		}
-		pbInvoices = append(pbInvoices, pbInv)
+		pbInvoices[i] = pbInvoice
 	}
 
-	return &pb.ListInvoicesResponse{
-		Invoices:      pbInvoices,
-		NextPageToken: nextToken,
+	return &pb.GetInvoicesByStatusResponse{
+		Invoices: pbInvoices,
+		Total:    total,
+	}, nil
+}
+
+// MarkInvoiceAsPaid handles marking an invoice as paid with payment details
+func (c *InvoiceController) MarkInvoiceAsPaid(ctx context.Context, req *pb.MarkInvoiceAsPaidRequest) (*pb.MarkInvoiceAsPaidResponse, error) {
+	// Get auth payload from context
+	authPayload, ok := ctx.Value(middleware.AuthorizationPayloadKey).(*token.Payload)
+	if !ok {
+		return nil, status.Errorf(codes.Unauthenticated, "unable to retrieve payload from context")
+	}
+
+	// Validate request
+	if req.InvoiceId == "" {
+		return nil, status.Errorf(codes.InvalidArgument, "invoice_id is required")
+	}
+	if req.PaymentMethod == nil {
+		return nil, status.Errorf(codes.InvalidArgument, "payment_method is required")
+	}
+
+	// Get user ID from auth
+	user, err := c.userService.GetUserByEmail(ctx, authPayload.Email)
+	if err != nil {
+		if errors.Is(err, services.ErrUserNotFound) {
+			return nil, status.Errorf(codes.Unauthenticated, "user associated with token not found")
+		}
+		return nil, status.Errorf(codes.Internal, "failed to retrieve user details: %v", err)
+	}
+
+	// Call service to mark invoice as paid
+	invoice, err := c.invoiceService.MarkInvoiceAsPaid(ctx, fmt.Sprint(user.ID), req.InvoiceId, req.PaymentMethod.MethodId, req.PaymentReference)
+	if err != nil {
+		switch {
+		case errors.Is(err, services.ErrInvoiceNotFound):
+			return nil, status.Errorf(codes.NotFound, "invoice not found")
+		case errors.Is(err, services.ErrUnauthorizedAccess):
+			return nil, status.Errorf(codes.PermissionDenied, "unauthorized access to invoice")
+		default:
+			return nil, status.Errorf(codes.Internal, "failed to mark invoice as paid: %v", err)
+		}
+	}
+
+	// Convert to proto response
+	pbInvoice, err := convertInvoiceToProto(invoice)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to format invoice response: %v", err)
+	}
+
+	return &pb.MarkInvoiceAsPaidResponse{
+		Invoice: pbInvoice,
+	}, nil
+}
+
+// SendInvoice handles sending an invoice to the recipient
+func (c *InvoiceController) SendInvoice(ctx context.Context, req *pb.SendInvoiceRequest) (*pb.SendInvoiceResponse, error) {
+	// Get auth payload from context
+	authPayload, ok := ctx.Value(middleware.AuthorizationPayloadKey).(*token.Payload)
+	if !ok {
+		return nil, status.Errorf(codes.Unauthenticated, "unable to retrieve payload from context")
+	}
+
+	// Validate request
+	if req.InvoiceId == "" {
+		return nil, status.Errorf(codes.InvalidArgument, "invoice_id is required")
+	}
+
+	// Get user ID from auth
+	user, err := c.userService.GetUserByEmail(ctx, authPayload.Email)
+	if err != nil {
+		if errors.Is(err, services.ErrUserNotFound) {
+			return nil, status.Errorf(codes.Unauthenticated, "user associated with token not found")
+		}
+		return nil, status.Errorf(codes.Internal, "failed to retrieve user details: %v", err)
+	}
+
+	// Call service to send invoice
+	err = c.invoiceService.SendInvoice(ctx, fmt.Sprint(user.ID), req.InvoiceId)
+	if err != nil {
+		switch {
+		case errors.Is(err, services.ErrInvoiceNotFound):
+			return nil, status.Errorf(codes.NotFound, "invoice not found")
+		case errors.Is(err, services.ErrUnauthorizedAccess):
+			return nil, status.Errorf(codes.PermissionDenied, "unauthorized access to invoice")
+		default:
+			return nil, status.Errorf(codes.Internal, "failed to send invoice: %v", err)
+		}
+	}
+
+	return &pb.SendInvoiceResponse{
+		Success: true,
 	}, nil
 }
