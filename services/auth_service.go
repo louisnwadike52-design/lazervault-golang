@@ -47,6 +47,7 @@ type IAuthService interface {
 	Login(req *LoginRequest, userAgent, clientIP string) (*LoginResponse, error)
 	RefreshToken(req *RefreshTokenRequest) (*RefreshTokenResponse, error)
 	Logout(sessionID string) error
+	CheckEmailAvailability(ctx context.Context, email string) (bool, error)
 	RequestEmailVerification(ctx context.Context, email string) error
 	VerifyEmail(ctx context.Context, verificationCode string) error
 	RequestPasswordReset(ctx context.Context, email string) error
@@ -270,6 +271,25 @@ func (s *AuthService) Logout(sessionID string) error {
 	}
 
 	return nil
+}
+
+// CheckEmailAvailability checks if an email address is available for registration.
+// Returns true if email is available (not in use), false if already taken.
+func (s *AuthService) CheckEmailAvailability(ctx context.Context, email string) (bool, error) {
+	// Validate email format
+	if !utils.IsValidEmail(email) {
+		return false, errors.New("invalid email format")
+	}
+
+	// Check if user with this email exists
+	var count int64
+	err := s.db.WithContext(ctx).Model(&models.User{}).Where("email = ?", email).Count(&count).Error
+	if err != nil {
+		return false, err
+	}
+
+	// Return true if email is available (count == 0), false if taken
+	return count == 0, nil
 }
 
 // generateVerificationCode generates a random, URL-safe string.

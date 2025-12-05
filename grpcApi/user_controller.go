@@ -43,6 +43,12 @@ func (c *UserController) CreateUser(ctx context.Context, req *pb.CreateUserReque
 		Str("role", req.Role).
 		Msg("Received CreateUser request")
 
+	// Set default role if not provided
+	role := req.Role
+	if role == "" {
+		role = "user" // Default role for new users
+	}
+
 	// Create user model from request
 	user := &models.User{
 		FirstName:   req.FirstName,
@@ -50,7 +56,7 @@ func (c *UserController) CreateUser(ctx context.Context, req *pb.CreateUserReque
 		Email:       req.Email,
 		Password:    &req.Password,
 		PhoneNumber: req.PhoneNumber,
-		Role:        req.Role,
+		Role:        role,
 	}
 
 	userService := services.NewUserService(c.server.db, c.server.config, c.server.tokenMaker)
@@ -99,6 +105,21 @@ func (c *UserController) CreateUser(ctx context.Context, req *pb.CreateUserReque
 	if err := c.server.db.Create(&session).Error; err != nil {
 		log.Error().Err(err).Msg("Failed to create session in database")
 		return c.createErrorResponse(codes.Internal, "Failed to create session", req.Email)
+	}
+
+	// Create default account for new user
+	accountService := services.NewAccountService(c.server.db, c.server.redisWorker.GetDistributor())
+	defaultAccountReq := &pb.CreateAccountRequest{
+		AccountType: "savings", // Default account type
+		Currency:    "GBP",     // Default currency
+	}
+
+	_, err = accountService.CreateAccount(ctx, user.ID, defaultAccountReq)
+	if err != nil {
+		log.Warn().Err(err).Uint("user_id", user.ID).Msg("Failed to create default account for new user")
+		// Don't fail user creation if account creation fails - log and continue
+	} else {
+		log.Info().Uint("user_id", user.ID).Msg("Default account created successfully for new user")
 	}
 
 	// Log success

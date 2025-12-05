@@ -110,6 +110,38 @@ func (c *AuthController) Logout(ctx context.Context, req *pb.LogoutRequest) (*pb
 	}, nil
 }
 
+// --- Email Availability Check Handler ---
+
+func (c *AuthController) CheckEmailAvailability(ctx context.Context, req *pb.CheckEmailAvailabilityRequest) (*pb.CheckEmailAvailabilityResponse, error) {
+	// Validate request
+	email := strings.TrimSpace(req.GetEmail())
+	if email == "" {
+		return nil, status.Errorf(codes.InvalidArgument, "email is required")
+	}
+
+	if !utils.IsValidEmail(email) {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid email format")
+	}
+
+	// Check email availability
+	available, err := c.authService.CheckEmailAvailability(ctx, email)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to check email availability: %v", err)
+	}
+
+	msg := "Email is available"
+	if !available {
+		msg = "Email already in use"
+	}
+
+	return &pb.CheckEmailAvailabilityResponse{
+		Available: available,
+		Msg:       msg,
+	}, nil
+}
+
+// --- End Email Availability Check Handler ---
+
 // --- Email Verification Handlers ---
 
 func (c *AuthController) RequestEmailVerification(ctx context.Context, req *pb.RequestEmailVerificationRequest) (*pb.RequestEmailVerificationResponse, error) {

@@ -56,12 +56,15 @@ func requiresAuth(method string) bool {
 	// List of public endpoints that don't require authentication
 	publicEndpoints := map[string]bool{
 		// Auth Service public endpoints
-		"/pb.AuthService/Login":        false,
-		"/pb.AuthService/Logout":       true, // Should be true, logout needs auth
-		"/pb.AuthService/RefreshToken": false,
-		"/pb.AuthService/Register":     false,
-		"/pb.AuthService/VerifyEmail":  false,
-		"/pb.AuthService/ResendEmail":  false,
+		"/pb.AuthService/Login":                   false,
+		"/pb.AuthService/Logout":                  true, // Should be true, logout needs auth
+		"/pb.AuthService/RefreshToken":            false,
+		"/pb.AuthService/Register":                false,
+		"/pb.AuthService/VerifyEmail":             false,
+		"/pb.AuthService/ResendEmail":             false,
+		"/pb.AuthService/CheckEmailAvailability":  false, // Public - check before signup
+		"/pb.AuthService/RequestPasswordReset":    false, // Public - initiate password reset
+		"/pb.AuthService/ResetPassword":           false, // Public - reset with token
 
 		// User Service public endpoints
 		"/pb.UserService/CreateUser": false,

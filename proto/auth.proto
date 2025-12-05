@@ -156,6 +156,21 @@ message SignInWithAppleRequest {
 
 // --- End Social Sign-In Messages ---
 
+// --- Email Availability Check ---
+message CheckEmailAvailabilityRequest {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+      required: ["email"]
+    }
+  };
+  string email = 1; // The email to check for availability
+}
+
+message CheckEmailAvailabilityResponse {
+  bool available = 1; // Indicates if the email is available (true) or already in use (false)
+  string msg = 2;     // User-facing message (e.g., "Email is available" or "Email already in use")
+}
+
 // --- PIN Verification ---
 message VerifyPinRequest {
   option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
@@ -284,6 +299,20 @@ rpc RefreshToken(RefreshTokenRequest) returns (RefreshTokenResponse) {
      };
   }
   // --- End Social Sign-In RPCs ---
+
+  // --- Email Availability Check RPC ---
+  rpc CheckEmailAvailability(CheckEmailAvailabilityRequest) returns (CheckEmailAvailabilityResponse) {
+    option (google.api.http) = {
+      post: "/v1/auth/check-email-availability"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Check Email Availability"
+      description: "Checks if an email address is available for registration or already in use."
+      tags: ["Auth"]
+    };
+  }
+  // --- End Email Availability Check RPC ---
 
   // Verify the user's transaction PIN.
   rpc VerifyPin(VerifyPinRequest) returns (VerifyPinResponse) {

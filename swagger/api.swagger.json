@@ -579,6 +579,40 @@
         ]
       }
     },
+    "/v1/auth/check-email-availability": {
+      "post": {
+        "summary": "Check Email Availability",
+        "description": "Checks if an email address is available for registration or already in use.",
+        "operationId": "AuthService_CheckEmailAvailability",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbCheckEmailAvailabilityResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/pbCheckEmailAvailabilityRequest"
+            }
+          }
+        ],
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
     "/v1/auth/google/signin": {
       "post": {
         "summary": "Sign In/Up with Google",
@@ -3448,6 +3482,32 @@
         }
       },
       "title": "Represents a single chat message"
+    },
+    "pbCheckEmailAvailabilityRequest": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "title": "The email to check for availability"
+        }
+      },
+      "title": "--- Email Availability Check ---",
+      "required": [
+        "email"
+      ]
+    },
+    "pbCheckEmailAvailabilityResponse": {
+      "type": "object",
+      "properties": {
+        "available": {
+          "type": "boolean",
+          "title": "Indicates if the email is available (true) or already in use (false)"
+        },
+        "msg": {
+          "type": "string",
+          "title": "User-facing message (e.g., \"Email is available\" or \"Email already in use\")"
+        }
+      }
     },
     "pbComparisonData": {
       "type": "object",

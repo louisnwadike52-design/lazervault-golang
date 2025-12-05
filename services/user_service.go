@@ -6,6 +6,7 @@ import (
 	"lazervaultGo/configs"
 	"lazervaultGo/models"
 	"lazervaultGo/token"
+	"lazervaultGo/utils"
 	"lazervaultGo/validators"
 
 	"gorm.io/gorm"
@@ -44,7 +45,16 @@ func (s *UserService) CreateUser(ctx context.Context, user *models.User) error {
 	if err != nil {
 		return err
 	}
-	// TODO: Add password hashing here before saving
+
+	// Hash password before saving (if password is provided)
+	if user.Password != nil && *user.Password != "" {
+		hashedPassword, err := utils.HashPassword(*user.Password)
+		if err != nil {
+			return errors.New("failed to hash password")
+		}
+		user.Password = &hashedPassword
+	}
+
 	return s.db.WithContext(ctx).Create(user).Error
 }
 
