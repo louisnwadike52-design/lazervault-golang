@@ -679,6 +679,40 @@
         ]
       }
     },
+    "/v1/auth/login-passcode": {
+      "post": {
+        "summary": "Login with Passcode",
+        "description": "Authenticates a user using their email and login passcode.",
+        "operationId": "AuthService_LoginWithPasscode",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbLoginResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/pbLoginWithPasscodeRequest"
+            }
+          }
+        ],
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
     "/v1/auth/logout": {
       "post": {
         "operationId": "AuthService_Logout",
@@ -3736,6 +3770,10 @@
         },
         "role": {
           "type": "string"
+        },
+        "loginPasscode": {
+          "type": "string",
+          "title": "Optional 4-6 digit passcode for quick login"
         }
       }
     },
@@ -5920,6 +5958,18 @@
         },
         "msg": {
           "type": "string"
+        }
+      }
+    },
+    "pbLoginWithPasscodeRequest": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string"
+        },
+        "loginPasscode": {
+          "type": "string",
+          "title": "4-6 digit passcode"
         }
       }
     },

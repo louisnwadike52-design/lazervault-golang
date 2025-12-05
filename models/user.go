@@ -56,6 +56,9 @@ type User struct {
 	// Field for Transaction PIN (Store Hashed)
 	TransactionPin *string `json:"-" gorm:"size:255"` // Nullable if PIN is not set
 
+	// Field for Login Passcode (Store Hashed) - Used for quick device login
+	LoginPasscode *string `json:"-" gorm:"size:255"` // Nullable if passcode is not set
+
 	Accounts []Account `gorm:"foreignKey:OwnerUserID"` // Has Many relationship
 }
 
@@ -221,6 +224,32 @@ func (u *User) ComparePassword(password string) (bool, error) {
 		return false, ErrPasswordMismatch // Return generic mismatch for security
 	}
 	return true, nil
+}
+
+// CompareLoginPasscode compares the provided passcode with the user's hashed login passcode
+func (u *User) CompareLoginPasscode(passcode string) (bool, error) {
+	if u.LoginPasscode == nil || *u.LoginPasscode == "" {
+		// No passcode set
+		return false, errors.New("no login passcode set")
+	}
+	err := bcrypt.CompareHashAndPassword([]byte(*u.LoginPasscode), []byte(passcode))
+	if err != nil {
+		return false, errors.New("passcode mismatch")
+	}
+	return true, nil
+}
+
+// SetLoginPasscode hashes and sets the login passcode for the user
+func (u *User) SetLoginPasscode(passcode string) error {
+	if len(passcode) < 4 || len(passcode) > 6 {
+		return errors.New("passcode must be between 4 and 6 digits")
+	}
+	hashedPasscode, err := utils.HashPassword(passcode)
+	if err != nil {
+		return err
+	}
+	u.LoginPasscode = &hashedPasscode
+	return nil
 }
 
 func (User) FindById(db *gorm.DB, id uint) (*User, error) {

@@ -74,6 +74,53 @@ func (c *AuthController) Login(ctx context.Context, req *pb.LoginRequest) (*pb.L
 	}, nil
 }
 
+func (c *AuthController) LoginWithPasscode(ctx context.Context, req *pb.LoginWithPasscodeRequest) (*pb.LoginResponse, error) {
+	// Get client metadata
+	md, _ := metadata.FromIncomingContext(ctx)
+	userAgent := strings.Join(md.Get("user-agent"), "")
+	clientIP := strings.Join(md.Get("x-forwarded-for"), "")
+
+	loginReq := &services.LoginWithPasscodeRequest{
+		Email:         req.Email,
+		LoginPasscode: req.LoginPasscode,
+	}
+
+	result, err := c.authService.LoginWithPasscode(loginReq, userAgent, clientIP)
+	if err != nil {
+		return nil, status.Errorf(codes.Unauthenticated, "passcode login failed: %v", err)
+	}
+
+	// Convert User model to pb.User
+	pbUser := &pb.User{
+		Id:              uint64(result.Data.User.ID),
+		Email:           result.Data.User.Email,
+		FirstName:       result.Data.User.FirstName,
+		LastName:        result.Data.User.LastName,
+		PhoneNumber:     result.Data.User.PhoneNumber,
+		IsEmailVerified: result.Data.User.Verified,
+		CreatedAt:       timestamppb.New(result.Data.User.CreatedAt),
+		UpdatedAt:       timestamppb.New(result.Data.User.UpdatedAt),
+	}
+	// Convert Session model to pb.Session
+	pbSession := &pb.Session{
+		Id:                    result.Data.Session.SessionID,
+		UserId:                uint64(result.Data.User.ID),
+		AccessToken:           result.Data.Session.AccessToken,
+		RefreshToken:          result.Data.Session.RefreshToken,
+		AccessTokenExpiresAt:  timestamppb.New(result.Data.Session.AccessTokenExpiresAt),
+		RefreshTokenExpiresAt: timestamppb.New(result.Data.Session.RefreshTokenExpiresAt),
+	}
+
+	return &pb.LoginResponse{
+		Data: &pb.Data{
+			User:    pbUser,
+			Session: pbSession,
+		},
+		Success: result.Success,
+		Msg:     result.Msg,
+	}, nil
+}
+
 func (c *AuthController) RefreshToken(ctx context.Context, req *pb.RefreshTokenRequest) (*pb.RefreshTokenResponse, error) {
 	refreshReq := &services.RefreshTokenRequest{
 		RefreshToken: req.RefreshToken,

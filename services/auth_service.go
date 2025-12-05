@@ -45,6 +45,7 @@ var (
 // IAuthService defines the interface for authentication and related services.
 type IAuthService interface {
 	Login(req *LoginRequest, userAgent, clientIP string) (*LoginResponse, error)
+	LoginWithPasscode(req *LoginWithPasscodeRequest, userAgent, clientIP string) (*LoginResponse, error)
 	RefreshToken(req *RefreshTokenRequest) (*RefreshTokenResponse, error)
 	Logout(sessionID string) error
 	CheckEmailAvailability(ctx context.Context, email string) (bool, error)
@@ -67,6 +68,11 @@ type AuthService struct {
 type LoginRequest struct {
 	Email    string `json:"email" validate:"required,email"`
 	Password string `json:"password" validate:"required,min=6"`
+}
+
+type LoginWithPasscodeRequest struct {
+	Email         string `json:"email" validate:"required,email"`
+	LoginPasscode string `json:"login_passcode" validate:"required,min=4,max=6"`
 }
 
 type Data struct {
@@ -174,6 +180,72 @@ func (s *AuthService) Login(req *LoginRequest, userAgent, clientIP string) (*Log
 		},
 		Success: true,
 		Msg:     "Login successful",
+	}, nil
+}
+
+func (s *AuthService) LoginWithPasscode(req *LoginWithPasscodeRequest, userAgent, clientIP string) (*LoginResponse, error) {
+	// Validate email
+	if !utils.IsValidEmail(req.Email) {
+		return nil, models.ErrInvalidEmail
+	}
+
+	user, err := s.getUserByEmail(req.Email)
+	if err != nil {
+		return nil, err
+	}
+
+	// Verify login passcode
+	if ok, err := user.CompareLoginPasscode(req.LoginPasscode); err != nil || !ok {
+		return nil, errors.New("invalid passcode")
+	}
+
+	// Create access token
+	accessToken, accessPayload, err := s.tokenMaker.CreateToken(
+		user.Email,
+		time.Duration(s.config.AccessTokenDuration),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	// Create refresh token
+	refreshToken, refreshPayload, err := s.tokenMaker.CreateToken(
+		user.Email,
+		time.Duration(s.config.RefreshTokenDuration),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	// Create session
+	session := models.Session{
+		ID:           uuid.New().String(),
+		UserID:       user.ID,
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+		UserAgent:    userAgent,
+		ClientIP:     clientIP,
+		IsBlocked:    false,
+		ExpiresAt:    refreshPayload.ExpiredAt,
+	}
+
+	if err := s.db.Create(&session).Error; err != nil {
+		return nil, err
+	}
+
+	return &LoginResponse{
+		Data: Data{
+			User: *user,
+			Session: &Session{
+				AccessToken:           accessToken,
+				RefreshToken:          refreshToken,
+				AccessTokenExpiresAt:  accessPayload.ExpiredAt,
+				RefreshTokenExpiresAt: refreshPayload.ExpiredAt,
+				SessionID:             session.ID,
+			},
+		},
+		Success: true,
+		Msg:     "Login with passcode successful",
 	}, nil
 }
 

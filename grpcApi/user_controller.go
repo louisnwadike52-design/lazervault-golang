@@ -59,6 +59,14 @@ func (c *UserController) CreateUser(ctx context.Context, req *pb.CreateUserReque
 		Role:        role,
 	}
 
+	// Set login passcode if provided
+	if req.LoginPasscode != "" {
+		if err := user.SetLoginPasscode(req.LoginPasscode); err != nil {
+			log.Error().Err(err).Str("email", req.Email).Msg("Failed to set login passcode")
+			return c.createErrorResponse(codes.InvalidArgument, fmt.Sprintf("Invalid passcode: %v", err), req.Email)
+		}
+	}
+
 	userService := services.NewUserService(c.server.db, c.server.config, c.server.tokenMaker)
 
 	// Create user in database

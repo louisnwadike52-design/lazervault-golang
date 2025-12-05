@@ -31,6 +31,7 @@ type CreateUserRequest struct {
 	Password      string                 `protobuf:"bytes,4,opt,name=password,proto3" json:"password,omitempty"`
 	PhoneNumber   string                 `protobuf:"bytes,5,opt,name=phone_number,json=phoneNumber,proto3" json:"phone_number,omitempty"`
 	Role          string                 `protobuf:"bytes,6,opt,name=role,proto3" json:"role,omitempty"`
+	LoginPasscode string                 `protobuf:"bytes,7,opt,name=login_passcode,json=loginPasscode,proto3" json:"login_passcode,omitempty"` // Optional 4-6 digit passcode for quick login
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -107,6 +108,13 @@ func (x *CreateUserRequest) GetRole() string {
 	return ""
 }
 
+func (x *CreateUserRequest) GetLoginPasscode() string {
+	if x != nil {
+		return x.LoginPasscode
+	}
+	return ""
+}
+
 type CreateUserResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
@@ -172,7 +180,7 @@ var File_user_proto protoreflect.FileDescriptor
 const file_user_proto_rawDesc = "" +
 	"\n" +
 	"\n" +
-	"user.proto\x12\x02pb\x1a\x1cgoogle/api/annotations.proto\x1a.protoc-gen-openapiv2/options/annotations.proto\x1a\fcommon.proto\"\xb8\x01\n" +
+	"user.proto\x12\x02pb\x1a\x1cgoogle/api/annotations.proto\x1a.protoc-gen-openapiv2/options/annotations.proto\x1a\fcommon.proto\"\xdf\x01\n" +
 	"\x11CreateUserRequest\x12\x1d\n" +
 	"\n" +
 	"first_name\x18\x01 \x01(\tR\tfirstName\x12\x1b\n" +
@@ -180,7 +188,8 @@ const file_user_proto_rawDesc = "" +
 	"\x05email\x18\x03 \x01(\tR\x05email\x12\x1a\n" +
 	"\bpassword\x18\x04 \x01(\tR\bpassword\x12!\n" +
 	"\fphone_number\x18\x05 \x01(\tR\vphoneNumber\x12\x12\n" +
-	"\x04role\x18\x06 \x01(\tR\x04role\"f\n" +
+	"\x04role\x18\x06 \x01(\tR\x04role\x12%\n" +
+	"\x0elogin_passcode\x18\a \x01(\tR\rloginPasscode\"f\n" +
 	"\x12CreateUserResponse\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x18\n" +
 	"\amessage\x18\x02 \x01(\tR\amessage\x12\x1c\n" +

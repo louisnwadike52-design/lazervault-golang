@@ -57,7 +57,8 @@ func requiresAuth(method string) bool {
 	publicEndpoints := map[string]bool{
 		// Auth Service public endpoints
 		"/pb.AuthService/Login":                   false,
-		"/pb.AuthService/Logout":                  true, // Should be true, logout needs auth
+		"/pb.AuthService/LoginWithPasscode":       false, // Public - login with passcode
+		"/pb.AuthService/Logout":                  true,  // Should be true, logout needs auth
 		"/pb.AuthService/RefreshToken":            false,
 		"/pb.AuthService/Register":                false,
 		"/pb.AuthService/VerifyEmail":             false,
