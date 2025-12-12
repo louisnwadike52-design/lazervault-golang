@@ -1,0 +1,838 @@
+syntax = "proto3";
+
+package pb;
+
+option go_package = "lazervaultGo/pb";
+
+import "google/api/annotations.proto";
+import "google/protobuf/timestamp.proto";
+
+// ============================================================================
+// ENUMS
+// ============================================================================
+
+enum GroupAccountStatus {
+  GROUP_ACCOUNT_STATUS_UNSPECIFIED = 0;
+  GROUP_ACCOUNT_STATUS_ACTIVE = 1;
+  GROUP_ACCOUNT_STATUS_SUSPENDED = 2;
+  GROUP_ACCOUNT_STATUS_CLOSED = 3;
+}
+
+enum GroupMemberRole {
+  GROUP_MEMBER_ROLE_UNSPECIFIED = 0;
+  GROUP_MEMBER_ROLE_ADMIN = 1;
+  GROUP_MEMBER_ROLE_MEMBER = 2;
+  GROUP_MEMBER_ROLE_VIEWER = 3;
+}
+
+enum GroupMemberStatus {
+  GROUP_MEMBER_STATUS_UNSPECIFIED = 0;
+  GROUP_MEMBER_STATUS_ACTIVE = 1;
+  GROUP_MEMBER_STATUS_INACTIVE = 2;
+  GROUP_MEMBER_STATUS_SUSPENDED = 3;
+  GROUP_MEMBER_STATUS_REMOVED = 4;
+}
+
+enum ContributionType {
+  CONTRIBUTION_TYPE_UNSPECIFIED = 0;
+  CONTRIBUTION_TYPE_ONE_TIME = 1;
+  CONTRIBUTION_TYPE_RECURRING = 2;
+  CONTRIBUTION_TYPE_ROTATING_SAVINGS = 3;
+}
+
+enum ContributionFrequency {
+  CONTRIBUTION_FREQUENCY_UNSPECIFIED = 0;
+  CONTRIBUTION_FREQUENCY_DAILY = 1;
+  CONTRIBUTION_FREQUENCY_WEEKLY = 2;
+  CONTRIBUTION_FREQUENCY_BIWEEKLY = 3;
+  CONTRIBUTION_FREQUENCY_MONTHLY = 4;
+  CONTRIBUTION_FREQUENCY_QUARTERLY = 5;
+  CONTRIBUTION_FREQUENCY_YEARLY = 6;
+}
+
+enum ContributionStatus {
+  CONTRIBUTION_STATUS_UNSPECIFIED = 0;
+  CONTRIBUTION_STATUS_ACTIVE = 1;
+  CONTRIBUTION_STATUS_PAUSED = 2;
+  CONTRIBUTION_STATUS_COMPLETED = 3;
+  CONTRIBUTION_STATUS_CANCELLED = 4;
+}
+
+enum PaymentStatus {
+  PAYMENT_STATUS_UNSPECIFIED = 0;
+  PAYMENT_STATUS_PENDING = 1;
+  PAYMENT_STATUS_PROCESSING = 2;
+  PAYMENT_STATUS_COMPLETED = 3;
+  PAYMENT_STATUS_FAILED = 4;
+  PAYMENT_STATUS_REFUNDED = 5;
+}
+
+enum PayoutStatus {
+  PAYOUT_STATUS_UNSPECIFIED = 0;
+  PAYOUT_STATUS_PENDING = 1;
+  PAYOUT_STATUS_COMPLETED = 2;
+  PAYOUT_STATUS_CANCELLED = 3;
+}
+
+enum PayoutTransactionStatus {
+  PAYOUT_TRANSACTION_STATUS_UNSPECIFIED = 0;
+  PAYOUT_TRANSACTION_STATUS_PENDING = 1;
+  PAYOUT_TRANSACTION_STATUS_PROCESSING = 2;
+  PAYOUT_TRANSACTION_STATUS_COMPLETED = 3;
+  PAYOUT_TRANSACTION_STATUS_FAILED = 4;
+  PAYOUT_TRANSACTION_STATUS_REFUNDED = 5;
+}
+
+// ============================================================================
+// GROUP ACCOUNT MESSAGES
+// ============================================================================
+
+message GroupAccountMessage {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  uint64 admin_id = 4; // User ID of the admin
+  GroupAccountStatus status = 5;
+  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp updated_at = 7;
+  string metadata = 8; // JSON string for additional data
+  repeated GroupMemberMessage members = 9;
+  repeated ContributionMessage contributions = 10;
+}
+
+message GroupMemberMessage {
+  string id = 1;
+  string group_id = 2;
+  uint64 user_id = 3;
+  string user_name = 4;
+  string email = 5;
+  string profile_image = 6;
+  GroupMemberRole role = 7;
+  GroupMemberStatus status = 8;
+  google.protobuf.Timestamp joined_at = 9;
+  string permissions = 10; // JSON string for permissions map
+  string phone_number = 11;
+  bool is_partial = 12; // True if user hasn't completed signup (invited but not registered)
+  string user_username = 13;
+}
+
+message ContributionMessage {
+  string id = 1;
+  string group_id = 2;
+  string title = 3;
+  string description = 4;
+  uint64 target_amount = 5;
+  uint64 current_amount = 6;
+  string currency = 7;
+  google.protobuf.Timestamp deadline = 8;
+  ContributionStatus status = 9;
+  uint64 created_by = 10;
+  google.protobuf.Timestamp created_at = 11;
+  google.protobuf.Timestamp updated_at = 12;
+  string metadata = 13; // JSON string
+
+  // Type-specific fields
+  ContributionType type = 14;
+  ContributionFrequency frequency = 15;
+  uint64 regular_amount = 16;
+  google.protobuf.Timestamp next_payment_date = 17;
+  google.protobuf.Timestamp start_date = 18;
+  int32 total_cycles = 19;
+  int32 current_cycle = 20;
+
+  // Payout/Rotation fields
+  uint64 current_payout_recipient = 21;
+  google.protobuf.Timestamp next_payout_date = 22;
+
+  // Payment settings
+  bool auto_pay_enabled = 23;
+  uint64 penalty_amount = 24;
+  int32 grace_period_days = 25;
+  bool allow_partial_payments = 26;
+  uint64 minimum_balance = 27;
+
+  // Related data
+  repeated ContributionPaymentMessage payments = 28;
+  repeated PayoutScheduleMessage payout_schedule = 29;
+  repeated PayoutTransactionMessage payout_history = 30;
+}
+
+message ContributionPaymentMessage {
+  string id = 1;
+  string contribution_id = 2;
+  string group_id = 3;
+  uint64 user_id = 4;
+  string user_name = 5;
+  uint64 amount = 6;
+  string currency = 7;
+  google.protobuf.Timestamp payment_date = 8;
+  PaymentStatus status = 9;
+  string transaction_id = 10;
+  string receipt_id = 11;
+  string notes = 12;
+  string metadata = 13; // JSON string
+}
+
+message PayoutScheduleMessage {
+  string id = 1;
+  uint64 user_id = 2;
+  string user_name = 3;
+  int32 position = 4;
+  google.protobuf.Timestamp scheduled_date = 5;
+  uint64 expected_amount = 6;
+  PayoutStatus status = 7;
+  google.protobuf.Timestamp received_date = 8;
+  uint64 actual_amount = 9;
+  string notes = 10;
+}
+
+message PayoutTransactionMessage {
+  string id = 1;
+  string contribution_id = 2;
+  string group_id = 3;
+  uint64 recipient_user_id = 4;
+  string recipient_user_name = 5;
+  uint64 amount = 6;
+  string currency = 7;
+  google.protobuf.Timestamp payout_date = 8;
+  PayoutTransactionStatus status = 9;
+  string transaction_id = 10;
+  string payment_method = 11;
+  string failure_reason = 12;
+  string metadata = 13; // JSON string
+}
+
+message ContributionReceiptMessage {
+  string id = 1;
+  string payment_id = 2;
+  string contribution_id = 3;
+  string group_id = 4;
+  uint64 user_id = 5;
+  string user_name = 6;
+  uint64 amount = 7;
+  string currency = 8;
+  google.protobuf.Timestamp payment_date = 9;
+  google.protobuf.Timestamp generated_at = 10;
+  string receipt_number = 11;
+  string receipt_data = 12; // JSON string
+}
+
+message ContributionTranscriptMessage {
+  string id = 1;
+  string contribution_id = 2;
+  string group_id = 3;
+  google.protobuf.Timestamp generated_at = 4;
+  repeated ContributionPaymentMessage payments = 5;
+  uint64 total_amount = 6;
+  string currency = 7;
+  string member_contributions = 8; // JSON string: map<string, double>
+}
+
+// ============================================================================
+// REQUEST/RESPONSE MESSAGES
+// ============================================================================
+
+// Group Account Operations
+
+message CreateGroupRequest {
+  string name = 1;
+  string description = 2;
+}
+
+message CreateGroupResponse {
+  GroupAccountMessage group = 1;
+}
+
+message GetGroupRequest {
+  string group_id = 1;
+}
+
+message GetGroupResponse {
+  GroupAccountMessage group = 1;
+}
+
+message ListUserGroupsRequest {
+  int32 page = 1;
+  int32 page_size = 2;
+  string status = 3; // Optional filter
+}
+
+message ListUserGroupsResponse {
+  repeated GroupAccountMessage groups = 1;
+  GroupPaginationInfo pagination = 2;
+}
+
+message UpdateGroupRequest {
+  string group_id = 1;
+  string name = 2;
+  string description = 3;
+  GroupAccountStatus status = 4;
+  string metadata = 5;
+}
+
+message UpdateGroupResponse {
+  GroupAccountMessage group = 1;
+}
+
+message DeleteGroupRequest {
+  string group_id = 1;
+}
+
+message DeleteGroupResponse {
+  bool success = 1;
+}
+
+// Group Member Operations
+
+message GetGroupMembersRequest {
+  string group_id = 1;
+}
+
+message GetGroupMembersResponse {
+  repeated GroupMemberMessage members = 1;
+}
+
+message AddMemberRequest {
+  string group_id = 1;
+  uint64 user_id = 2; // Optional - used if user is already registered
+  GroupMemberRole role = 3;
+  string email = 4; // Optional - used to invite by email
+  string phone_number = 5; // Optional - used to invite by phone
+  string lookup_username = 6; // Optional - used to find by username
+}
+
+message AddMemberResponse {
+  GroupMemberMessage member = 1;
+}
+
+message UpdateMemberRoleRequest {
+  string group_id = 1;
+  string member_id = 2;
+  GroupMemberRole new_role = 3;
+}
+
+message UpdateMemberRoleResponse {
+  GroupMemberMessage member = 1;
+}
+
+message RemoveMemberRequest {
+  string group_id = 1;
+  string member_id = 2;
+}
+
+message RemoveMemberResponse {
+  bool success = 1;
+}
+
+message SearchUsersRequest {
+  string query = 1;
+  int32 limit = 2;
+}
+
+message SearchUsersResponse {
+  repeated GroupMemberMessage users = 1;
+}
+
+// Contribution Operations
+
+message CreateContributionRequest {
+  string group_id = 1;
+  string title = 2;
+  string description = 3;
+  uint64 target_amount = 4;
+  string currency = 5;
+  google.protobuf.Timestamp deadline = 6;
+
+  // Optional type-specific fields
+  ContributionType type = 7;
+  ContributionFrequency frequency = 8;
+  uint64 regular_amount = 9;
+  google.protobuf.Timestamp start_date = 10;
+  int32 total_cycles = 11;
+  repeated uint64 member_rotation_order = 12; // User IDs in rotation order
+  bool auto_pay_enabled = 13;
+  uint64 penalty_amount = 14;
+  int32 grace_period_days = 15;
+  bool allow_partial_payments = 16;
+  uint64 minimum_balance = 17;
+}
+
+message CreateContributionResponse {
+  ContributionMessage contribution = 1;
+}
+
+message GetContributionRequest {
+  string contribution_id = 1;
+}
+
+message GetContributionResponse {
+  ContributionMessage contribution = 1;
+}
+
+message ListGroupContributionsRequest {
+  string group_id = 1;
+  int32 page = 2;
+  int32 page_size = 3;
+  string status = 4; // Optional filter
+}
+
+message ListGroupContributionsResponse {
+  repeated ContributionMessage contributions = 1;
+  ContributionPaginationInfo pagination = 2;
+}
+
+message UpdateContributionRequest {
+  string contribution_id = 1;
+  string title = 2;
+  string description = 3;
+  uint64 target_amount = 4;
+  google.protobuf.Timestamp deadline = 5;
+  ContributionStatus status = 6;
+}
+
+message UpdateContributionResponse {
+  ContributionMessage contribution = 1;
+}
+
+message DeleteContributionRequest {
+  string contribution_id = 1;
+}
+
+message DeleteContributionResponse {
+  bool success = 1;
+}
+
+// Payment Operations
+
+message MakePaymentRequest {
+  string contribution_id = 1;
+  uint64 amount = 2;
+  string notes = 3;
+}
+
+message MakePaymentResponse {
+  ContributionPaymentMessage payment = 1;
+}
+
+message GetContributionPaymentsRequest {
+  string contribution_id = 1;
+  int32 page = 2;
+  int32 page_size = 3;
+}
+
+message GetContributionPaymentsResponse {
+  repeated ContributionPaymentMessage payments = 1;
+  PaymentPaginationInfo pagination = 2;
+}
+
+message UpdatePaymentStatusRequest {
+  string payment_id = 1;
+  PaymentStatus status = 2;
+  string transaction_id = 3;
+}
+
+message UpdatePaymentStatusResponse {
+  ContributionPaymentMessage payment = 1;
+}
+
+// Scheduled Payments
+
+message ProcessScheduledPaymentsRequest {
+  string contribution_id = 1;
+}
+
+message ProcessScheduledPaymentsResponse {
+  ContributionMessage contribution = 1;
+  repeated ContributionPaymentMessage payments_processed = 2;
+}
+
+message GetOverdueContributionsRequest {
+  // Uses authenticated user ID
+}
+
+message GetOverdueContributionsResponse {
+  repeated ContributionMessage contributions = 1;
+}
+
+// Payout Operations
+
+message GetPayoutScheduleRequest {
+  string contribution_id = 1;
+}
+
+message GetPayoutScheduleResponse {
+  repeated PayoutScheduleMessage schedule = 1;
+}
+
+message ProcessPayoutRequest {
+  string contribution_id = 1;
+}
+
+message ProcessPayoutResponse {
+  PayoutTransactionMessage transaction = 1;
+}
+
+message UpdatePayoutStatusRequest {
+  string payout_id = 1;
+  PayoutTransactionStatus status = 2;
+  string transaction_id = 3;
+  string failure_reason = 4;
+}
+
+message UpdatePayoutStatusResponse {
+  PayoutTransactionMessage payout = 1;
+}
+
+message AdvancePayoutRotationRequest {
+  string contribution_id = 1;
+}
+
+message AdvancePayoutRotationResponse {
+  ContributionMessage contribution = 1;
+}
+
+// Receipt Operations
+
+message GenerateReceiptRequest {
+  string payment_id = 1;
+}
+
+message GenerateReceiptResponse {
+  ContributionReceiptMessage receipt = 1;
+}
+
+message GetUserContributionReceiptsRequest {
+  int32 page = 1;
+  int32 page_size = 2;
+}
+
+message GetUserContributionReceiptsResponse {
+  repeated ContributionReceiptMessage receipts = 1;
+  ReceiptPaginationInfo pagination = 2;
+}
+
+// Transcript Operations
+
+message GenerateTranscriptRequest {
+  string contribution_id = 1;
+}
+
+message GenerateTranscriptResponse {
+  ContributionTranscriptMessage transcript = 1;
+}
+
+// Statistics Operations
+
+message GetGroupStatisticsRequest {
+  string group_id = 1;
+}
+
+message GetGroupStatisticsResponse {
+  int32 member_count = 1;
+  int32 total_contributions = 2;
+  int32 completed_contributions = 3;
+  int32 active_contributions = 4;
+  uint64 total_target_amount = 5;
+  uint64 total_current_amount = 6;
+  double completion_rate = 7;
+}
+
+message GetUserContributionStatsRequest {
+  // Uses authenticated user ID
+}
+
+message GetUserContributionStatsResponse {
+  int32 total_payments = 1;
+  uint64 total_amount = 2;
+  int32 groups_count = 3;
+  double average_payment = 4;
+}
+
+message GetContributionAnalyticsRequest {
+  string contribution_id = 1;
+}
+
+message GetContributionAnalyticsResponse {
+  string contribution_id = 1;
+  string type = 2;
+  double progress_percentage = 3;
+  int32 total_payments = 4;
+  double average_payment = 5;
+  uint64 current_amount = 6;
+  uint64 target_amount = 7;
+
+  message MemberParticipation {
+    int32 total_members = 1;
+    int32 participating_members = 2;
+    double participation_rate = 3;
+  }
+  MemberParticipation member_participation = 8;
+
+  message Schedule {
+    bool is_on_schedule = 1;
+    int32 days_behind_schedule = 2;
+    google.protobuf.Timestamp next_payment_date = 3;
+    int32 current_cycle = 4;
+    int32 total_cycles = 5;
+  }
+  Schedule schedule = 9;
+
+  message Payout {
+    uint64 current_recipient = 1;
+    google.protobuf.Timestamp next_payout_date = 2;
+    int32 completed_payouts = 3;
+    int32 pending_payouts = 4;
+  }
+  Payout payout = 10;
+
+  string member_stats = 11; // JSON string: map<string, double>
+}
+
+// ============================================================================
+// PAGINATION INFO
+// ============================================================================
+
+message GroupPaginationInfo {
+  int32 current_page = 1;
+  int32 total_pages = 2;
+  int32 total_items = 3;
+  int32 items_per_page = 4;
+  bool has_next = 5;
+  bool has_prev = 6;
+}
+
+message ContributionPaginationInfo {
+  int32 current_page = 1;
+  int32 total_pages = 2;
+  int32 total_items = 3;
+  int32 items_per_page = 4;
+  bool has_next = 5;
+  bool has_prev = 6;
+}
+
+message PaymentPaginationInfo {
+  int32 current_page = 1;
+  int32 total_pages = 2;
+  int32 total_items = 3;
+  int32 items_per_page = 4;
+  bool has_next = 5;
+  bool has_prev = 6;
+}
+
+message ReceiptPaginationInfo {
+  int32 current_page = 1;
+  int32 total_pages = 2;
+  int32 total_items = 3;
+  int32 items_per_page = 4;
+  bool has_next = 5;
+  bool has_prev = 6;
+}
+
+// ============================================================================
+// SERVICE DEFINITION
+// ============================================================================
+
+service GroupAccountService {
+  // Group Account Management
+  rpc CreateGroup(CreateGroupRequest) returns (CreateGroupResponse) {
+    option (google.api.http) = {
+      post: "/v1/groups"
+      body: "*"
+    };
+  }
+
+  rpc GetGroup(GetGroupRequest) returns (GetGroupResponse) {
+    option (google.api.http) = {
+      get: "/v1/groups/{group_id}"
+    };
+  }
+
+  rpc ListUserGroups(ListUserGroupsRequest) returns (ListUserGroupsResponse) {
+    option (google.api.http) = {
+      get: "/v1/groups"
+    };
+  }
+
+  rpc UpdateGroup(UpdateGroupRequest) returns (UpdateGroupResponse) {
+    option (google.api.http) = {
+      put: "/v1/groups/{group_id}"
+      body: "*"
+    };
+  }
+
+  rpc DeleteGroup(DeleteGroupRequest) returns (DeleteGroupResponse) {
+    option (google.api.http) = {
+      delete: "/v1/groups/{group_id}"
+    };
+  }
+
+  // Member Management
+  rpc GetGroupMembers(GetGroupMembersRequest) returns (GetGroupMembersResponse) {
+    option (google.api.http) = {
+      get: "/v1/groups/{group_id}/members"
+    };
+  }
+
+  rpc AddMember(AddMemberRequest) returns (AddMemberResponse) {
+    option (google.api.http) = {
+      post: "/v1/groups/{group_id}/members"
+      body: "*"
+    };
+  }
+
+  rpc UpdateMemberRole(UpdateMemberRoleRequest) returns (UpdateMemberRoleResponse) {
+    option (google.api.http) = {
+      put: "/v1/groups/{group_id}/members/{member_id}"
+      body: "*"
+    };
+  }
+
+  rpc RemoveMember(RemoveMemberRequest) returns (RemoveMemberResponse) {
+    option (google.api.http) = {
+      delete: "/v1/groups/{group_id}/members/{member_id}"
+    };
+  }
+
+  rpc SearchUsers(SearchUsersRequest) returns (SearchUsersResponse) {
+    option (google.api.http) = {
+      get: "/v1/users/search"
+    };
+  }
+
+  // Contribution Management
+  rpc CreateContribution(CreateContributionRequest) returns (CreateContributionResponse) {
+    option (google.api.http) = {
+      post: "/v1/groups/{group_id}/contributions"
+      body: "*"
+    };
+  }
+
+  rpc GetContribution(GetContributionRequest) returns (GetContributionResponse) {
+    option (google.api.http) = {
+      get: "/v1/contributions/{contribution_id}"
+    };
+  }
+
+  rpc ListGroupContributions(ListGroupContributionsRequest) returns (ListGroupContributionsResponse) {
+    option (google.api.http) = {
+      get: "/v1/groups/{group_id}/contributions"
+    };
+  }
+
+  rpc UpdateContribution(UpdateContributionRequest) returns (UpdateContributionResponse) {
+    option (google.api.http) = {
+      put: "/v1/contributions/{contribution_id}"
+      body: "*"
+    };
+  }
+
+  rpc DeleteContribution(DeleteContributionRequest) returns (DeleteContributionResponse) {
+    option (google.api.http) = {
+      delete: "/v1/contributions/{contribution_id}"
+    };
+  }
+
+  // Payment Operations
+  rpc MakePayment(MakePaymentRequest) returns (MakePaymentResponse) {
+    option (google.api.http) = {
+      post: "/v1/contributions/{contribution_id}/payments"
+      body: "*"
+    };
+  }
+
+  rpc GetContributionPayments(GetContributionPaymentsRequest) returns (GetContributionPaymentsResponse) {
+    option (google.api.http) = {
+      get: "/v1/contributions/{contribution_id}/payments"
+    };
+  }
+
+  rpc UpdatePaymentStatus(UpdatePaymentStatusRequest) returns (UpdatePaymentStatusResponse) {
+    option (google.api.http) = {
+      put: "/v1/payments/{payment_id}"
+      body: "*"
+    };
+  }
+
+  // Scheduled Payments
+  rpc ProcessScheduledPayments(ProcessScheduledPaymentsRequest) returns (ProcessScheduledPaymentsResponse) {
+    option (google.api.http) = {
+      post: "/v1/contributions/{contribution_id}/scheduled-payments"
+      body: "*"
+    };
+  }
+
+  rpc GetOverdueContributions(GetOverdueContributionsRequest) returns (GetOverdueContributionsResponse) {
+    option (google.api.http) = {
+      get: "/v1/contributions/overdue"
+    };
+  }
+
+  // Payout Operations
+  rpc GetPayoutSchedule(GetPayoutScheduleRequest) returns (GetPayoutScheduleResponse) {
+    option (google.api.http) = {
+      get: "/v1/contributions/{contribution_id}/payout-schedule"
+    };
+  }
+
+  rpc ProcessPayout(ProcessPayoutRequest) returns (ProcessPayoutResponse) {
+    option (google.api.http) = {
+      post: "/v1/contributions/{contribution_id}/payouts"
+      body: "*"
+    };
+  }
+
+  rpc UpdatePayoutStatus(UpdatePayoutStatusRequest) returns (UpdatePayoutStatusResponse) {
+    option (google.api.http) = {
+      put: "/v1/payouts/{payout_id}"
+      body: "*"
+    };
+  }
+
+  rpc AdvancePayoutRotation(AdvancePayoutRotationRequest) returns (AdvancePayoutRotationResponse) {
+    option (google.api.http) = {
+      post: "/v1/contributions/{contribution_id}/advance-rotation"
+      body: "*"
+    };
+  }
+
+  // Receipt Operations
+  rpc GenerateReceipt(GenerateReceiptRequest) returns (GenerateReceiptResponse) {
+    option (google.api.http) = {
+      post: "/v1/payments/{payment_id}/receipt"
+      body: "*"
+    };
+  }
+
+  rpc GetUserReceipts(GetUserContributionReceiptsRequest) returns (GetUserContributionReceiptsResponse) {
+    option (google.api.http) = {
+      get: "/v1/group-receipts"
+    };
+  }
+
+  // Transcript Operations
+  rpc GenerateTranscript(GenerateTranscriptRequest) returns (GenerateTranscriptResponse) {
+    option (google.api.http) = {
+      post: "/v1/contributions/{contribution_id}/transcript"
+      body: "*"
+    };
+  }
+
+  // Statistics
+  rpc GetGroupStatistics(GetGroupStatisticsRequest) returns (GetGroupStatisticsResponse) {
+    option (google.api.http) = {
+      get: "/v1/groups/{group_id}/statistics"
+    };
+  }
+
+  rpc GetUserContributionStats(GetUserContributionStatsRequest) returns (GetUserContributionStatsResponse) {
+    option (google.api.http) = {
+      get: "/v1/contributions/statistics"
+    };
+  }
+
+  rpc GetContributionAnalytics(GetContributionAnalyticsRequest) returns (GetContributionAnalyticsResponse) {
+    option (google.api.http) = {
+      get: "/v1/contributions/{contribution_id}/analytics"
+    };
+  }
+}

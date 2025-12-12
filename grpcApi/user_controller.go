@@ -40,6 +40,7 @@ func (c *UserController) CreateUser(ctx context.Context, req *pb.CreateUserReque
 		Str("first_name", req.FirstName).
 		Str("last_name", req.LastName).
 		Str("phone_number", req.PhoneNumber).
+		Str("username", req.Username).
 		Str("role", req.Role).
 		Msg("Received CreateUser request")
 
@@ -54,9 +55,14 @@ func (c *UserController) CreateUser(ctx context.Context, req *pb.CreateUserReque
 		FirstName:   req.FirstName,
 		LastName:    req.LastName,
 		Email:       req.Email,
-		Password:    &req.Password,
+		Password:    req.Password,
 		PhoneNumber: req.PhoneNumber,
 		Role:        role,
+	}
+
+	// Set username if provided
+	if req.Username != "" {
+		user.Username = &req.Username
 	}
 
 	// Set login passcode if provided
@@ -69,10 +75,51 @@ func (c *UserController) CreateUser(ctx context.Context, req *pb.CreateUserReque
 
 	userService := services.NewUserService(c.server.db, c.server.config, c.server.tokenMaker)
 
-	// Create user in database
-	if err := userService.CreateUser(ctx, user); err != nil {
-		// Logging handled in createErrorResponse
-		return c.createErrorResponse(codes.InvalidArgument, err.Error(), req.Email)
+	// Check if there's an existing partial user with this email
+	existingUser, err := userService.GetUserByEmail(ctx, req.Email)
+	if err == nil && existingUser != nil && existingUser.IsPartial {
+		// Convert partial user to full user
+		log.Info().
+			Uint("user_id", existingUser.ID).
+			Str("email", req.Email).
+			Msg("Converting partial user to full user")
+
+		existingUser.FirstName = req.FirstName
+		existingUser.LastName = req.LastName
+		existingUser.Password = req.Password
+		existingUser.PhoneNumber = req.PhoneNumber
+		existingUser.Role = role
+		existingUser.IsPartial = false
+
+		if req.Username != "" {
+			existingUser.Username = &req.Username
+		}
+
+		if req.LoginPasscode != "" {
+			if err := existingUser.SetLoginPasscode(req.LoginPasscode); err != nil {
+				log.Error().Err(err).Str("email", req.Email).Msg("Failed to set login passcode")
+				return c.createErrorResponse(codes.InvalidArgument, fmt.Sprintf("Invalid passcode: %v", err), req.Email)
+			}
+		}
+
+		// Update the user
+		if err := c.server.db.Save(existingUser).Error; err != nil {
+			log.Error().Err(err).Str("email", req.Email).Msg("Failed to convert partial user")
+			return c.createErrorResponse(codes.Internal, "Failed to complete user registration", req.Email)
+		}
+
+		user = existingUser
+
+		log.Info().
+			Uint("user_id", user.ID).
+			Str("email", user.Email).
+			Msg("Successfully converted partial user to full user")
+	} else {
+		// Create new user in database
+		if err := userService.CreateUser(ctx, user); err != nil {
+			// Logging handled in createErrorResponse
+			return c.createErrorResponse(codes.InvalidArgument, err.Error(), req.Email)
+		}
 	}
 
 	// Create session after successful user creation
@@ -115,20 +162,55 @@ func (c *UserController) CreateUser(ctx context.Context, req *pb.CreateUserReque
 		return c.createErrorResponse(codes.Internal, "Failed to create session", req.Email)
 	}
 
-	// Create default account for new user
-	accountService := services.NewAccountService(c.server.db, c.server.redisWorker.GetDistributor())
-	defaultAccountReq := &pb.CreateAccountRequest{
-		AccountType: "savings", // Default account type
-		Currency:    "GBP",     // Default currency
+	// Send email verification after successful user creation
+	authService := services.NewAuthService(c.server.db, c.server.config, c.server.tokenMaker, c.server.redisWorker.GetDistributor())
+	if err := authService.RequestEmailVerification(ctx, user.Email); err != nil {
+		log.Warn().Err(err).Str("email", user.Email).Msg("Failed to send verification email - user created but email not sent")
+		// Don't fail the signup - the user is already created, we can retry email later
+	} else {
+		log.Info().Str("email", user.Email).Msg("Verification email sent successfully")
 	}
 
-	_, err = accountService.CreateAccount(ctx, user.ID, defaultAccountReq)
-	if err != nil {
-		log.Warn().Err(err).Uint("user_id", user.ID).Msg("Failed to create default account for new user")
-		// Don't fail user creation if account creation fails - log and continue
-	} else {
-		log.Info().Uint("user_id", user.ID).Msg("Default account created successfully for new user")
+	// Create 3 default accounts for new user (Personal, Savings, Investment)
+	accountService := services.NewAccountService(c.server.db, c.server.redisWorker.GetDistributor())
+
+	accountTypes := []struct {
+		accountType string
+		currency    string
+	}{
+		{accountType: "personal", currency: "GBP"},
+		{accountType: "savings", currency: "GBP"},
+		{accountType: "investment", currency: "GBP"},
 	}
+
+	accountsCreated := 0
+	for _, accInfo := range accountTypes {
+		accountReq := &pb.CreateAccountRequest{
+			AccountType: accInfo.accountType,
+			Currency:    accInfo.currency,
+		}
+
+		_, err = accountService.CreateAccount(ctx, user.ID, accountReq)
+		if err != nil {
+			log.Warn().
+				Err(err).
+				Uint("user_id", user.ID).
+				Str("account_type", accInfo.accountType).
+				Msg("Failed to create account for new user")
+			// Don't fail user creation if account creation fails - log and continue
+		} else {
+			accountsCreated++
+			log.Info().
+				Uint("user_id", user.ID).
+				Str("account_type", accInfo.accountType).
+				Msg("Account created successfully for new user")
+		}
+	}
+
+	log.Info().
+		Uint("user_id", user.ID).
+		Int("accounts_created", accountsCreated).
+		Msg("Default accounts creation completed for new user")
 
 	// Log success
 	log.Info().Uint("user_id", user.ID).Str("email", user.Email).Str("session_id", session.ID).Msg("User created successfully with session")

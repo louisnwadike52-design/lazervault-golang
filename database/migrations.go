@@ -18,7 +18,18 @@ func NewMigrator(db *gorm.DB) *Migrator {
 func (m *Migrator) DropAllTables() error {
 	// Drop tables in reverse order of dependencies
 	err := m.db.Exec(`
-		DROP TABLE IF EXISTS 
+		DROP TABLE IF EXISTS
+			invitations,
+			contribution_receipts,
+			payout_transactions,
+			payout_schedules,
+			contribution_payments,
+			contributions,
+			group_members,
+			group_accounts,
+			budget_alerts,
+			budgets,
+			expenses,
 			insurance_claims,
 			insurance_payments,
 			insurances,
@@ -54,14 +65,20 @@ func (m *Migrator) RunMigrations() error {
 	m.db.Exec(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp";`)
 
 	// Drop all tables and recreate them
-	// err := m.DropAllTables()
-	// if err != nil {
-	// 	return fmt.Errorf("failed to drop tables: %w", err)
-	// }
+	err := m.DropAllTables()
+	if err != nil {
+		return fmt.Errorf("failed to drop tables: %w", err)
+	}
 
-	// Run migrations
+	// Migrate User table first WITHOUT foreign key constraints
+	// This prevents GORM from creating backwards foreign keys from users.user_id to other tables
+	err = m.db.Migrator().AutoMigrate(&models.User{})
+	if err != nil {
+		return fmt.Errorf("failed to migrate User table: %w", err)
+	}
+
+	// Now migrate all other tables - they will correctly create foreign keys TO users.id
 	return m.db.AutoMigrate(
-		&models.User{},
 		&models.Account{},
 		&models.Session{},
 		&models.Transfer{},
@@ -82,6 +99,30 @@ func (m *Migrator) RunMigrations() error {
 		&models.Insurance{},
 		&models.InsurancePayment{},
 		&models.InsuranceClaim{},
+		&models.SyncedContact{},
+		&models.SyncPreferences{},
+		&models.Expense{},
+		&models.Budget{},
+		&models.BudgetAlert{},
+		// Financial Statistics Models
+		&models.IncomeSource{},
+		&models.Investment{},
+		&models.FinancialGoal{},
+		&models.SavingsGoal{},
+		&models.RecurringBill{},
+		// Auth & Verification Models
+		&models.EmailVerification{},
+		&models.PasswordResetOTP{},
+		// Group Account Models
+		&models.GroupAccount{},
+		&models.GroupMember{},
+		&models.Contribution{},
+		&models.ContributionPayment{},
+		&models.PayoutSchedule{},
+		&models.PayoutTransaction{},
+		&models.ContributionReceipt{},
+		// Invitation Model
+		&models.Invitation{},
 	)
 }
 
