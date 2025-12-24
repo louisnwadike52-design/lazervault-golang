@@ -10,6 +10,7 @@ import (
 	"lazervaultGo/pb"
 	"lazervaultGo/token"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -79,12 +80,16 @@ type IInvoicePaymentService interface {
 
 // InvoicePaymentService implements the IInvoicePaymentService
 type InvoicePaymentService struct {
-	db *gorm.DB
+	db        *gorm.DB
+	processor *PaymentProcessor
 }
 
 // NewInvoicePaymentService creates a new InvoicePaymentService
 func NewInvoicePaymentService(db *gorm.DB) IInvoicePaymentService {
-	return &InvoicePaymentService{db: db}
+	return &InvoicePaymentService{
+		db:        db,
+		processor: NewPaymentProcessor(db),
+	}
 }
 
 // getUserIDFromContext extracts the user ID from the JWT token via email database lookup
@@ -105,62 +110,63 @@ func (s *InvoicePaymentService) getUserIDFromContext(ctx context.Context) (strin
 
 // ProcessInvoicePayment processes a full invoice payment
 func (s *InvoicePaymentService) ProcessInvoicePayment(ctx context.Context, req *pb.ProcessInvoicePaymentRequest) (*pb.ProcessInvoicePaymentResponse, error) {
-	if req.InvoiceId == "" || req.PaymentMethodId == "" {
-		return nil, ErrInvalidPaymentData
+	// Validate request
+	if req.InvoiceId == "" || req.PaymentMethodId == "" || req.Amount <= 0 {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid payment data: invoice_id, payment_method_id, and amount are required")
 	}
 
-	// Start transaction
-	tx := s.db.WithContext(ctx).Begin()
-	if tx.Error != nil {
-		return nil, fmt.Errorf("failed to begin transaction: %w", tx.Error)
+	// Get user ID from context
+	userID, err := s.getUserIDFromContext(ctx)
+	if err != nil {
+		return nil, err
 	}
-	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
-			panic(r)
+
+	// Parse account ID from payment method ID (assuming format "account_<id>")
+	accountID, err := strconv.ParseUint(req.PaymentMethodId, 10, 64)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid payment method ID format")
+	}
+
+	// Process payment using account balance
+	transaction, err := s.processor.ProcessAccountPayment(
+		ctx,
+		userID,
+		req.InvoiceId,
+		req.Amount,
+		req.Currency,
+		uint(accountID),
+		req.Description,
+	)
+
+	if err != nil {
+		// Map errors to gRPC status codes
+		if errors.Is(err, gorm.ErrRecordNotFound) ||
+			err.Error() == "account not found or access denied" ||
+			err.Error() == "invoice not found" {
+			return nil, status.Errorf(codes.NotFound, err.Error())
 		}
-	}()
-
-	// Generate transaction ID
-	transactionID := uuid.New().String()
-
-	// Create payment transaction record
-	transaction := &models.InvoicePaymentTransaction{
-		TransactionID: transactionID,
-		InvoiceID:     req.InvoiceId,
-		Amount:        req.Amount,
-		Currency:      req.Currency,
-		Status:        models.InvoicePaymentStatusProcessing,
-		Description:   req.Description,
-		CreatedAt:     time.Now().UTC(),
+		if err.Error() == "invoice already paid" || err.Error() == "invoice is cancelled" {
+			return nil, status.Errorf(codes.FailedPrecondition, err.Error())
+		}
+		if strings.Contains(err.Error(), "insufficient funds") {
+			return nil, status.Errorf(codes.FailedPrecondition, err.Error())
+		}
+		if strings.Contains(err.Error(), "account is not active") {
+			return nil, status.Errorf(codes.FailedPrecondition, err.Error())
+		}
+		return nil, status.Errorf(codes.Internal, "payment processing failed: %v", err)
 	}
 
-	if err := tx.Create(transaction).Error; err != nil {
-		tx.Rollback()
-		return nil, fmt.Errorf("%w: %v", ErrPaymentProcessingFailed, err)
-	}
-
-	// TODO: Implement actual payment processing logic here
-	// This would integrate with payment processors like Stripe, PayPal, etc.
-
-	// For now, simulate successful payment
-	transaction.Status = models.InvoicePaymentStatusCompleted
-	transaction.ProcessedAt = &[]time.Time{time.Now().UTC()}[0]
-
-	if err := tx.Save(transaction).Error; err != nil {
-		tx.Rollback()
-		return nil, fmt.Errorf("%w: %v", ErrPaymentProcessingFailed, err)
-	}
-
-	if err := tx.Commit().Error; err != nil {
-		return nil, fmt.Errorf("failed to commit transaction: %w", err)
-	}
-
+	// Return successful response
 	return &pb.ProcessInvoicePaymentResponse{
 		Result: &pb.InvoicePaymentResult{
-			Success:       true,
-			TransactionId: transactionID,
-			Status:        pb.InvoicePaymentStatus_INVOICE_PAYMENT_STATUS_COMPLETED,
+			Success:          true,
+			TransactionId:    transaction.TransactionID,
+			Status:           pb.InvoicePaymentStatus_INVOICE_PAYMENT_STATUS_COMPLETED,
+			ConfirmationCode: transaction.ConfirmationCode,
+			ProcessedAt:      timestamppb.New(*transaction.ProcessedAt),
+			AmountProcessed:  transaction.Amount,
+			FeeAmount:        transaction.FeeAmount,
 		},
 		Success: true,
 		Message: "Payment processed successfully",
@@ -169,53 +175,65 @@ func (s *InvoicePaymentService) ProcessInvoicePayment(ctx context.Context, req *
 
 // ProcessPartialInvoicePayment processes a partial payment for an invoice
 func (s *InvoicePaymentService) ProcessPartialInvoicePayment(ctx context.Context, req *pb.ProcessPartialInvoicePaymentRequest) (*pb.ProcessPartialInvoicePaymentResponse, error) {
+	// Validate request
 	if req.InvoiceId == "" || req.PaymentMethodId == "" || req.PartialAmount <= 0 {
-		return nil, ErrInvalidPaymentData
+		return nil, status.Errorf(codes.InvalidArgument, "invalid payment data: invoice_id, payment_method_id, and partial_amount are required")
 	}
 
-	// Start transaction
-	tx := s.db.WithContext(ctx).Begin()
-	if tx.Error != nil {
-		return nil, fmt.Errorf("failed to begin transaction: %w", tx.Error)
+	// Get user ID from context
+	userID, err := s.getUserIDFromContext(ctx)
+	if err != nil {
+		return nil, err
 	}
-	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
-			panic(r)
+
+	// Parse account ID from payment method ID
+	accountID, err := strconv.ParseUint(req.PaymentMethodId, 10, 64)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid payment method ID format")
+	}
+
+	// Process partial payment using account balance
+	transaction, remainingAmount, err := s.processor.ProcessPartialAccountPayment(
+		ctx,
+		userID,
+		req.InvoiceId,
+		req.PartialAmount,
+		req.Currency,
+		uint(accountID),
+		req.Description,
+	)
+
+	if err != nil {
+		// Map errors to gRPC status codes
+		if errors.Is(err, gorm.ErrRecordNotFound) ||
+			err.Error() == "account not found or access denied" ||
+			err.Error() == "invoice not found" {
+			return nil, status.Errorf(codes.NotFound, err.Error())
 		}
-	}()
-
-	// Generate transaction ID
-	transactionID := uuid.New().String()
-
-	// Create payment transaction record
-	transaction := &models.InvoicePaymentTransaction{
-		TransactionID: transactionID,
-		InvoiceID:     req.InvoiceId,
-		Amount:        req.PartialAmount,
-		Currency:      req.Currency,
-		Status:        models.InvoicePaymentStatusPartiallyPaid,
-		Description:   req.Description,
-		CreatedAt:     time.Now().UTC(),
-		ProcessedAt:   &[]time.Time{time.Now().UTC()}[0],
+		if strings.Contains(err.Error(), "insufficient funds") {
+			return nil, status.Errorf(codes.FailedPrecondition, err.Error())
+		}
+		if strings.Contains(err.Error(), "account is not active") {
+			return nil, status.Errorf(codes.FailedPrecondition, err.Error())
+		}
+		if strings.Contains(err.Error(), "partial payment exceeds remaining amount") {
+			return nil, status.Errorf(codes.InvalidArgument, err.Error())
+		}
+		return nil, status.Errorf(codes.Internal, "partial payment processing failed: %v", err)
 	}
 
-	if err := tx.Create(transaction).Error; err != nil {
-		tx.Rollback()
-		return nil, fmt.Errorf("%w: %v", ErrPaymentProcessingFailed, err)
-	}
-
-	if err := tx.Commit().Error; err != nil {
-		return nil, fmt.Errorf("failed to commit transaction: %w", err)
-	}
-
+	// Return successful response
 	return &pb.ProcessPartialInvoicePaymentResponse{
 		Result: &pb.InvoicePaymentResult{
-			Success:       true,
-			TransactionId: transactionID,
-			Status:        pb.InvoicePaymentStatus_INVOICE_PAYMENT_STATUS_PARTIALLY_PAID,
+			Success:          true,
+			TransactionId:    transaction.TransactionID,
+			Status:           convertModelStatusToPB(transaction.Status),
+			ConfirmationCode: transaction.ConfirmationCode,
+			ProcessedAt:      timestamppb.New(*transaction.ProcessedAt),
+			AmountProcessed:  transaction.Amount,
+			FeeAmount:        transaction.FeeAmount,
 		},
-		RemainingAmount: 0, // TODO: Calculate remaining amount
+		RemainingAmount: remainingAmount,
 		Success:         true,
 		Message:         "Partial payment processed successfully",
 	}, nil
@@ -223,6 +241,7 @@ func (s *InvoicePaymentService) ProcessPartialInvoicePayment(ctx context.Context
 
 // ValidateInvoicePayment validates payment data before processing
 func (s *InvoicePaymentService) ValidateInvoicePayment(ctx context.Context, req *pb.ValidateInvoicePaymentRequest) (*pb.ValidateInvoicePaymentResponse, error) {
+	// Basic input validation
 	if req.InvoiceId == "" || req.PaymentMethodId == "" || req.Amount <= 0 {
 		return &pb.ValidateInvoicePaymentResponse{
 			IsValid:           false,
@@ -231,17 +250,46 @@ func (s *InvoicePaymentService) ValidateInvoicePayment(ctx context.Context, req 
 		}, nil
 	}
 
-	// TODO: Implement actual validation logic
-	// - Check if invoice exists and is payable
-	// - Validate payment method
-	// - Check available balance
-	// - Calculate fees
+	// Get user ID from context
+	userID, err := s.getUserIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Parse account ID from payment method ID
+	accountID, err := strconv.ParseUint(req.PaymentMethodId, 10, 64)
+	if err != nil {
+		return &pb.ValidateInvoicePaymentResponse{
+			IsValid:           false,
+			ValidationMessage: "Invalid payment method ID format",
+			Errors:            []string{"Payment method ID must be a valid number"},
+		}, nil
+	}
+
+	// Validate payment using payment processor
+	isValid, validationErrors, availableBalance, feeAmount, err := s.processor.ValidatePayment(
+		ctx,
+		userID,
+		req.InvoiceId,
+		req.Amount,
+		uint(accountID),
+	)
+
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "validation failed: %v", err)
+	}
+
+	validationMessage := "Payment data is valid"
+	if !isValid {
+		validationMessage = "Payment validation failed"
+	}
 
 	return &pb.ValidateInvoicePaymentResponse{
-		IsValid:           true,
-		ValidationMessage: "Payment data is valid",
-		AvailableBalance:  1000.0,             // TODO: Get actual balance
-		PaymentFees:       req.Amount * 0.029, // TODO: Calculate actual fees
+		IsValid:           isValid,
+		ValidationMessage: validationMessage,
+		Errors:            validationErrors,
+		AvailableBalance:  availableBalance,
+		PaymentFees:       feeAmount,
 	}, nil
 }
 
@@ -492,18 +540,60 @@ func (s *InvoicePaymentService) GetUserAccountBalance(ctx context.Context, req *
 		return nil, err
 	}
 
-	// TODO: Implement actual account balance retrieval from database
+	// Parse userID to uint for database query
+	userIDUint, err := strconv.ParseUint(userID, 10, 64)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid user ID")
+	}
+
+	// Fetch all accounts for this user
+	var accounts []models.Account
+	query := s.db.WithContext(ctx).Where("owner_user_id = ?", userIDUint)
+
+	// Filter by currency if requested
+	if req.Currency != "" {
+		query = query.Where("currency = ?", req.Currency)
+	}
+
+	// Only fetch active accounts
+	query = query.Where("status = ?", "active")
+
+	if err := query.Find(&accounts).Error; err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to fetch accounts: %v", err)
+	}
+
+	// Convert accounts to protobuf format and calculate totals
+	var pbAccounts []*pb.UserAccountBalance
+	var totalBalance float64
+
+	for _, account := range accounts {
+		availableBalance := float64(account.Balance) / 100.0 // Convert cents to dollars
+		totalBalance += availableBalance
+
+		pbAccount := &pb.UserAccountBalance{
+			UserId:           userID,
+			AccountNumber:    account.AccountNumber,
+			AccountName:      account.CardHolderName,
+			Currency:         account.Currency,
+			AvailableBalance: availableBalance,
+			TotalBalance:     availableBalance,
+		}
+		pbAccounts = append(pbAccounts, pbAccount)
+	}
+
+	// Determine primary currency (use requested currency or default to first account's currency)
+	primaryCurrency := req.Currency
+	if primaryCurrency == "" && len(accounts) > 0 {
+		primaryCurrency = accounts[0].Currency
+	}
+	if primaryCurrency == "" {
+		primaryCurrency = "USD" // Default fallback
+	}
+
 	return &pb.GetUserAccountBalanceResponse{
-		Accounts: []*pb.UserAccountBalance{
-			{
-				UserId:           userID,
-				Currency:         req.Currency,
-				AvailableBalance: 1000.0,
-				TotalBalance:     1000.0,
-			},
-		},
-		TotalBalance:    1000.0,
-		PrimaryCurrency: req.Currency,
+		Accounts:        pbAccounts,
+		TotalBalance:    totalBalance,
+		PrimaryCurrency: primaryCurrency,
 	}, nil
 }
 
@@ -604,49 +694,177 @@ func (s *InvoicePaymentService) ResolveInvoicePaymentDispute(ctx context.Context
 // GetInvoicePaymentHistory retrieves payment history for a user
 func (s *InvoicePaymentService) GetInvoicePaymentHistory(ctx context.Context, req *pb.GetInvoicePaymentHistoryRequest) (*pb.GetInvoicePaymentHistoryResponse, error) {
 	// Extract user ID from JWT token via email database lookup
-	_, err := s.getUserIDFromContext(ctx)
+	userID, err := s.getUserIDFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	// TODO: Implement actual payment history retrieval from database
+	// Default page size
+	pageSize := int(req.PageSize)
+	if pageSize <= 0 || pageSize > 100 {
+		pageSize = 20
+	}
+
+	// Build query
+	query := s.db.WithContext(ctx).
+		Where("user_id = ?", userID).
+		Order("created_at DESC")
+
+	// Filter by status if provided
+	if req.StatusFilter != pb.InvoicePaymentStatus_INVOICE_PAYMENT_STATUS_PENDING {
+		query = query.Where("status = ?", convertPBStatusToModel(req.StatusFilter))
+	}
+
+	// Count total
+	var totalCount int64
+	if err := query.Model(&models.InvoicePaymentTransaction{}).Count(&totalCount).Error; err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to count transactions: %v", err)
+	}
+
+	// Fetch transactions
+	var transactions []models.InvoicePaymentTransaction
+	if err := query.Limit(pageSize).Find(&transactions).Error; err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to fetch payment history: %v", err)
+	}
+
+	// Convert to protobuf format
+	var pbTransactions []*pb.InvoicePaymentTransaction
+	for _, txn := range transactions {
+		pbTxn := &pb.InvoicePaymentTransaction{
+			TransactionId:      txn.TransactionID,
+			InvoiceId:          txn.InvoiceID,
+			Amount:             txn.Amount,
+			Currency:           txn.Currency,
+			Status:             convertModelStatusToPB(txn.Status),
+			Description:        txn.Description,
+			PaymentMethod:      convertModelPaymentMethodToPB(txn.PaymentMethod),
+			FeeAmount:          txn.FeeAmount,
+			CreatedAt:          timestamppb.New(txn.CreatedAt),
+			PaymentProcessorId: txn.PaymentProcessorID,
+			Reference:          txn.Reference,
+		}
+		if txn.ProcessedAt != nil {
+			pbTxn.ProcessedAt = timestamppb.New(*txn.ProcessedAt)
+		}
+		pbTransactions = append(pbTransactions, pbTxn)
+	}
+
 	return &pb.GetInvoicePaymentHistoryResponse{
-		Transactions:  []*pb.InvoicePaymentTransaction{},
-		NextPageToken: "",
-		TotalCount:    0,
+		Transactions:  pbTransactions,
+		NextPageToken: "", // TODO: Implement pagination token if needed
+		TotalCount:    uint64(totalCount),
 	}, nil
 }
 
 // GetInvoicePaymentStatistics retrieves payment statistics for a user
 func (s *InvoicePaymentService) GetInvoicePaymentStatistics(ctx context.Context, req *pb.GetInvoicePaymentStatisticsRequest) (*pb.GetInvoicePaymentStatisticsResponse, error) {
 	// Extract user ID from JWT token via email database lookup
-	_, err := s.getUserIDFromContext(ctx)
+	userID, err := s.getUserIDFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	// TODO: Implement actual statistics calculation from database
+	// Count total payments
+	var totalPayments int64
+	if err := s.db.WithContext(ctx).
+		Model(&models.InvoicePaymentTransaction{}).
+		Where("user_id = ?", userID).
+		Count(&totalPayments).Error; err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to count total payments: %v", err)
+	}
+
+	// Count successful payments
+	var successfulPayments int64
+	if err := s.db.WithContext(ctx).
+		Model(&models.InvoicePaymentTransaction{}).
+		Where("user_id = ? AND status = ?", userID, models.InvoicePaymentStatusCompleted).
+		Count(&successfulPayments).Error; err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to count successful payments: %v", err)
+	}
+
+	// Count failed payments
+	var failedPayments int64
+	if err := s.db.WithContext(ctx).
+		Model(&models.InvoicePaymentTransaction{}).
+		Where("user_id = ? AND status = ?", userID, models.InvoicePaymentStatusFailed).
+		Count(&failedPayments).Error; err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to count failed payments: %v", err)
+	}
+
+	// Calculate total amount and fees for successful payments
+	var totalAmount, totalFees float64
+	if err := s.db.WithContext(ctx).
+		Model(&models.InvoicePaymentTransaction{}).
+		Where("user_id = ? AND status = ?", userID, models.InvoicePaymentStatusCompleted).
+		Select("COALESCE(SUM(amount), 0) as total_amount, COALESCE(SUM(fee_amount), 0) as total_fees").
+		Row().Scan(&totalAmount, &totalFees); err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to calculate totals: %v", err)
+	}
+
+	// Calculate success rate
+	successRate := 0.0
+	if totalPayments > 0 {
+		successRate = (float64(successfulPayments) / float64(totalPayments)) * 100.0
+	}
+
 	return &pb.GetInvoicePaymentStatisticsResponse{
-		TotalPayments:      0,
-		SuccessfulPayments: 0,
-		FailedPayments:     0,
-		TotalAmount:        0.0,
-		TotalFees:          0.0,
-		SuccessRate:        0.0,
+		TotalPayments:      uint64(totalPayments),
+		SuccessfulPayments: uint64(successfulPayments),
+		FailedPayments:     uint64(failedPayments),
+		TotalAmount:        totalAmount,
+		TotalFees:          totalFees,
+		SuccessRate:        successRate,
 	}, nil
 }
 
 // GetRecentInvoicePaymentTransactions retrieves recent payment transactions for a user
 func (s *InvoicePaymentService) GetRecentInvoicePaymentTransactions(ctx context.Context, req *pb.GetRecentInvoicePaymentTransactionsRequest) (*pb.GetRecentInvoicePaymentTransactionsResponse, error) {
 	// Extract user ID from JWT token via email database lookup
-	_, err := s.getUserIDFromContext(ctx)
+	userID, err := s.getUserIDFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	// TODO: Implement actual recent transactions retrieval from database
+	// Default limit
+	limit := int(req.Limit)
+	if limit <= 0 || limit > 50 {
+		limit = 10
+	}
+
+	// Fetch recent transactions
+	var transactions []models.InvoicePaymentTransaction
+	if err := s.db.WithContext(ctx).
+		Where("user_id = ?", userID).
+		Order("created_at DESC").
+		Limit(limit).
+		Find(&transactions).Error; err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to fetch recent transactions: %v", err)
+	}
+
+	// Convert to protobuf format
+	var pbTransactions []*pb.InvoicePaymentTransaction
+	for _, txn := range transactions {
+		pbTxn := &pb.InvoicePaymentTransaction{
+			TransactionId:      txn.TransactionID,
+			InvoiceId:          txn.InvoiceID,
+			Amount:             txn.Amount,
+			Currency:           txn.Currency,
+			Status:             convertModelStatusToPB(txn.Status),
+			Description:        txn.Description,
+			PaymentMethod:      convertModelPaymentMethodToPB(txn.PaymentMethod),
+			FeeAmount:          txn.FeeAmount,
+			CreatedAt:          timestamppb.New(txn.CreatedAt),
+			PaymentProcessorId: txn.PaymentProcessorID,
+			Reference:          txn.Reference,
+		}
+		if txn.ProcessedAt != nil {
+			pbTxn.ProcessedAt = timestamppb.New(*txn.ProcessedAt)
+		}
+		pbTransactions = append(pbTransactions, pbTxn)
+	}
+
 	return &pb.GetRecentInvoicePaymentTransactionsResponse{
-		Transactions: []*pb.InvoicePaymentTransaction{},
+		Transactions: pbTransactions,
 	}, nil
 }
 
@@ -723,5 +941,30 @@ func convertModelPaymentMethodToPB(method models.PaymentMethodType) pb.PaymentMe
 		return pb.PaymentMethodType_PAYMENT_METHOD_TYPE_BANK_TRANSFER
 	default:
 		return pb.PaymentMethodType_PAYMENT_METHOD_TYPE_ACCOUNT_BALANCE
+	}
+}
+
+func convertPBStatusToModel(status pb.InvoicePaymentStatus) models.InvoicePaymentStatus {
+	switch status {
+	case pb.InvoicePaymentStatus_INVOICE_PAYMENT_STATUS_PENDING:
+		return models.InvoicePaymentStatusPending
+	case pb.InvoicePaymentStatus_INVOICE_PAYMENT_STATUS_PROCESSING:
+		return models.InvoicePaymentStatusProcessing
+	case pb.InvoicePaymentStatus_INVOICE_PAYMENT_STATUS_COMPLETED:
+		return models.InvoicePaymentStatusCompleted
+	case pb.InvoicePaymentStatus_INVOICE_PAYMENT_STATUS_FAILED:
+		return models.InvoicePaymentStatusFailed
+	case pb.InvoicePaymentStatus_INVOICE_PAYMENT_STATUS_CANCELLED:
+		return models.InvoicePaymentStatusCancelled
+	case pb.InvoicePaymentStatus_INVOICE_PAYMENT_STATUS_PARTIALLY_PAID:
+		return models.InvoicePaymentStatusPartiallyPaid
+	case pb.InvoicePaymentStatus_INVOICE_PAYMENT_STATUS_REFUNDED:
+		return models.InvoicePaymentStatusRefunded
+	case pb.InvoicePaymentStatus_INVOICE_PAYMENT_STATUS_DISPUTED:
+		return models.InvoicePaymentStatusDisputed
+	case pb.InvoicePaymentStatus_INVOICE_PAYMENT_STATUS_OVERDUE:
+		return models.InvoicePaymentStatusOverdue
+	default:
+		return models.InvoicePaymentStatusPending
 	}
 }

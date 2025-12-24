@@ -28,12 +28,14 @@ type Transfer struct {
 	Fee           int64          `json:"fee" gorm:"not null;default:0"`
 	TotalAmount   int64          `json:"total_amount" gorm:"not null"`
 	Status        TransferStatus `json:"status" gorm:"not null;default:'pending'"`
-	Reference     string         `json:"reference" gorm:"type:varchar(255)"`
-	Category      string         `json:"category" gorm:"type:varchar(100)"`
-	ScheduledAt   *string        `json:"scheduled_at" gorm:"default:null"`
-	CompletedAt   *time.Time     `json:"completed_at"`
-	FailedAt      *time.Time     `json:"failed_at"`
-	FailureReason string         `json:"failure_reason" gorm:"type:text"`
+	Reference      string         `json:"reference" gorm:"type:varchar(255)"`
+	Category       string         `json:"category" gorm:"type:varchar(100)"`
+	ScheduledAt    *string        `json:"scheduled_at" gorm:"default:null"`
+	IdempotencyKey *string        `json:"idempotency_key" gorm:"type:varchar(255);uniqueIndex"`
+	BatchID        *string        `json:"batch_id" gorm:"type:varchar(255);index"`
+	CompletedAt    *time.Time     `json:"completed_at"`
+	FailedAt       *time.Time     `json:"failed_at"`
+	FailureReason  string         `json:"failure_reason" gorm:"type:text"`
 	FromUser      User           `json:"from_user" gorm:"foreignKey:FromUserID"`
 	ToUser        *User          `json:"to_user" gorm:"foreignKey:ToUserID"`
 	FromAccount   Account        `json:"from_account" gorm:"foreignKey:FromAccountID"`

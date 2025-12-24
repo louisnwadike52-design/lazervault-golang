@@ -9,6 +9,7 @@ import (
 	"lazervaultGo/pb"
 	"lazervaultGo/services"
 	"lazervaultGo/token"
+	"lazervaultGo/utils"
 	"strings"
 	"time"
 
@@ -221,4 +222,348 @@ func (c *TransferController) GetTransferDetails(ctx context.Context, req *pb.Get
 	// TODO: Add currency fetching logic if needed
 
 	return resp, nil
+}
+
+// ListTransfers handles the gRPC request to list all transfers with pagination
+func (c *TransferController) ListTransfers(ctx context.Context, req *pb.ListTransfersRequest) (*pb.ListTransfersResponse, error) {
+	// 1. Get User ID from context
+	authPayload, ok := ctx.Value(middleware.AuthorizationPayloadKey).(*token.Payload)
+	if !ok {
+		return nil, status.Errorf(codes.Unauthenticated, "missing authorization payload")
+	}
+	var user models.User
+	if err := c.db.Where("email = ?", authPayload.Email).First(&user).Error; err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to find user: %v", err)
+	}
+
+	// 2. Set up pagination parameters
+	page := int(req.GetPage())
+	if page == 0 {
+		page = 1
+	}
+	pageSize := int(req.GetPageSize())
+	if pageSize == 0 {
+		pageSize = 20
+	}
+	if pageSize > 100 {
+		pageSize = 100 // Enforce max page size
+	}
+
+	params := &utils.PaginationParams{
+		Page:      page,
+		PageSize:  pageSize,
+		SortBy:    req.GetSortBy(),
+		SortOrder: req.GetSortOrder(),
+	}
+
+	// Set defaults
+	if params.SortBy == "" {
+		params.SortBy = "created_at"
+	}
+	if params.SortOrder == "" {
+		params.SortOrder = "desc"
+	}
+
+	// 3. Build query - filter by user (sender or recipient)
+	query := c.db.Model(&models.Transfer{}).Where("from_user_id = ? OR to_user_id = ?", user.ID, user.ID)
+
+	// 4. Apply optional filters
+	if req.GetStatus() != "" {
+		query = query.Where("status = ?", req.GetStatus())
+	}
+
+	// Apply search if provided (search in reference and category)
+	if req.GetSearch() != "" {
+		searchPattern := "%" + req.GetSearch() + "%"
+		query = query.Where("reference ILIKE ? OR category ILIKE ?", searchPattern, searchPattern)
+	}
+
+	// 5. Get paginated results
+	var transfers []models.Transfer
+	paginatedResp, err := utils.Paginate(query, params, &transfers)
+	if err != nil {
+		log.Error().Err(err).Msg("failed to paginate transfers")
+		return nil, status.Errorf(codes.Internal, "failed to retrieve transfers")
+	}
+
+	// 6. Convert to proto responses
+	transferProtos := make([]*pb.GetTransferDetailsResponse, len(transfers))
+	for i, t := range transfers {
+		transferProtos[i] = convertTransferModelToProtoDetails(&t)
+	}
+
+	// 7. Build pagination metadata
+	paginationMeta := &pb.TransferPaginationInfo{
+		CurrentPage:  int32(paginatedResp.Pagination.CurrentPage),
+		TotalPages:   int32(paginatedResp.Pagination.TotalPages),
+		TotalItems:   int32(paginatedResp.Pagination.TotalRecords),
+		ItemsPerPage: int32(paginatedResp.Pagination.PageSize),
+		HasNext:      paginatedResp.Pagination.HasNext,
+		HasPrev:      paginatedResp.Pagination.HasPrevious,
+	}
+
+	return &pb.ListTransfersResponse{
+		Transfers:  transferProtos,
+		Pagination: paginationMeta,
+	}, nil
+}
+
+// InitiateBatchTransfer handles the gRPC request to initiate a batch transfer
+func (c *TransferController) InitiateBatchTransfer(ctx context.Context, req *pb.InitiateBatchTransferRequest) (*pb.InitiateBatchTransferResponse, error) {
+	// 1. Get authenticated user payload
+	authPayload, ok := ctx.Value(middleware.AuthorizationPayloadKey).(*token.Payload)
+	if !ok {
+		return nil, status.Errorf(codes.Unauthenticated, "missing authorization payload")
+	}
+
+	// 2. Get user ID from email
+	var fromUser models.User
+	if err := c.db.Where("email = ?", authPayload.Email).First(&fromUser).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, status.Errorf(codes.Unauthenticated, "user not found")
+		}
+		return nil, status.Errorf(codes.Internal, "failed to find user: %v", err)
+	}
+
+	// 3. Validate request
+	if req.GetFromAccountId() == 0 {
+		return nil, status.Error(codes.InvalidArgument, "from_account_id is required")
+	}
+	if len(req.GetRecipients()) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "at least one recipient is required")
+	}
+
+	// 4. Convert proto recipients to service recipients
+	recipients := make([]services.BatchTransferRecipient, len(req.GetRecipients()))
+	for i, protoRecipient := range req.GetRecipients() {
+		recipient := services.BatchTransferRecipient{
+			Amount:    int64(protoRecipient.GetAmount()),
+			Reference: protoRecipient.GetReference(),
+			Category:  protoRecipient.GetCategory(),
+		}
+
+		// Set destination (recipient_id or to_account_id)
+		if protoRecipient.GetRecipientId() > 0 {
+			recipientID := uint(protoRecipient.GetRecipientId())
+			recipient.RecipientID = &recipientID
+		} else if protoRecipient.GetToAccountId() > 0 {
+			toAccountID := uint(protoRecipient.GetToAccountId())
+			recipient.ToAccountID = &toAccountID
+		}
+
+		recipients[i] = recipient
+	}
+
+	// 5. Prepare service request
+	serviceReq := services.BatchTransferRequest{
+		FromAccountID: uint(req.GetFromAccountId()),
+		Recipients:    recipients,
+		ScheduledAt:   nil,
+	}
+
+	// Handle scheduled_at if provided
+	if req.GetScheduledAt() != "" {
+		scheduledTime, err := time.Parse(time.RFC3339, req.GetScheduledAt())
+		if err != nil {
+			return nil, status.Error(codes.InvalidArgument, "invalid scheduled_at format. Expected ISO 8601 UTC format")
+		}
+		if scheduledTime.Before(time.Now().UTC()) {
+			return nil, status.Error(codes.InvalidArgument, "scheduled time must be in the future")
+		}
+		scheduledAt := req.GetScheduledAt()
+		serviceReq.ScheduledAt = &scheduledAt
+	}
+
+	// 6. Call service
+	res, err := c.transferService.InitiateBatchTransfer(ctx, fromUser.ID, serviceReq)
+	if err != nil {
+		// Error handling
+		if errors.Is(err, services.ErrSvcAccountNotFound) {
+			return nil, status.Errorf(codes.NotFound, "account not found: %v", err)
+		} else if errors.Is(err, services.ErrSvcAccountAccessDenied) {
+			return nil, status.Errorf(codes.PermissionDenied, "account access denied: %v", err)
+		} else if errors.Is(err, services.ErrSvcInsufficientFunds) {
+			return nil, status.Errorf(codes.FailedPrecondition, "insufficient funds: %v", err)
+		}
+
+		log.Error().Err(err).Msg("failed to initiate batch transfer")
+		return nil, status.Errorf(codes.Internal, "failed to initiate batch transfer")
+	}
+
+	// 7. Convert service response to proto response
+	results := make([]*pb.BatchTransferResult, len(res.Results))
+	for i, result := range res.Results {
+		results[i] = &pb.BatchTransferResult{
+			TransferId:      uint64(result.TransferID),
+			Status:          result.Status,
+			Amount:          uint64(result.Amount),
+			Fee:             uint64(result.Fee),
+			RecipientName:   result.RecipientName,
+			RecipientAccount: result.RecipientAccount,
+			FailureReason:   result.FailureReason,
+		}
+	}
+
+	var completedAt *timestamppb.Timestamp
+	if res.CompletedAt != nil {
+		completedAt = timestamppb.New(*res.CompletedAt)
+	}
+
+	grpcRes := &pb.InitiateBatchTransferResponse{
+		BatchId:             uint64(res.BatchID),
+		Status:              res.Status,
+		TotalAmount:         uint64(res.TotalAmount),
+		TotalFee:            uint64(res.TotalFee),
+		TotalAmountWithFee:  uint64(res.TotalAmountWithFee),
+		SuccessfulTransfers: res.SuccessfulTransfers,
+		FailedTransfers:     res.FailedTransfers,
+		TotalTransfers:      res.TotalTransfers,
+		Results:             results,
+		CreatedAt:           timestamppb.New(res.CreatedAt),
+		CompletedAt:         completedAt,
+	}
+
+	return grpcRes, nil
+}
+
+// GetBatchTransferStatus handles the gRPC request to get batch transfer status
+func (c *TransferController) GetBatchTransferStatus(ctx context.Context, req *pb.GetBatchTransferStatusRequest) (*pb.GetBatchTransferStatusResponse, error) {
+	// 1. Get authenticated user payload
+	authPayload, ok := ctx.Value(middleware.AuthorizationPayloadKey).(*token.Payload)
+	if !ok {
+		return nil, status.Errorf(codes.Unauthenticated, "missing authorization payload")
+	}
+
+	// 2. Get user ID from email
+	var user models.User
+	if err := c.db.Where("email = ?", authPayload.Email).First(&user).Error; err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to find user: %v", err)
+	}
+
+	// 3. Validate request
+	batchID := req.GetBatchId()
+	if batchID == 0 {
+		return nil, status.Error(codes.InvalidArgument, "batch_id is required")
+	}
+
+	// 4. Call service
+	res, err := c.transferService.GetBatchTransferStatus(ctx, uint(batchID), user.ID)
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			return nil, status.Errorf(codes.NotFound, err.Error())
+		} else if strings.Contains(err.Error(), "access denied") {
+			return nil, status.Errorf(codes.PermissionDenied, err.Error())
+		}
+		log.Error().Err(err).Msg("failed to get batch transfer status")
+		return nil, status.Errorf(codes.Internal, "failed to get batch transfer status")
+	}
+
+	// 5. Convert service response to proto response
+	results := make([]*pb.BatchTransferResult, len(res.Results))
+	for i, result := range res.Results {
+		results[i] = &pb.BatchTransferResult{
+			TransferId:      uint64(result.TransferID),
+			Status:          result.Status,
+			Amount:          uint64(result.Amount),
+			Fee:             uint64(result.Fee),
+			RecipientName:   result.RecipientName,
+			RecipientAccount: result.RecipientAccount,
+			FailureReason:   result.FailureReason,
+		}
+	}
+
+	var completedAt *timestamppb.Timestamp
+	if res.CompletedAt != nil {
+		completedAt = timestamppb.New(*res.CompletedAt)
+	}
+
+	grpcRes := &pb.GetBatchTransferStatusResponse{
+		BatchId:             uint64(res.BatchID),
+		Status:              res.Status,
+		TotalAmount:         uint64(res.TotalAmount),
+		TotalFee:            uint64(res.TotalFee),
+		TotalAmountWithFee:  uint64(res.TotalAmountWithFee),
+		SuccessfulTransfers: res.SuccessfulTransfers,
+		FailedTransfers:     res.FailedTransfers,
+		TotalTransfers:      res.TotalTransfers,
+		Results:             results,
+		CreatedAt:           timestamppb.New(res.CreatedAt),
+		CompletedAt:         completedAt,
+	}
+
+	return grpcRes, nil
+}
+
+// GetBatchTransferHistory handles the gRPC request to get batch transfer history
+func (c *TransferController) GetBatchTransferHistory(ctx context.Context, req *pb.GetBatchTransferHistoryRequest) (*pb.GetBatchTransferHistoryResponse, error) {
+	// 1. Get authenticated user payload
+	authPayload, ok := ctx.Value(middleware.AuthorizationPayloadKey).(*token.Payload)
+	if !ok {
+		return nil, status.Errorf(codes.Unauthenticated, "missing authorization payload")
+	}
+
+	// 2. Get user ID from email
+	var user models.User
+	if err := c.db.Where("email = ?", authPayload.Email).First(&user).Error; err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to find user: %v", err)
+	}
+
+	// 3. Set up pagination parameters
+	page := req.GetPage()
+	if page == 0 {
+		page = 1
+	}
+	pageSize := req.GetPageSize()
+	if pageSize == 0 {
+		pageSize = 20
+	}
+	if pageSize > 100 {
+		pageSize = 100
+	}
+
+	// 4. Call service
+	res, err := c.transferService.GetBatchTransferHistory(ctx, user.ID, page, pageSize, req.GetStatus())
+	if err != nil {
+		log.Error().Err(err).Msg("failed to get batch transfer history")
+		return nil, status.Errorf(codes.Internal, "failed to get batch transfer history")
+	}
+
+	// 5. Convert service response to proto response
+	batches := make([]*pb.GetBatchTransferStatusResponse, len(res.Batches))
+	for i, batch := range res.Batches {
+		var completedAt *timestamppb.Timestamp
+		if batch.CompletedAt != nil {
+			completedAt = timestamppb.New(*batch.CompletedAt)
+		}
+
+		batches[i] = &pb.GetBatchTransferStatusResponse{
+			BatchId:             uint64(batch.BatchID),
+			Status:              batch.Status,
+			TotalAmount:         uint64(batch.TotalAmount),
+			TotalFee:            uint64(batch.TotalFee),
+			TotalAmountWithFee:  uint64(batch.TotalAmountWithFee),
+			SuccessfulTransfers: batch.SuccessfulTransfers,
+			FailedTransfers:     batch.FailedTransfers,
+			TotalTransfers:      batch.TotalTransfers,
+			Results:             nil, // History doesn't include individual results
+			CreatedAt:           timestamppb.New(batch.CreatedAt),
+			CompletedAt:         completedAt,
+		}
+	}
+
+	paginationMeta := &pb.TransferPaginationInfo{
+		CurrentPage:  res.CurrentPage,
+		TotalPages:   res.TotalPages,
+		TotalItems:   res.TotalItems,
+		ItemsPerPage: res.ItemsPerPage,
+		HasNext:      res.HasNext,
+		HasPrev:      res.HasPrev,
+	}
+
+	grpcRes := &pb.GetBatchTransferHistoryResponse{
+		Batches:    batches,
+		Pagination: paginationMeta,
+	}
+
+	return grpcRes, nil
 }

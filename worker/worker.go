@@ -41,6 +41,23 @@ func NewRedisWorker(
 	}()
 	log.Info().Msg("task processor started")
 
+	// Start scheduled transfer checks
+	redisProcessor, ok := processor.(*RedisTaskProcessor)
+	if ok && redisProcessor.scheduledTransferProcessor != nil {
+		ctx := context.Background()
+		if err := redisProcessor.scheduledTransferProcessor.StartScheduledChecks(ctx); err != nil {
+			log.Error().Err(err).Msg("failed to start scheduled transfer checks")
+		}
+	}
+
+	// Start scheduled auto-save checks
+	if ok && redisProcessor.scheduledAutoSaveProcessor != nil {
+		ctx := context.Background()
+		if err := redisProcessor.scheduledAutoSaveProcessor.StartScheduledChecks(ctx); err != nil {
+			log.Error().Err(err).Msg("failed to start scheduled auto-save checks")
+		}
+	}
+
 	return &RedisWorker{
 		distributor: distributor,
 		processor:   processor,

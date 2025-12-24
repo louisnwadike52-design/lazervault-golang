@@ -19,13 +19,29 @@ type CustomerDetails struct {
 	Address string `json:"address,omitempty"`
 }
 
+// AddressDetails holds address information for invoice participants
+type AddressDetails struct {
+	CompanyName  string `json:"company_name,omitempty"`
+	ContactName  string `json:"contact_name,omitempty"`
+	Email        string `json:"email,omitempty"`
+	Phone        string `json:"phone,omitempty"`
+	AddressLine1 string `json:"address_line1,omitempty"`
+	AddressLine2 string `json:"address_line2,omitempty"`
+	City         string `json:"city,omitempty"`
+	State        string `json:"state,omitempty"`
+	Postcode     string `json:"postcode,omitempty"`
+	Country      string `json:"country,omitempty"`
+}
+
 // InvoiceItem holds line item info for embedding in Invoice
 type InvoiceItem struct {
-	ItemID      string  `json:"item_id,omitempty"`
-	Description string  `json:"description"`
-	Quantity    int32   `json:"quantity"`
+	ItemID      string  `json:"id,omitempty"`
+	Name        string  `json:"name"`
+	Description string  `json:"description,omitempty"`
+	Quantity    float64 `json:"quantity"`
 	UnitPrice   float64 `json:"unit_price"`
 	TotalPrice  float64 `json:"total_price"`
+	Category    string  `json:"category,omitempty"`
 }
 
 // Invoice represents an invoice in the system
@@ -43,6 +59,15 @@ type Invoice struct {
 	PaymentReference string               `json:"payment_reference" gorm:"size:255"`
 	Status           InvoicePaymentStatus `json:"status" gorm:"size:50;not null;default:'pending'"`
 	Metadata         datatypes.JSON       `json:"metadata" gorm:"type:jsonb"`
+	Items            datatypes.JSON       `json:"items" gorm:"type:jsonb"`
+	Notes            string               `json:"notes" gorm:"type:text"`
+	TaxAmount        float64              `json:"tax_amount" gorm:"type:decimal(15,2);default:0"`
+	DiscountAmount   float64              `json:"discount_amount" gorm:"type:decimal(15,2);default:0"`
+	TotalAmount      float64              `json:"total_amount" gorm:"type:decimal(15,2);not null;default:0"`
+	RecipientDetails datatypes.JSON       `json:"recipient_details" gorm:"type:jsonb"`
+	PayerDetails     datatypes.JSON       `json:"payer_details" gorm:"type:jsonb"`
+	ToEmail          string               `json:"to_email" gorm:"size:255"`
+	ToName           string               `json:"to_name" gorm:"size:255"`
 	CreatedAt        time.Time            `json:"created_at" gorm:"autoCreateTime"`
 	UpdatedAt        time.Time            `json:"updated_at" gorm:"autoUpdateTime"`
 }
@@ -74,6 +99,20 @@ func (cd *CustomerDetails) Scan(value interface{}) error {
 // Value implements the driver.Valuer interface for CustomerDetails
 func (cd CustomerDetails) Value() (driver.Value, error) {
 	return json.Marshal(cd)
+}
+
+// Scan implements the sql.Scanner interface for AddressDetails
+func (ad *AddressDetails) Scan(value interface{}) error {
+	bytes, ok := value.([]byte)
+	if !ok {
+		return errors.New("type assertion to []byte failed for AddressDetails")
+	}
+	return json.Unmarshal(bytes, &ad)
+}
+
+// Value implements the driver.Valuer interface for AddressDetails
+func (ad AddressDetails) Value() (driver.Value, error) {
+	return json.Marshal(ad)
 }
 
 // Scan implements the sql.Scanner interface for []InvoiceItem

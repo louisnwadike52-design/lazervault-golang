@@ -26,12 +26,13 @@ const (
 // Account represents a user's financial account within LazerVault.
 type Account struct {
 	gorm.Model           // Includes ID, CreatedAt, UpdatedAt, DeletedAt
-	OwnerUserID   uint   `gorm:"not null;index"`                         // Foreign key to the User model
-	AccountNumber string `gorm:"type:varchar(100);uniqueIndex;not null"` // Full account number (IBAN/etc.)
-	AccountType   string `gorm:"type:varchar(50);not null"`              // e.g., personal, savings, investment
-	Currency      string `gorm:"type:varchar(10);not null"`              // e.g., USD, GBP
-	Balance       int64  `gorm:"not null;default:0"`                     // GORM typically maps int64 to bigint
-	IsActive      bool   `gorm:"not null;default:true"`                  // Consider replacing with Status field
+	OwnerUserID   uint   `gorm:"not null;index"`                                  // Foreign key to the User model
+	AccountNumber string `gorm:"type:varchar(100);uniqueIndex;not null"`      // Full account number (IBAN/etc.)
+	AccountType   string `gorm:"type:varchar(50);not null"`                   // e.g., personal, savings, investment
+	Currency      string `gorm:"type:varchar(10);not null"`                   // e.g., USD, GBP, NGN, EUR
+	Country       string `gorm:"type:varchar(10);not null;default:'US';index"` // e.g., US, GB, NG, EU
+	Balance       int64  `gorm:"not null;default:0"`                          // GORM typically maps int64 to bigint
+	IsActive      bool   `gorm:"not null;default:true"`                       // Consider replacing with Status field
 
 	// New fields for UI parity
 	Status         string  `gorm:"type:varchar(50);not null;default:'active'"` // 'active', 'blocked_temporary', 'blocked_permanent', 'blocked_stolen'
@@ -76,7 +77,34 @@ func (a *Account) BeforeCreate(tx *gorm.DB) (err error) {
 		a.AccountNumber = fmt.Sprintf("LV%d%d", time.Now().UnixNano(), a.OwnerUserID) // Example generation
 	}
 
+	// Set default country based on currency if not provided
+	if a.Country == "" && a.Currency != "" {
+		a.Country = currencyToCountry(a.Currency)
+	}
+
 	return nil
+}
+
+// currencyToCountry maps currency codes to country codes
+func currencyToCountry(currency string) string {
+	currencyMap := map[string]string{
+		"USD": "US",
+		"GBP": "GB",
+		"NGN": "NG",
+		"EUR": "EU",
+		"CAD": "CA",
+		"AUD": "AU",
+		"INR": "IN",
+		"CNY": "CN",
+		"JPY": "JP",
+		"KES": "KE",
+		"ZAR": "ZA",
+	}
+
+	if country, ok := currencyMap[currency]; ok {
+		return country
+	}
+	return "US" // Default to US if currency not mapped
 }
 
 // TableName specifies the table name for the Account model.

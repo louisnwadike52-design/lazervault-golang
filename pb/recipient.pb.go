@@ -40,6 +40,11 @@ type Recipient struct {
 	SortCode      string                 `protobuf:"bytes,8,opt,name=sort_code,json=sortCode,proto3" json:"sort_code,omitempty"`
 	BankName      string                 `protobuf:"bytes,9,opt,name=bank_name,json=bankName,proto3" json:"bank_name,omitempty"`
 	CountryCode   string                 `protobuf:"bytes,10,opt,name=country_code,json=countryCode,proto3" json:"country_code,omitempty"` // e.g., "GB", "US"
+	Email         string                 `protobuf:"bytes,13,opt,name=email,proto3" json:"email,omitempty"`                                // Recipient email address
+	PhoneNumber   string                 `protobuf:"bytes,14,opt,name=phone_number,json=phoneNumber,proto3" json:"phone_number,omitempty"` // Recipient phone number
+	Currency      string                 `protobuf:"bytes,15,opt,name=currency,proto3" json:"currency,omitempty"`                          // Currency for this recipient (e.g., "USD", "GBP")
+	SwiftCode     string                 `protobuf:"bytes,16,opt,name=swift_code,json=swiftCode,proto3" json:"swift_code,omitempty"`       // SWIFT/BIC code for international transfers
+	Iban          string                 `protobuf:"bytes,17,opt,name=iban,proto3" json:"iban,omitempty"`                                  // IBAN for European transfers
 	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	UpdatedAt     *timestamppb.Timestamp `protobuf:"bytes,12,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -146,6 +151,41 @@ func (x *Recipient) GetCountryCode() string {
 	return ""
 }
 
+func (x *Recipient) GetEmail() string {
+	if x != nil {
+		return x.Email
+	}
+	return ""
+}
+
+func (x *Recipient) GetPhoneNumber() string {
+	if x != nil {
+		return x.PhoneNumber
+	}
+	return ""
+}
+
+func (x *Recipient) GetCurrency() string {
+	if x != nil {
+		return x.Currency
+	}
+	return ""
+}
+
+func (x *Recipient) GetSwiftCode() string {
+	if x != nil {
+		return x.SwiftCode
+	}
+	return ""
+}
+
+func (x *Recipient) GetIban() string {
+	if x != nil {
+		return x.Iban
+	}
+	return ""
+}
+
 func (x *Recipient) GetCreatedAt() *timestamppb.Timestamp {
 	if x != nil {
 		return x.CreatedAt
@@ -171,6 +211,11 @@ type CreateRecipientRequest struct {
 	BankName          *string `protobuf:"bytes,6,opt,name=bank_name,json=bankName,proto3,oneof" json:"bank_name,omitempty"`
 	SortCode          *string `protobuf:"bytes,7,opt,name=sort_code,json=sortCode,proto3,oneof" json:"sort_code,omitempty"`
 	CountryCode       *string `protobuf:"bytes,8,opt,name=country_code,json=countryCode,proto3,oneof" json:"country_code,omitempty"`
+	Email             *string `protobuf:"bytes,9,opt,name=email,proto3,oneof" json:"email,omitempty"`
+	PhoneNumber       *string `protobuf:"bytes,10,opt,name=phone_number,json=phoneNumber,proto3,oneof" json:"phone_number,omitempty"`
+	Currency          *string `protobuf:"bytes,11,opt,name=currency,proto3,oneof" json:"currency,omitempty"`
+	SwiftCode         *string `protobuf:"bytes,12,opt,name=swift_code,json=swiftCode,proto3,oneof" json:"swift_code,omitempty"`
+	Iban              *string `protobuf:"bytes,13,opt,name=iban,proto3,oneof" json:"iban,omitempty"`
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache
 }
@@ -261,6 +306,41 @@ func (x *CreateRecipientRequest) GetCountryCode() string {
 	return ""
 }
 
+func (x *CreateRecipientRequest) GetEmail() string {
+	if x != nil && x.Email != nil {
+		return *x.Email
+	}
+	return ""
+}
+
+func (x *CreateRecipientRequest) GetPhoneNumber() string {
+	if x != nil && x.PhoneNumber != nil {
+		return *x.PhoneNumber
+	}
+	return ""
+}
+
+func (x *CreateRecipientRequest) GetCurrency() string {
+	if x != nil && x.Currency != nil {
+		return *x.Currency
+	}
+	return ""
+}
+
+func (x *CreateRecipientRequest) GetSwiftCode() string {
+	if x != nil && x.SwiftCode != nil {
+		return *x.SwiftCode
+	}
+	return ""
+}
+
+func (x *CreateRecipientRequest) GetIban() string {
+	if x != nil && x.Iban != nil {
+		return *x.Iban
+	}
+	return ""
+}
+
 type CreateRecipientResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Recipient     *Recipient             `protobuf:"bytes,1,opt,name=recipient,proto3" json:"recipient,omitempty"`
@@ -307,6 +387,9 @@ func (x *CreateRecipientResponse) GetRecipient() *Recipient {
 
 type ListRecipientsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
+	CountryCode   *string                `protobuf:"bytes,1,opt,name=country_code,json=countryCode,proto3,oneof" json:"country_code,omitempty"`        // Filter by country code (e.g., "GB", "US")
+	Currency      *string                `protobuf:"bytes,2,opt,name=currency,proto3,oneof" json:"currency,omitempty"`                                 // Filter by currency (e.g., "USD", "GBP")
+	FavoritesOnly *bool                  `protobuf:"varint,3,opt,name=favorites_only,json=favoritesOnly,proto3,oneof" json:"favorites_only,omitempty"` // Only return favorite recipients
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -339,6 +422,27 @@ func (x *ListRecipientsRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use ListRecipientsRequest.ProtoReflect.Descriptor instead.
 func (*ListRecipientsRequest) Descriptor() ([]byte, []int) {
 	return file_recipient_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *ListRecipientsRequest) GetCountryCode() string {
+	if x != nil && x.CountryCode != nil {
+		return *x.CountryCode
+	}
+	return ""
+}
+
+func (x *ListRecipientsRequest) GetCurrency() string {
+	if x != nil && x.Currency != nil {
+		return *x.Currency
+	}
+	return ""
+}
+
+func (x *ListRecipientsRequest) GetFavoritesOnly() bool {
+	if x != nil && x.FavoritesOnly != nil {
+		return *x.FavoritesOnly
+	}
+	return false
 }
 
 type ListRecipientsResponse struct {
@@ -948,7 +1052,7 @@ var File_recipient_proto protoreflect.FileDescriptor
 
 const file_recipient_proto_rawDesc = "" +
 	"\n" +
-	"\x0frecipient.proto\x12\x02pb\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1egoogle/protobuf/wrappers.proto\x1a\x1cgoogle/api/annotations.proto\x1a.protoc-gen-openapiv2/options/annotations.proto\"\xef\x03\n" +
+	"\x0frecipient.proto\x12\x02pb\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1egoogle/protobuf/wrappers.proto\x1a\x1cgoogle/api/annotations.proto\x1a.protoc-gen-openapiv2/options/annotations.proto\"\xf7\x04\n" +
 	"\tRecipient\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x04R\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1f\n" +
@@ -961,13 +1065,19 @@ const file_recipient_proto_rawDesc = "" +
 	"\tsort_code\x18\b \x01(\tR\bsortCode\x12\x1b\n" +
 	"\tbank_name\x18\t \x01(\tR\bbankName\x12!\n" +
 	"\fcountry_code\x18\n" +
-	" \x01(\tR\vcountryCode\x129\n" +
+	" \x01(\tR\vcountryCode\x12\x14\n" +
+	"\x05email\x18\r \x01(\tR\x05email\x12!\n" +
+	"\fphone_number\x18\x0e \x01(\tR\vphoneNumber\x12\x1a\n" +
+	"\bcurrency\x18\x0f \x01(\tR\bcurrency\x12\x1d\n" +
+	"\n" +
+	"swift_code\x18\x10 \x01(\tR\tswiftCode\x12\x12\n" +
+	"\x04iban\x18\x11 \x01(\tR\x04iban\x129\n" +
 	"\n" +
 	"created_at\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
 	"\n" +
 	"updated_at\x18\f \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAtB\x16\n" +
 	"\x14_internal_account_idB\x13\n" +
-	"\x11_internal_user_id\"\xa9\x03\n" +
+	"\x11_internal_user_id\"\x8a\x05\n" +
 	"\x16CreateRecipientRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12$\n" +
 	"\vis_favorite\x18\x02 \x01(\bH\x00R\n" +
@@ -977,7 +1087,15 @@ const file_recipient_proto_rawDesc = "" +
 	"\x0eaccount_number\x18\x05 \x01(\tH\x03R\raccountNumber\x88\x01\x01\x12 \n" +
 	"\tbank_name\x18\x06 \x01(\tH\x04R\bbankName\x88\x01\x01\x12 \n" +
 	"\tsort_code\x18\a \x01(\tH\x05R\bsortCode\x88\x01\x01\x12&\n" +
-	"\fcountry_code\x18\b \x01(\tH\x06R\vcountryCode\x88\x01\x01B\x0e\n" +
+	"\fcountry_code\x18\b \x01(\tH\x06R\vcountryCode\x88\x01\x01\x12\x19\n" +
+	"\x05email\x18\t \x01(\tH\aR\x05email\x88\x01\x01\x12&\n" +
+	"\fphone_number\x18\n" +
+	" \x01(\tH\bR\vphoneNumber\x88\x01\x01\x12\x1f\n" +
+	"\bcurrency\x18\v \x01(\tH\tR\bcurrency\x88\x01\x01\x12\"\n" +
+	"\n" +
+	"swift_code\x18\f \x01(\tH\n" +
+	"R\tswiftCode\x88\x01\x01\x12\x17\n" +
+	"\x04iban\x18\r \x01(\tH\vR\x04iban\x88\x01\x01B\x0e\n" +
 	"\f_is_favoriteB\a\n" +
 	"\x05_typeB\x16\n" +
 	"\x14_internal_account_idB\x11\n" +
@@ -986,10 +1104,21 @@ const file_recipient_proto_rawDesc = "" +
 	"_bank_nameB\f\n" +
 	"\n" +
 	"_sort_codeB\x0f\n" +
-	"\r_country_code\"F\n" +
+	"\r_country_codeB\b\n" +
+	"\x06_emailB\x0f\n" +
+	"\r_phone_numberB\v\n" +
+	"\t_currencyB\r\n" +
+	"\v_swift_codeB\a\n" +
+	"\x05_iban\"F\n" +
 	"\x17CreateRecipientResponse\x12+\n" +
-	"\trecipient\x18\x01 \x01(\v2\r.pb.RecipientR\trecipient\"\x17\n" +
-	"\x15ListRecipientsRequest\"G\n" +
+	"\trecipient\x18\x01 \x01(\v2\r.pb.RecipientR\trecipient\"\xbd\x01\n" +
+	"\x15ListRecipientsRequest\x12&\n" +
+	"\fcountry_code\x18\x01 \x01(\tH\x00R\vcountryCode\x88\x01\x01\x12\x1f\n" +
+	"\bcurrency\x18\x02 \x01(\tH\x01R\bcurrency\x88\x01\x01\x12*\n" +
+	"\x0efavorites_only\x18\x03 \x01(\bH\x02R\rfavoritesOnly\x88\x01\x01B\x0f\n" +
+	"\r_country_codeB\v\n" +
+	"\t_currencyB\x11\n" +
+	"\x0f_favorites_only\"G\n" +
 	"\x16ListRecipientsResponse\x12-\n" +
 	"\n" +
 	"recipients\x18\x01 \x03(\v2\r.pb.RecipientR\n" +
@@ -1131,6 +1260,7 @@ func file_recipient_proto_init() {
 	}
 	file_recipient_proto_msgTypes[0].OneofWrappers = []any{}
 	file_recipient_proto_msgTypes[1].OneofWrappers = []any{}
+	file_recipient_proto_msgTypes[3].OneofWrappers = []any{}
 	file_recipient_proto_msgTypes[5].OneofWrappers = []any{}
 	file_recipient_proto_msgTypes[14].OneofWrappers = []any{}
 	type x struct{}

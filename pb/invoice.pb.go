@@ -23,6 +23,256 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// AddressDetails represents address information for invoice participants
+type AddressDetails struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	CompanyName   string                 `protobuf:"bytes,1,opt,name=company_name,json=companyName,proto3" json:"company_name,omitempty"`
+	ContactName   string                 `protobuf:"bytes,2,opt,name=contact_name,json=contactName,proto3" json:"contact_name,omitempty"`
+	Email         string                 `protobuf:"bytes,3,opt,name=email,proto3" json:"email,omitempty"`
+	Phone         string                 `protobuf:"bytes,4,opt,name=phone,proto3" json:"phone,omitempty"`
+	AddressLine1  string                 `protobuf:"bytes,5,opt,name=address_line1,json=addressLine1,proto3" json:"address_line1,omitempty"`
+	AddressLine2  string                 `protobuf:"bytes,6,opt,name=address_line2,json=addressLine2,proto3" json:"address_line2,omitempty"`
+	City          string                 `protobuf:"bytes,7,opt,name=city,proto3" json:"city,omitempty"`
+	State         string                 `protobuf:"bytes,8,opt,name=state,proto3" json:"state,omitempty"`
+	Postcode      string                 `protobuf:"bytes,9,opt,name=postcode,proto3" json:"postcode,omitempty"`
+	Country       string                 `protobuf:"bytes,10,opt,name=country,proto3" json:"country,omitempty"`
+	BankAccount   string                 `protobuf:"bytes,11,opt,name=bank_account,json=bankAccount,proto3" json:"bank_account,omitempty"`
+	BicNumber     string                 `protobuf:"bytes,12,opt,name=bic_number,json=bicNumber,proto3" json:"bic_number,omitempty"`
+	Iban          string                 `protobuf:"bytes,13,opt,name=iban,proto3" json:"iban,omitempty"`
+	RoutingNumber string                 `protobuf:"bytes,14,opt,name=routing_number,json=routingNumber,proto3" json:"routing_number,omitempty"`
+	TaxId         string                 `protobuf:"bytes,15,opt,name=tax_id,json=taxId,proto3" json:"tax_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AddressDetails) Reset() {
+	*x = AddressDetails{}
+	mi := &file_invoice_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AddressDetails) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AddressDetails) ProtoMessage() {}
+
+func (x *AddressDetails) ProtoReflect() protoreflect.Message {
+	mi := &file_invoice_proto_msgTypes[0]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AddressDetails.ProtoReflect.Descriptor instead.
+func (*AddressDetails) Descriptor() ([]byte, []int) {
+	return file_invoice_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *AddressDetails) GetCompanyName() string {
+	if x != nil {
+		return x.CompanyName
+	}
+	return ""
+}
+
+func (x *AddressDetails) GetContactName() string {
+	if x != nil {
+		return x.ContactName
+	}
+	return ""
+}
+
+func (x *AddressDetails) GetEmail() string {
+	if x != nil {
+		return x.Email
+	}
+	return ""
+}
+
+func (x *AddressDetails) GetPhone() string {
+	if x != nil {
+		return x.Phone
+	}
+	return ""
+}
+
+func (x *AddressDetails) GetAddressLine1() string {
+	if x != nil {
+		return x.AddressLine1
+	}
+	return ""
+}
+
+func (x *AddressDetails) GetAddressLine2() string {
+	if x != nil {
+		return x.AddressLine2
+	}
+	return ""
+}
+
+func (x *AddressDetails) GetCity() string {
+	if x != nil {
+		return x.City
+	}
+	return ""
+}
+
+func (x *AddressDetails) GetState() string {
+	if x != nil {
+		return x.State
+	}
+	return ""
+}
+
+func (x *AddressDetails) GetPostcode() string {
+	if x != nil {
+		return x.Postcode
+	}
+	return ""
+}
+
+func (x *AddressDetails) GetCountry() string {
+	if x != nil {
+		return x.Country
+	}
+	return ""
+}
+
+func (x *AddressDetails) GetBankAccount() string {
+	if x != nil {
+		return x.BankAccount
+	}
+	return ""
+}
+
+func (x *AddressDetails) GetBicNumber() string {
+	if x != nil {
+		return x.BicNumber
+	}
+	return ""
+}
+
+func (x *AddressDetails) GetIban() string {
+	if x != nil {
+		return x.Iban
+	}
+	return ""
+}
+
+func (x *AddressDetails) GetRoutingNumber() string {
+	if x != nil {
+		return x.RoutingNumber
+	}
+	return ""
+}
+
+func (x *AddressDetails) GetTaxId() string {
+	if x != nil {
+		return x.TaxId
+	}
+	return ""
+}
+
+// InvoiceItem represents a line item in an invoice
+type InvoiceItem struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Description   string                 `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
+	Quantity      float64                `protobuf:"fixed64,4,opt,name=quantity,proto3" json:"quantity,omitempty"`
+	UnitPrice     float64                `protobuf:"fixed64,5,opt,name=unit_price,json=unitPrice,proto3" json:"unit_price,omitempty"`
+	TotalPrice    float64                `protobuf:"fixed64,6,opt,name=total_price,json=totalPrice,proto3" json:"total_price,omitempty"`
+	Category      string                 `protobuf:"bytes,7,opt,name=category,proto3" json:"category,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *InvoiceItem) Reset() {
+	*x = InvoiceItem{}
+	mi := &file_invoice_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *InvoiceItem) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*InvoiceItem) ProtoMessage() {}
+
+func (x *InvoiceItem) ProtoReflect() protoreflect.Message {
+	mi := &file_invoice_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use InvoiceItem.ProtoReflect.Descriptor instead.
+func (*InvoiceItem) Descriptor() ([]byte, []int) {
+	return file_invoice_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *InvoiceItem) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *InvoiceItem) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *InvoiceItem) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
+func (x *InvoiceItem) GetQuantity() float64 {
+	if x != nil {
+		return x.Quantity
+	}
+	return 0
+}
+
+func (x *InvoiceItem) GetUnitPrice() float64 {
+	if x != nil {
+		return x.UnitPrice
+	}
+	return 0
+}
+
+func (x *InvoiceItem) GetTotalPrice() float64 {
+	if x != nil {
+		return x.TotalPrice
+	}
+	return 0
+}
+
+func (x *InvoiceItem) GetCategory() string {
+	if x != nil {
+		return x.Category
+	}
+	return ""
+}
+
 // Invoice represents an invoice in the system
 type Invoice struct {
 	state            protoimpl.MessageState `protogen:"open.v1"`
@@ -39,13 +289,22 @@ type Invoice struct {
 	PaymentReference string                 `protobuf:"bytes,11,opt,name=payment_reference,json=paymentReference,proto3" json:"payment_reference,omitempty"`
 	CreatedAt        *timestamppb.Timestamp `protobuf:"bytes,12,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	UpdatedAt        *timestamppb.Timestamp `protobuf:"bytes,13,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	Items            []*InvoiceItem         `protobuf:"bytes,14,rep,name=items,proto3" json:"items,omitempty"`
+	Notes            string                 `protobuf:"bytes,15,opt,name=notes,proto3" json:"notes,omitempty"`
+	TaxAmount        float64                `protobuf:"fixed64,16,opt,name=tax_amount,json=taxAmount,proto3" json:"tax_amount,omitempty"`
+	DiscountAmount   float64                `protobuf:"fixed64,17,opt,name=discount_amount,json=discountAmount,proto3" json:"discount_amount,omitempty"`
+	TotalAmount      float64                `protobuf:"fixed64,18,opt,name=total_amount,json=totalAmount,proto3" json:"total_amount,omitempty"`
+	RecipientDetails *AddressDetails        `protobuf:"bytes,19,opt,name=recipient_details,json=recipientDetails,proto3" json:"recipient_details,omitempty"`
+	PayerDetails     *AddressDetails        `protobuf:"bytes,20,opt,name=payer_details,json=payerDetails,proto3" json:"payer_details,omitempty"`
+	ToEmail          string                 `protobuf:"bytes,21,opt,name=to_email,json=toEmail,proto3" json:"to_email,omitempty"`
+	ToName           string                 `protobuf:"bytes,22,opt,name=to_name,json=toName,proto3" json:"to_name,omitempty"`
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }
 
 func (x *Invoice) Reset() {
 	*x = Invoice{}
-	mi := &file_invoice_proto_msgTypes[0]
+	mi := &file_invoice_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -57,7 +316,7 @@ func (x *Invoice) String() string {
 func (*Invoice) ProtoMessage() {}
 
 func (x *Invoice) ProtoReflect() protoreflect.Message {
-	mi := &file_invoice_proto_msgTypes[0]
+	mi := &file_invoice_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -70,7 +329,7 @@ func (x *Invoice) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Invoice.ProtoReflect.Descriptor instead.
 func (*Invoice) Descriptor() ([]byte, []int) {
-	return file_invoice_proto_rawDescGZIP(), []int{0}
+	return file_invoice_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *Invoice) GetId() string {
@@ -164,6 +423,69 @@ func (x *Invoice) GetUpdatedAt() *timestamppb.Timestamp {
 	return nil
 }
 
+func (x *Invoice) GetItems() []*InvoiceItem {
+	if x != nil {
+		return x.Items
+	}
+	return nil
+}
+
+func (x *Invoice) GetNotes() string {
+	if x != nil {
+		return x.Notes
+	}
+	return ""
+}
+
+func (x *Invoice) GetTaxAmount() float64 {
+	if x != nil {
+		return x.TaxAmount
+	}
+	return 0
+}
+
+func (x *Invoice) GetDiscountAmount() float64 {
+	if x != nil {
+		return x.DiscountAmount
+	}
+	return 0
+}
+
+func (x *Invoice) GetTotalAmount() float64 {
+	if x != nil {
+		return x.TotalAmount
+	}
+	return 0
+}
+
+func (x *Invoice) GetRecipientDetails() *AddressDetails {
+	if x != nil {
+		return x.RecipientDetails
+	}
+	return nil
+}
+
+func (x *Invoice) GetPayerDetails() *AddressDetails {
+	if x != nil {
+		return x.PayerDetails
+	}
+	return nil
+}
+
+func (x *Invoice) GetToEmail() string {
+	if x != nil {
+		return x.ToEmail
+	}
+	return ""
+}
+
+func (x *Invoice) GetToName() string {
+	if x != nil {
+		return x.ToName
+	}
+	return ""
+}
+
 // GetInvoicesRequest represents a request to get all invoices for a user
 type GetInvoicesRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -175,7 +497,7 @@ type GetInvoicesRequest struct {
 
 func (x *GetInvoicesRequest) Reset() {
 	*x = GetInvoicesRequest{}
-	mi := &file_invoice_proto_msgTypes[1]
+	mi := &file_invoice_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -187,7 +509,7 @@ func (x *GetInvoicesRequest) String() string {
 func (*GetInvoicesRequest) ProtoMessage() {}
 
 func (x *GetInvoicesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_invoice_proto_msgTypes[1]
+	mi := &file_invoice_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -200,7 +522,7 @@ func (x *GetInvoicesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetInvoicesRequest.ProtoReflect.Descriptor instead.
 func (*GetInvoicesRequest) Descriptor() ([]byte, []int) {
-	return file_invoice_proto_rawDescGZIP(), []int{1}
+	return file_invoice_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *GetInvoicesRequest) GetPage() int32 {
@@ -228,7 +550,7 @@ type GetInvoicesResponse struct {
 
 func (x *GetInvoicesResponse) Reset() {
 	*x = GetInvoicesResponse{}
-	mi := &file_invoice_proto_msgTypes[2]
+	mi := &file_invoice_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -240,7 +562,7 @@ func (x *GetInvoicesResponse) String() string {
 func (*GetInvoicesResponse) ProtoMessage() {}
 
 func (x *GetInvoicesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_invoice_proto_msgTypes[2]
+	mi := &file_invoice_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -253,7 +575,7 @@ func (x *GetInvoicesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetInvoicesResponse.ProtoReflect.Descriptor instead.
 func (*GetInvoicesResponse) Descriptor() ([]byte, []int) {
-	return file_invoice_proto_rawDescGZIP(), []int{2}
+	return file_invoice_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *GetInvoicesResponse) GetInvoices() []*Invoice {
@@ -280,7 +602,7 @@ type GetInvoiceByIdRequest struct {
 
 func (x *GetInvoiceByIdRequest) Reset() {
 	*x = GetInvoiceByIdRequest{}
-	mi := &file_invoice_proto_msgTypes[3]
+	mi := &file_invoice_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -292,7 +614,7 @@ func (x *GetInvoiceByIdRequest) String() string {
 func (*GetInvoiceByIdRequest) ProtoMessage() {}
 
 func (x *GetInvoiceByIdRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_invoice_proto_msgTypes[3]
+	mi := &file_invoice_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -305,7 +627,7 @@ func (x *GetInvoiceByIdRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetInvoiceByIdRequest.ProtoReflect.Descriptor instead.
 func (*GetInvoiceByIdRequest) Descriptor() ([]byte, []int) {
-	return file_invoice_proto_rawDescGZIP(), []int{3}
+	return file_invoice_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *GetInvoiceByIdRequest) GetInvoiceId() string {
@@ -325,7 +647,7 @@ type GetInvoiceByIdResponse struct {
 
 func (x *GetInvoiceByIdResponse) Reset() {
 	*x = GetInvoiceByIdResponse{}
-	mi := &file_invoice_proto_msgTypes[4]
+	mi := &file_invoice_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -337,7 +659,7 @@ func (x *GetInvoiceByIdResponse) String() string {
 func (*GetInvoiceByIdResponse) ProtoMessage() {}
 
 func (x *GetInvoiceByIdResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_invoice_proto_msgTypes[4]
+	mi := &file_invoice_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -350,7 +672,7 @@ func (x *GetInvoiceByIdResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetInvoiceByIdResponse.ProtoReflect.Descriptor instead.
 func (*GetInvoiceByIdResponse) Descriptor() ([]byte, []int) {
-	return file_invoice_proto_rawDescGZIP(), []int{4}
+	return file_invoice_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *GetInvoiceByIdResponse) GetInvoice() *Invoice {
@@ -362,20 +684,29 @@ func (x *GetInvoiceByIdResponse) GetInvoice() *Invoice {
 
 // CreateInvoiceRequest represents a request to create a new invoice
 type CreateInvoiceRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	RecipientId   string                 `protobuf:"bytes,1,opt,name=recipient_id,json=recipientId,proto3" json:"recipient_id,omitempty"`
-	Title         string                 `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
-	Description   string                 `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
-	Amount        float64                `protobuf:"fixed64,4,opt,name=amount,proto3" json:"amount,omitempty"`
-	Currency      string                 `protobuf:"bytes,5,opt,name=currency,proto3" json:"currency,omitempty"`
-	DueDate       string                 `protobuf:"bytes,6,opt,name=due_date,json=dueDate,proto3" json:"due_date,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	RecipientId      string                 `protobuf:"bytes,1,opt,name=recipient_id,json=recipientId,proto3" json:"recipient_id,omitempty"`
+	Title            string                 `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
+	Description      string                 `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
+	Amount           float64                `protobuf:"fixed64,4,opt,name=amount,proto3" json:"amount,omitempty"`
+	Currency         string                 `protobuf:"bytes,5,opt,name=currency,proto3" json:"currency,omitempty"`
+	DueDate          string                 `protobuf:"bytes,6,opt,name=due_date,json=dueDate,proto3" json:"due_date,omitempty"`
+	Items            []*InvoiceItem         `protobuf:"bytes,7,rep,name=items,proto3" json:"items,omitempty"`
+	Notes            string                 `protobuf:"bytes,8,opt,name=notes,proto3" json:"notes,omitempty"`
+	TaxAmount        float64                `protobuf:"fixed64,9,opt,name=tax_amount,json=taxAmount,proto3" json:"tax_amount,omitempty"`
+	DiscountAmount   float64                `protobuf:"fixed64,10,opt,name=discount_amount,json=discountAmount,proto3" json:"discount_amount,omitempty"`
+	TotalAmount      float64                `protobuf:"fixed64,11,opt,name=total_amount,json=totalAmount,proto3" json:"total_amount,omitempty"`
+	RecipientDetails *AddressDetails        `protobuf:"bytes,12,opt,name=recipient_details,json=recipientDetails,proto3" json:"recipient_details,omitempty"`
+	PayerDetails     *AddressDetails        `protobuf:"bytes,13,opt,name=payer_details,json=payerDetails,proto3" json:"payer_details,omitempty"`
+	ToEmail          string                 `protobuf:"bytes,14,opt,name=to_email,json=toEmail,proto3" json:"to_email,omitempty"`
+	ToName           string                 `protobuf:"bytes,15,opt,name=to_name,json=toName,proto3" json:"to_name,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *CreateInvoiceRequest) Reset() {
 	*x = CreateInvoiceRequest{}
-	mi := &file_invoice_proto_msgTypes[5]
+	mi := &file_invoice_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -387,7 +718,7 @@ func (x *CreateInvoiceRequest) String() string {
 func (*CreateInvoiceRequest) ProtoMessage() {}
 
 func (x *CreateInvoiceRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_invoice_proto_msgTypes[5]
+	mi := &file_invoice_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -400,7 +731,7 @@ func (x *CreateInvoiceRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateInvoiceRequest.ProtoReflect.Descriptor instead.
 func (*CreateInvoiceRequest) Descriptor() ([]byte, []int) {
-	return file_invoice_proto_rawDescGZIP(), []int{5}
+	return file_invoice_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *CreateInvoiceRequest) GetRecipientId() string {
@@ -445,6 +776,69 @@ func (x *CreateInvoiceRequest) GetDueDate() string {
 	return ""
 }
 
+func (x *CreateInvoiceRequest) GetItems() []*InvoiceItem {
+	if x != nil {
+		return x.Items
+	}
+	return nil
+}
+
+func (x *CreateInvoiceRequest) GetNotes() string {
+	if x != nil {
+		return x.Notes
+	}
+	return ""
+}
+
+func (x *CreateInvoiceRequest) GetTaxAmount() float64 {
+	if x != nil {
+		return x.TaxAmount
+	}
+	return 0
+}
+
+func (x *CreateInvoiceRequest) GetDiscountAmount() float64 {
+	if x != nil {
+		return x.DiscountAmount
+	}
+	return 0
+}
+
+func (x *CreateInvoiceRequest) GetTotalAmount() float64 {
+	if x != nil {
+		return x.TotalAmount
+	}
+	return 0
+}
+
+func (x *CreateInvoiceRequest) GetRecipientDetails() *AddressDetails {
+	if x != nil {
+		return x.RecipientDetails
+	}
+	return nil
+}
+
+func (x *CreateInvoiceRequest) GetPayerDetails() *AddressDetails {
+	if x != nil {
+		return x.PayerDetails
+	}
+	return nil
+}
+
+func (x *CreateInvoiceRequest) GetToEmail() string {
+	if x != nil {
+		return x.ToEmail
+	}
+	return ""
+}
+
+func (x *CreateInvoiceRequest) GetToName() string {
+	if x != nil {
+		return x.ToName
+	}
+	return ""
+}
+
 // CreateInvoiceResponse represents a response containing the created invoice
 type CreateInvoiceResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -455,7 +849,7 @@ type CreateInvoiceResponse struct {
 
 func (x *CreateInvoiceResponse) Reset() {
 	*x = CreateInvoiceResponse{}
-	mi := &file_invoice_proto_msgTypes[6]
+	mi := &file_invoice_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -467,7 +861,7 @@ func (x *CreateInvoiceResponse) String() string {
 func (*CreateInvoiceResponse) ProtoMessage() {}
 
 func (x *CreateInvoiceResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_invoice_proto_msgTypes[6]
+	mi := &file_invoice_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -480,7 +874,7 @@ func (x *CreateInvoiceResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateInvoiceResponse.ProtoReflect.Descriptor instead.
 func (*CreateInvoiceResponse) Descriptor() ([]byte, []int) {
-	return file_invoice_proto_rawDescGZIP(), []int{6}
+	return file_invoice_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *CreateInvoiceResponse) GetInvoice() *Invoice {
@@ -492,21 +886,30 @@ func (x *CreateInvoiceResponse) GetInvoice() *Invoice {
 
 // UpdateInvoiceRequest represents a request to update an existing invoice
 type UpdateInvoiceRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	InvoiceId     string                 `protobuf:"bytes,1,opt,name=invoice_id,json=invoiceId,proto3" json:"invoice_id,omitempty"`
-	RecipientId   string                 `protobuf:"bytes,2,opt,name=recipient_id,json=recipientId,proto3" json:"recipient_id,omitempty"`
-	Title         string                 `protobuf:"bytes,3,opt,name=title,proto3" json:"title,omitempty"`
-	Description   string                 `protobuf:"bytes,4,opt,name=description,proto3" json:"description,omitempty"`
-	Amount        float64                `protobuf:"fixed64,5,opt,name=amount,proto3" json:"amount,omitempty"`
-	Currency      string                 `protobuf:"bytes,6,opt,name=currency,proto3" json:"currency,omitempty"`
-	DueDate       string                 `protobuf:"bytes,7,opt,name=due_date,json=dueDate,proto3" json:"due_date,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	InvoiceId        string                 `protobuf:"bytes,1,opt,name=invoice_id,json=invoiceId,proto3" json:"invoice_id,omitempty"`
+	RecipientId      string                 `protobuf:"bytes,2,opt,name=recipient_id,json=recipientId,proto3" json:"recipient_id,omitempty"`
+	Title            string                 `protobuf:"bytes,3,opt,name=title,proto3" json:"title,omitempty"`
+	Description      string                 `protobuf:"bytes,4,opt,name=description,proto3" json:"description,omitempty"`
+	Amount           float64                `protobuf:"fixed64,5,opt,name=amount,proto3" json:"amount,omitempty"`
+	Currency         string                 `protobuf:"bytes,6,opt,name=currency,proto3" json:"currency,omitempty"`
+	DueDate          string                 `protobuf:"bytes,7,opt,name=due_date,json=dueDate,proto3" json:"due_date,omitempty"`
+	Items            []*InvoiceItem         `protobuf:"bytes,8,rep,name=items,proto3" json:"items,omitempty"`
+	Notes            string                 `protobuf:"bytes,9,opt,name=notes,proto3" json:"notes,omitempty"`
+	TaxAmount        float64                `protobuf:"fixed64,10,opt,name=tax_amount,json=taxAmount,proto3" json:"tax_amount,omitempty"`
+	DiscountAmount   float64                `protobuf:"fixed64,11,opt,name=discount_amount,json=discountAmount,proto3" json:"discount_amount,omitempty"`
+	TotalAmount      float64                `protobuf:"fixed64,12,opt,name=total_amount,json=totalAmount,proto3" json:"total_amount,omitempty"`
+	RecipientDetails *AddressDetails        `protobuf:"bytes,13,opt,name=recipient_details,json=recipientDetails,proto3" json:"recipient_details,omitempty"`
+	PayerDetails     *AddressDetails        `protobuf:"bytes,14,opt,name=payer_details,json=payerDetails,proto3" json:"payer_details,omitempty"`
+	ToEmail          string                 `protobuf:"bytes,15,opt,name=to_email,json=toEmail,proto3" json:"to_email,omitempty"`
+	ToName           string                 `protobuf:"bytes,16,opt,name=to_name,json=toName,proto3" json:"to_name,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *UpdateInvoiceRequest) Reset() {
 	*x = UpdateInvoiceRequest{}
-	mi := &file_invoice_proto_msgTypes[7]
+	mi := &file_invoice_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -518,7 +921,7 @@ func (x *UpdateInvoiceRequest) String() string {
 func (*UpdateInvoiceRequest) ProtoMessage() {}
 
 func (x *UpdateInvoiceRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_invoice_proto_msgTypes[7]
+	mi := &file_invoice_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -531,7 +934,7 @@ func (x *UpdateInvoiceRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateInvoiceRequest.ProtoReflect.Descriptor instead.
 func (*UpdateInvoiceRequest) Descriptor() ([]byte, []int) {
-	return file_invoice_proto_rawDescGZIP(), []int{7}
+	return file_invoice_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *UpdateInvoiceRequest) GetInvoiceId() string {
@@ -583,6 +986,69 @@ func (x *UpdateInvoiceRequest) GetDueDate() string {
 	return ""
 }
 
+func (x *UpdateInvoiceRequest) GetItems() []*InvoiceItem {
+	if x != nil {
+		return x.Items
+	}
+	return nil
+}
+
+func (x *UpdateInvoiceRequest) GetNotes() string {
+	if x != nil {
+		return x.Notes
+	}
+	return ""
+}
+
+func (x *UpdateInvoiceRequest) GetTaxAmount() float64 {
+	if x != nil {
+		return x.TaxAmount
+	}
+	return 0
+}
+
+func (x *UpdateInvoiceRequest) GetDiscountAmount() float64 {
+	if x != nil {
+		return x.DiscountAmount
+	}
+	return 0
+}
+
+func (x *UpdateInvoiceRequest) GetTotalAmount() float64 {
+	if x != nil {
+		return x.TotalAmount
+	}
+	return 0
+}
+
+func (x *UpdateInvoiceRequest) GetRecipientDetails() *AddressDetails {
+	if x != nil {
+		return x.RecipientDetails
+	}
+	return nil
+}
+
+func (x *UpdateInvoiceRequest) GetPayerDetails() *AddressDetails {
+	if x != nil {
+		return x.PayerDetails
+	}
+	return nil
+}
+
+func (x *UpdateInvoiceRequest) GetToEmail() string {
+	if x != nil {
+		return x.ToEmail
+	}
+	return ""
+}
+
+func (x *UpdateInvoiceRequest) GetToName() string {
+	if x != nil {
+		return x.ToName
+	}
+	return ""
+}
+
 // UpdateInvoiceResponse represents a response containing the updated invoice
 type UpdateInvoiceResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -593,7 +1059,7 @@ type UpdateInvoiceResponse struct {
 
 func (x *UpdateInvoiceResponse) Reset() {
 	*x = UpdateInvoiceResponse{}
-	mi := &file_invoice_proto_msgTypes[8]
+	mi := &file_invoice_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -605,7 +1071,7 @@ func (x *UpdateInvoiceResponse) String() string {
 func (*UpdateInvoiceResponse) ProtoMessage() {}
 
 func (x *UpdateInvoiceResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_invoice_proto_msgTypes[8]
+	mi := &file_invoice_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -618,7 +1084,7 @@ func (x *UpdateInvoiceResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateInvoiceResponse.ProtoReflect.Descriptor instead.
 func (*UpdateInvoiceResponse) Descriptor() ([]byte, []int) {
-	return file_invoice_proto_rawDescGZIP(), []int{8}
+	return file_invoice_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *UpdateInvoiceResponse) GetInvoice() *Invoice {
@@ -638,7 +1104,7 @@ type DeleteInvoiceRequest struct {
 
 func (x *DeleteInvoiceRequest) Reset() {
 	*x = DeleteInvoiceRequest{}
-	mi := &file_invoice_proto_msgTypes[9]
+	mi := &file_invoice_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -650,7 +1116,7 @@ func (x *DeleteInvoiceRequest) String() string {
 func (*DeleteInvoiceRequest) ProtoMessage() {}
 
 func (x *DeleteInvoiceRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_invoice_proto_msgTypes[9]
+	mi := &file_invoice_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -663,7 +1129,7 @@ func (x *DeleteInvoiceRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteInvoiceRequest.ProtoReflect.Descriptor instead.
 func (*DeleteInvoiceRequest) Descriptor() ([]byte, []int) {
-	return file_invoice_proto_rawDescGZIP(), []int{9}
+	return file_invoice_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *DeleteInvoiceRequest) GetInvoiceId() string {
@@ -683,7 +1149,7 @@ type DeleteInvoiceResponse struct {
 
 func (x *DeleteInvoiceResponse) Reset() {
 	*x = DeleteInvoiceResponse{}
-	mi := &file_invoice_proto_msgTypes[10]
+	mi := &file_invoice_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -695,7 +1161,7 @@ func (x *DeleteInvoiceResponse) String() string {
 func (*DeleteInvoiceResponse) ProtoMessage() {}
 
 func (x *DeleteInvoiceResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_invoice_proto_msgTypes[10]
+	mi := &file_invoice_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -708,7 +1174,7 @@ func (x *DeleteInvoiceResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteInvoiceResponse.ProtoReflect.Descriptor instead.
 func (*DeleteInvoiceResponse) Descriptor() ([]byte, []int) {
-	return file_invoice_proto_rawDescGZIP(), []int{10}
+	return file_invoice_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *DeleteInvoiceResponse) GetSuccess() bool {
@@ -730,7 +1196,7 @@ type GetInvoicesByStatusRequest struct {
 
 func (x *GetInvoicesByStatusRequest) Reset() {
 	*x = GetInvoicesByStatusRequest{}
-	mi := &file_invoice_proto_msgTypes[11]
+	mi := &file_invoice_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -742,7 +1208,7 @@ func (x *GetInvoicesByStatusRequest) String() string {
 func (*GetInvoicesByStatusRequest) ProtoMessage() {}
 
 func (x *GetInvoicesByStatusRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_invoice_proto_msgTypes[11]
+	mi := &file_invoice_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -755,7 +1221,7 @@ func (x *GetInvoicesByStatusRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetInvoicesByStatusRequest.ProtoReflect.Descriptor instead.
 func (*GetInvoicesByStatusRequest) Descriptor() ([]byte, []int) {
-	return file_invoice_proto_rawDescGZIP(), []int{11}
+	return file_invoice_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *GetInvoicesByStatusRequest) GetIsPaid() bool {
@@ -790,7 +1256,7 @@ type GetInvoicesByStatusResponse struct {
 
 func (x *GetInvoicesByStatusResponse) Reset() {
 	*x = GetInvoicesByStatusResponse{}
-	mi := &file_invoice_proto_msgTypes[12]
+	mi := &file_invoice_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -802,7 +1268,7 @@ func (x *GetInvoicesByStatusResponse) String() string {
 func (*GetInvoicesByStatusResponse) ProtoMessage() {}
 
 func (x *GetInvoicesByStatusResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_invoice_proto_msgTypes[12]
+	mi := &file_invoice_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -815,7 +1281,7 @@ func (x *GetInvoicesByStatusResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetInvoicesByStatusResponse.ProtoReflect.Descriptor instead.
 func (*GetInvoicesByStatusResponse) Descriptor() ([]byte, []int) {
-	return file_invoice_proto_rawDescGZIP(), []int{12}
+	return file_invoice_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *GetInvoicesByStatusResponse) GetInvoices() []*Invoice {
@@ -844,7 +1310,7 @@ type MarkInvoiceAsPaidRequest struct {
 
 func (x *MarkInvoiceAsPaidRequest) Reset() {
 	*x = MarkInvoiceAsPaidRequest{}
-	mi := &file_invoice_proto_msgTypes[13]
+	mi := &file_invoice_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -856,7 +1322,7 @@ func (x *MarkInvoiceAsPaidRequest) String() string {
 func (*MarkInvoiceAsPaidRequest) ProtoMessage() {}
 
 func (x *MarkInvoiceAsPaidRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_invoice_proto_msgTypes[13]
+	mi := &file_invoice_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -869,7 +1335,7 @@ func (x *MarkInvoiceAsPaidRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MarkInvoiceAsPaidRequest.ProtoReflect.Descriptor instead.
 func (*MarkInvoiceAsPaidRequest) Descriptor() ([]byte, []int) {
-	return file_invoice_proto_rawDescGZIP(), []int{13}
+	return file_invoice_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *MarkInvoiceAsPaidRequest) GetInvoiceId() string {
@@ -903,7 +1369,7 @@ type MarkInvoiceAsPaidResponse struct {
 
 func (x *MarkInvoiceAsPaidResponse) Reset() {
 	*x = MarkInvoiceAsPaidResponse{}
-	mi := &file_invoice_proto_msgTypes[14]
+	mi := &file_invoice_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -915,7 +1381,7 @@ func (x *MarkInvoiceAsPaidResponse) String() string {
 func (*MarkInvoiceAsPaidResponse) ProtoMessage() {}
 
 func (x *MarkInvoiceAsPaidResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_invoice_proto_msgTypes[14]
+	mi := &file_invoice_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -928,7 +1394,7 @@ func (x *MarkInvoiceAsPaidResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MarkInvoiceAsPaidResponse.ProtoReflect.Descriptor instead.
 func (*MarkInvoiceAsPaidResponse) Descriptor() ([]byte, []int) {
-	return file_invoice_proto_rawDescGZIP(), []int{14}
+	return file_invoice_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *MarkInvoiceAsPaidResponse) GetInvoice() *Invoice {
@@ -948,7 +1414,7 @@ type SendInvoiceRequest struct {
 
 func (x *SendInvoiceRequest) Reset() {
 	*x = SendInvoiceRequest{}
-	mi := &file_invoice_proto_msgTypes[15]
+	mi := &file_invoice_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -960,7 +1426,7 @@ func (x *SendInvoiceRequest) String() string {
 func (*SendInvoiceRequest) ProtoMessage() {}
 
 func (x *SendInvoiceRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_invoice_proto_msgTypes[15]
+	mi := &file_invoice_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -973,7 +1439,7 @@ func (x *SendInvoiceRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SendInvoiceRequest.ProtoReflect.Descriptor instead.
 func (*SendInvoiceRequest) Descriptor() ([]byte, []int) {
-	return file_invoice_proto_rawDescGZIP(), []int{15}
+	return file_invoice_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *SendInvoiceRequest) GetInvoiceId() string {
@@ -993,7 +1459,7 @@ type SendInvoiceResponse struct {
 
 func (x *SendInvoiceResponse) Reset() {
 	*x = SendInvoiceResponse{}
-	mi := &file_invoice_proto_msgTypes[16]
+	mi := &file_invoice_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1005,7 +1471,7 @@ func (x *SendInvoiceResponse) String() string {
 func (*SendInvoiceResponse) ProtoMessage() {}
 
 func (x *SendInvoiceResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_invoice_proto_msgTypes[16]
+	mi := &file_invoice_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1018,7 +1484,7 @@ func (x *SendInvoiceResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SendInvoiceResponse.ProtoReflect.Descriptor instead.
 func (*SendInvoiceResponse) Descriptor() ([]byte, []int) {
-	return file_invoice_proto_rawDescGZIP(), []int{16}
+	return file_invoice_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *SendInvoiceResponse) GetSuccess() bool {
@@ -1028,11 +1494,368 @@ func (x *SendInvoiceResponse) GetSuccess() bool {
 	return false
 }
 
+// TagUsersToInvoiceRequest represents a request to tag multiple users to an invoice
+type TagUsersToInvoiceRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	InvoiceId     string                 `protobuf:"bytes,1,opt,name=invoice_id,json=invoiceId,proto3" json:"invoice_id,omitempty"`
+	UserIds       []string               `protobuf:"bytes,2,rep,name=user_ids,json=userIds,proto3" json:"user_ids,omitempty"`
+	Emails        []string               `protobuf:"bytes,3,rep,name=emails,proto3" json:"emails,omitempty"`                                 // For non-platform users
+	PhoneNumbers  []string               `protobuf:"bytes,4,rep,name=phone_numbers,json=phoneNumbers,proto3" json:"phone_numbers,omitempty"` // For non-platform users
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TagUsersToInvoiceRequest) Reset() {
+	*x = TagUsersToInvoiceRequest{}
+	mi := &file_invoice_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TagUsersToInvoiceRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TagUsersToInvoiceRequest) ProtoMessage() {}
+
+func (x *TagUsersToInvoiceRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_invoice_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TagUsersToInvoiceRequest.ProtoReflect.Descriptor instead.
+func (*TagUsersToInvoiceRequest) Descriptor() ([]byte, []int) {
+	return file_invoice_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *TagUsersToInvoiceRequest) GetInvoiceId() string {
+	if x != nil {
+		return x.InvoiceId
+	}
+	return ""
+}
+
+func (x *TagUsersToInvoiceRequest) GetUserIds() []string {
+	if x != nil {
+		return x.UserIds
+	}
+	return nil
+}
+
+func (x *TagUsersToInvoiceRequest) GetEmails() []string {
+	if x != nil {
+		return x.Emails
+	}
+	return nil
+}
+
+func (x *TagUsersToInvoiceRequest) GetPhoneNumbers() []string {
+	if x != nil {
+		return x.PhoneNumbers
+	}
+	return nil
+}
+
+// TagUsersToInvoiceResponse represents a response after tagging users
+type TagUsersToInvoiceResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
+	TaggedUserIds []string               `protobuf:"bytes,2,rep,name=tagged_user_ids,json=taggedUserIds,proto3" json:"tagged_user_ids,omitempty"`
+	InvitedEmails []string               `protobuf:"bytes,3,rep,name=invited_emails,json=invitedEmails,proto3" json:"invited_emails,omitempty"`
+	InvitedPhones []string               `protobuf:"bytes,4,rep,name=invited_phones,json=invitedPhones,proto3" json:"invited_phones,omitempty"`
+	Message       string                 `protobuf:"bytes,5,opt,name=message,proto3" json:"message,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TagUsersToInvoiceResponse) Reset() {
+	*x = TagUsersToInvoiceResponse{}
+	mi := &file_invoice_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TagUsersToInvoiceResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TagUsersToInvoiceResponse) ProtoMessage() {}
+
+func (x *TagUsersToInvoiceResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_invoice_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TagUsersToInvoiceResponse.ProtoReflect.Descriptor instead.
+func (*TagUsersToInvoiceResponse) Descriptor() ([]byte, []int) {
+	return file_invoice_proto_rawDescGZIP(), []int{20}
+}
+
+func (x *TagUsersToInvoiceResponse) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
+func (x *TagUsersToInvoiceResponse) GetTaggedUserIds() []string {
+	if x != nil {
+		return x.TaggedUserIds
+	}
+	return nil
+}
+
+func (x *TagUsersToInvoiceResponse) GetInvitedEmails() []string {
+	if x != nil {
+		return x.InvitedEmails
+	}
+	return nil
+}
+
+func (x *TagUsersToInvoiceResponse) GetInvitedPhones() []string {
+	if x != nil {
+		return x.InvitedPhones
+	}
+	return nil
+}
+
+func (x *TagUsersToInvoiceResponse) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+// SearchInvoiceUsersRequest represents a request to search for users for invoice tagging
+type SearchInvoiceUsersRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Query         string                 `protobuf:"bytes,1,opt,name=query,proto3" json:"query,omitempty"`
+	Limit         int32                  `protobuf:"varint,2,opt,name=limit,proto3" json:"limit,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SearchInvoiceUsersRequest) Reset() {
+	*x = SearchInvoiceUsersRequest{}
+	mi := &file_invoice_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SearchInvoiceUsersRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SearchInvoiceUsersRequest) ProtoMessage() {}
+
+func (x *SearchInvoiceUsersRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_invoice_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SearchInvoiceUsersRequest.ProtoReflect.Descriptor instead.
+func (*SearchInvoiceUsersRequest) Descriptor() ([]byte, []int) {
+	return file_invoice_proto_rawDescGZIP(), []int{21}
+}
+
+func (x *SearchInvoiceUsersRequest) GetQuery() string {
+	if x != nil {
+		return x.Query
+	}
+	return ""
+}
+
+func (x *SearchInvoiceUsersRequest) GetLimit() int32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+// InvoiceUserResult represents a user in search results
+type InvoiceUserResult struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Email         string                 `protobuf:"bytes,3,opt,name=email,proto3" json:"email,omitempty"`
+	Username      string                 `protobuf:"bytes,4,opt,name=username,proto3" json:"username,omitempty"`
+	Phone         string                 `protobuf:"bytes,5,opt,name=phone,proto3" json:"phone,omitempty"`
+	IsOnline      bool                   `protobuf:"varint,6,opt,name=is_online,json=isOnline,proto3" json:"is_online,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *InvoiceUserResult) Reset() {
+	*x = InvoiceUserResult{}
+	mi := &file_invoice_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *InvoiceUserResult) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*InvoiceUserResult) ProtoMessage() {}
+
+func (x *InvoiceUserResult) ProtoReflect() protoreflect.Message {
+	mi := &file_invoice_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use InvoiceUserResult.ProtoReflect.Descriptor instead.
+func (*InvoiceUserResult) Descriptor() ([]byte, []int) {
+	return file_invoice_proto_rawDescGZIP(), []int{22}
+}
+
+func (x *InvoiceUserResult) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *InvoiceUserResult) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *InvoiceUserResult) GetEmail() string {
+	if x != nil {
+		return x.Email
+	}
+	return ""
+}
+
+func (x *InvoiceUserResult) GetUsername() string {
+	if x != nil {
+		return x.Username
+	}
+	return ""
+}
+
+func (x *InvoiceUserResult) GetPhone() string {
+	if x != nil {
+		return x.Phone
+	}
+	return ""
+}
+
+func (x *InvoiceUserResult) GetIsOnline() bool {
+	if x != nil {
+		return x.IsOnline
+	}
+	return false
+}
+
+// SearchInvoiceUsersResponse represents a response containing search results
+type SearchInvoiceUsersResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Users         []*InvoiceUserResult   `protobuf:"bytes,1,rep,name=users,proto3" json:"users,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SearchInvoiceUsersResponse) Reset() {
+	*x = SearchInvoiceUsersResponse{}
+	mi := &file_invoice_proto_msgTypes[23]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SearchInvoiceUsersResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SearchInvoiceUsersResponse) ProtoMessage() {}
+
+func (x *SearchInvoiceUsersResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_invoice_proto_msgTypes[23]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SearchInvoiceUsersResponse.ProtoReflect.Descriptor instead.
+func (*SearchInvoiceUsersResponse) Descriptor() ([]byte, []int) {
+	return file_invoice_proto_rawDescGZIP(), []int{23}
+}
+
+func (x *SearchInvoiceUsersResponse) GetUsers() []*InvoiceUserResult {
+	if x != nil {
+		return x.Users
+	}
+	return nil
+}
+
 var File_invoice_proto protoreflect.FileDescriptor
 
 const file_invoice_proto_rawDesc = "" +
 	"\n" +
-	"\rinvoice.proto\x12\x02pb\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x15invoice_payment.proto\"\xc4\x03\n" +
+	"\rinvoice.proto\x12\x02pb\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x15invoice_payment.proto\"\xc0\x03\n" +
+	"\x0eAddressDetails\x12!\n" +
+	"\fcompany_name\x18\x01 \x01(\tR\vcompanyName\x12!\n" +
+	"\fcontact_name\x18\x02 \x01(\tR\vcontactName\x12\x14\n" +
+	"\x05email\x18\x03 \x01(\tR\x05email\x12\x14\n" +
+	"\x05phone\x18\x04 \x01(\tR\x05phone\x12#\n" +
+	"\raddress_line1\x18\x05 \x01(\tR\faddressLine1\x12#\n" +
+	"\raddress_line2\x18\x06 \x01(\tR\faddressLine2\x12\x12\n" +
+	"\x04city\x18\a \x01(\tR\x04city\x12\x14\n" +
+	"\x05state\x18\b \x01(\tR\x05state\x12\x1a\n" +
+	"\bpostcode\x18\t \x01(\tR\bpostcode\x12\x18\n" +
+	"\acountry\x18\n" +
+	" \x01(\tR\acountry\x12!\n" +
+	"\fbank_account\x18\v \x01(\tR\vbankAccount\x12\x1d\n" +
+	"\n" +
+	"bic_number\x18\f \x01(\tR\tbicNumber\x12\x12\n" +
+	"\x04iban\x18\r \x01(\tR\x04iban\x12%\n" +
+	"\x0erouting_number\x18\x0e \x01(\tR\rroutingNumber\x12\x15\n" +
+	"\x06tax_id\x18\x0f \x01(\tR\x05taxId\"\xcb\x01\n" +
+	"\vInvoiceItem\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12 \n" +
+	"\vdescription\x18\x03 \x01(\tR\vdescription\x12\x1a\n" +
+	"\bquantity\x18\x04 \x01(\x01R\bquantity\x12\x1d\n" +
+	"\n" +
+	"unit_price\x18\x05 \x01(\x01R\tunitPrice\x12\x1f\n" +
+	"\vtotal_price\x18\x06 \x01(\x01R\n" +
+	"totalPrice\x12\x1a\n" +
+	"\bcategory\x18\a \x01(\tR\bcategory\"\x9a\x06\n" +
 	"\aInvoice\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
 	"\auser_id\x18\x02 \x01(\tR\x06userId\x12!\n" +
@@ -1049,7 +1872,17 @@ const file_invoice_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\f \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
 	"\n" +
-	"updated_at\x18\r \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\">\n" +
+	"updated_at\x18\r \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x12%\n" +
+	"\x05items\x18\x0e \x03(\v2\x0f.pb.InvoiceItemR\x05items\x12\x14\n" +
+	"\x05notes\x18\x0f \x01(\tR\x05notes\x12\x1d\n" +
+	"\n" +
+	"tax_amount\x18\x10 \x01(\x01R\ttaxAmount\x12'\n" +
+	"\x0fdiscount_amount\x18\x11 \x01(\x01R\x0ediscountAmount\x12!\n" +
+	"\ftotal_amount\x18\x12 \x01(\x01R\vtotalAmount\x12?\n" +
+	"\x11recipient_details\x18\x13 \x01(\v2\x12.pb.AddressDetailsR\x10recipientDetails\x127\n" +
+	"\rpayer_details\x18\x14 \x01(\v2\x12.pb.AddressDetailsR\fpayerDetails\x12\x19\n" +
+	"\bto_email\x18\x15 \x01(\tR\atoEmail\x12\x17\n" +
+	"\ato_name\x18\x16 \x01(\tR\x06toName\">\n" +
 	"\x12GetInvoicesRequest\x12\x12\n" +
 	"\x04page\x18\x01 \x01(\x05R\x04page\x12\x14\n" +
 	"\x05limit\x18\x02 \x01(\x05R\x05limit\"T\n" +
@@ -1060,16 +1893,27 @@ const file_invoice_proto_rawDesc = "" +
 	"\n" +
 	"invoice_id\x18\x01 \x01(\tR\tinvoiceId\"?\n" +
 	"\x16GetInvoiceByIdResponse\x12%\n" +
-	"\ainvoice\x18\x01 \x01(\v2\v.pb.InvoiceR\ainvoice\"\xc0\x01\n" +
+	"\ainvoice\x18\x01 \x01(\v2\v.pb.InvoiceR\ainvoice\"\x96\x04\n" +
 	"\x14CreateInvoiceRequest\x12!\n" +
 	"\frecipient_id\x18\x01 \x01(\tR\vrecipientId\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12 \n" +
 	"\vdescription\x18\x03 \x01(\tR\vdescription\x12\x16\n" +
 	"\x06amount\x18\x04 \x01(\x01R\x06amount\x12\x1a\n" +
 	"\bcurrency\x18\x05 \x01(\tR\bcurrency\x12\x19\n" +
-	"\bdue_date\x18\x06 \x01(\tR\adueDate\">\n" +
+	"\bdue_date\x18\x06 \x01(\tR\adueDate\x12%\n" +
+	"\x05items\x18\a \x03(\v2\x0f.pb.InvoiceItemR\x05items\x12\x14\n" +
+	"\x05notes\x18\b \x01(\tR\x05notes\x12\x1d\n" +
+	"\n" +
+	"tax_amount\x18\t \x01(\x01R\ttaxAmount\x12'\n" +
+	"\x0fdiscount_amount\x18\n" +
+	" \x01(\x01R\x0ediscountAmount\x12!\n" +
+	"\ftotal_amount\x18\v \x01(\x01R\vtotalAmount\x12?\n" +
+	"\x11recipient_details\x18\f \x01(\v2\x12.pb.AddressDetailsR\x10recipientDetails\x127\n" +
+	"\rpayer_details\x18\r \x01(\v2\x12.pb.AddressDetailsR\fpayerDetails\x12\x19\n" +
+	"\bto_email\x18\x0e \x01(\tR\atoEmail\x12\x17\n" +
+	"\ato_name\x18\x0f \x01(\tR\x06toName\">\n" +
 	"\x15CreateInvoiceResponse\x12%\n" +
-	"\ainvoice\x18\x01 \x01(\v2\v.pb.InvoiceR\ainvoice\"\xdf\x01\n" +
+	"\ainvoice\x18\x01 \x01(\v2\v.pb.InvoiceR\ainvoice\"\xb5\x04\n" +
 	"\x14UpdateInvoiceRequest\x12\x1d\n" +
 	"\n" +
 	"invoice_id\x18\x01 \x01(\tR\tinvoiceId\x12!\n" +
@@ -1078,7 +1922,18 @@ const file_invoice_proto_rawDesc = "" +
 	"\vdescription\x18\x04 \x01(\tR\vdescription\x12\x16\n" +
 	"\x06amount\x18\x05 \x01(\x01R\x06amount\x12\x1a\n" +
 	"\bcurrency\x18\x06 \x01(\tR\bcurrency\x12\x19\n" +
-	"\bdue_date\x18\a \x01(\tR\adueDate\">\n" +
+	"\bdue_date\x18\a \x01(\tR\adueDate\x12%\n" +
+	"\x05items\x18\b \x03(\v2\x0f.pb.InvoiceItemR\x05items\x12\x14\n" +
+	"\x05notes\x18\t \x01(\tR\x05notes\x12\x1d\n" +
+	"\n" +
+	"tax_amount\x18\n" +
+	" \x01(\x01R\ttaxAmount\x12'\n" +
+	"\x0fdiscount_amount\x18\v \x01(\x01R\x0ediscountAmount\x12!\n" +
+	"\ftotal_amount\x18\f \x01(\x01R\vtotalAmount\x12?\n" +
+	"\x11recipient_details\x18\r \x01(\v2\x12.pb.AddressDetailsR\x10recipientDetails\x127\n" +
+	"\rpayer_details\x18\x0e \x01(\v2\x12.pb.AddressDetailsR\fpayerDetails\x12\x19\n" +
+	"\bto_email\x18\x0f \x01(\tR\atoEmail\x12\x17\n" +
+	"\ato_name\x18\x10 \x01(\tR\x06toName\">\n" +
 	"\x15UpdateInvoiceResponse\x12%\n" +
 	"\ainvoice\x18\x01 \x01(\v2\v.pb.InvoiceR\ainvoice\"5\n" +
 	"\x14DeleteInvoiceRequest\x12\x1d\n" +
@@ -1104,7 +1959,31 @@ const file_invoice_proto_rawDesc = "" +
 	"\n" +
 	"invoice_id\x18\x01 \x01(\tR\tinvoiceId\"/\n" +
 	"\x13SendInvoiceResponse\x12\x18\n" +
-	"\asuccess\x18\x01 \x01(\bR\asuccess2\xe6\x06\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\"\x91\x01\n" +
+	"\x18TagUsersToInvoiceRequest\x12\x1d\n" +
+	"\n" +
+	"invoice_id\x18\x01 \x01(\tR\tinvoiceId\x12\x19\n" +
+	"\buser_ids\x18\x02 \x03(\tR\auserIds\x12\x16\n" +
+	"\x06emails\x18\x03 \x03(\tR\x06emails\x12#\n" +
+	"\rphone_numbers\x18\x04 \x03(\tR\fphoneNumbers\"\xc5\x01\n" +
+	"\x19TagUsersToInvoiceResponse\x12\x18\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\x12&\n" +
+	"\x0ftagged_user_ids\x18\x02 \x03(\tR\rtaggedUserIds\x12%\n" +
+	"\x0einvited_emails\x18\x03 \x03(\tR\rinvitedEmails\x12%\n" +
+	"\x0einvited_phones\x18\x04 \x03(\tR\rinvitedPhones\x12\x18\n" +
+	"\amessage\x18\x05 \x01(\tR\amessage\"G\n" +
+	"\x19SearchInvoiceUsersRequest\x12\x14\n" +
+	"\x05query\x18\x01 \x01(\tR\x05query\x12\x14\n" +
+	"\x05limit\x18\x02 \x01(\x05R\x05limit\"\x9c\x01\n" +
+	"\x11InvoiceUserResult\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12\x14\n" +
+	"\x05email\x18\x03 \x01(\tR\x05email\x12\x1a\n" +
+	"\busername\x18\x04 \x01(\tR\busername\x12\x14\n" +
+	"\x05phone\x18\x05 \x01(\tR\x05phone\x12\x1b\n" +
+	"\tis_online\x18\x06 \x01(\bR\bisOnline\"I\n" +
+	"\x1aSearchInvoiceUsersResponse\x12+\n" +
+	"\x05users\x18\x01 \x03(\v2\x15.pb.InvoiceUserResultR\x05users2\xe1\b\n" +
 	"\x0eInvoiceService\x12T\n" +
 	"\vGetInvoices\x12\x16.pb.GetInvoicesRequest\x1a\x17.pb.GetInvoicesResponse\"\x14\x82\xd3\xe4\x93\x02\x0e\x12\f/v1/invoices\x12j\n" +
 	"\x0eGetInvoiceById\x12\x19.pb.GetInvoiceByIdRequest\x1a\x1a.pb.GetInvoiceByIdResponse\"!\x82\xd3\xe4\x93\x02\x1b\x12\x19/v1/invoices/{invoice_id}\x12]\n" +
@@ -1113,7 +1992,9 @@ const file_invoice_proto_rawDesc = "" +
 	"\rDeleteInvoice\x12\x18.pb.DeleteInvoiceRequest\x1a\x19.pb.DeleteInvoiceResponse\"!\x82\xd3\xe4\x93\x02\x1b*\x19/v1/invoices/{invoice_id}\x12s\n" +
 	"\x13GetInvoicesByStatus\x12\x1e.pb.GetInvoicesByStatusRequest\x1a\x1f.pb.GetInvoicesByStatusResponse\"\x1b\x82\xd3\xe4\x93\x02\x15\x12\x13/v1/invoices/status\x12\x80\x01\n" +
 	"\x11MarkInvoiceAsPaid\x12\x1c.pb.MarkInvoiceAsPaidRequest\x1a\x1d.pb.MarkInvoiceAsPaidResponse\".\x82\xd3\xe4\x93\x02(:\x01*\"#/v1/invoices/{invoice_id}/mark-paid\x12f\n" +
-	"\vSendInvoice\x12\x16.pb.SendInvoiceRequest\x1a\x17.pb.SendInvoiceResponse\"&\x82\xd3\xe4\x93\x02 \"\x1e/v1/invoices/{invoice_id}/sendB\x11Z\x0flazervaultGo/pbb\x06proto3"
+	"\vSendInvoice\x12\x16.pb.SendInvoiceRequest\x1a\x17.pb.SendInvoiceResponse\"&\x82\xd3\xe4\x93\x02 \"\x1e/v1/invoices/{invoice_id}/send\x12\x80\x01\n" +
+	"\x11TagUsersToInvoice\x12\x1c.pb.TagUsersToInvoiceRequest\x1a\x1d.pb.TagUsersToInvoiceResponse\".\x82\xd3\xe4\x93\x02(:\x01*\"#/v1/invoices/{invoice_id}/tag-users\x12v\n" +
+	"\x12SearchInvoiceUsers\x12\x1d.pb.SearchInvoiceUsersRequest\x1a\x1e.pb.SearchInvoiceUsersResponse\"!\x82\xd3\xe4\x93\x02\x1b\x12\x19/v1/invoices/search-usersB\x11Z\x0flazervaultGo/pbb\x06proto3"
 
 var (
 	file_invoice_proto_rawDescOnce sync.Once
@@ -1127,59 +2008,80 @@ func file_invoice_proto_rawDescGZIP() []byte {
 	return file_invoice_proto_rawDescData
 }
 
-var file_invoice_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
+var file_invoice_proto_msgTypes = make([]protoimpl.MessageInfo, 24)
 var file_invoice_proto_goTypes = []any{
-	(*Invoice)(nil),                     // 0: pb.Invoice
-	(*GetInvoicesRequest)(nil),          // 1: pb.GetInvoicesRequest
-	(*GetInvoicesResponse)(nil),         // 2: pb.GetInvoicesResponse
-	(*GetInvoiceByIdRequest)(nil),       // 3: pb.GetInvoiceByIdRequest
-	(*GetInvoiceByIdResponse)(nil),      // 4: pb.GetInvoiceByIdResponse
-	(*CreateInvoiceRequest)(nil),        // 5: pb.CreateInvoiceRequest
-	(*CreateInvoiceResponse)(nil),       // 6: pb.CreateInvoiceResponse
-	(*UpdateInvoiceRequest)(nil),        // 7: pb.UpdateInvoiceRequest
-	(*UpdateInvoiceResponse)(nil),       // 8: pb.UpdateInvoiceResponse
-	(*DeleteInvoiceRequest)(nil),        // 9: pb.DeleteInvoiceRequest
-	(*DeleteInvoiceResponse)(nil),       // 10: pb.DeleteInvoiceResponse
-	(*GetInvoicesByStatusRequest)(nil),  // 11: pb.GetInvoicesByStatusRequest
-	(*GetInvoicesByStatusResponse)(nil), // 12: pb.GetInvoicesByStatusResponse
-	(*MarkInvoiceAsPaidRequest)(nil),    // 13: pb.MarkInvoiceAsPaidRequest
-	(*MarkInvoiceAsPaidResponse)(nil),   // 14: pb.MarkInvoiceAsPaidResponse
-	(*SendInvoiceRequest)(nil),          // 15: pb.SendInvoiceRequest
-	(*SendInvoiceResponse)(nil),         // 16: pb.SendInvoiceResponse
-	(*timestamppb.Timestamp)(nil),       // 17: google.protobuf.Timestamp
-	(*PaymentMethod)(nil),               // 18: pb.PaymentMethod
+	(*AddressDetails)(nil),              // 0: pb.AddressDetails
+	(*InvoiceItem)(nil),                 // 1: pb.InvoiceItem
+	(*Invoice)(nil),                     // 2: pb.Invoice
+	(*GetInvoicesRequest)(nil),          // 3: pb.GetInvoicesRequest
+	(*GetInvoicesResponse)(nil),         // 4: pb.GetInvoicesResponse
+	(*GetInvoiceByIdRequest)(nil),       // 5: pb.GetInvoiceByIdRequest
+	(*GetInvoiceByIdResponse)(nil),      // 6: pb.GetInvoiceByIdResponse
+	(*CreateInvoiceRequest)(nil),        // 7: pb.CreateInvoiceRequest
+	(*CreateInvoiceResponse)(nil),       // 8: pb.CreateInvoiceResponse
+	(*UpdateInvoiceRequest)(nil),        // 9: pb.UpdateInvoiceRequest
+	(*UpdateInvoiceResponse)(nil),       // 10: pb.UpdateInvoiceResponse
+	(*DeleteInvoiceRequest)(nil),        // 11: pb.DeleteInvoiceRequest
+	(*DeleteInvoiceResponse)(nil),       // 12: pb.DeleteInvoiceResponse
+	(*GetInvoicesByStatusRequest)(nil),  // 13: pb.GetInvoicesByStatusRequest
+	(*GetInvoicesByStatusResponse)(nil), // 14: pb.GetInvoicesByStatusResponse
+	(*MarkInvoiceAsPaidRequest)(nil),    // 15: pb.MarkInvoiceAsPaidRequest
+	(*MarkInvoiceAsPaidResponse)(nil),   // 16: pb.MarkInvoiceAsPaidResponse
+	(*SendInvoiceRequest)(nil),          // 17: pb.SendInvoiceRequest
+	(*SendInvoiceResponse)(nil),         // 18: pb.SendInvoiceResponse
+	(*TagUsersToInvoiceRequest)(nil),    // 19: pb.TagUsersToInvoiceRequest
+	(*TagUsersToInvoiceResponse)(nil),   // 20: pb.TagUsersToInvoiceResponse
+	(*SearchInvoiceUsersRequest)(nil),   // 21: pb.SearchInvoiceUsersRequest
+	(*InvoiceUserResult)(nil),           // 22: pb.InvoiceUserResult
+	(*SearchInvoiceUsersResponse)(nil),  // 23: pb.SearchInvoiceUsersResponse
+	(*timestamppb.Timestamp)(nil),       // 24: google.protobuf.Timestamp
+	(*PaymentMethod)(nil),               // 25: pb.PaymentMethod
 }
 var file_invoice_proto_depIdxs = []int32{
-	17, // 0: pb.Invoice.created_at:type_name -> google.protobuf.Timestamp
-	17, // 1: pb.Invoice.updated_at:type_name -> google.protobuf.Timestamp
-	0,  // 2: pb.GetInvoicesResponse.invoices:type_name -> pb.Invoice
-	0,  // 3: pb.GetInvoiceByIdResponse.invoice:type_name -> pb.Invoice
-	0,  // 4: pb.CreateInvoiceResponse.invoice:type_name -> pb.Invoice
-	0,  // 5: pb.UpdateInvoiceResponse.invoice:type_name -> pb.Invoice
-	0,  // 6: pb.GetInvoicesByStatusResponse.invoices:type_name -> pb.Invoice
-	18, // 7: pb.MarkInvoiceAsPaidRequest.payment_method:type_name -> pb.PaymentMethod
-	0,  // 8: pb.MarkInvoiceAsPaidResponse.invoice:type_name -> pb.Invoice
-	1,  // 9: pb.InvoiceService.GetInvoices:input_type -> pb.GetInvoicesRequest
-	3,  // 10: pb.InvoiceService.GetInvoiceById:input_type -> pb.GetInvoiceByIdRequest
-	5,  // 11: pb.InvoiceService.CreateInvoice:input_type -> pb.CreateInvoiceRequest
-	7,  // 12: pb.InvoiceService.UpdateInvoice:input_type -> pb.UpdateInvoiceRequest
-	9,  // 13: pb.InvoiceService.DeleteInvoice:input_type -> pb.DeleteInvoiceRequest
-	11, // 14: pb.InvoiceService.GetInvoicesByStatus:input_type -> pb.GetInvoicesByStatusRequest
-	13, // 15: pb.InvoiceService.MarkInvoiceAsPaid:input_type -> pb.MarkInvoiceAsPaidRequest
-	15, // 16: pb.InvoiceService.SendInvoice:input_type -> pb.SendInvoiceRequest
-	2,  // 17: pb.InvoiceService.GetInvoices:output_type -> pb.GetInvoicesResponse
-	4,  // 18: pb.InvoiceService.GetInvoiceById:output_type -> pb.GetInvoiceByIdResponse
-	6,  // 19: pb.InvoiceService.CreateInvoice:output_type -> pb.CreateInvoiceResponse
-	8,  // 20: pb.InvoiceService.UpdateInvoice:output_type -> pb.UpdateInvoiceResponse
-	10, // 21: pb.InvoiceService.DeleteInvoice:output_type -> pb.DeleteInvoiceResponse
-	12, // 22: pb.InvoiceService.GetInvoicesByStatus:output_type -> pb.GetInvoicesByStatusResponse
-	14, // 23: pb.InvoiceService.MarkInvoiceAsPaid:output_type -> pb.MarkInvoiceAsPaidResponse
-	16, // 24: pb.InvoiceService.SendInvoice:output_type -> pb.SendInvoiceResponse
-	17, // [17:25] is the sub-list for method output_type
-	9,  // [9:17] is the sub-list for method input_type
-	9,  // [9:9] is the sub-list for extension type_name
-	9,  // [9:9] is the sub-list for extension extendee
-	0,  // [0:9] is the sub-list for field type_name
+	24, // 0: pb.Invoice.created_at:type_name -> google.protobuf.Timestamp
+	24, // 1: pb.Invoice.updated_at:type_name -> google.protobuf.Timestamp
+	1,  // 2: pb.Invoice.items:type_name -> pb.InvoiceItem
+	0,  // 3: pb.Invoice.recipient_details:type_name -> pb.AddressDetails
+	0,  // 4: pb.Invoice.payer_details:type_name -> pb.AddressDetails
+	2,  // 5: pb.GetInvoicesResponse.invoices:type_name -> pb.Invoice
+	2,  // 6: pb.GetInvoiceByIdResponse.invoice:type_name -> pb.Invoice
+	1,  // 7: pb.CreateInvoiceRequest.items:type_name -> pb.InvoiceItem
+	0,  // 8: pb.CreateInvoiceRequest.recipient_details:type_name -> pb.AddressDetails
+	0,  // 9: pb.CreateInvoiceRequest.payer_details:type_name -> pb.AddressDetails
+	2,  // 10: pb.CreateInvoiceResponse.invoice:type_name -> pb.Invoice
+	1,  // 11: pb.UpdateInvoiceRequest.items:type_name -> pb.InvoiceItem
+	0,  // 12: pb.UpdateInvoiceRequest.recipient_details:type_name -> pb.AddressDetails
+	0,  // 13: pb.UpdateInvoiceRequest.payer_details:type_name -> pb.AddressDetails
+	2,  // 14: pb.UpdateInvoiceResponse.invoice:type_name -> pb.Invoice
+	2,  // 15: pb.GetInvoicesByStatusResponse.invoices:type_name -> pb.Invoice
+	25, // 16: pb.MarkInvoiceAsPaidRequest.payment_method:type_name -> pb.PaymentMethod
+	2,  // 17: pb.MarkInvoiceAsPaidResponse.invoice:type_name -> pb.Invoice
+	22, // 18: pb.SearchInvoiceUsersResponse.users:type_name -> pb.InvoiceUserResult
+	3,  // 19: pb.InvoiceService.GetInvoices:input_type -> pb.GetInvoicesRequest
+	5,  // 20: pb.InvoiceService.GetInvoiceById:input_type -> pb.GetInvoiceByIdRequest
+	7,  // 21: pb.InvoiceService.CreateInvoice:input_type -> pb.CreateInvoiceRequest
+	9,  // 22: pb.InvoiceService.UpdateInvoice:input_type -> pb.UpdateInvoiceRequest
+	11, // 23: pb.InvoiceService.DeleteInvoice:input_type -> pb.DeleteInvoiceRequest
+	13, // 24: pb.InvoiceService.GetInvoicesByStatus:input_type -> pb.GetInvoicesByStatusRequest
+	15, // 25: pb.InvoiceService.MarkInvoiceAsPaid:input_type -> pb.MarkInvoiceAsPaidRequest
+	17, // 26: pb.InvoiceService.SendInvoice:input_type -> pb.SendInvoiceRequest
+	19, // 27: pb.InvoiceService.TagUsersToInvoice:input_type -> pb.TagUsersToInvoiceRequest
+	21, // 28: pb.InvoiceService.SearchInvoiceUsers:input_type -> pb.SearchInvoiceUsersRequest
+	4,  // 29: pb.InvoiceService.GetInvoices:output_type -> pb.GetInvoicesResponse
+	6,  // 30: pb.InvoiceService.GetInvoiceById:output_type -> pb.GetInvoiceByIdResponse
+	8,  // 31: pb.InvoiceService.CreateInvoice:output_type -> pb.CreateInvoiceResponse
+	10, // 32: pb.InvoiceService.UpdateInvoice:output_type -> pb.UpdateInvoiceResponse
+	12, // 33: pb.InvoiceService.DeleteInvoice:output_type -> pb.DeleteInvoiceResponse
+	14, // 34: pb.InvoiceService.GetInvoicesByStatus:output_type -> pb.GetInvoicesByStatusResponse
+	16, // 35: pb.InvoiceService.MarkInvoiceAsPaid:output_type -> pb.MarkInvoiceAsPaidResponse
+	18, // 36: pb.InvoiceService.SendInvoice:output_type -> pb.SendInvoiceResponse
+	20, // 37: pb.InvoiceService.TagUsersToInvoice:output_type -> pb.TagUsersToInvoiceResponse
+	23, // 38: pb.InvoiceService.SearchInvoiceUsers:output_type -> pb.SearchInvoiceUsersResponse
+	29, // [29:39] is the sub-list for method output_type
+	19, // [19:29] is the sub-list for method input_type
+	19, // [19:19] is the sub-list for extension type_name
+	19, // [19:19] is the sub-list for extension extendee
+	0,  // [0:19] is the sub-list for field type_name
 }
 
 func init() { file_invoice_proto_init() }
@@ -1194,7 +2096,7 @@ func file_invoice_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_invoice_proto_rawDesc), len(file_invoice_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   17,
+			NumMessages:   24,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

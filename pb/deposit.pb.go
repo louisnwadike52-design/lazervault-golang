@@ -399,6 +399,221 @@ func (x *GetDepositDetailsResponse) GetUpdatedAccount() *AccountDetails {
 	return nil
 }
 
+// Pagination metadata for deposit lists
+type DepositPaginationInfo struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	CurrentPage   int32                  `protobuf:"varint,1,opt,name=current_page,json=currentPage,proto3" json:"current_page,omitempty"`
+	TotalPages    int32                  `protobuf:"varint,2,opt,name=total_pages,json=totalPages,proto3" json:"total_pages,omitempty"`
+	TotalItems    int32                  `protobuf:"varint,3,opt,name=total_items,json=totalItems,proto3" json:"total_items,omitempty"`
+	ItemsPerPage  int32                  `protobuf:"varint,4,opt,name=items_per_page,json=itemsPerPage,proto3" json:"items_per_page,omitempty"`
+	HasNext       bool                   `protobuf:"varint,5,opt,name=has_next,json=hasNext,proto3" json:"has_next,omitempty"`
+	HasPrev       bool                   `protobuf:"varint,6,opt,name=has_prev,json=hasPrev,proto3" json:"has_prev,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DepositPaginationInfo) Reset() {
+	*x = DepositPaginationInfo{}
+	mi := &file_deposit_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DepositPaginationInfo) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DepositPaginationInfo) ProtoMessage() {}
+
+func (x *DepositPaginationInfo) ProtoReflect() protoreflect.Message {
+	mi := &file_deposit_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DepositPaginationInfo.ProtoReflect.Descriptor instead.
+func (*DepositPaginationInfo) Descriptor() ([]byte, []int) {
+	return file_deposit_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *DepositPaginationInfo) GetCurrentPage() int32 {
+	if x != nil {
+		return x.CurrentPage
+	}
+	return 0
+}
+
+func (x *DepositPaginationInfo) GetTotalPages() int32 {
+	if x != nil {
+		return x.TotalPages
+	}
+	return 0
+}
+
+func (x *DepositPaginationInfo) GetTotalItems() int32 {
+	if x != nil {
+		return x.TotalItems
+	}
+	return 0
+}
+
+func (x *DepositPaginationInfo) GetItemsPerPage() int32 {
+	if x != nil {
+		return x.ItemsPerPage
+	}
+	return 0
+}
+
+func (x *DepositPaginationInfo) GetHasNext() bool {
+	if x != nil {
+		return x.HasNext
+	}
+	return false
+}
+
+func (x *DepositPaginationInfo) GetHasPrev() bool {
+	if x != nil {
+		return x.HasPrev
+	}
+	return false
+}
+
+// Request message for listing deposits with pagination
+type ListDepositsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Page          int32                  `protobuf:"varint,1,opt,name=page,proto3" json:"page,omitempty"`                           // Page number (default: 1)
+	PageSize      int32                  `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`   // Items per page (default: 20, max: 100)
+	Status        string                 `protobuf:"bytes,3,opt,name=status,proto3" json:"status,omitempty"`                        // Optional filter by status
+	SortBy        string                 `protobuf:"bytes,4,opt,name=sort_by,json=sortBy,proto3" json:"sort_by,omitempty"`          // Sort field (default: "created_at")
+	SortOrder     string                 `protobuf:"bytes,5,opt,name=sort_order,json=sortOrder,proto3" json:"sort_order,omitempty"` // "asc" or "desc" (default: "desc")
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListDepositsRequest) Reset() {
+	*x = ListDepositsRequest{}
+	mi := &file_deposit_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListDepositsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListDepositsRequest) ProtoMessage() {}
+
+func (x *ListDepositsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_deposit_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListDepositsRequest.ProtoReflect.Descriptor instead.
+func (*ListDepositsRequest) Descriptor() ([]byte, []int) {
+	return file_deposit_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *ListDepositsRequest) GetPage() int32 {
+	if x != nil {
+		return x.Page
+	}
+	return 0
+}
+
+func (x *ListDepositsRequest) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *ListDepositsRequest) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+func (x *ListDepositsRequest) GetSortBy() string {
+	if x != nil {
+		return x.SortBy
+	}
+	return ""
+}
+
+func (x *ListDepositsRequest) GetSortOrder() string {
+	if x != nil {
+		return x.SortOrder
+	}
+	return ""
+}
+
+// Response message for listing deposits
+type ListDepositsResponse struct {
+	state         protoimpl.MessageState       `protogen:"open.v1"`
+	Deposits      []*GetDepositDetailsResponse `protobuf:"bytes,1,rep,name=deposits,proto3" json:"deposits,omitempty"`
+	Pagination    *DepositPaginationInfo       `protobuf:"bytes,2,opt,name=pagination,proto3" json:"pagination,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListDepositsResponse) Reset() {
+	*x = ListDepositsResponse{}
+	mi := &file_deposit_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListDepositsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListDepositsResponse) ProtoMessage() {}
+
+func (x *ListDepositsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_deposit_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListDepositsResponse.ProtoReflect.Descriptor instead.
+func (*ListDepositsResponse) Descriptor() ([]byte, []int) {
+	return file_deposit_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *ListDepositsResponse) GetDeposits() []*GetDepositDetailsResponse {
+	if x != nil {
+		return x.Deposits
+	}
+	return nil
+}
+
+func (x *ListDepositsResponse) GetPagination() *DepositPaginationInfo {
+	if x != nil {
+		return x.Pagination
+	}
+	return nil
+}
+
 var File_deposit_proto protoreflect.FileDescriptor
 
 const file_deposit_proto_rawDesc = "" +
@@ -438,19 +653,45 @@ const file_deposit_proto_rawDesc = "" +
 	" \x01(\v2\x1a.google.protobuf.TimestampR\tfailed_at\x12&\n" +
 	"\x0efailure_reason\x18\v \x01(\tR\x0efailure_reason\x128\n" +
 	"\x17external_transaction_id\x18\f \x01(\tR\x17external_transaction_id\x12<\n" +
-	"\x0fupdated_account\x18\r \x01(\v2\x12.pb.AccountDetailsR\x0fupdated_account*\xa3\x01\n" +
+	"\x0fupdated_account\x18\r \x01(\v2\x12.pb.AccountDetailsR\x0fupdated_account\"\xd8\x01\n" +
+	"\x15DepositPaginationInfo\x12!\n" +
+	"\fcurrent_page\x18\x01 \x01(\x05R\vcurrentPage\x12\x1f\n" +
+	"\vtotal_pages\x18\x02 \x01(\x05R\n" +
+	"totalPages\x12\x1f\n" +
+	"\vtotal_items\x18\x03 \x01(\x05R\n" +
+	"totalItems\x12$\n" +
+	"\x0eitems_per_page\x18\x04 \x01(\x05R\fitemsPerPage\x12\x19\n" +
+	"\bhas_next\x18\x05 \x01(\bR\ahasNext\x12\x19\n" +
+	"\bhas_prev\x18\x06 \x01(\bR\ahasPrev\"\x96\x01\n" +
+	"\x13ListDepositsRequest\x12\x12\n" +
+	"\x04page\x18\x01 \x01(\x05R\x04page\x12\x1b\n" +
+	"\tpage_size\x18\x02 \x01(\x05R\bpageSize\x12\x16\n" +
+	"\x06status\x18\x03 \x01(\tR\x06status\x12\x17\n" +
+	"\asort_by\x18\x04 \x01(\tR\x06sortBy\x12\x1d\n" +
+	"\n" +
+	"sort_order\x18\x05 \x01(\tR\tsortOrder\"\x8c\x01\n" +
+	"\x14ListDepositsResponse\x129\n" +
+	"\bdeposits\x18\x01 \x03(\v2\x1d.pb.GetDepositDetailsResponseR\bdeposits\x129\n" +
+	"\n" +
+	"pagination\x18\x02 \x01(\v2\x19.pb.DepositPaginationInfoR\n" +
+	"pagination*\xa3\x01\n" +
 	"\rDepositStatus\x12\x1e\n" +
 	"\x1aDEPOSIT_STATUS_UNSPECIFIED\x10\x00\x12\x1a\n" +
 	"\x16DEPOSIT_STATUS_PENDING\x10\x01\x12\x1d\n" +
 	"\x19DEPOSIT_STATUS_PROCESSING\x10\x02\x12\x1c\n" +
 	"\x18DEPOSIT_STATUS_COMPLETED\x10\x03\x12\x19\n" +
-	"\x15DEPOSIT_STATUS_FAILED\x10\x042\x8e\x05\n" +
+	"\x15DEPOSIT_STATUS_FAILED\x10\x042\xd6\x06\n" +
 	"\x0eDepositService\x12\xbf\x02\n" +
 	"\x0fInitiateDeposit\x12\x1a.pb.InitiateDepositRequest\x1a\x1b.pb.InitiateDepositResponse\"\xf2\x01\x92A\xd7\x01\n" +
 	"\bDeposits\x12\x18Initiate Deposit (Async)\x1a\xa2\x01Initiates the process of depositing funds. The actual balance update occurs asynchronously. Amount should be provided in the smallest currency unit (e.g., cents).b\f\n" +
 	"\n" +
 	"\n" +
-	"\x06bearer\x12\x00\x82\xd3\xe4\x93\x02\x11:\x01*\"\f/v1/deposits\x12\xfc\x01\n" +
+	"\x06bearer\x12\x00\x82\xd3\xe4\x93\x02\x11:\x01*\"\f/v1/deposits\x12\xc5\x01\n" +
+	"\fListDeposits\x12\x17.pb.ListDepositsRequest\x1a\x18.pb.ListDepositsResponse\"\x81\x01\x92Aj\n" +
+	"\bDeposits\x12\rList Deposits\x1aARetrieves a paginated list of deposits for the authenticated userb\f\n" +
+	"\n" +
+	"\n" +
+	"\x06bearer\x12\x00\x82\xd3\xe4\x93\x02\x0e\x12\f/v1/deposits\x12\xfc\x01\n" +
 	"\x11GetDepositDetails\x12\x1c.pb.GetDepositDetailsRequest\x1a\x1d.pb.GetDepositDetailsResponse\"\xa9\x01\x92A\x84\x01\n" +
 	"\bDeposits\x12\x13Get Deposit Details\x1aURetrieves the current status and details of a specific deposit transaction by its ID.b\f\n" +
 	"\n" +
@@ -477,33 +718,40 @@ func file_deposit_proto_rawDescGZIP() []byte {
 }
 
 var file_deposit_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_deposit_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_deposit_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_deposit_proto_goTypes = []any{
 	(DepositStatus)(0),                // 0: pb.DepositStatus
 	(*InitiateDepositRequest)(nil),    // 1: pb.InitiateDepositRequest
 	(*InitiateDepositResponse)(nil),   // 2: pb.InitiateDepositResponse
 	(*GetDepositDetailsRequest)(nil),  // 3: pb.GetDepositDetailsRequest
 	(*GetDepositDetailsResponse)(nil), // 4: pb.GetDepositDetailsResponse
-	(*timestamppb.Timestamp)(nil),     // 5: google.protobuf.Timestamp
-	(*AccountDetails)(nil),            // 6: pb.AccountDetails
+	(*DepositPaginationInfo)(nil),     // 5: pb.DepositPaginationInfo
+	(*ListDepositsRequest)(nil),       // 6: pb.ListDepositsRequest
+	(*ListDepositsResponse)(nil),      // 7: pb.ListDepositsResponse
+	(*timestamppb.Timestamp)(nil),     // 8: google.protobuf.Timestamp
+	(*AccountDetails)(nil),            // 9: pb.AccountDetails
 }
 var file_deposit_proto_depIdxs = []int32{
-	0, // 0: pb.InitiateDepositResponse.status:type_name -> pb.DepositStatus
-	0, // 1: pb.GetDepositDetailsResponse.status:type_name -> pb.DepositStatus
-	5, // 2: pb.GetDepositDetailsResponse.created_at:type_name -> google.protobuf.Timestamp
-	5, // 3: pb.GetDepositDetailsResponse.processing_at:type_name -> google.protobuf.Timestamp
-	5, // 4: pb.GetDepositDetailsResponse.completed_at:type_name -> google.protobuf.Timestamp
-	5, // 5: pb.GetDepositDetailsResponse.failed_at:type_name -> google.protobuf.Timestamp
-	6, // 6: pb.GetDepositDetailsResponse.updated_account:type_name -> pb.AccountDetails
-	1, // 7: pb.DepositService.InitiateDeposit:input_type -> pb.InitiateDepositRequest
-	3, // 8: pb.DepositService.GetDepositDetails:input_type -> pb.GetDepositDetailsRequest
-	2, // 9: pb.DepositService.InitiateDeposit:output_type -> pb.InitiateDepositResponse
-	4, // 10: pb.DepositService.GetDepositDetails:output_type -> pb.GetDepositDetailsResponse
-	9, // [9:11] is the sub-list for method output_type
-	7, // [7:9] is the sub-list for method input_type
-	7, // [7:7] is the sub-list for extension type_name
-	7, // [7:7] is the sub-list for extension extendee
-	0, // [0:7] is the sub-list for field type_name
+	0,  // 0: pb.InitiateDepositResponse.status:type_name -> pb.DepositStatus
+	0,  // 1: pb.GetDepositDetailsResponse.status:type_name -> pb.DepositStatus
+	8,  // 2: pb.GetDepositDetailsResponse.created_at:type_name -> google.protobuf.Timestamp
+	8,  // 3: pb.GetDepositDetailsResponse.processing_at:type_name -> google.protobuf.Timestamp
+	8,  // 4: pb.GetDepositDetailsResponse.completed_at:type_name -> google.protobuf.Timestamp
+	8,  // 5: pb.GetDepositDetailsResponse.failed_at:type_name -> google.protobuf.Timestamp
+	9,  // 6: pb.GetDepositDetailsResponse.updated_account:type_name -> pb.AccountDetails
+	4,  // 7: pb.ListDepositsResponse.deposits:type_name -> pb.GetDepositDetailsResponse
+	5,  // 8: pb.ListDepositsResponse.pagination:type_name -> pb.DepositPaginationInfo
+	1,  // 9: pb.DepositService.InitiateDeposit:input_type -> pb.InitiateDepositRequest
+	6,  // 10: pb.DepositService.ListDeposits:input_type -> pb.ListDepositsRequest
+	3,  // 11: pb.DepositService.GetDepositDetails:input_type -> pb.GetDepositDetailsRequest
+	2,  // 12: pb.DepositService.InitiateDeposit:output_type -> pb.InitiateDepositResponse
+	7,  // 13: pb.DepositService.ListDeposits:output_type -> pb.ListDepositsResponse
+	4,  // 14: pb.DepositService.GetDepositDetails:output_type -> pb.GetDepositDetailsResponse
+	12, // [12:15] is the sub-list for method output_type
+	9,  // [9:12] is the sub-list for method input_type
+	9,  // [9:9] is the sub-list for extension type_name
+	9,  // [9:9] is the sub-list for extension extendee
+	0,  // [0:9] is the sub-list for field type_name
 }
 
 func init() { file_deposit_proto_init() }
@@ -518,7 +766,7 @@ func file_deposit_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_deposit_proto_rawDesc), len(file_deposit_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   4,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -181,6 +181,114 @@ message GetTransferDetailsResponse {
     string failure_reason = 17 [json_name = "failure_reason"];    // Empty if not failed
 }
 
+// Pagination metadata for transfer lists
+message TransferPaginationInfo {
+  int32 current_page = 1;
+  int32 total_pages = 2;
+  int32 total_items = 3;
+  int32 items_per_page = 4;
+  bool has_next = 5;
+  bool has_prev = 6;
+}
+
+// Request message for listing transfers with pagination
+message ListTransfersRequest {
+  int32 page = 1;          // Page number (default: 1)
+  int32 page_size = 2;     // Items per page (default: 20, max: 100)
+  string status = 3;       // Optional filter by status
+  string sort_by = 4;      // Sort field (default: "created_at")
+  string sort_order = 5;   // "asc" or "desc" (default: "desc")
+  string search = 6;       // Optional search query (reference, category)
+}
+
+// Response message for listing transfers
+message ListTransfersResponse {
+  repeated GetTransferDetailsResponse transfers = 1;
+  TransferPaginationInfo pagination = 2;
+}
+
+// --- Batch Transfer Messages ---
+
+// Represents a single recipient in a batch transfer
+message BatchRecipient {
+    uint64 recipient_id = 1;        // ID of the saved recipient
+    uint64 to_account_id = 2;       // Optional: Direct account ID (if not using recipient_id)
+    uint64 amount = 3;              // Amount in minor units (cents/pence)
+    string reference = 4;           // Optional reference for this transfer
+    string category = 5;            // Optional category for this transfer
+}
+
+// Request message for initiating a batch transfer
+message InitiateBatchTransferRequest {
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+      json_schema: {
+        required: ["from_account_id", "recipients"];
+      };
+    };
+    uint64 from_account_id = 1 [json_name = "from_account_id"]; // Source account
+    repeated BatchRecipient recipients = 2;                      // List of recipients
+    optional string scheduled_at = 3; // Optional. If not provided, processed immediately
+}
+
+// Represents the result of a single transfer within a batch
+message BatchTransferResult {
+    uint64 transfer_id = 1;         // ID of the individual transfer
+    string status = 2;              // "completed" or "failed"
+    uint64 amount = 3;              // Amount in minor units
+    uint64 fee = 4;                 // Fee in minor units
+    string recipient_name = 5;      // Recipient name for display
+    string recipient_account = 6;   // Masked account number (e.g., "****1234")
+    string failure_reason = 7;      // Empty if successful, reason if failed
+}
+
+// Response message for initiating a batch transfer
+message InitiateBatchTransferResponse {
+    uint64 batch_id = 1;                            // Unique batch ID
+    string status = 2;                              // "processing", "completed", "partial_success", "failed"
+    uint64 total_amount = 3;                        // Total amount in minor units
+    uint64 total_fee = 4;                           // Total fee in minor units
+    uint64 total_amount_with_fee = 5;               // Total including fees
+    int32 successful_transfers = 6;                 // Number of successful transfers
+    int32 failed_transfers = 7;                     // Number of failed transfers
+    int32 total_transfers = 8;                      // Total number of transfers
+    repeated BatchTransferResult results = 9;        // Individual transfer results
+    google.protobuf.Timestamp created_at = 10;
+    google.protobuf.Timestamp completed_at = 11;    // Null if still processing
+}
+
+// Request message for getting batch transfer status
+message GetBatchTransferStatusRequest {
+    uint64 batch_id = 1 [json_name = "batch_id"];  // ID of the batch to check
+}
+
+// Response message for getting batch transfer status (same as initiate response)
+message GetBatchTransferStatusResponse {
+    uint64 batch_id = 1;
+    string status = 2;
+    uint64 total_amount = 3;
+    uint64 total_fee = 4;
+    uint64 total_amount_with_fee = 5;
+    int32 successful_transfers = 6;
+    int32 failed_transfers = 7;
+    int32 total_transfers = 8;
+    repeated BatchTransferResult results = 9;
+    google.protobuf.Timestamp created_at = 10;
+    google.protobuf.Timestamp completed_at = 11;
+}
+
+// Request message for getting batch transfer history
+message GetBatchTransferHistoryRequest {
+    int32 page = 1;          // Page number (default: 1)
+    int32 page_size = 2;     // Items per page (default: 20, max: 100)
+    string status = 3;       // Optional filter by status
+}
+
+// Response message for getting batch transfer history
+message GetBatchTransferHistoryResponse {
+    repeated GetBatchTransferStatusResponse batches = 1;
+    TransferPaginationInfo pagination = 2;
+}
+
 // Service definition for transfers
 service TransferService {
     // Initiates a new transfer
@@ -193,8 +301,20 @@ service TransferService {
             summary: "Initiate a new transfer";
             description: "Initiates a new transfer with the provided details";
             tags: ["transfers"];
-        };      
+        };
     };
+
+    // Lists all transfers for the authenticated user with pagination
+    rpc ListTransfers(ListTransfersRequest) returns (ListTransfersResponse) {
+        option (google.api.http) = {
+            get: "/v1/transfers";
+        };
+        option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            summary: "List Transfers";
+            description: "Retrieves a paginated list of transfers for the authenticated user";
+            tags: ["Transfers"];
+        };
+    }
 
     // Fetches aggregated financial statistics based on transfer history.
     rpc GetStatistics (GetStatisticsRequest) returns (GetStatisticsResponse) {
@@ -219,4 +339,41 @@ service TransferService {
             tags: ["Transfers"];
         };
     }
-} 
+
+    // Initiates a batch transfer to multiple recipients
+    rpc InitiateBatchTransfer(InitiateBatchTransferRequest) returns (InitiateBatchTransferResponse) {
+        option (google.api.http) = {
+            post: "/v1/transfers/batch";
+            body: "*";
+        };
+        option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            summary: "Initiate a batch transfer";
+            description: "Initiates a batch transfer to multiple recipients in a single transaction";
+            tags: ["transfers"];
+        };
+    }
+
+    // Gets the status of a batch transfer
+    rpc GetBatchTransferStatus(GetBatchTransferStatusRequest) returns (GetBatchTransferStatusResponse) {
+        option (google.api.http) = {
+            get: "/v1/transfers/batch/{batch_id}";
+        };
+        option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            summary: "Get Batch Transfer Status";
+            description: "Retrieves the current status and details of a batch transfer";
+            tags: ["Transfers"];
+        };
+    }
+
+    // Gets the history of batch transfers
+    rpc GetBatchTransferHistory(GetBatchTransferHistoryRequest) returns (GetBatchTransferHistoryResponse) {
+        option (google.api.http) = {
+            get: "/v1/transfers/batch";
+        };
+        option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            summary: "Get Batch Transfer History";
+            description: "Retrieves a paginated list of batch transfers";
+            tags: ["Transfers"];
+        };
+    }
+}

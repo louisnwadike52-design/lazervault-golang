@@ -17,7 +17,7 @@ var (
 // FindUserByEmail retrieves a user by email.
 func FindUserByEmail(db *gorm.DB, email string) (*models.User, error) {
 	var user models.User
-	if err := db.Preload("Balance").Where("email = ?", email).First(&user).Error; err != nil {
+	if err := db.Where("email = ?", email).First(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, ErrUserNotFound
 		}
@@ -29,7 +29,7 @@ func FindUserByEmail(db *gorm.DB, email string) (*models.User, error) {
 // FindUserByID retrieves a user by ID.
 func FindUserByID(db *gorm.DB, id uint) (*models.User, error) {
 	var user models.User
-	if err := db.Preload("Balance").Where("id = ?", id).First(&user).Error; err != nil {
+	if err := db.Where("id = ?", id).First(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, ErrUserNotFound
 		}
@@ -41,7 +41,7 @@ func FindUserByID(db *gorm.DB, id uint) (*models.User, error) {
 // FindUserByGoogleID retrieves a user by their Google ID.
 func FindUserByGoogleID(db *gorm.DB, googleID string) (*models.User, error) {
 	var user models.User
-	if err := db.Preload("Balance").Where("google_id = ?", googleID).First(&user).Error; err != nil {
+	if err := db.Where("google_id = ?", googleID).First(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, ErrUserNotFound
 		}
@@ -53,7 +53,7 @@ func FindUserByGoogleID(db *gorm.DB, googleID string) (*models.User, error) {
 // FindUserByAppleID retrieves a user by their Apple ID.
 func FindUserByAppleID(db *gorm.DB, appleID string) (*models.User, error) {
 	var user models.User
-	if err := db.Preload("Balance").Where("apple_id = ?", appleID).First(&user).Error; err != nil {
+	if err := db.Where("apple_id = ?", appleID).First(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, ErrUserNotFound
 		}

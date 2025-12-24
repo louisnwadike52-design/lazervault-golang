@@ -1,0 +1,173 @@
+syntax = "proto3";
+
+package lazervault;
+
+option go_package = "lazervaultGo/pb";
+
+import "google/protobuf/timestamp.proto";
+
+// Support Ticket Service
+service SupportService {
+  // Create a support ticket
+  rpc CreateSupportTicket(CreateSupportTicketRequest) returns (CreateSupportTicketResponse);
+
+  // Get user's support tickets
+  rpc GetSupportTickets(GetSupportTicketsRequest) returns (GetSupportTicketsResponse);
+
+  // Get a specific ticket by ID
+  rpc GetSupportTicket(GetSupportTicketRequest) returns (GetSupportTicketResponse);
+
+  // Update ticket status (for admin use)
+  rpc UpdateTicketStatus(UpdateTicketStatusRequest) returns (UpdateTicketStatusResponse);
+
+  // Add a reply to a ticket
+  rpc AddTicketReply(AddTicketReplyRequest) returns (AddTicketReplyResponse);
+
+  // Submit contact form message
+  rpc SubmitContactForm(SubmitContactFormRequest) returns (SubmitContactFormResponse);
+}
+
+// Enums
+enum TicketCategory {
+  TICKET_CATEGORY_UNSPECIFIED = 0;
+  GENERAL_INQUIRY = 1;
+  TRANSACTION_ISSUE = 2;
+  ACCOUNT_PROBLEM = 3;
+  TECHNICAL_SUPPORT = 4;
+  SECURITY_CONCERN = 5;
+  OTHER = 6;
+}
+
+enum TicketStatus {
+  TICKET_STATUS_UNSPECIFIED = 0;
+  OPEN = 1;
+  IN_PROGRESS = 2;
+  WAITING_FOR_CUSTOMER = 3;
+  RESOLVED = 4;
+  CLOSED = 5;
+}
+
+enum TicketPriority {
+  TICKET_PRIORITY_UNSPECIFIED = 0;
+  LOW = 1;
+  MEDIUM = 2;
+  HIGH = 3;
+  URGENT = 4;
+}
+
+// Messages
+message SupportTicket {
+  string id = 1;
+  int32 user_id = 2;
+  string ticket_number = 3;
+  TicketCategory category = 4;
+  string subject = 5;
+  string description = 6;
+  TicketStatus status = 7;
+  TicketPriority priority = 8;
+  google.protobuf.Timestamp created_at = 9;
+  google.protobuf.Timestamp updated_at = 10;
+  google.protobuf.Timestamp resolved_at = 11;
+  repeated TicketReply replies = 12;
+}
+
+message TicketReply {
+  string id = 1;
+  string ticket_id = 2;
+  int32 user_id = 3;
+  string message = 4;
+  bool is_staff = 5;
+  google.protobuf.Timestamp created_at = 6;
+}
+
+message ContactMessage {
+  string id = 1;
+  string name = 2;
+  string email = 3;
+  string topic = 4;
+  string subject = 5;
+  string message = 6;
+  int32 user_id = 7; // Optional - if user is logged in
+  google.protobuf.Timestamp created_at = 8;
+  bool is_read = 9;
+}
+
+// Create Support Ticket
+message CreateSupportTicketRequest {
+  TicketCategory category = 1;
+  string subject = 2;
+  string description = 3;
+}
+
+message CreateSupportTicketResponse {
+  bool success = 1;
+  string message = 2;
+  SupportTicket ticket = 3;
+}
+
+// Get Support Tickets
+message GetSupportTicketsRequest {
+  int32 page = 1;
+  int32 page_size = 2;
+  TicketStatus status_filter = 3; // Optional filter
+}
+
+message GetSupportTicketsResponse {
+  bool success = 1;
+  string message = 2;
+  repeated SupportTicket tickets = 3;
+  int32 total_count = 4;
+  int32 page = 5;
+  int32 page_size = 6;
+}
+
+// Get Support Ticket
+message GetSupportTicketRequest {
+  string ticket_id = 1;
+}
+
+message GetSupportTicketResponse {
+  bool success = 1;
+  string message = 2;
+  SupportTicket ticket = 3;
+}
+
+// Update Ticket Status
+message UpdateTicketStatusRequest {
+  string ticket_id = 1;
+  TicketStatus status = 2;
+  string resolution_note = 3; // Optional note when closing
+}
+
+message UpdateTicketStatusResponse {
+  bool success = 1;
+  string message = 2;
+  SupportTicket ticket = 3;
+}
+
+// Add Ticket Reply
+message AddTicketReplyRequest {
+  string ticket_id = 1;
+  string message = 2;
+}
+
+message AddTicketReplyResponse {
+  bool success = 1;
+  string message = 2;
+  TicketReply reply = 3;
+}
+
+// Submit Contact Form
+message SubmitContactFormRequest {
+  string name = 1;
+  string email = 2;
+  string topic = 3;
+  string subject = 4;
+  string message = 5;
+}
+
+message SubmitContactFormResponse {
+  bool success = 1;
+  string message = 2;
+  ContactMessage contact_message = 3;
+}

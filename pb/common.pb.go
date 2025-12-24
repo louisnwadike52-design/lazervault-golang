@@ -331,11 +331,16 @@ type User struct {
 	LastName        string                 `protobuf:"bytes,3,opt,name=last_name,json=lastName,proto3" json:"last_name,omitempty"`
 	Email           string                 `protobuf:"bytes,4,opt,name=email,proto3" json:"email,omitempty"`
 	PhoneNumber     string                 `protobuf:"bytes,5,opt,name=phone_number,json=phoneNumber,proto3" json:"phone_number,omitempty"`
-	Role            string                 `protobuf:"bytes,6,opt,name=role,proto3" json:"role,omitempty"`
-	Verified        bool                   `protobuf:"varint,7,opt,name=verified,proto3" json:"verified,omitempty"`
-	IsEmailVerified bool                   `protobuf:"varint,8,opt,name=is_email_verified,json=isEmailVerified,proto3" json:"is_email_verified,omitempty"`
-	CreatedAt       *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	UpdatedAt       *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	Username        string                 `protobuf:"bytes,6,opt,name=username,proto3" json:"username,omitempty"`
+	Role            string                 `protobuf:"bytes,7,opt,name=role,proto3" json:"role,omitempty"`
+	Verified        bool                   `protobuf:"varint,8,opt,name=verified,proto3" json:"verified,omitempty"`
+	IsEmailVerified bool                   `protobuf:"varint,9,opt,name=is_email_verified,json=isEmailVerified,proto3" json:"is_email_verified,omitempty"`
+	CreatedAt       *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt       *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	Language        string                 `protobuf:"bytes,12,opt,name=language,proto3" json:"language,omitempty"`
+	Currency        string                 `protobuf:"bytes,13,opt,name=currency,proto3" json:"currency,omitempty"`
+	Country         string                 `protobuf:"bytes,14,opt,name=country,proto3" json:"country,omitempty"`
+	ProfilePicture  string                 `protobuf:"bytes,15,opt,name=profile_picture,json=profilePicture,proto3" json:"profile_picture,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
@@ -405,6 +410,13 @@ func (x *User) GetPhoneNumber() string {
 	return ""
 }
 
+func (x *User) GetUsername() string {
+	if x != nil {
+		return x.Username
+	}
+	return ""
+}
+
 func (x *User) GetRole() string {
 	if x != nil {
 		return x.Role
@@ -438,6 +450,34 @@ func (x *User) GetUpdatedAt() *timestamppb.Timestamp {
 		return x.UpdatedAt
 	}
 	return nil
+}
+
+func (x *User) GetLanguage() string {
+	if x != nil {
+		return x.Language
+	}
+	return ""
+}
+
+func (x *User) GetCurrency() string {
+	if x != nil {
+		return x.Currency
+	}
+	return ""
+}
+
+func (x *User) GetCountry() string {
+	if x != nil {
+		return x.Country
+	}
+	return ""
+}
+
+func (x *User) GetProfilePicture() string {
+	if x != nil {
+		return x.ProfilePicture
+	}
+	return ""
 }
 
 type Data struct {
@@ -665,22 +705,27 @@ var File_common_proto protoreflect.FileDescriptor
 
 const file_common_proto_rawDesc = "" +
 	"\n" +
-	"\fcommon.proto\x12\x02pb\x1a\x1fgoogle/protobuf/timestamp.proto\"\xdd\x02\n" +
+	"\fcommon.proto\x12\x02pb\x1a\x1fgoogle/protobuf/timestamp.proto\"\xf4\x03\n" +
 	"\x04User\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x04R\x02id\x12\x1d\n" +
 	"\n" +
 	"first_name\x18\x02 \x01(\tR\tfirstName\x12\x1b\n" +
 	"\tlast_name\x18\x03 \x01(\tR\blastName\x12\x14\n" +
 	"\x05email\x18\x04 \x01(\tR\x05email\x12!\n" +
-	"\fphone_number\x18\x05 \x01(\tR\vphoneNumber\x12\x12\n" +
-	"\x04role\x18\x06 \x01(\tR\x04role\x12\x1a\n" +
-	"\bverified\x18\a \x01(\bR\bverified\x12*\n" +
-	"\x11is_email_verified\x18\b \x01(\bR\x0fisEmailVerified\x129\n" +
+	"\fphone_number\x18\x05 \x01(\tR\vphoneNumber\x12\x1a\n" +
+	"\busername\x18\x06 \x01(\tR\busername\x12\x12\n" +
+	"\x04role\x18\a \x01(\tR\x04role\x12\x1a\n" +
+	"\bverified\x18\b \x01(\bR\bverified\x12*\n" +
+	"\x11is_email_verified\x18\t \x01(\bR\x0fisEmailVerified\x129\n" +
 	"\n" +
-	"created_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
+	"created_at\x18\n" +
+	" \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
 	"\n" +
-	"updated_at\x18\n" +
-	" \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"j\n" +
+	"updated_at\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x12\x1a\n" +
+	"\blanguage\x18\f \x01(\tR\blanguage\x12\x1a\n" +
+	"\bcurrency\x18\r \x01(\tR\bcurrency\x12\x18\n" +
+	"\acountry\x18\x0e \x01(\tR\acountry\x12'\n" +
+	"\x0fprofile_picture\x18\x0f \x01(\tR\x0eprofilePicture\"j\n" +
 	"\x04Data\x12!\n" +
 	"\x04user\x18\x01 \x01(\v2\b.pb.UserH\x00R\x04user\x88\x01\x01\x12*\n" +
 	"\asession\x18\x02 \x01(\v2\v.pb.SessionH\x01R\asession\x88\x01\x01B\a\n" +

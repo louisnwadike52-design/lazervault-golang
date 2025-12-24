@@ -2,8 +2,8 @@ package grpcApi
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
-	"fmt"
 	"lazervaultGo/grpcApi/middleware"
 	"lazervaultGo/models"
 	"lazervaultGo/pb"
@@ -42,7 +42,7 @@ func convertInvoiceToProto(inv *models.Invoice) (*pb.Invoice, error) {
 		paymentMethodId = *inv.PaymentMethodID
 	}
 
-	return &pb.Invoice{
+	pbInvoice := &pb.Invoice{
 		Id:               inv.ID,
 		UserId:           inv.UserID,
 		RecipientId:      inv.RecipientID,
@@ -56,7 +56,71 @@ func convertInvoiceToProto(inv *models.Invoice) (*pb.Invoice, error) {
 		PaymentReference: inv.PaymentReference,
 		CreatedAt:        timestamppb.New(inv.CreatedAt),
 		UpdatedAt:        timestamppb.New(inv.UpdatedAt),
-	}, nil
+		Notes:            inv.Notes,
+		TaxAmount:        inv.TaxAmount,
+		DiscountAmount:   inv.DiscountAmount,
+		TotalAmount:      inv.TotalAmount,
+		ToEmail:          inv.ToEmail,
+		ToName:           inv.ToName,
+	}
+
+	// Deserialize items from JSON
+	if len(inv.Items) > 0 {
+		var items []models.InvoiceItem
+		if err := json.Unmarshal(inv.Items, &items); err == nil {
+			for _, item := range items {
+				pbInvoice.Items = append(pbInvoice.Items, &pb.InvoiceItem{
+					Id:          item.ItemID,
+					Name:        item.Name,
+					Description: item.Description,
+					Quantity:    item.Quantity,
+					UnitPrice:   item.UnitPrice,
+					TotalPrice:  item.TotalPrice,
+					Category:    item.Category,
+				})
+			}
+		}
+	}
+
+	// Deserialize recipient details from JSON
+	if len(inv.RecipientDetails) > 0 {
+		var details models.AddressDetails
+		if err := json.Unmarshal(inv.RecipientDetails, &details); err == nil {
+			pbInvoice.RecipientDetails = &pb.AddressDetails{
+				CompanyName:  details.CompanyName,
+				ContactName:  details.ContactName,
+				Email:        details.Email,
+				Phone:        details.Phone,
+				AddressLine1: details.AddressLine1,
+				AddressLine2: details.AddressLine2,
+				City:         details.City,
+				State:        details.State,
+				Postcode:     details.Postcode,
+				Country:      details.Country,
+			}
+		}
+	}
+
+	// Deserialize payer details from JSON
+	if len(inv.PayerDetails) > 0 {
+		var details models.AddressDetails
+		if err := json.Unmarshal(inv.PayerDetails, &details); err == nil {
+			pbInvoice.PayerDetails = &pb.AddressDetails{
+				CompanyName:  details.CompanyName,
+				ContactName:  details.ContactName,
+				Email:        details.Email,
+				Phone:        details.Phone,
+				AddressLine1: details.AddressLine1,
+				AddressLine2: details.AddressLine2,
+				City:         details.City,
+				State:        details.State,
+				Postcode:     details.Postcode,
+				Country:      details.Country,
+			}
+		}
+	}
+
+	return pbInvoice, nil
 }
 
 // CreateInvoice handles the gRPC request
@@ -96,14 +160,98 @@ func (controller *InvoiceController) CreateInvoice(ctx context.Context, req *pb.
 	}
 
 	// --- Create Invoice ---
+	// If no recipient specified, use user's own ID (self-invoice/draft)
+	recipientID := req.RecipientId
+	if recipientID == "" {
+		recipientID = user.UUID
+	}
+
+	// Convert proto items to model items
+	var items []models.InvoiceItem
+	for _, item := range req.Items {
+		items = append(items, models.InvoiceItem{
+			ItemID:      item.Id,
+			Name:        item.Name,
+			Description: item.Description,
+			Quantity:    item.Quantity,
+			UnitPrice:   item.UnitPrice,
+			TotalPrice:  item.TotalPrice,
+			Category:    item.Category,
+		})
+	}
+
+	// Convert proto address details to model
+	var recipientDetails, payerDetails *models.AddressDetails
+	if req.RecipientDetails != nil {
+		recipientDetails = &models.AddressDetails{
+			CompanyName:  req.RecipientDetails.CompanyName,
+			ContactName:  req.RecipientDetails.ContactName,
+			Email:        req.RecipientDetails.Email,
+			Phone:        req.RecipientDetails.Phone,
+			AddressLine1: req.RecipientDetails.AddressLine1,
+			AddressLine2: req.RecipientDetails.AddressLine2,
+			City:         req.RecipientDetails.City,
+			State:        req.RecipientDetails.State,
+			Postcode:     req.RecipientDetails.Postcode,
+			Country:      req.RecipientDetails.Country,
+		}
+	}
+
+	if req.PayerDetails != nil {
+		payerDetails = &models.AddressDetails{
+			CompanyName:  req.PayerDetails.CompanyName,
+			ContactName:  req.PayerDetails.ContactName,
+			Email:        req.PayerDetails.Email,
+			Phone:        req.PayerDetails.Phone,
+			AddressLine1: req.PayerDetails.AddressLine1,
+			AddressLine2: req.PayerDetails.AddressLine2,
+			City:         req.PayerDetails.City,
+			State:        req.PayerDetails.State,
+			Postcode:     req.PayerDetails.Postcode,
+			Country:      req.PayerDetails.Country,
+		}
+	}
+
 	invoice := &models.Invoice{
-		UserID:      fmt.Sprint(user.ID),
-		RecipientID: req.RecipientId,
-		Title:       req.Title,
-		Description: req.Description,
-		Amount:      req.Amount,
-		Currency:    req.Currency,
-		DueDate:     dueDate,
+		UserID:           user.UUID,
+		RecipientID:      recipientID,
+		Title:            req.Title,
+		Description:      req.Description,
+		Amount:           req.Amount,
+		Currency:         req.Currency,
+		DueDate:          dueDate,
+		Notes:            req.Notes,
+		TaxAmount:        req.TaxAmount,
+		DiscountAmount:   req.DiscountAmount,
+		TotalAmount:      req.TotalAmount,
+		ToEmail:          req.ToEmail,
+		ToName:           req.ToName,
+	}
+
+	// Serialize items to JSON for storage
+	if len(items) > 0 {
+		itemsJSON, err := json.Marshal(items)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "failed to serialize items: %v", err)
+		}
+		invoice.Items = itemsJSON
+	}
+
+	// Serialize address details to JSON for storage
+	if recipientDetails != nil {
+		recipientJSON, err := json.Marshal(recipientDetails)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "failed to serialize recipient details: %v", err)
+		}
+		invoice.RecipientDetails = recipientJSON
+	}
+
+	if payerDetails != nil {
+		payerJSON, err := json.Marshal(payerDetails)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "failed to serialize payer details: %v", err)
+		}
+		invoice.PayerDetails = payerJSON
 	}
 
 	// --- Call Service ---
@@ -145,7 +293,7 @@ func (controller *InvoiceController) GetInvoices(ctx context.Context, req *pb.Ge
 	}
 
 	// Call Service
-	invoices, total, err := controller.invoiceService.GetInvoices(ctx, fmt.Sprint(user.ID), int(req.Page), int(req.Limit))
+	invoices, total, err := controller.invoiceService.GetInvoices(ctx, user.UUID, int(req.Page), int(req.Limit))
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to get invoices: %v", err)
 	}
@@ -183,7 +331,7 @@ func (controller *InvoiceController) GetInvoiceById(ctx context.Context, req *pb
 	}
 
 	// Call Service
-	invoice, err := controller.invoiceService.GetInvoiceById(ctx, fmt.Sprint(user.ID), req.InvoiceId)
+	invoice, err := controller.invoiceService.GetInvoiceById(ctx, user.UUID, req.InvoiceId)
 	if err != nil {
 		if errors.Is(err, services.ErrInvoiceNotFound) {
 			return nil, status.Errorf(codes.NotFound, "invoice not found")
@@ -212,15 +360,93 @@ func (c *InvoiceController) UpdateInvoice(ctx context.Context, req *pb.UpdateInv
 		return nil, status.Error(codes.InvalidArgument, "invalid due date format")
 	}
 
+	// Convert proto items to model items
+	var items []models.InvoiceItem
+	for _, item := range req.Items {
+		items = append(items, models.InvoiceItem{
+			ItemID:      item.Id,
+			Name:        item.Name,
+			Description: item.Description,
+			Quantity:    item.Quantity,
+			UnitPrice:   item.UnitPrice,
+			TotalPrice:  item.TotalPrice,
+			Category:    item.Category,
+		})
+	}
+
+	// Convert proto address details to model
+	var recipientDetails, payerDetails *models.AddressDetails
+	if req.RecipientDetails != nil {
+		recipientDetails = &models.AddressDetails{
+			CompanyName:  req.RecipientDetails.CompanyName,
+			ContactName:  req.RecipientDetails.ContactName,
+			Email:        req.RecipientDetails.Email,
+			Phone:        req.RecipientDetails.Phone,
+			AddressLine1: req.RecipientDetails.AddressLine1,
+			AddressLine2: req.RecipientDetails.AddressLine2,
+			City:         req.RecipientDetails.City,
+			State:        req.RecipientDetails.State,
+			Postcode:     req.RecipientDetails.Postcode,
+			Country:      req.RecipientDetails.Country,
+		}
+	}
+
+	if req.PayerDetails != nil {
+		payerDetails = &models.AddressDetails{
+			CompanyName:  req.PayerDetails.CompanyName,
+			ContactName:  req.PayerDetails.ContactName,
+			Email:        req.PayerDetails.Email,
+			Phone:        req.PayerDetails.Phone,
+			AddressLine1: req.PayerDetails.AddressLine1,
+			AddressLine2: req.PayerDetails.AddressLine2,
+			City:         req.PayerDetails.City,
+			State:        req.PayerDetails.State,
+			Postcode:     req.PayerDetails.Postcode,
+			Country:      req.PayerDetails.Country,
+		}
+	}
+
 	invoice := &models.Invoice{
-		ID:          req.InvoiceId,
-		UserID:      fmt.Sprint(user.ID),
-		RecipientID: req.RecipientId,
-		Title:       req.Title,
-		Description: req.Description,
-		Amount:      req.Amount,
-		Currency:    req.Currency,
-		DueDate:     dueDate,
+		ID:             req.InvoiceId,
+		UserID:         user.UUID,
+		RecipientID:    req.RecipientId,
+		Title:          req.Title,
+		Description:    req.Description,
+		Amount:         req.Amount,
+		Currency:       req.Currency,
+		DueDate:        dueDate,
+		Notes:          req.Notes,
+		TaxAmount:      req.TaxAmount,
+		DiscountAmount: req.DiscountAmount,
+		TotalAmount:    req.TotalAmount,
+		ToEmail:        req.ToEmail,
+		ToName:         req.ToName,
+	}
+
+	// Serialize items to JSON for storage
+	if len(items) > 0 {
+		itemsJSON, err := json.Marshal(items)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "failed to serialize items: %v", err)
+		}
+		invoice.Items = itemsJSON
+	}
+
+	// Serialize address details to JSON for storage
+	if recipientDetails != nil {
+		recipientJSON, err := json.Marshal(recipientDetails)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "failed to serialize recipient details: %v", err)
+		}
+		invoice.RecipientDetails = recipientJSON
+	}
+
+	if payerDetails != nil {
+		payerJSON, err := json.Marshal(payerDetails)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "failed to serialize payer details: %v", err)
+		}
+		invoice.PayerDetails = payerJSON
 	}
 
 	updatedInvoice, err := c.invoiceService.UpdateInvoice(ctx, invoice)
@@ -248,7 +474,7 @@ func (c *InvoiceController) DeleteInvoice(ctx context.Context, req *pb.DeleteInv
 		return nil, err
 	}
 
-	err = c.invoiceService.DeleteInvoice(ctx, fmt.Sprint(user.ID), req.InvoiceId)
+	err = c.invoiceService.DeleteInvoice(ctx, user.UUID, req.InvoiceId)
 	if err != nil {
 		if errors.Is(err, services.ErrInvoiceNotFound) {
 			return nil, status.Error(codes.NotFound, "invoice not found")
@@ -278,7 +504,7 @@ func (controller *InvoiceController) GetInvoicesByStatus(ctx context.Context, re
 	}
 
 	// Get invoices
-	invoices, total, err := controller.invoiceService.GetInvoicesByStatus(ctx, fmt.Sprint(user.ID), req.IsPaid, int(req.Page), int(req.Limit))
+	invoices, total, err := controller.invoiceService.GetInvoicesByStatus(ctx, user.UUID, req.IsPaid, int(req.Page), int(req.Limit))
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to get invoices: %v", err)
 	}
@@ -325,7 +551,7 @@ func (c *InvoiceController) MarkInvoiceAsPaid(ctx context.Context, req *pb.MarkI
 	}
 
 	// Call service to mark invoice as paid
-	invoice, err := c.invoiceService.MarkInvoiceAsPaid(ctx, fmt.Sprint(user.ID), req.InvoiceId, req.PaymentMethod.MethodId, req.PaymentReference)
+	invoice, err := c.invoiceService.MarkInvoiceAsPaid(ctx, user.UUID, req.InvoiceId, req.PaymentMethod.MethodId, req.PaymentReference)
 	if err != nil {
 		switch {
 		case errors.Is(err, services.ErrInvoiceNotFound):
@@ -371,7 +597,7 @@ func (c *InvoiceController) SendInvoice(ctx context.Context, req *pb.SendInvoice
 	}
 
 	// Call service to send invoice
-	err = c.invoiceService.SendInvoice(ctx, fmt.Sprint(user.ID), req.InvoiceId)
+	err = c.invoiceService.SendInvoice(ctx, user.UUID, req.InvoiceId)
 	if err != nil {
 		switch {
 		case errors.Is(err, services.ErrInvoiceNotFound):
@@ -385,5 +611,112 @@ func (c *InvoiceController) SendInvoice(ctx context.Context, req *pb.SendInvoice
 
 	return &pb.SendInvoiceResponse{
 		Success: true,
+	}, nil
+}
+
+// TagUsersToInvoice handles tagging multiple users to an invoice
+func (c *InvoiceController) TagUsersToInvoice(ctx context.Context, req *pb.TagUsersToInvoiceRequest) (*pb.TagUsersToInvoiceResponse, error) {
+	// Get auth payload from context
+	authPayload, ok := ctx.Value(middleware.AuthorizationPayloadKey).(*token.Payload)
+	if !ok {
+		return nil, status.Errorf(codes.Unauthenticated, "unable to retrieve payload from context")
+	}
+
+	// Validate request
+	if req.InvoiceId == "" {
+		return nil, status.Errorf(codes.InvalidArgument, "invoice_id is required")
+	}
+
+	// Get user ID from auth (to ensure user owns the invoice)
+	user, err := c.userService.GetUserByEmail(ctx, authPayload.Email)
+	if err != nil {
+		if errors.Is(err, services.ErrUserNotFound) {
+			return nil, status.Errorf(codes.Unauthenticated, "user associated with token not found")
+		}
+		return nil, status.Errorf(codes.Internal, "failed to retrieve user details: %v", err)
+	}
+
+	// Verify invoice ownership
+	invoice, err := c.invoiceService.GetInvoiceById(ctx, user.UUID, req.InvoiceId)
+	if err != nil {
+		if errors.Is(err, services.ErrInvoiceNotFound) {
+			return nil, status.Errorf(codes.NotFound, "invoice not found")
+		}
+		return nil, status.Errorf(codes.Internal, "failed to get invoice: %v", err)
+	}
+
+	if invoice.UserID != user.UUID {
+		return nil, status.Errorf(codes.PermissionDenied, "unauthorized access to invoice")
+	}
+
+	// Call service to tag users
+	serviceReq := &services.TagUsersToInvoiceRequest{
+		InvoiceID:    req.InvoiceId,
+		UserIDs:      req.UserIds,
+		Emails:       req.Emails,
+		PhoneNumbers: req.PhoneNumbers,
+	}
+
+	response, err := c.invoiceService.TagUsersToInvoice(ctx, serviceReq)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to tag users to invoice: %v", err)
+	}
+
+	return &pb.TagUsersToInvoiceResponse{
+		Success:       response.Success,
+		TaggedUserIds: response.TaggedUserIDs,
+		InvitedEmails: response.InvitedEmails,
+		InvitedPhones: response.InvitedPhones,
+		Message:       response.Message,
+	}, nil
+}
+
+// SearchInvoiceUsers handles searching for users to tag in invoice
+func (c *InvoiceController) SearchInvoiceUsers(ctx context.Context, req *pb.SearchInvoiceUsersRequest) (*pb.SearchInvoiceUsersResponse, error) {
+	// Get auth payload from context
+	_, ok := ctx.Value(middleware.AuthorizationPayloadKey).(*token.Payload)
+	if !ok {
+		return nil, status.Errorf(codes.Unauthenticated, "unable to retrieve payload from context")
+	}
+
+	// Validate request
+	if req.Query == "" {
+		return &pb.SearchInvoiceUsersResponse{
+			Users: []*pb.InvoiceUserResult{},
+		}, nil
+	}
+
+	// Default limit
+	limit := int(req.Limit)
+	if limit <= 0 {
+		limit = 20
+	}
+
+	// Call service to search users
+	users, err := c.invoiceService.SearchInvoiceUsers(ctx, req.Query, limit)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to search users: %v", err)
+	}
+
+	// Convert to proto response
+	pbUsers := make([]*pb.InvoiceUserResult, len(users))
+	for i, user := range users {
+		username := ""
+		if user.Username != nil {
+			username = *user.Username
+		}
+
+		pbUsers[i] = &pb.InvoiceUserResult{
+			Id:       user.UUID,
+			Name:     user.FirstName + " " + user.LastName,
+			Email:    user.Email,
+			Username: username,
+			Phone:    user.PhoneNumber,
+			IsOnline: false, // TODO: Add online status tracking
+		}
+	}
+
+	return &pb.SearchInvoiceUsersResponse{
+		Users: pbUsers,
 	}, nil
 }

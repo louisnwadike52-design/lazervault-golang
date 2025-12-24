@@ -3,10 +3,12 @@ package grpcApi
 import (
 	"context"
 	"errors"
+	"fmt"
 	"lazervaultGo/pb"
 	"lazervaultGo/services"
 
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 )
 
@@ -35,10 +37,40 @@ func (c *AccountController) GetUserAccounts(ctx context.Context, req *pb.GetUser
 		return nil, err
 	}
 
-	// Call the renamed service layer method
-	summaries, err := c.accountService.GetUserAccounts(ctx, user.ID)
+	// Extract country code from metadata if present
+	var countryCode string
+	if md, ok := metadata.FromIncomingContext(ctx); ok {
+		if countryValues := md.Get("x-country-code"); len(countryValues) > 0 {
+			countryCode = countryValues[0]
+			fmt.Printf("[GetUserAccounts] Country filter requested: %s for user ID: %d\n", countryCode, user.ID)
+		} else {
+			fmt.Printf("[GetUserAccounts] No country filter for user ID: %d\n", user.ID)
+		}
+	}
+
+	// Call the renamed service layer method with country filter
+	summaries, err := c.accountService.GetUserAccounts(ctx, user.ID, countryCode)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to retrieve accounts: %v", err)
+	}
+
+	// If no accounts found for this country and country is specified, create default accounts
+	if len(summaries) == 0 && countryCode != "" {
+		fmt.Printf("[GetUserAccounts] No accounts found for country %s, creating defaults for user ID: %d\n", countryCode, user.ID)
+
+		// Create default accounts for this country
+		if err := c.accountService.CreateDefaultAccountsForCountry(ctx, user.ID, countryCode); err != nil {
+			fmt.Printf("[GetUserAccounts] Failed to create default accounts for country %s: %v\n", countryCode, err)
+			// Don't return error, just log it and return empty list
+		} else {
+			// Fetch accounts again after creation
+			summaries, err = c.accountService.GetUserAccounts(ctx, user.ID, countryCode)
+			if err != nil {
+				fmt.Printf("[GetUserAccounts] Failed to fetch newly created accounts: %v\n", err)
+			} else {
+				fmt.Printf("[GetUserAccounts] Successfully created %d accounts for country %s\n", len(summaries), countryCode)
+			}
+		}
 	}
 
 	// Construct and return the renamed response type

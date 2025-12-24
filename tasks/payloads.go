@@ -26,11 +26,34 @@ func (p *PayloadProcessTransfer) MarshalBinary() ([]byte, error) {
 	return json.Marshal(p)
 }
 
-// PayloadSendPasswordResetOTP contains data for sending password reset OTP.
+// ProcessTransferPayload contains the data for processing a transfer by ID
+type ProcessTransferPayload struct {
+	TransferID uint `json:"transfer_id"`
+}
+
+// MarshalBinary implements encoding.BinaryMarshaler
+func (p *ProcessTransferPayload) MarshalBinary() ([]byte, error) {
+	return json.Marshal(p)
+}
+
+// ScheduledTransferCheckPayload contains the data for scheduled transfer check
+type ScheduledTransferCheckPayload struct {
+	CheckedAt string `json:"checked_at"` // ISO 8601 timestamp
+}
+
+// PayloadSendPasswordResetOTP contains data for sending password reset OTP via SMS.
 type PayloadSendPasswordResetOTP struct {
 	PhoneNumber string `json:"phone_number,omitempty"` // If sending via SMS
 	Email       string `json:"email,omitempty"`        // If sending via Email
 	OTPCode     string `json:"otp_code"`
+}
+
+// PayloadSendPasswordResetEmailOTP contains data for sending password reset OTP via Email.
+type PayloadSendPasswordResetEmailOTP struct {
+	UserID   uint   `json:"user_id"`
+	Email    string `json:"email"`
+	Username string `json:"username"`
+	OTPCode  string `json:"otp_code"`
 }
 
 // DepositProcessPayload defines payload for deposit processing.
@@ -134,6 +157,70 @@ type GenerateTxDataFilePayload struct {
 
 func NewGenerateTxDataFileTask(userID uint) ([]byte, error) {
 	payload := GenerateTxDataFilePayload{UserID: userID}
+	return json.Marshal(payload)
+}
+
+// EmailSendInvoicePayload defines payload for sending invoice email
+type EmailSendInvoicePayload struct {
+	UserID         string  `json:"user_id"`
+	UserEmail      string  `json:"user_email"`
+	UserName       string  `json:"user_name"`
+	InvoiceID      string  `json:"invoice_id"`
+	InvoiceNumber  string  `json:"invoice_number"`
+	RecipientEmail string  `json:"recipient_email"`
+	RecipientName  string  `json:"recipient_name"`
+	Amount         float64 `json:"amount"`
+	Currency       string  `json:"currency"`
+	DueDate        string  `json:"due_date"` // ISO 8601 format
+	Description    string  `json:"description"`
+}
+
+func NewSendInvoiceEmailTask(userID, userEmail, userName, invoiceID, invoiceNumber, recipientEmail, recipientName string, amount float64, currency, dueDate, description string) ([]byte, error) {
+	payload := EmailSendInvoicePayload{
+		UserID:         userID,
+		UserEmail:      userEmail,
+		UserName:       userName,
+		InvoiceID:      invoiceID,
+		InvoiceNumber:  invoiceNumber,
+		RecipientEmail: recipientEmail,
+		RecipientName:  recipientName,
+		Amount:         amount,
+		Currency:       currency,
+		DueDate:        dueDate,
+		Description:    description,
+	}
+	return json.Marshal(payload)
+}
+
+// EmailSendPaymentConfirmationPayload defines payload for payment confirmation email
+type EmailSendPaymentConfirmationPayload struct {
+	UserEmail         string  `json:"user_email"`
+	UserName          string  `json:"user_name"`
+	InvoiceID         string  `json:"invoice_id"`
+	InvoiceNumber     string  `json:"invoice_number"`
+	Amount            float64 `json:"amount"`
+	Currency          string  `json:"currency"`
+	TransactionID     string  `json:"transaction_id"`
+	ConfirmationCode  string  `json:"confirmation_code"`
+	ProcessedAt       string  `json:"processed_at"` // ISO 8601 format
+	PaymentMethod     string  `json:"payment_method"`
+	FeeAmount         float64 `json:"fee_amount"`
+}
+
+func NewPaymentConfirmationEmailTask(userEmail, userName, invoiceID, invoiceNumber string, amount float64, currency, transactionID, confirmationCode, processedAt, paymentMethod string, feeAmount float64) ([]byte, error) {
+	payload := EmailSendPaymentConfirmationPayload{
+		UserEmail:        userEmail,
+		UserName:         userName,
+		InvoiceID:        invoiceID,
+		InvoiceNumber:    invoiceNumber,
+		Amount:           amount,
+		Currency:         currency,
+		TransactionID:    transactionID,
+		ConfirmationCode: confirmationCode,
+		ProcessedAt:      processedAt,
+		PaymentMethod:    paymentMethod,
+		FeeAmount:        feeAmount,
+	}
 	return json.Marshal(payload)
 }
 

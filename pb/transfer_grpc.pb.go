@@ -19,9 +19,13 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	TransferService_InitiateTransfer_FullMethodName   = "/pb.TransferService/InitiateTransfer"
-	TransferService_GetStatistics_FullMethodName      = "/pb.TransferService/GetStatistics"
-	TransferService_GetTransferDetails_FullMethodName = "/pb.TransferService/GetTransferDetails"
+	TransferService_InitiateTransfer_FullMethodName        = "/pb.TransferService/InitiateTransfer"
+	TransferService_ListTransfers_FullMethodName           = "/pb.TransferService/ListTransfers"
+	TransferService_GetStatistics_FullMethodName           = "/pb.TransferService/GetStatistics"
+	TransferService_GetTransferDetails_FullMethodName      = "/pb.TransferService/GetTransferDetails"
+	TransferService_InitiateBatchTransfer_FullMethodName   = "/pb.TransferService/InitiateBatchTransfer"
+	TransferService_GetBatchTransferStatus_FullMethodName  = "/pb.TransferService/GetBatchTransferStatus"
+	TransferService_GetBatchTransferHistory_FullMethodName = "/pb.TransferService/GetBatchTransferHistory"
 )
 
 // TransferServiceClient is the client API for TransferService service.
@@ -32,10 +36,18 @@ const (
 type TransferServiceClient interface {
 	// Initiates a new transfer
 	InitiateTransfer(ctx context.Context, in *InitiateTransferRequest, opts ...grpc.CallOption) (*InitiateTransferResponse, error)
+	// Lists all transfers for the authenticated user with pagination
+	ListTransfers(ctx context.Context, in *ListTransfersRequest, opts ...grpc.CallOption) (*ListTransfersResponse, error)
 	// Fetches aggregated financial statistics based on transfer history.
 	GetStatistics(ctx context.Context, in *GetStatisticsRequest, opts ...grpc.CallOption) (*GetStatisticsResponse, error)
 	// Retrieves the details of a specific transfer transaction.
 	GetTransferDetails(ctx context.Context, in *GetTransferDetailsRequest, opts ...grpc.CallOption) (*GetTransferDetailsResponse, error)
+	// Initiates a batch transfer to multiple recipients
+	InitiateBatchTransfer(ctx context.Context, in *InitiateBatchTransferRequest, opts ...grpc.CallOption) (*InitiateBatchTransferResponse, error)
+	// Gets the status of a batch transfer
+	GetBatchTransferStatus(ctx context.Context, in *GetBatchTransferStatusRequest, opts ...grpc.CallOption) (*GetBatchTransferStatusResponse, error)
+	// Gets the history of batch transfers
+	GetBatchTransferHistory(ctx context.Context, in *GetBatchTransferHistoryRequest, opts ...grpc.CallOption) (*GetBatchTransferHistoryResponse, error)
 }
 
 type transferServiceClient struct {
@@ -50,6 +62,16 @@ func (c *transferServiceClient) InitiateTransfer(ctx context.Context, in *Initia
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(InitiateTransferResponse)
 	err := c.cc.Invoke(ctx, TransferService_InitiateTransfer_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *transferServiceClient) ListTransfers(ctx context.Context, in *ListTransfersRequest, opts ...grpc.CallOption) (*ListTransfersResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListTransfersResponse)
+	err := c.cc.Invoke(ctx, TransferService_ListTransfers_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -76,6 +98,36 @@ func (c *transferServiceClient) GetTransferDetails(ctx context.Context, in *GetT
 	return out, nil
 }
 
+func (c *transferServiceClient) InitiateBatchTransfer(ctx context.Context, in *InitiateBatchTransferRequest, opts ...grpc.CallOption) (*InitiateBatchTransferResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(InitiateBatchTransferResponse)
+	err := c.cc.Invoke(ctx, TransferService_InitiateBatchTransfer_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *transferServiceClient) GetBatchTransferStatus(ctx context.Context, in *GetBatchTransferStatusRequest, opts ...grpc.CallOption) (*GetBatchTransferStatusResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetBatchTransferStatusResponse)
+	err := c.cc.Invoke(ctx, TransferService_GetBatchTransferStatus_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *transferServiceClient) GetBatchTransferHistory(ctx context.Context, in *GetBatchTransferHistoryRequest, opts ...grpc.CallOption) (*GetBatchTransferHistoryResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetBatchTransferHistoryResponse)
+	err := c.cc.Invoke(ctx, TransferService_GetBatchTransferHistory_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // TransferServiceServer is the server API for TransferService service.
 // All implementations must embed UnimplementedTransferServiceServer
 // for forward compatibility.
@@ -84,10 +136,18 @@ func (c *transferServiceClient) GetTransferDetails(ctx context.Context, in *GetT
 type TransferServiceServer interface {
 	// Initiates a new transfer
 	InitiateTransfer(context.Context, *InitiateTransferRequest) (*InitiateTransferResponse, error)
+	// Lists all transfers for the authenticated user with pagination
+	ListTransfers(context.Context, *ListTransfersRequest) (*ListTransfersResponse, error)
 	// Fetches aggregated financial statistics based on transfer history.
 	GetStatistics(context.Context, *GetStatisticsRequest) (*GetStatisticsResponse, error)
 	// Retrieves the details of a specific transfer transaction.
 	GetTransferDetails(context.Context, *GetTransferDetailsRequest) (*GetTransferDetailsResponse, error)
+	// Initiates a batch transfer to multiple recipients
+	InitiateBatchTransfer(context.Context, *InitiateBatchTransferRequest) (*InitiateBatchTransferResponse, error)
+	// Gets the status of a batch transfer
+	GetBatchTransferStatus(context.Context, *GetBatchTransferStatusRequest) (*GetBatchTransferStatusResponse, error)
+	// Gets the history of batch transfers
+	GetBatchTransferHistory(context.Context, *GetBatchTransferHistoryRequest) (*GetBatchTransferHistoryResponse, error)
 	mustEmbedUnimplementedTransferServiceServer()
 }
 
@@ -101,11 +161,23 @@ type UnimplementedTransferServiceServer struct{}
 func (UnimplementedTransferServiceServer) InitiateTransfer(context.Context, *InitiateTransferRequest) (*InitiateTransferResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method InitiateTransfer not implemented")
 }
+func (UnimplementedTransferServiceServer) ListTransfers(context.Context, *ListTransfersRequest) (*ListTransfersResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListTransfers not implemented")
+}
 func (UnimplementedTransferServiceServer) GetStatistics(context.Context, *GetStatisticsRequest) (*GetStatisticsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetStatistics not implemented")
 }
 func (UnimplementedTransferServiceServer) GetTransferDetails(context.Context, *GetTransferDetailsRequest) (*GetTransferDetailsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetTransferDetails not implemented")
+}
+func (UnimplementedTransferServiceServer) InitiateBatchTransfer(context.Context, *InitiateBatchTransferRequest) (*InitiateBatchTransferResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method InitiateBatchTransfer not implemented")
+}
+func (UnimplementedTransferServiceServer) GetBatchTransferStatus(context.Context, *GetBatchTransferStatusRequest) (*GetBatchTransferStatusResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetBatchTransferStatus not implemented")
+}
+func (UnimplementedTransferServiceServer) GetBatchTransferHistory(context.Context, *GetBatchTransferHistoryRequest) (*GetBatchTransferHistoryResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetBatchTransferHistory not implemented")
 }
 func (UnimplementedTransferServiceServer) mustEmbedUnimplementedTransferServiceServer() {}
 func (UnimplementedTransferServiceServer) testEmbeddedByValue()                         {}
@@ -146,6 +218,24 @@ func _TransferService_InitiateTransfer_Handler(srv interface{}, ctx context.Cont
 	return interceptor(ctx, in, info, handler)
 }
 
+func _TransferService_ListTransfers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListTransfersRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(TransferServiceServer).ListTransfers(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: TransferService_ListTransfers_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(TransferServiceServer).ListTransfers(ctx, req.(*ListTransfersRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _TransferService_GetStatistics_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetStatisticsRequest)
 	if err := dec(in); err != nil {
@@ -182,6 +272,60 @@ func _TransferService_GetTransferDetails_Handler(srv interface{}, ctx context.Co
 	return interceptor(ctx, in, info, handler)
 }
 
+func _TransferService_InitiateBatchTransfer_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(InitiateBatchTransferRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(TransferServiceServer).InitiateBatchTransfer(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: TransferService_InitiateBatchTransfer_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(TransferServiceServer).InitiateBatchTransfer(ctx, req.(*InitiateBatchTransferRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _TransferService_GetBatchTransferStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetBatchTransferStatusRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(TransferServiceServer).GetBatchTransferStatus(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: TransferService_GetBatchTransferStatus_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(TransferServiceServer).GetBatchTransferStatus(ctx, req.(*GetBatchTransferStatusRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _TransferService_GetBatchTransferHistory_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetBatchTransferHistoryRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(TransferServiceServer).GetBatchTransferHistory(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: TransferService_GetBatchTransferHistory_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(TransferServiceServer).GetBatchTransferHistory(ctx, req.(*GetBatchTransferHistoryRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // TransferService_ServiceDesc is the grpc.ServiceDesc for TransferService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -194,12 +338,28 @@ var TransferService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _TransferService_InitiateTransfer_Handler,
 		},
 		{
+			MethodName: "ListTransfers",
+			Handler:    _TransferService_ListTransfers_Handler,
+		},
+		{
 			MethodName: "GetStatistics",
 			Handler:    _TransferService_GetStatistics_Handler,
 		},
 		{
 			MethodName: "GetTransferDetails",
 			Handler:    _TransferService_GetTransferDetails_Handler,
+		},
+		{
+			MethodName: "InitiateBatchTransfer",
+			Handler:    _TransferService_InitiateBatchTransfer_Handler,
+		},
+		{
+			MethodName: "GetBatchTransferStatus",
+			Handler:    _TransferService_GetBatchTransferStatus_Handler,
+		},
+		{
+			MethodName: "GetBatchTransferHistory",
+			Handler:    _TransferService_GetBatchTransferHistory_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

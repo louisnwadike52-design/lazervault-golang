@@ -1,0 +1,196 @@
+syntax = "proto3";
+
+package ai_scan;
+
+option go_package = "github.com/yourusername/lazervault/pb";
+
+import "google/api/annotations.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+
+// AI Scan Service for extracting data from images
+service AiScanService {
+  // Start a new scan session
+  rpc StartScanSession(StartScanSessionRequest) returns (StartScanSessionResponse) {
+    option (google.api.http) = {
+      post: "/v1/ai-scan/session/start"
+      body: "*"
+    };
+  }
+
+  // Process an image and extract data
+  rpc ProcessImage(ProcessImageRequest) returns (ProcessImageResponse) {
+    option (google.api.http) = {
+      post: "/v1/ai-scan/process-image"
+      body: "*"
+    };
+  }
+
+  // Send a chat message and get AI response
+  rpc SendChatMessage(SendChatMessageRequest) returns (SendChatMessageResponse) {
+    option (google.api.http) = {
+      post: "/v1/ai-scan/chat"
+      body: "*"
+    };
+  }
+
+  // Generate payment instruction from extracted data
+  rpc GeneratePaymentInstruction(GeneratePaymentInstructionRequest) returns (GeneratePaymentInstructionResponse) {
+    option (google.api.http) = {
+      post: "/v1/ai-scan/generate-payment"
+      body: "*"
+    };
+  }
+
+  // Process the generated payment
+  rpc ProcessPayment(ScanProcessPaymentRequest) returns (ScanProcessPaymentResponse) {
+    option (google.api.http) = {
+      post: "/v1/ai-scan/process-payment"
+      body: "*"
+    };
+  }
+
+  // Get scan history for a user
+  rpc GetScanHistory(GetScanHistoryRequest) returns (GetScanHistoryResponse) {
+    option (google.api.http) = {
+      get: "/v1/ai-scan/history/{user_id}"
+    };
+  }
+}
+
+// Scan types enum
+enum ScanType {
+  SCAN_TYPE_UNSPECIFIED = 0;
+  INVOICE = 1;
+  UTILITY_BILL = 2;
+  QR_CODE = 3;
+  BARCODE = 4;
+  ACCOUNT_DETAILS = 5;
+  GIFT_CARD = 6;
+  RECEIPT = 7;
+  BANK_DETAILS = 8;
+}
+
+// Scan status enum
+enum ScanStatus {
+  SCAN_STATUS_UNSPECIFIED = 0;
+  PENDING = 1;
+  PROCESSING = 2;
+  COMPLETED = 3;
+  FAILED = 4;
+}
+
+// Start Scan Session
+message StartScanSessionRequest {
+  string user_id = 1;
+  ScanType scan_type = 2;
+}
+
+message StartScanSessionResponse {
+  string session_id = 1;
+  ScanType scan_type = 2;
+  ScanStatus status = 3;
+  int64 created_at = 4;
+}
+
+// Process Image
+message ProcessImageRequest {
+  string session_id = 1;
+  bytes image_data = 2;
+  ScanType scan_type = 3;
+}
+
+message ExtractedData {
+  string recipient = 1;
+  double amount = 2;
+  string currency = 3;
+  string reference = 4;
+  string due_date = 5;
+  string description = 6;
+  string account_number = 7;
+  string routing_number = 8;
+  string bank_name = 9;
+  map<string, string> additional_fields = 10;
+  float confidence_score = 11;
+}
+
+message ProcessImageResponse {
+  string session_id = 1;
+  ExtractedData extracted_data = 2;
+  string ai_message = 3;
+  bool success = 4;
+  string error_message = 5;
+}
+
+// Chat Message
+message SendChatMessageRequest {
+  string session_id = 1;
+  string user_message = 2;
+  ExtractedData context_data = 3;
+}
+
+message SendChatMessageResponse {
+  string message_id = 1;
+  string ai_response = 2;
+  int64 timestamp = 3;
+}
+
+// Generate Payment Instruction
+message GeneratePaymentInstructionRequest {
+  string session_id = 1;
+  ExtractedData extracted_data = 2;
+  ScanType scan_type = 3;
+}
+
+message PaymentInstruction {
+  string instruction_id = 1;
+  string recipient = 2;
+  double amount = 3;
+  string currency = 4;
+  string reference = 5;
+  string description = 6;
+  map<string, string> metadata = 7;
+}
+
+message GeneratePaymentInstructionResponse {
+  PaymentInstruction instruction = 1;
+  bool success = 2;
+  string error_message = 3;
+}
+
+// Process Payment
+message ScanProcessPaymentRequest {
+  string user_id = 1;
+  string session_id = 2;
+  PaymentInstruction instruction = 3;
+}
+
+message ScanProcessPaymentResponse {
+  string transaction_id = 1;
+  bool success = 2;
+  string status = 3;
+  string error_message = 4;
+  int64 timestamp = 5;
+}
+
+// Scan History
+message GetScanHistoryRequest {
+  string user_id = 1;
+  int32 page = 2;
+  int32 page_size = 3;
+}
+
+message ScanSessionHistory {
+  string session_id = 1;
+  ScanType scan_type = 2;
+  ScanStatus status = 3;
+  int64 created_at = 4;
+  ExtractedData extracted_data = 5;
+  string transaction_id = 6;
+}
+
+message GetScanHistoryResponse {
+  repeated ScanSessionHistory sessions = 1;
+  int32 total_count = 2;
+  int32 page = 3;
+  int32 page_size = 4;
+}

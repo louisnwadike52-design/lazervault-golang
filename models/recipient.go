@@ -21,9 +21,11 @@ type Recipient struct {
 	SortCode      string `gorm:"type:varchar(50)"`  // Or Routing Number etc.
 	BankName      string `gorm:"type:varchar(255)"`
 	CountryCode   string `gorm:"type:varchar(10)"` // e.g., "GB", "US"
-	// Add IBAN, SWIFT/BIC etc. as needed
-	// IBAN              string     `gorm:"type:varchar(50)"`
-	// SwiftBIC          string     `gorm:"type:varchar(20)"`
+	Email         string `gorm:"type:varchar(255)"`
+	PhoneNumber   string `gorm:"type:varchar(50)"`
+	Currency      string `gorm:"type:varchar(10)"`
+	SwiftCode     string `gorm:"type:varchar(20)"`
+	IBAN          string `gorm:"type:varchar(50)"`
 
 	// Relationships
 	Owner           User     `gorm:"foreignKey:OwnerUserID"`

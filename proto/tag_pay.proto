@@ -1,0 +1,343 @@
+syntax = "proto3";
+
+package pb;
+option go_package = "lazervaultGo/pb";
+
+import "google/protobuf/timestamp.proto";
+import "common.proto";
+
+// TagPay Service - Instant money transfer using username tags
+service TagPayService {
+  // Create or update a user's tag
+  rpc CreateTagPay(CreateTagPayRequest) returns (CreateTagPayResponse);
+
+  // Get tag by username
+  rpc GetTagPay(GetTagPayRequest) returns (GetTagPayResponse);
+
+  // Check if tag is available
+  rpc CheckTagPayAvailability(CheckTagPayAvailabilityRequest) returns (CheckTagPayAvailabilityResponse);
+
+  // Search for users by tag
+  rpc SearchTagPay(SearchTagPayRequest) returns (SearchTagPayResponse);
+
+  // Send money using tag
+  rpc SendMoneyTagPay(SendMoneyTagPayRequest) returns (SendMoneyTagPayResponse);
+
+  // Request money using tag
+  rpc RequestMoneyTagPay(RequestMoneyTagPayRequest) returns (RequestMoneyTagPayResponse);
+
+  // Get user's tag transactions
+  rpc GetTagPayTransactions(GetTagPayTransactionsRequest) returns (GetTagPayTransactionsResponse);
+
+  // Accept money request
+  rpc AcceptMoneyRequest(AcceptMoneyRequestRequest) returns (AcceptMoneyRequestResponse);
+
+  // Decline money request
+  rpc DeclineMoneyRequest(DeclineMoneyRequestRequest) returns (DeclineMoneyRequestResponse);
+
+  // Get pending money requests
+  rpc GetPendingMoneyRequests(GetPendingMoneyRequestsRequest) returns (GetPendingMoneyRequestsResponse);
+
+  // Create a tag for another user (tag them with an amount)
+  rpc CreateTag(CreateTagRequest) returns (CreateTagResponse);
+
+  // Get all tags (backward compatibility - returns outgoing tags)
+  rpc GetMyTags(GetMyTagsRequest) returns (GetMyTagsResponse);
+
+  // Get tags I created (I owe them money)
+  rpc GetMyOutgoingTags(GetMyTagsRequest) returns (GetMyTagsResponse);
+
+  // Get tags others created for me (they owe me money)
+  rpc GetMyIncomingTags(GetMyTagsRequest) returns (GetMyTagsResponse);
+
+  // Pay a specific tag with one click (no transaction PIN required)
+  rpc PayTag(PayTagRequest) returns (PayTagResponse);
+
+  // Search users by username or name for tagging
+  rpc SearchUsers(SearchUsersForTagRequest) returns (SearchUsersForTagResponse);
+}
+
+// Tag Pay Entity
+message TagPay {
+  string id = 1;
+  string user_id = 2;
+  string tag_pay = 3; // e.g., "johndoe" (username)
+  string display_name = 4;
+  string avatar_url = 5;
+  bool is_active = 6;
+  google.protobuf.Timestamp created_at = 7;
+  google.protobuf.Timestamp updated_at = 8;
+}
+
+// Tag Pay Transaction
+message TagPayTransaction {
+  string id = 1;
+  string sender_id = 2;
+  string sender_tag_pay = 3;
+  string sender_name = 4;
+  string receiver_id = 5;
+  string receiver_tag_pay = 6;
+  string receiver_name = 7;
+  double amount = 8;
+  string currency = 9;
+  string description = 10;
+  TagPayTransactionStatus status = 11;
+  TagPayTransactionType type = 12;
+  string reference_number = 13;
+  google.protobuf.Timestamp created_at = 14;
+  google.protobuf.Timestamp completed_at = 15;
+}
+
+// Money Request Entity
+message MoneyRequest {
+  string id = 1;
+  string requester_id = 2;
+  string requester_tag_pay = 3;
+  string requester_name = 4;
+  string requestee_id = 5;
+  string requestee_tag_pay = 6;
+  string requestee_name = 7;
+  double amount = 8;
+  string currency = 9;
+  string description = 10;
+  MoneyRequestStatus status = 11;
+  google.protobuf.Timestamp created_at = 12;
+  google.protobuf.Timestamp responded_at = 13;
+  google.protobuf.Timestamp expires_at = 14;
+}
+
+// User Tag Entity - Simple tag system
+message UserTag {
+  string id = 1;
+  string tagger_id = 2; // User who created the tag
+  string tagger_tag_pay = 3;
+  string tagger_name = 4;
+  string tagged_user_id = 5; // User who was tagged
+  string tagged_user_tag_pay = 6;
+  string tagged_user_name = 7;
+  double amount = 8;
+  string currency = 9;
+  string description = 10;
+  TagStatus status = 11;
+  google.protobuf.Timestamp created_at = 12;
+  google.protobuf.Timestamp paid_at = 13;
+}
+
+// Enums
+enum TagPayTransactionStatus {
+  TAG_PAY_TRANSACTION_STATUS_PENDING = 0;
+  TAG_PAY_TRANSACTION_STATUS_PROCESSING = 1;
+  TAG_PAY_TRANSACTION_STATUS_COMPLETED = 2;
+  TAG_PAY_TRANSACTION_STATUS_FAILED = 3;
+  TAG_PAY_TRANSACTION_STATUS_CANCELLED = 4;
+  TAG_PAY_TRANSACTION_STATUS_REFUNDED = 5;
+}
+
+enum TagPayTransactionType {
+  TAG_PAY_TRANSACTION_TYPE_SEND = 0;
+  TAG_PAY_TRANSACTION_TYPE_RECEIVE = 1;
+  TAG_PAY_TRANSACTION_TYPE_REQUEST = 2;
+  TAG_PAY_TRANSACTION_TYPE_REQUEST_FULFILLED = 3;
+}
+
+enum MoneyRequestStatus {
+  MONEY_REQUEST_STATUS_PENDING = 0;
+  MONEY_REQUEST_STATUS_ACCEPTED = 1;
+  MONEY_REQUEST_STATUS_DECLINED = 2;
+  MONEY_REQUEST_STATUS_EXPIRED = 3;
+  MONEY_REQUEST_STATUS_CANCELLED = 4;
+}
+
+enum TagStatus {
+  TAG_STATUS_PENDING = 0;
+  TAG_STATUS_PAID = 1;
+  TAG_STATUS_CANCELLED = 2;
+}
+
+// Create Tag Pay
+message CreateTagPayRequest {
+  string tag_pay = 1;
+  string display_name = 2;
+  string avatar_url = 3;
+}
+
+message CreateTagPayResponse {
+  bool success = 1;
+  string message = 2;
+  TagPay tag_pay = 3;
+}
+
+// Get Tag Pay
+message GetTagPayRequest {
+  string tag_pay = 1;
+}
+
+message GetTagPayResponse {
+  bool success = 1;
+  string message = 2;
+  TagPay tag_pay = 3;
+}
+
+// Check Tag Pay Availability
+message CheckTagPayAvailabilityRequest {
+  string tag_pay = 1;
+}
+
+message CheckTagPayAvailabilityResponse {
+  bool available = 1;
+  string message = 2;
+  repeated string suggestions = 3;
+}
+
+// Search Tag Pay
+message SearchTagPayRequest {
+  string query = 1;
+  int32 limit = 2;
+}
+
+message SearchTagPayResponse {
+  repeated TagPay results = 1;
+  int32 total = 2;
+}
+
+// Send Money using Tag Pay
+message SendMoneyTagPayRequest {
+  string receiver_tag_pay = 1;
+  double amount = 2;
+  string currency = 3;
+  string description = 4;
+  string source_account_id = 5; // Account to debit from
+  string transaction_pin = 6; // For security
+}
+
+message SendMoneyTagPayResponse {
+  bool success = 1;
+  string message = 2;
+  TagPayTransaction transaction = 3;
+}
+
+// Request Money using Tag Pay
+message RequestMoneyTagPayRequest {
+  string requestee_tag_pay = 1;
+  double amount = 2;
+  string currency = 3;
+  string description = 4;
+}
+
+message RequestMoneyTagPayResponse {
+  bool success = 1;
+  string message = 2;
+  MoneyRequest money_request = 3;
+}
+
+// Get Tag Pay Transactions
+message GetTagPayTransactionsRequest {
+  int32 page = 1;
+  int32 limit = 2;
+  TagPayTransactionType type = 3; // Optional filter
+}
+
+message GetTagPayTransactionsResponse {
+  repeated TagPayTransaction transactions = 1;
+  int32 total = 2;
+  int32 page = 3;
+  int32 total_pages = 4;
+}
+
+// Accept Money Request
+message AcceptMoneyRequestRequest {
+  string request_id = 1;
+  string source_account_id = 2; // Account to debit from
+  string transaction_pin = 3;
+}
+
+message AcceptMoneyRequestResponse {
+  bool success = 1;
+  string message = 2;
+  TagPayTransaction transaction = 3;
+}
+
+// Decline Money Request
+message DeclineMoneyRequestRequest {
+  string request_id = 1;
+  string reason = 2;
+}
+
+message DeclineMoneyRequestResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+// Get Pending Money Requests
+message GetPendingMoneyRequestsRequest {
+  int32 page = 1;
+  int32 limit = 2;
+  bool incoming = 3; // true for requests TO user, false for requests FROM user
+}
+
+message GetPendingMoneyRequestsResponse {
+  repeated MoneyRequest requests = 1;
+  int32 total = 2;
+  int32 page = 3;
+  int32 total_pages = 4;
+}
+
+// Create Tag
+message CreateTagRequest {
+  string tagged_user_tag_pay = 1; // Username of user to tag
+  double amount = 2;
+  string currency = 3;
+  string description = 4;
+}
+
+message CreateTagResponse {
+  bool success = 1;
+  string message = 2;
+  UserTag tag = 3;
+}
+
+// Get My Tags
+message GetMyTagsRequest {
+  int32 page = 1;
+  int32 limit = 2;
+  TagStatus status = 3; // Optional filter
+}
+
+message GetMyTagsResponse {
+  repeated UserTag tags = 1;
+  int32 total = 2;
+  int32 page = 3;
+  int32 total_pages = 4;
+}
+
+// Pay Tag
+message PayTagRequest {
+  string tag_id = 1;
+  string source_account_id = 2; // Account to debit from
+  string transaction_pin = 3;
+}
+
+message PayTagResponse {
+  bool success = 1;
+  string message = 2;
+  TagPayTransaction transaction = 3;
+}
+
+// Search Users for Tagging
+message SearchUsersForTagRequest {
+  string query = 1;
+  int32 limit = 2;
+}
+
+message UserSearchResult {
+  string user_id = 1;
+  string username = 2;
+  string first_name = 3;
+  string last_name = 4;
+  string email = 5;
+  string profile_picture = 6;
+}
+
+message SearchUsersForTagResponse {
+  repeated UserSearchResult users = 1;
+}

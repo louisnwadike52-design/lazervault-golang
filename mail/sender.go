@@ -7,11 +7,6 @@ import (
 	"github.com/jordan-wright/email"
 )
 
-const (
-	smtpAuthAddress   = "smtp.gmail.com"
-	smtpServerAddress = "smtp.gmail.com:587"
-)
-
 type EmailSender interface {
 	SendEmail(
 		subject string,
@@ -23,21 +18,49 @@ type EmailSender interface {
 	) error
 }
 
-type GmailSender struct {
+// SMTPSender is a generic SMTP email sender supporting any SMTP server
+type SMTPSender struct {
 	name              string
 	fromEmailAddress  string
 	fromEmailPassword string
+	smtpHost          string
+	smtpPort          string
+	smtpAuthAddress   string
 }
 
-func NewGmailSender(name string, fromEmailAddress string, fromEmailPassword string) EmailSender {
-	return &GmailSender{
+// NewSMTPSender creates a new SMTP sender with configurable SMTP settings
+func NewSMTPSender(
+	name string,
+	fromEmailAddress string,
+	fromEmailPassword string,
+	smtpHost string,
+	smtpPort string,
+	smtpAuthAddress string,
+) EmailSender {
+	return &SMTPSender{
 		name:              name,
 		fromEmailAddress:  fromEmailAddress,
 		fromEmailPassword: fromEmailPassword,
+		smtpHost:          smtpHost,
+		smtpPort:          smtpPort,
+		smtpAuthAddress:   smtpAuthAddress,
 	}
 }
 
-func (sender *GmailSender) SendEmail(
+// Deprecated: Use NewSMTPSender instead
+// NewGmailSender creates a Gmail-specific sender (for backward compatibility)
+func NewGmailSender(name string, fromEmailAddress string, fromEmailPassword string) EmailSender {
+	return NewSMTPSender(
+		name,
+		fromEmailAddress,
+		fromEmailPassword,
+		"smtp.gmail.com",
+		"587",
+		"smtp.gmail.com",
+	)
+}
+
+func (sender *SMTPSender) SendEmail(
 	subject string,
 	content string,
 	to []string,
@@ -60,13 +83,14 @@ func (sender *GmailSender) SendEmail(
 		}
 	}
 
-	smtpAuth := smtp.PlainAuth("", sender.fromEmailAddress, sender.fromEmailPassword, smtpAuthAddress)
+	smtpServerAddress := fmt.Sprintf("%s:%s", sender.smtpHost, sender.smtpPort)
+	smtpAuth := smtp.PlainAuth("", sender.fromEmailAddress, sender.fromEmailPassword, sender.smtpAuthAddress)
 	return e.Send(smtpServerAddress, smtpAuth)
 }
 
 // SendPasswordResetEmail sends a password reset email.
 // resetLink is the URL the user will click (e.g., "https://yourapp.com/reset-password?token=...")
-func (sender *GmailSender) SendPasswordResetEmail(toEmail string, resetToken string) error {
+func (sender *SMTPSender) SendPasswordResetEmail(toEmail string, resetToken string) error {
 	// TODO: Construct the actual reset link based on your frontend URL structure
 	// It's crucial this link points to your frontend reset password page
 	// and includes the token.

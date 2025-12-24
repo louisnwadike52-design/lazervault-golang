@@ -32,34 +32,45 @@ var (
 )
 
 type User struct {
-	gorm.Model
-	FirstName   string     `json:"first_name" gorm:"size:255;not null;check:length(first_name) >= 2"`
-	LastName    string     `json:"last_name" gorm:"size:255;not null;check:length(last_name) >= 2"`
-	Email       string     `json:"email" gorm:"size:255;not null;unique;index:idx_email,priority:1"`
-	Password    *string    `json:"password,omitempty" gorm:"size:255;check:length(password) >= 8"` // Made nullable for social sign-in
-	PhoneNumber string     `json:"phone_number" gorm:"size:255;not null;unique;index:idx_phone_number,priority:1"`
-	Role        string     `json:"role" gorm:"size:255;check:role IN ('admin', 'user')"`
+	gorm.Model        // Includes ID, CreatedAt, UpdatedAt, DeletedAt
+	FirstName   string     `json:"first_name" gorm:"size:255"`
+	LastName    string     `json:"last_name" gorm:"size:255"`
+	Username    *string    `json:"username,omitempty" gorm:"size:255;uniqueIndex:idx_username"`
+	Email       string     `json:"email" gorm:"size:255;not null;uniqueIndex:uni_users_email"`
+	Password    string     `json:"-" gorm:"size:255"`
+	PhoneNumber string     `json:"phone_number" gorm:"size:255;uniqueIndex:uni_users_phone_number"`
+	UUID        string     `json:"user_id" gorm:"type:uuid;default:uuid_generate_v4();column:user_id"`
+	Role        string     `json:"role" gorm:"size:255;default:'user'"`
 	Verified    bool       `json:"verified" gorm:"default:false"`
 	VerifiedAt  *time.Time `json:"verified_at"`
+	ProfilePicture *string `json:"profile_picture,omitempty" gorm:"type:text"`
+
+	// Partial User Fields (for invitations)
+	IsPartial bool  `json:"is_partial" gorm:"default:false"`
+	InvitedBy *uint `json:"invited_by,omitempty" gorm:"index:idx_invited_by"`
 
 	// Social Login Fields
-	GoogleID *string `json:"google_id,omitempty" gorm:"size:255;uniqueIndex:idx_google_id"` // Nullable, unique
-	AppleID  *string `json:"apple_id,omitempty" gorm:"size:255;uniqueIndex:idx_apple_id"`   // Nullable, unique
+	GoogleID *string `json:"google_id,omitempty" gorm:"size:255;uniqueIndex:idx_google_id"`
+	AppleID  *string `json:"apple_id,omitempty" gorm:"size:255;uniqueIndex:idx_apple_id"`
 
-	CreatedAt time.Time `json:"created_at" gorm:"autoCreateTime"`
-	UpdatedAt time.Time `json:"updated_at" gorm:"autoUpdateTime"`
-
-	// Fields for Password Reset
-	ResetPasswordToken          *string    `json:"-" gorm:"index"` // Use pointer to allow NULL, index for lookup
+	// Password Reset Fields
+	ResetPasswordToken          *string    `json:"-" gorm:"type:text;index:idx_users_reset_password_token"`
 	ResetPasswordTokenExpiresAt *time.Time `json:"-"`
 
-	// Field for Transaction PIN (Store Hashed)
-	TransactionPin *string `json:"-" gorm:"size:255"` // Nullable if PIN is not set
+	// Transaction PIN (Store Hashed)
+	TransactionPin *string `json:"-" gorm:"size:255"`
 
-	// Field for Login Passcode (Store Hashed) - Used for quick device login
-	LoginPasscode *string `json:"-" gorm:"size:255"` // Nullable if passcode is not set
+	// Login Passcode (Store Hashed) - FIXED: Now a real DB column
+	LoginPasscode *string `json:"-" gorm:"size:255"`
 
-	Accounts []Account `gorm:"foreignKey:OwnerUserID"` // Has Many relationship
+	// Facial Recognition Fields
+	FacialRecognitionEnabled bool       `json:"facial_recognition_enabled" gorm:"default:false"`
+	FaceRegisteredAt         *time.Time `json:"face_registered_at"`
+
+	// User Preferences (moved to User model for simplicity)
+	Language string `json:"language" gorm:"size:10;default:'en'"`
+	Currency string `json:"currency" gorm:"size:10;default:'GBP'"`
+	Country  string `json:"country" gorm:"size:100;default:'United Kingdom'"`
 }
 
 func (User) TableName() string {
@@ -71,8 +82,10 @@ func (u *User) ToJson() gin.H {
 		"id":           u.ID,
 		"first_name":   u.FirstName,
 		"last_name":    u.LastName,
+		"name":         u.FirstName + " " + u.LastName,
 		"email":        u.Email,
 		"phone_number": u.PhoneNumber,
+		"user_id":      u.UUID,
 		"role":         u.Role,
 		"verified":     u.Verified,
 		"created_at":   u.CreatedAt,
@@ -82,12 +95,61 @@ func (u *User) ToJson() gin.H {
 
 // BeforeCreate hook for GORM
 func (u *User) BeforeCreate(tx *gorm.DB) error {
+	// For partial users (invitations), skip most validations
+	if u.IsPartial {
+		// Only validate email/phone uniqueness and format for partial users
+		if u.Email != "" {
+			if !utils.IsValidEmail(u.Email) {
+				return ErrInvalidEmail
+			}
+			var count int64
+			if err := tx.Model(&User{}).Where("email = ?", u.Email).Count(&count).Error; err != nil {
+				return err
+			}
+			if count > 0 {
+				return ErrDuplicateEmail
+			}
+		}
+		if u.PhoneNumber != "" {
+			if !utils.IsValidPhoneNumber(u.PhoneNumber) {
+				return ErrInvalidPhone
+			}
+			var count int64
+			if err := tx.Model(&User{}).Where("phone_number = ?", u.PhoneNumber).Count(&count).Error; err != nil {
+				return err
+			}
+			if count > 0 {
+				return ErrDuplicatePhone
+			}
+		}
+		// Set default role for partial users
+		if u.Role == "" {
+			u.Role = "user"
+		}
+		return nil
+	}
+
+	// Full user validation (existing logic)
 	// Validate name length
 	if len(u.FirstName) < 2 || len(u.FirstName) > 255 {
 		return ErrInvalidNameLength
 	}
 	if len(u.LastName) < 2 || len(u.LastName) > 255 {
 		return ErrInvalidNameLength
+	}
+
+	// Validate username if provided
+	if u.Username != nil && *u.Username != "" {
+		if len(*u.Username) < 3 || len(*u.Username) > 50 {
+			return errors.New("username must be between 3 and 50 characters")
+		}
+		var count int64
+		if err := tx.Model(&User{}).Where("username = ?", *u.Username).Count(&count).Error; err != nil {
+			return err
+		}
+		if count > 0 {
+			return errors.New("username already exists")
+		}
 	}
 
 	// Validate email format and uniqueness
@@ -103,16 +165,16 @@ func (u *User) BeforeCreate(tx *gorm.DB) error {
 	}
 
 	// Validate password
-	if u.Password != nil && *u.Password != "" { // Check if password is provided
-		if len(*u.Password) < 8 {
+	if u.Password != "" { // Check if password is provided
+		if len(u.Password) < 8 {
 			return ErrInvalidPasswordFormat // Use specific error
 		}
 		// Hash password
-		hashedPassword, err := utils.HashPassword(*u.Password)
+		hashedPassword, err := utils.HashPassword(u.Password)
 		if err != nil {
 			return err
 		}
-		*u.Password = hashedPassword
+		u.Password = hashedPassword
 	} else if u.GoogleID == nil && u.AppleID == nil {
 		// If not a social sign-up, password is required
 		return ErrPasswordRequired
@@ -168,18 +230,15 @@ func (u *User) BeforeUpdate(tx *gorm.DB) error {
 	}
 
 	if tx.Statement.Changed("Password") {
-		if u.Password != nil && *u.Password != "" {
-			if len(*u.Password) < 8 {
+		if u.Password != "" {
+			if len(u.Password) < 8 {
 				return ErrInvalidPasswordFormat
 			}
-			hashedPassword, err := utils.HashPassword(*u.Password)
+			hashedPassword, err := utils.HashPassword(u.Password)
 			if err != nil {
 				return err
 			}
-			*u.Password = hashedPassword
-		} else {
-			// Allowing password to be set to null/empty during update might be intended
-			// If password MUST exist after initial creation, add validation here.
+			u.Password = hashedPassword
 		}
 	}
 
@@ -213,15 +272,12 @@ func (u *User) AfterCreate(tx *gorm.DB) error {
 
 // ComparePassword compares the provided password with the user's hashed password
 func (u *User) ComparePassword(password string) (bool, error) {
-	if u.Password == nil || *u.Password == "" {
-		// No password set (e.g., social sign-in user)
-		return false, ErrPasswordMismatch // Or a more specific error like ErrNoPasswordSet
+	if u.Password == "" {
+		return false, ErrPasswordMismatch
 	}
-	err := bcrypt.CompareHashAndPassword([]byte(*u.Password), []byte(password))
+	err := bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(password))
 	if err != nil {
-		// Log the bcrypt error for debugging if needed
-		// log.Printf("bcrypt compare error: %v", err)
-		return false, ErrPasswordMismatch // Return generic mismatch for security
+		return false, ErrPasswordMismatch
 	}
 	return true, nil
 }
@@ -254,8 +310,7 @@ func (u *User) SetLoginPasscode(passcode string) error {
 
 func (User) FindById(db *gorm.DB, id uint) (*User, error) {
 	var user User
-	// Preload Accounts when finding by ID
-	if err := db.Preload("Accounts").Where("id = ?", id).First(&user).Error; err != nil {
+	if err := db.Where("id = ?", id).First(&user).Error; err != nil {
 		return nil, err
 	}
 	return &user, nil
@@ -264,8 +319,7 @@ func (User) FindById(db *gorm.DB, id uint) (*User, error) {
 // GetUserByEmail retrieves a user by their email address
 func (User) GetUserByEmail(db *gorm.DB, email string) (*User, error) {
 	var user User
-	// Preload Accounts when finding by email
-	if err := db.Preload("Accounts").Where("email = ?", email).First(&user).Error; err != nil {
+	if err := db.Where("email = ?", email).First(&user).Error; err != nil {
 		return nil, err
 	}
 	return &user, nil

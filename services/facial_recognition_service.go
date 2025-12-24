@@ -90,7 +90,7 @@ func (s *FacialRecognitionService) RegisterFace(ctx context.Context, req *pb.Reg
 	var lastErr error
 
 	for i := 0; i < s.maxRetries; i++ {
-		resp, lastErr = s.makeRequest(ctx, "POST", "/api/face/register", &buf, writer.FormDataContentType())
+		resp, lastErr = s.makeRequest(ctx, "POST", "/api/facials/register", &buf, writer.FormDataContentType())
 		if lastErr == nil {
 			break
 		}
@@ -188,7 +188,7 @@ func (s *FacialRecognitionService) VerifyFace(ctx context.Context, req *pb.Verif
 	var lastErr error
 
 	for i := 0; i < s.maxRetries; i++ {
-		resp, lastErr = s.makeRequest(ctx, "POST", "/api/face/verify", &buf, writer.FormDataContentType())
+		resp, lastErr = s.makeRequest(ctx, "POST", "/api/facials/verify", &buf, writer.FormDataContentType())
 		if lastErr == nil {
 			break
 		}
@@ -248,12 +248,12 @@ func (s *FacialRecognitionService) VerifyFace(ctx context.Context, req *pb.Verif
 
 // HealthCheck checks the health of the facial recognition service
 func (s *FacialRecognitionService) HealthCheck(ctx context.Context, req *pb.HealthCheckRequest) (*pb.HealthCheckResponse, error) {
-	// Make a simple health check request
-	resp, err := s.makeRequest(ctx, "GET", "/api/health", nil, "application/json")
+	// Make a simple health check request to the facial recognition endpoint
+	resp, err := s.makeRequest(ctx, "GET", "/api/facials/health", nil, "application/json")
 	if err != nil {
 		return &pb.HealthCheckResponse{
 			Healthy:        false,
-			Message:        fmt.Sprintf("Service unavailable: %v", err),
+			Message:        fmt.Sprintf("Facial recognition service unavailable: %v", err),
 			ServiceVersion: "unknown",
 			Timestamp:      timestamppb.Now(),
 		}, nil
@@ -261,9 +261,9 @@ func (s *FacialRecognitionService) HealthCheck(ctx context.Context, req *pb.Heal
 	defer resp.Body.Close()
 
 	healthy := resp.StatusCode == http.StatusOK
-	message := "Service is healthy"
+	message := "Facial recognition service is healthy"
 	if !healthy {
-		message = fmt.Sprintf("Service returned status: %d", resp.StatusCode)
+		message = fmt.Sprintf("Facial recognition service returned status: %d", resp.StatusCode)
 	}
 
 	return &pb.HealthCheckResponse{

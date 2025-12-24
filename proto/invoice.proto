@@ -8,6 +8,36 @@ import "invoice_payment.proto";
 
 option go_package = "lazervaultGo/pb";
 
+// AddressDetails represents address information for invoice participants
+message AddressDetails {
+	string company_name = 1;
+	string contact_name = 2;
+	string email = 3;
+	string phone = 4;
+	string address_line1 = 5;
+	string address_line2 = 6;
+	string city = 7;
+	string state = 8;
+	string postcode = 9;
+	string country = 10;
+	string bank_account = 11;
+	string bic_number = 12;
+	string iban = 13;
+	string routing_number = 14;
+	string tax_id = 15;
+}
+
+// InvoiceItem represents a line item in an invoice
+message InvoiceItem {
+	string id = 1;
+	string name = 2;
+	string description = 3;
+	double quantity = 4;
+	double unit_price = 5;
+	double total_price = 6;
+	string category = 7;
+}
+
 // Invoice represents an invoice in the system
 message Invoice {
 	string id = 1;
@@ -23,6 +53,15 @@ message Invoice {
 	string payment_reference = 11;
 	google.protobuf.Timestamp created_at = 12;
 	google.protobuf.Timestamp updated_at = 13;
+	repeated InvoiceItem items = 14;
+	string notes = 15;
+	double tax_amount = 16;
+	double discount_amount = 17;
+	double total_amount = 18;
+	AddressDetails recipient_details = 19;
+	AddressDetails payer_details = 20;
+	string to_email = 21;
+	string to_name = 22;
 }
 
 // GetInvoicesRequest represents a request to get all invoices for a user
@@ -55,6 +94,15 @@ message CreateInvoiceRequest {
 	double amount = 4;
 	string currency = 5;
 	string due_date = 6;
+	repeated InvoiceItem items = 7;
+	string notes = 8;
+	double tax_amount = 9;
+	double discount_amount = 10;
+	double total_amount = 11;
+	AddressDetails recipient_details = 12;
+	AddressDetails payer_details = 13;
+	string to_email = 14;
+	string to_name = 15;
 }
 
 // CreateInvoiceResponse represents a response containing the created invoice
@@ -71,6 +119,15 @@ message UpdateInvoiceRequest {
 	double amount = 5;
 	string currency = 6;
 	string due_date = 7;
+	repeated InvoiceItem items = 8;
+	string notes = 9;
+	double tax_amount = 10;
+	double discount_amount = 11;
+	double total_amount = 12;
+	AddressDetails recipient_details = 13;
+	AddressDetails payer_details = 14;
+	string to_email = 15;
+	string to_name = 16;
 }
 
 // UpdateInvoiceResponse represents a response containing the updated invoice
@@ -121,6 +178,44 @@ message SendInvoiceRequest {
 // SendInvoiceResponse represents a response after sending an invoice
 message SendInvoiceResponse {
 	bool success = 1;
+}
+
+// TagUsersToInvoiceRequest represents a request to tag multiple users to an invoice
+message TagUsersToInvoiceRequest {
+	string invoice_id = 1;
+	repeated string user_ids = 2;
+	repeated string emails = 3; // For non-platform users
+	repeated string phone_numbers = 4; // For non-platform users
+}
+
+// TagUsersToInvoiceResponse represents a response after tagging users
+message TagUsersToInvoiceResponse {
+	bool success = 1;
+	repeated string tagged_user_ids = 2;
+	repeated string invited_emails = 3;
+	repeated string invited_phones = 4;
+	string message = 5;
+}
+
+// SearchInvoiceUsersRequest represents a request to search for users for invoice tagging
+message SearchInvoiceUsersRequest {
+	string query = 1;
+	int32 limit = 2;
+}
+
+// InvoiceUserResult represents a user in search results
+message InvoiceUserResult {
+	string id = 1;
+	string name = 2;
+	string email = 3;
+	string username = 4;
+	string phone = 5;
+	bool is_online = 6;
+}
+
+// SearchInvoiceUsersResponse represents a response containing search results
+message SearchInvoiceUsersResponse {
+	repeated InvoiceUserResult users = 1;
 }
 
 // InvoiceService provides methods for managing invoices
@@ -181,6 +276,21 @@ service InvoiceService {
 	rpc SendInvoice(SendInvoiceRequest) returns (SendInvoiceResponse) {
 		option (google.api.http) = {
 			post: "/v1/invoices/{invoice_id}/send"
+		};
+	}
+
+	// Tag multiple users to an invoice
+	rpc TagUsersToInvoice(TagUsersToInvoiceRequest) returns (TagUsersToInvoiceResponse) {
+		option (google.api.http) = {
+			post: "/v1/invoices/{invoice_id}/tag-users"
+			body: "*"
+		};
+	}
+
+	// Search for users to tag in invoice
+	rpc SearchInvoiceUsers(SearchInvoiceUsersRequest) returns (SearchInvoiceUsersResponse) {
+		option (google.api.http) = {
+			get: "/v1/invoices/search-users"
 		};
 	}
 } 

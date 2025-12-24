@@ -20,6 +20,7 @@ const _ = grpc.SupportPackageIsVersion9
 
 const (
 	DepositService_InitiateDeposit_FullMethodName   = "/pb.DepositService/InitiateDeposit"
+	DepositService_ListDeposits_FullMethodName      = "/pb.DepositService/ListDeposits"
 	DepositService_GetDepositDetails_FullMethodName = "/pb.DepositService/GetDepositDetails"
 )
 
@@ -33,6 +34,8 @@ type DepositServiceClient interface {
 	// The deposit will be processed asynchronously.
 	// Amount should be provided in the smallest currency unit (e.g., cents).
 	InitiateDeposit(ctx context.Context, in *InitiateDepositRequest, opts ...grpc.CallOption) (*InitiateDepositResponse, error)
+	// Lists all deposits for the authenticated user with pagination
+	ListDeposits(ctx context.Context, in *ListDepositsRequest, opts ...grpc.CallOption) (*ListDepositsResponse, error)
 	// Retrieves the details and status of a specific deposit transaction.
 	GetDepositDetails(ctx context.Context, in *GetDepositDetailsRequest, opts ...grpc.CallOption) (*GetDepositDetailsResponse, error)
 }
@@ -49,6 +52,16 @@ func (c *depositServiceClient) InitiateDeposit(ctx context.Context, in *Initiate
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(InitiateDepositResponse)
 	err := c.cc.Invoke(ctx, DepositService_InitiateDeposit_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *depositServiceClient) ListDeposits(ctx context.Context, in *ListDepositsRequest, opts ...grpc.CallOption) (*ListDepositsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListDepositsResponse)
+	err := c.cc.Invoke(ctx, DepositService_ListDeposits_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -75,6 +88,8 @@ type DepositServiceServer interface {
 	// The deposit will be processed asynchronously.
 	// Amount should be provided in the smallest currency unit (e.g., cents).
 	InitiateDeposit(context.Context, *InitiateDepositRequest) (*InitiateDepositResponse, error)
+	// Lists all deposits for the authenticated user with pagination
+	ListDeposits(context.Context, *ListDepositsRequest) (*ListDepositsResponse, error)
 	// Retrieves the details and status of a specific deposit transaction.
 	GetDepositDetails(context.Context, *GetDepositDetailsRequest) (*GetDepositDetailsResponse, error)
 	mustEmbedUnimplementedDepositServiceServer()
@@ -89,6 +104,9 @@ type UnimplementedDepositServiceServer struct{}
 
 func (UnimplementedDepositServiceServer) InitiateDeposit(context.Context, *InitiateDepositRequest) (*InitiateDepositResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method InitiateDeposit not implemented")
+}
+func (UnimplementedDepositServiceServer) ListDeposits(context.Context, *ListDepositsRequest) (*ListDepositsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListDeposits not implemented")
 }
 func (UnimplementedDepositServiceServer) GetDepositDetails(context.Context, *GetDepositDetailsRequest) (*GetDepositDetailsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetDepositDetails not implemented")
@@ -132,6 +150,24 @@ func _DepositService_InitiateDeposit_Handler(srv interface{}, ctx context.Contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _DepositService_ListDeposits_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListDepositsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DepositServiceServer).ListDeposits(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DepositService_ListDeposits_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DepositServiceServer).ListDeposits(ctx, req.(*ListDepositsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _DepositService_GetDepositDetails_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetDepositDetailsRequest)
 	if err := dec(in); err != nil {
@@ -160,6 +196,10 @@ var DepositService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "InitiateDeposit",
 			Handler:    _DepositService_InitiateDeposit_Handler,
+		},
+		{
+			MethodName: "ListDeposits",
+			Handler:    _DepositService_ListDeposits_Handler,
 		},
 		{
 			MethodName: "GetDepositDetails",

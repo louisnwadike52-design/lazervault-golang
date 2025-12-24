@@ -5,6 +5,7 @@ option go_package = "lazervaultGo/pb";
 
 import "google/api/annotations.proto";
 import "protoc-gen-openapiv2/options/annotations.proto";
+import "google/protobuf/timestamp.proto";
 import "common.proto";
 
 option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
@@ -38,6 +39,7 @@ message CreateUserRequest {
   string phone_number = 5;
   string role = 6;
   string login_passcode = 7; // Optional 4-6 digit passcode for quick login
+  string username = 8; // Optional unique username
 }
 
 
@@ -46,6 +48,252 @@ message CreateUserResponse {
   bool success = 1;
   string message = 2;
   Data data = 3;
+}
+
+message GetUserProfileRequest {
+}
+
+message GetUserProfileResponse {
+  bool success = 1;
+  string message = 2;
+  User user = 3;
+  UserPreferences preferences = 4;
+}
+
+message UpdateUserProfileRequest {
+  string first_name = 1;
+  string last_name = 2;
+  string username = 3;
+  string phone_number = 4;
+  string language = 5;
+  string currency = 6;
+  string country = 7;
+  string profile_picture = 8; // Base64 encoded image or URL
+}
+
+message UpdateUserProfileResponse {
+  bool success = 1;
+  string message = 2;
+  User user = 3;
+}
+
+message UpdatePasswordRequest {
+  string current_password = 1;
+  string new_password = 2;
+}
+
+message UpdatePasswordResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message UpdatePreferencesRequest {
+  bool push_notifications = 1;
+  bool email_notifications = 2;
+  bool sms_notifications = 3;
+  bool dark_mode = 4;
+  string language = 5;
+  string currency = 6;
+  repeated string preferred_countries = 7;
+  string active_country = 8;
+}
+
+message UpdatePreferencesResponse {
+  bool success = 1;
+  string message = 2;
+  UserPreferences preferences = 3;
+}
+
+message UserPreferences {
+  string user_id = 1;
+  bool push_notifications = 2;
+  bool email_notifications = 3;
+  bool sms_notifications = 4;
+  bool dark_mode = 5;
+  string language = 6;
+  string currency = 7;
+  string country = 8;
+  repeated string preferred_countries = 9; // List of countries user can send money to
+  string active_country = 10; // Currently selected country for international payments
+}
+
+// Identity Verification Messages
+enum DocumentType {
+  DOCUMENT_TYPE_PASSPORT = 0;
+  DOCUMENT_TYPE_DRIVERS_LICENSE = 1;
+  DOCUMENT_TYPE_NATIONAL_ID = 2;
+  DOCUMENT_TYPE_RESIDENCE_PERMIT = 3;
+}
+
+enum VerificationStatus {
+  VERIFICATION_STATUS_PENDING = 0;
+  VERIFICATION_STATUS_PROCESSING = 1;
+  VERIFICATION_STATUS_VERIFIED = 2;
+  VERIFICATION_STATUS_REJECTED = 3;
+  VERIFICATION_STATUS_EXPIRED = 4;
+}
+
+message IDDocument {
+  string id = 1;
+  uint64 user_id = 2;
+  DocumentType document_type = 3;
+  string document_number = 4;
+  string full_name = 5;
+  string date_of_birth = 6;
+  string issue_date = 7;
+  string expiry_date = 8;
+  string issuing_country = 9;
+  string document_front_url = 10;
+  string document_back_url = 11;
+  VerificationStatus verification_status = 12;
+  string rejection_reason = 13;
+  google.protobuf.Timestamp created_at = 14;
+  google.protobuf.Timestamp verified_at = 15;
+}
+
+message UploadIDDocumentRequest {
+  DocumentType document_type = 1;
+  bytes front_image = 2;
+  bytes back_image = 3; // Optional for some document types
+}
+
+message UploadIDDocumentResponse {
+  bool success = 1;
+  string message = 2;
+  IDDocument document = 3;
+}
+
+message GetIDDocumentsRequest {
+}
+
+message GetIDDocumentsResponse {
+  bool success = 1;
+  string message = 2;
+  repeated IDDocument documents = 3;
+}
+
+message VerifyIDDocumentRequest {
+  string document_id = 1;
+}
+
+message VerifyIDDocumentResponse {
+  bool success = 1;
+  string message = 2;
+  IDDocument document = 3;
+}
+
+// Facial Recognition Messages
+message FacialData {
+  string id = 1;
+  uint64 user_id = 2;
+  string face_id = 3; // ID from AI service
+  string face_encoding = 4; // Base64 encoded facial features
+  string image_url = 5;
+  bool is_verified = 6;
+  google.protobuf.Timestamp created_at = 7;
+  google.protobuf.Timestamp last_verified_at = 8;
+}
+
+message UserRegisterFaceRequest {
+  bytes face_image = 1;
+}
+
+message UserRegisterFaceResponse {
+  bool success = 1;
+  string message = 2;
+  FacialData facial_data = 3;
+}
+
+message UserVerifyFaceRequest {
+  bytes face_image = 1;
+}
+
+message UserVerifyFaceResponse {
+  bool success = 1;
+  string message = 2;
+  bool is_match = 3;
+  float confidence = 4;
+}
+
+message GetFacialDataRequest {
+}
+
+message GetFacialDataResponse {
+  bool success = 1;
+  string message = 2;
+  FacialData facial_data = 3;
+}
+
+// Passcode Messages
+message SetPasscodeRequest {
+  string passcode = 1; // 4-6 digit passcode
+  string password = 2; // Require password confirmation for security
+}
+
+message SetPasscodeResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message VerifyPasscodeRequest {
+  string passcode = 1;
+}
+
+message VerifyPasscodeResponse {
+  bool success = 1;
+  string message = 2;
+  bool is_valid = 3;
+}
+
+message RemovePasscodeRequest {
+  string password = 1; // Require password confirmation
+}
+
+message RemovePasscodeResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message CheckPasscodeExistsRequest {
+}
+
+message CheckPasscodeExistsResponse {
+  bool success = 1;
+  bool has_passcode = 2;
+}
+
+// Device Permissions Messages
+enum PermissionType {
+  PERMISSION_TYPE_CAMERA = 0;
+  PERMISSION_TYPE_LOCATION = 1;
+  PERMISSION_TYPE_MICROPHONE = 2;
+  PERMISSION_TYPE_STORAGE = 3;
+  PERMISSION_TYPE_CONTACTS = 4;
+  PERMISSION_TYPE_BIOMETRIC = 5;
+}
+
+message DevicePermission {
+  PermissionType permission_type = 1;
+  bool is_granted = 2;
+  google.protobuf.Timestamp granted_at = 3;
+}
+
+message UpdateDevicePermissionsRequest {
+  repeated DevicePermission permissions = 1;
+}
+
+message UpdateDevicePermissionsResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message GetDevicePermissionsRequest {
+}
+
+message GetDevicePermissionsResponse {
+  bool success = 1;
+  string message = 2;
+  repeated DevicePermission permissions = 3;
 }
 
 service UserService {
@@ -58,6 +306,277 @@ service UserService {
       summary: "Create a new user"
       description: "Creates a new user with the provided details"
       tags: "users"
+    };
+  }
+
+  rpc GetUserProfile(GetUserProfileRequest) returns (GetUserProfileResponse) {
+    option (google.api.http) = {
+      get: "/v1/users/profile"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Get user profile"
+      description: "Get the authenticated user's profile"
+      tags: "users"
+      security: {
+        security_requirement: {
+          key: "bearerAuth";
+        }
+      }
+    };
+  }
+
+  rpc UpdateUserProfile(UpdateUserProfileRequest) returns (UpdateUserProfileResponse) {
+    option (google.api.http) = {
+      put: "/v1/users/profile"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Update user profile"
+      description: "Update the authenticated user's profile"
+      tags: "users"
+      security: {
+        security_requirement: {
+          key: "bearerAuth";
+        }
+      }
+    };
+  }
+
+  rpc UpdatePassword(UpdatePasswordRequest) returns (UpdatePasswordResponse) {
+    option (google.api.http) = {
+      put: "/v1/users/password"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Update password"
+      description: "Update the authenticated user's password"
+      tags: "users"
+      security: {
+        security_requirement: {
+          key: "bearerAuth";
+        }
+      }
+    };
+  }
+
+  rpc UpdatePreferences(UpdatePreferencesRequest) returns (UpdatePreferencesResponse) {
+    option (google.api.http) = {
+      put: "/v1/users/preferences"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Update user preferences"
+      description: "Update the authenticated user's preferences"
+      tags: "users"
+      security: {
+        security_requirement: {
+          key: "bearerAuth";
+        }
+      }
+    };
+  }
+
+  // ID Document Verification
+  rpc UploadIDDocument(UploadIDDocumentRequest) returns (UploadIDDocumentResponse) {
+    option (google.api.http) = {
+      post: "/v1/users/identity/documents"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Upload ID document"
+      description: "Upload and verify an identity document"
+      tags: "identity"
+      security: {
+        security_requirement: {
+          key: "bearerAuth";
+        }
+      }
+    };
+  }
+
+  rpc GetIDDocuments(GetIDDocumentsRequest) returns (GetIDDocumentsResponse) {
+    option (google.api.http) = {
+      get: "/v1/users/identity/documents"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Get ID documents"
+      description: "Get all ID documents for the authenticated user"
+      tags: "identity"
+      security: {
+        security_requirement: {
+          key: "bearerAuth";
+        }
+      }
+    };
+  }
+
+  rpc VerifyIDDocument(VerifyIDDocumentRequest) returns (VerifyIDDocumentResponse) {
+    option (google.api.http) = {
+      post: "/v1/users/identity/documents/{document_id}/verify"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Verify ID document"
+      description: "Manually trigger verification of an ID document"
+      tags: "identity"
+      security: {
+        security_requirement: {
+          key: "bearerAuth";
+        }
+      }
+    };
+  }
+
+  // Facial Recognition
+  rpc RegisterFace(UserRegisterFaceRequest) returns (UserRegisterFaceResponse) {
+    option (google.api.http) = {
+      post: "/v1/users/identity/face"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Register face"
+      description: "Register facial biometric data"
+      tags: "identity"
+      security: {
+        security_requirement: {
+          key: "bearerAuth";
+        }
+      }
+    };
+  }
+
+  rpc VerifyFace(UserVerifyFaceRequest) returns (UserVerifyFaceResponse) {
+    option (google.api.http) = {
+      post: "/v1/users/identity/face/verify"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Verify face"
+      description: "Verify face against registered biometric data"
+      tags: "identity"
+      security: {
+        security_requirement: {
+          key: "bearerAuth";
+        }
+      }
+    };
+  }
+
+  rpc GetFacialData(GetFacialDataRequest) returns (GetFacialDataResponse) {
+    option (google.api.http) = {
+      get: "/v1/users/identity/face"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Get facial data"
+      description: "Get registered facial biometric data"
+      tags: "identity"
+      security: {
+        security_requirement: {
+          key: "bearerAuth";
+        }
+      }
+    };
+  }
+
+  // Passcode Management
+  rpc SetPasscode(SetPasscodeRequest) returns (SetPasscodeResponse) {
+    option (google.api.http) = {
+      post: "/v1/users/passcode"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Set passcode"
+      description: "Set or update login passcode"
+      tags: "security"
+      security: {
+        security_requirement: {
+          key: "bearerAuth";
+        }
+      }
+    };
+  }
+
+  rpc VerifyPasscode(VerifyPasscodeRequest) returns (VerifyPasscodeResponse) {
+    option (google.api.http) = {
+      post: "/v1/users/passcode/verify"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Verify passcode"
+      description: "Verify login passcode"
+      tags: "security"
+      security: {
+        security_requirement: {
+          key: "bearerAuth";
+        }
+      }
+    };
+  }
+
+  rpc RemovePasscode(RemovePasscodeRequest) returns (RemovePasscodeResponse) {
+    option (google.api.http) = {
+      post: "/v1/users/passcode/remove"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Remove passcode"
+      description: "Remove login passcode"
+      tags: "security"
+      security: {
+        security_requirement: {
+          key: "bearerAuth";
+        }
+      }
+    };
+  }
+
+  rpc CheckPasscodeExists(CheckPasscodeExistsRequest) returns (CheckPasscodeExistsResponse) {
+    option (google.api.http) = {
+      get: "/v1/users/passcode/exists"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Check passcode exists"
+      description: "Check if user has a passcode set"
+      tags: "security"
+      security: {
+        security_requirement: {
+          key: "bearerAuth";
+        }
+      }
+    };
+  }
+
+  // Device Permissions
+  rpc UpdateDevicePermissions(UpdateDevicePermissionsRequest) returns (UpdateDevicePermissionsResponse) {
+    option (google.api.http) = {
+      put: "/v1/users/permissions"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Update device permissions"
+      description: "Update device permission preferences"
+      tags: "permissions"
+      security: {
+        security_requirement: {
+          key: "bearerAuth";
+        }
+      }
+    };
+  }
+
+  rpc GetDevicePermissions(GetDevicePermissionsRequest) returns (GetDevicePermissionsResponse) {
+    option (google.api.http) = {
+      get: "/v1/users/permissions"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Get device permissions"
+      description: "Get device permission status"
+      tags: "permissions"
+      security: {
+        security_requirement: {
+          key: "bearerAuth";
+        }
+      }
     };
   }
 } 

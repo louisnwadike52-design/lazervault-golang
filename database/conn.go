@@ -24,7 +24,7 @@ func ConnectDB(config configs.Config) (*gorm.DB, error) {
 	)
 
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Error),
+		Logger: logger.Default.LogMode(logger.Info), // Changed to Info to see SQL queries
 	})
 
 	if err != nil {

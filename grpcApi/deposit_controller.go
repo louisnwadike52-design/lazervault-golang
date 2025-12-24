@@ -4,12 +4,17 @@ import (
 	"context"
 	"errors"
 	"lazervaultGo/grpcApi/middleware"
+	"lazervaultGo/models"
 	"lazervaultGo/pb"
 	"lazervaultGo/services"
 	"lazervaultGo/token"
+	"lazervaultGo/utils"
 
+	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/timestamppb"
+	"gorm.io/gorm"
 )
 
 // DepositController handles gRPC requests for the DepositService.
@@ -17,13 +22,15 @@ type DepositController struct {
 	pb.UnimplementedDepositServiceServer // Embed for forward compatibility
 	depositService                       services.IDepositService
 	userService                          services.IUserService // Needed to get UserID
+	db                                   *gorm.DB              // For direct DB queries
 }
 
 // NewDepositController creates a new DepositController.
-func NewDepositController(depositService services.IDepositService, userService services.IUserService) *DepositController {
+func NewDepositController(depositService services.IDepositService, userService services.IUserService, db *gorm.DB) *DepositController {
 	return &DepositController{
 		depositService: depositService,
 		userService:    userService,
+		db:             db,
 	}
 }
 
@@ -112,4 +119,112 @@ func (c *DepositController) GetDepositDetails(ctx context.Context, req *pb.GetDe
 
 	// 4. Return successful response from service
 	return detailsResponse, nil
+}
+
+// Helper to convert Deposit model to GetDepositDetailsResponse proto
+func convertDepositModelToProtoDetails(d *models.Deposit) *pb.GetDepositDetailsResponse {
+	if d == nil {
+		return nil
+	}
+	resp := &pb.GetDepositDetailsResponse{
+		DepositId:             d.ID,
+		TargetAccountId:       uint64(d.TargetAccountID),
+		Amount:                uint64(d.Amount),
+		Currency:              d.Currency,
+		SourceBankName:        d.SourceBankName,
+		Status:                pb.DepositStatus(pb.DepositStatus_value["DEPOSIT_STATUS_"+string(d.Status)]),
+		CreatedAt:             timestamppb.New(d.CreatedAt),
+		ExternalTransactionId: "",
+		FailureReason:         "",
+	}
+	if d.ExternalTransactionID != nil {
+		resp.ExternalTransactionId = *d.ExternalTransactionID
+	}
+	if d.FailureReason != nil {
+		resp.FailureReason = *d.FailureReason
+	}
+	if d.ProcessingAt != nil {
+		resp.ProcessingAt = timestamppb.New(*d.ProcessingAt)
+	}
+	if d.CompletedAt != nil {
+		resp.CompletedAt = timestamppb.New(*d.CompletedAt)
+	}
+	if d.FailedAt != nil {
+		resp.FailedAt = timestamppb.New(*d.FailedAt)
+	}
+	return resp
+}
+
+// ListDeposits handles the gRPC request to list all deposits with pagination
+func (c *DepositController) ListDeposits(ctx context.Context, req *pb.ListDepositsRequest) (*pb.ListDepositsResponse, error) {
+	// 1. Get User ID from context
+	user, err := getUserFromContext(ctx, c.userService)
+	if err != nil {
+		return nil, err // Error already contains gRPC status
+	}
+
+	// 2. Set up pagination parameters
+	page := int(req.GetPage())
+	if page == 0 {
+		page = 1
+	}
+	pageSize := int(req.GetPageSize())
+	if pageSize == 0 {
+		pageSize = 20
+	}
+	if pageSize > 100 {
+		pageSize = 100 // Enforce max page size
+	}
+
+	params := &utils.PaginationParams{
+		Page:      page,
+		PageSize:  pageSize,
+		SortBy:    req.GetSortBy(),
+		SortOrder: req.GetSortOrder(),
+	}
+
+	// Set defaults
+	if params.SortBy == "" {
+		params.SortBy = "created_at"
+	}
+	if params.SortOrder == "" {
+		params.SortOrder = "desc"
+	}
+
+	// 3. Build query - filter by user
+	query := c.db.Model(&models.Deposit{}).Where("user_id = ?", user.ID)
+
+	// 4. Apply optional filters
+	if req.GetStatus() != "" {
+		query = query.Where("status = ?", req.GetStatus())
+	}
+
+	// 5. Get paginated results
+	var deposits []models.Deposit
+	paginatedResp, err := utils.Paginate(query, params, &deposits)
+	if err != nil {
+		log.Error().Err(err).Msg("failed to paginate deposits")
+		return nil, status.Errorf(codes.Internal, "failed to retrieve deposits")
+	}
+
+	// 6. Convert to proto responses
+	depositProtos := make([]*pb.GetDepositDetailsResponse, len(deposits))
+	for i, d := range deposits {
+		depositProtos[i] = convertDepositModelToProtoDetails(&d)
+	}
+
+	// 7. Build pagination metadata
+	paginationMeta := &pb.DepositPaginationInfo{
+		CurrentPage:  int32(paginatedResp.Pagination.CurrentPage),
+		TotalPages:   int32(paginatedResp.Pagination.TotalPages),
+		TotalItems:   int32(paginatedResp.Pagination.TotalRecords),
+		ItemsPerPage: int32(paginatedResp.Pagination.PageSize),
+		HasNext:      paginatedResp.Pagination.HasNext,
+		HasPrev:      paginatedResp.Pagination.HasPrevious,
+	}
+
+	return &pb.ListDepositsResponse{
+		Deposits:   depositProtos,
+		Pagination: paginationMeta,
+	}, nil
 }

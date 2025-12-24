@@ -28,7 +28,7 @@ var (
 // --- Service Interface ---
 type IRecipientService interface {
 	CreateRecipient(ctx context.Context, userID uint, req *pb.CreateRecipientRequest) (*models.Recipient, error)
-	ListRecipients(ctx context.Context, userID uint) ([]*models.Recipient, error)
+	ListRecipients(ctx context.Context, userID uint, req *pb.ListRecipientsRequest) ([]*models.Recipient, error)
 	UpdateRecipient(ctx context.Context, userID uint, req *pb.UpdateRecipientRequest) (*models.Recipient, error)
 	DeleteRecipient(ctx context.Context, userID uint, recipientID uint) error
 	GetRecipientByID(ctx context.Context, recipientID uint, requestingUserID uint) (*models.Recipient, error)
@@ -97,6 +97,11 @@ func (s *RecipientService) CreateRecipient(ctx context.Context, userID uint, req
 		recipient.BankName = bankName
 		recipient.SortCode = req.GetSortCode()       // Optional, defaults to ""
 		recipient.CountryCode = req.GetCountryCode() // Optional, defaults to ""
+		recipient.Email = req.GetEmail()             // Optional, defaults to ""
+		recipient.PhoneNumber = req.GetPhoneNumber() // Optional, defaults to ""
+		recipient.Currency = req.GetCurrency()       // Optional, defaults to ""
+		recipient.SwiftCode = req.GetSwiftCode()     // Optional, defaults to ""
+		recipient.IBAN = req.GetIban()               // Optional, defaults to ""
 
 		// Clear internal fields for external type
 		recipient.InternalAccountID = nil
@@ -113,9 +118,27 @@ func (s *RecipientService) CreateRecipient(ctx context.Context, userID uint, req
 	return &recipient, nil
 }
 
-func (s *RecipientService) ListRecipients(ctx context.Context, userID uint) ([]*models.Recipient, error) {
+func (s *RecipientService) ListRecipients(ctx context.Context, userID uint, req *pb.ListRecipientsRequest) ([]*models.Recipient, error) {
 	var recipients []*models.Recipient
-	if err := s.db.WithContext(ctx).Where("owner_user_id = ?", userID).Order("is_favorite DESC, name ASC").Find(&recipients).Error; err != nil {
+
+	query := s.db.WithContext(ctx).Where("owner_user_id = ?", userID)
+
+	// Apply country filter if provided
+	if req.GetCountryCode() != "" {
+		query = query.Where("country_code = ?", req.GetCountryCode())
+	}
+
+	// Apply currency filter if provided
+	if req.GetCurrency() != "" {
+		query = query.Where("currency = ?", req.GetCurrency())
+	}
+
+	// Apply favorites filter if requested
+	if req.GetFavoritesOnly() {
+		query = query.Where("is_favorite = ?", true)
+	}
+
+	if err := query.Order("is_favorite DESC, name ASC").Find(&recipients).Error; err != nil {
 		return nil, fmt.Errorf("db error listing recipients: %w", err)
 	}
 	return recipients, nil
@@ -264,6 +287,11 @@ func ConvertRecipientToProto(r *models.Recipient) *pb.Recipient {
 		SortCode:      r.SortCode,
 		BankName:      r.BankName,
 		CountryCode:   r.CountryCode,
+		Email:         r.Email,
+		PhoneNumber:   r.PhoneNumber,
+		Currency:      r.Currency,
+		SwiftCode:     r.SwiftCode,
+		Iban:          r.IBAN,
 		CreatedAt:     timestamppb.New(r.CreatedAt),
 		UpdatedAt:     timestamppb.New(r.UpdatedAt),
 	}

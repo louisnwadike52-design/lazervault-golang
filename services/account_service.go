@@ -34,9 +34,10 @@ var (
 
 // IAccountService defines the interface for account operations
 type IAccountService interface {
-	GetUserAccounts(ctx context.Context, userID uint) ([]*pb.AccountSummary, error)
+	GetUserAccounts(ctx context.Context, userID uint, countryCode string) ([]*pb.AccountSummary, error)
 	GetAccountDetails(ctx context.Context, userID uint, accountID uint) (*pb.AccountDetails, error)
 	CreateAccount(ctx context.Context, userID uint, req *pb.CreateAccountRequest) (*models.Account, error)
+	CreateDefaultAccountsForCountry(ctx context.Context, userID uint, countryCode string) error
 	UpdateAccountStatus(ctx context.Context, userID uint, accountID uint, status string, reason string) (*models.Account, error)
 	UpdateSecuritySettings(ctx context.Context, userID uint, accountID uint, settings *pb.SecuritySettings) (*models.Account, error)
 	CheckAccountOwnership(ctx context.Context, accountID uint, userID uint) error
@@ -107,9 +108,18 @@ func ConvertAccountToProtoDetails(acc *models.Account) *pb.AccountDetails {
 // --- Account Service Methods ---
 
 // GetUserAccounts retrieves a summary list of accounts for a user.
-func (s *AccountService) GetUserAccounts(ctx context.Context, userID uint) ([]*pb.AccountSummary, error) {
+// If countryCode is provided, filters accounts by country.
+func (s *AccountService) GetUserAccounts(ctx context.Context, userID uint, countryCode string) ([]*pb.AccountSummary, error) {
 	var accounts []*models.Account
-	if err := s.db.WithContext(ctx).Where("owner_user_id = ?", userID).Find(&accounts).Error; err != nil {
+
+	query := s.db.WithContext(ctx).Where("owner_user_id = ?", userID)
+
+	// Filter by country if provided
+	if countryCode != "" {
+		query = query.Where("country = ?", countryCode)
+	}
+
+	if err := query.Find(&accounts).Error; err != nil {
 		return nil, fmt.Errorf("db error finding accounts: %w", err)
 	}
 
@@ -216,6 +226,87 @@ func (s *AccountService) CreateAccount(ctx context.Context, userID uint, req *pb
 	}
 
 	return &account, nil
+}
+
+// CreateDefaultAccountsForCountry creates default accounts (personal, savings, investment) for a user in a specific country
+func (s *AccountService) CreateDefaultAccountsForCountry(ctx context.Context, userID uint, countryCode string) error {
+	// Determine currency based on country code
+	currency := countryToCurrency(countryCode)
+
+	// Default account types to create
+	accountTypes := []string{
+		models.AccountTypePersonal,
+		models.AccountTypeSavings,
+		models.AccountTypeInvestment,
+	}
+
+	// Check which accounts already exist for this user and country
+	var existingAccounts []*models.Account
+	err := s.db.WithContext(ctx).
+		Where("owner_user_id = ? AND country = ?", userID, countryCode).
+		Find(&existingAccounts).Error
+	if err != nil {
+		return fmt.Errorf("failed to check existing accounts: %w", err)
+	}
+
+	// Create a map of existing account types
+	existingTypes := make(map[string]bool)
+	for _, acc := range existingAccounts {
+		existingTypes[strings.ToLower(acc.AccountType)] = true
+	}
+
+	// Create missing account types
+	for _, accountType := range accountTypes {
+		if existingTypes[strings.ToLower(accountType)] {
+			continue // Skip if account already exists
+		}
+
+		account := models.Account{
+			OwnerUserID: userID,
+			AccountType: accountType,
+			Currency:    currency,
+			Country:     countryCode,
+			Balance:     0, // Start with zero balance
+			Status:      models.AccountStatusActive,
+		}
+
+		if err := s.db.WithContext(ctx).Create(&account).Error; err != nil {
+			// Log error but continue creating other accounts
+			fmt.Printf("Warning: failed to create %s account for user %d in country %s: %v\n", accountType, userID, countryCode, err)
+			continue
+		}
+
+		fmt.Printf("Created %s account (ID: %d) for user %d in country %s with currency %s\n",
+			accountType, account.ID, userID, countryCode, currency)
+	}
+
+	return nil
+}
+
+// countryToCurrency maps country codes to currency codes
+func countryToCurrency(countryCode string) string {
+	currencyMap := map[string]string{
+		"US": "USD",
+		"GB": "GBP",
+		"NG": "NGN",
+		"EU": "EUR",
+		"CA": "CAD",
+		"AU": "AUD",
+		"IN": "INR",
+		"CN": "CNY",
+		"JP": "JPY",
+		"KE": "KES",
+		"ZA": "ZAR",
+		"FR": "EUR",
+		"DE": "EUR",
+		"ES": "EUR",
+		"IT": "EUR",
+	}
+
+	if currency, ok := currencyMap[countryCode]; ok {
+		return currency
+	}
+	return "USD" // Default to USD if country not mapped
 }
 
 // UpdateAccountStatus updates the status of a specific account owned by the user.

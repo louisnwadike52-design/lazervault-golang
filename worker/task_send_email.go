@@ -10,20 +10,21 @@ import (
 	"github.com/hibiken/asynq"
 )
 
-// HandleEmailSendVerifyUserTask sends a verification email.
+// HandleEmailSendVerifyUserTask sends a verification email using the beautiful template.
 func HandleEmailSendVerifyUserTask(ctx context.Context, t *asynq.Task, mailer mail.EmailSender) error {
 	var payload tasks.PayloadSendVerifyEmail
 	if err := json.Unmarshal(t.Payload(), &payload); err != nil {
 		return fmt.Errorf("failed to unmarshal verify user email payload: %w", asynq.SkipRetry)
 	}
 
-	// TODO: Create a more structured verification email template
-	subject := "Welcome to LazerVault - Verify Your Email"
-	verifyURL := fmt.Sprintf("http://localhost:8080/v1/verify_email?user_id=%d&secret_code=%s", payload.UserID, payload.SecretCode)
-	content := fmt.Sprintf("Hello %s,<br/>Thank you for registering! Please verify your email by clicking this link: <a href='%s'>Verify Email</a><br/>Your verification code is: <strong>%s</strong>", payload.Username, verifyURL, payload.SecretCode)
-	to := []string{payload.Email}
+	// Cast to SMTPSender to use the new template method
+	smtpSender, ok := mailer.(*mail.SMTPSender)
+	if !ok {
+		return fmt.Errorf("mailer is not an SMTPSender: %w", asynq.SkipRetry)
+	}
 
-	if err := mailer.SendEmail(subject, content, to, nil, nil, nil); err != nil {
+	// Use the beautiful email template from verification_email.go
+	if err := smtpSender.SendEmailVerificationEmail(payload.Email, payload.SecretCode, payload.Username); err != nil {
 		return fmt.Errorf("failed to send verify user email: %w", err) // Let Asynq handle retry
 	}
 
@@ -103,5 +104,38 @@ func HandleEmailSendWithdrawalFailureTask(ctx context.Context, t *asynq.Task, ma
 	}
 
 	fmt.Printf("Sent withdrawal failure email to %s\n", payload.UserEmail)
+	return nil
+}
+
+// HandleEmailSendPasswordResetOTPTask sends a password reset OTP email.
+func HandleEmailSendPasswordResetOTPTask(ctx context.Context, t *asynq.Task, mailer mail.EmailSender) error {
+	var payload tasks.PayloadSendPasswordResetEmailOTP
+	if err := json.Unmarshal(t.Payload(), &payload); err != nil {
+		return fmt.Errorf("failed to unmarshal password reset email OTP payload: %w", asynq.SkipRetry)
+	}
+
+	subject := "LazerVault - Password Reset Code"
+	// Create HTML content with prominent 6-digit code display
+	content := fmt.Sprintf(`
+		<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+			<h2>Password Reset Request</h2>
+			<p>Hello %s,</p>
+			<p>You requested to reset your password. Use the code below to proceed:</p>
+			<div style="background-color: #f4f4f4; padding: 20px; text-align: center; margin: 20px 0;">
+				<h1 style="font-size: 48px; letter-spacing: 8px; color: #4A90E2; margin: 0;">%s</h1>
+			</div>
+			<p>This code will expire in 15 minutes.</p>
+			<p>If you didn't request this, please ignore this email.</p>
+			<p>Best regards,<br/>The LazerVault Team</p>
+		</div>
+	`, payload.Username, payload.OTPCode)
+
+	to := []string{payload.Email}
+
+	if err := mailer.SendEmail(subject, content, to, nil, nil, nil); err != nil {
+		return fmt.Errorf("failed to send password reset OTP email: %w", err)
+	}
+
+	fmt.Printf("Sent password reset OTP email to %s (User ID: %d)\n", payload.Email, payload.UserID)
 	return nil
 }

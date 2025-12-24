@@ -44,8 +44,15 @@ func main() {
 		log.Fatal().Err(err).Msg("cannot create token maker")
 	}
 
-	// 2. Initialize the mailer
-	mailer := mail.NewGmailSender(config.EmailSenderName, config.EmailSenderAddress, config.EmailSenderPassword)
+	// 2. Initialize the mailer with configurable SMTP
+	mailer := mail.NewSMTPSender(
+		config.EmailSenderName,
+		config.EmailSenderAddress,
+		config.EmailSenderPassword,
+		config.SMTPHost,
+		config.SMTPPort,
+		config.SMTPAuthAddress,
+	)
 
 	// Setup Redis connection options
 	redisOpt := asynq.RedisClientOpt{

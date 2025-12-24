@@ -70,6 +70,33 @@ func requiresAuth(method string) bool {
 		// User Service public endpoints
 		"/pb.UserService/CreateUser": false,
 
+		// Crypto Service public endpoints (all crypto data is public)
+		"/pb.CryptoService/GetCryptos":            false,
+		"/pb.CryptoService/GetCryptoById":         false,
+		"/pb.CryptoService/SearchCryptos":         false,
+		"/pb.CryptoService/GetCryptoPriceHistory": false,
+		"/pb.CryptoService/GetTrendingCryptos":    false,
+		"/pb.CryptoService/GetTopCryptos":         false,
+		"/pb.CryptoService/GetMarketChart":        false,
+		"/pb.CryptoService/GetGlobalMarketData":   false,
+
+		// Gift Card Service public endpoints (browsing/searching)
+		"/pb.GiftCardService/GetGiftCardBrands":          false,
+		"/pb.GiftCardService/GetGiftCardBrandsByCategory": false,
+		"/pb.GiftCardService/SearchGiftCardBrands":       false,
+		"/pb.GiftCardService/GetGiftCardBrandById":       false,
+		"/pb.GiftCardService/GetPopularBrands":           false,
+
+	// Stock Service public endpoints (market data)
+	"/pb.StockService/GetStocks":           false,
+	"/pb.StockService/GetStockBySymbol":    false,
+	"/pb.StockService/SearchStocks":        false,
+	"/pb.StockService/GetStockPriceHistory": false,
+	"/pb.StockService/GetMarketIndices":    false,
+	"/pb.StockService/GetTrendingStocks":   false,
+	"/pb.StockService/GetTopGainers":       false,
+	"/pb.StockService/GetTopLosers":        false,
+
 		// Add more public endpoints as needed
 	}
 

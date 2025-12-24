@@ -1,0 +1,120 @@
+syntax = "proto3";
+
+package barcode_payment;
+option go_package = "lazervaultGo/pb";
+
+import "google/protobuf/timestamp.proto";
+
+service BarcodePaymentService {
+  // Generate a payment barcode
+  rpc GenerateBarcode(GenerateBarcodeRequest) returns (GenerateBarcodeResponse);
+
+  // Get barcode details by code
+  rpc GetBarcodeDetails(GetBarcodeDetailsRequest) returns (GetBarcodeDetailsResponse);
+
+  // Process payment via scanned barcode
+  rpc ProcessBarcodePayment(ProcessBarcodePaymentRequest) returns (ProcessBarcodePaymentResponse);
+
+  // Get user's generated barcodes
+  rpc GetMyGeneratedBarcodes(GetMyGeneratedBarcodesRequest) returns (GetMyGeneratedBarcodesResponse);
+
+  // Get user's scanned/paid barcodes
+  rpc GetMyScannedBarcodes(GetMyScannedBarcodesRequest) returns (GetMyScannedBarcodesResponse);
+
+  // Cancel/invalidate a generated barcode
+  rpc CancelBarcode(CancelBarcodeRequest) returns (CancelBarcodeResponse);
+}
+
+message GenerateBarcodeRequest {
+  double amount = 1;
+  string currency = 2;
+  string description = 3;
+  int32 validity_minutes = 4; // How long the barcode is valid (default 30 mins)
+}
+
+message GenerateBarcodeResponse {
+  string barcode_id = 1;
+  string barcode_code = 2; // The actual code to encode in QR
+  string qr_data = 3; // JSON data for QR code
+  google.protobuf.Timestamp expires_at = 4;
+  string message = 5;
+}
+
+message GetBarcodeDetailsRequest {
+  string barcode_code = 1;
+}
+
+message GetBarcodeDetailsResponse {
+  BarcodePayment barcode = 1;
+}
+
+message ProcessBarcodePaymentRequest {
+  string barcode_code = 1;
+  string source_account_id = 2;
+}
+
+message ProcessBarcodePaymentResponse {
+  BarcodeTransaction transaction = 1;
+  string message = 2;
+}
+
+message GetMyGeneratedBarcodesRequest {
+  int32 limit = 1;
+  int32 offset = 2;
+}
+
+message GetMyGeneratedBarcodesResponse {
+  repeated BarcodePayment barcodes = 1;
+  int32 total = 2;
+}
+
+message GetMyScannedBarcodesRequest {
+  int32 limit = 1;
+  int32 offset = 2;
+}
+
+message GetMyScannedBarcodesResponse {
+  repeated BarcodeTransaction transactions = 1;
+  int32 total = 2;
+}
+
+message CancelBarcodeRequest {
+  string barcode_id = 1;
+}
+
+message CancelBarcodeResponse {
+  string message = 1;
+}
+
+// Models
+message BarcodePayment {
+  string id = 1;
+  string user_id = 2;
+  string username = 3;
+  string full_name = 4;
+  string barcode_code = 5;
+  double amount = 6;
+  string currency = 7;
+  string description = 8;
+  string status = 9; // pending, paid, cancelled, expired
+  google.protobuf.Timestamp created_at = 10;
+  google.protobuf.Timestamp expires_at = 11;
+  google.protobuf.Timestamp paid_at = 12;
+}
+
+message BarcodeTransaction {
+  string id = 1;
+  string barcode_id = 2;
+  string payer_id = 3;
+  string payer_username = 4;
+  string payer_name = 5;
+  string recipient_id = 6;
+  string recipient_username = 7;
+  string recipient_name = 8;
+  double amount = 9;
+  string currency = 10;
+  string description = 11;
+  string reference_number = 12;
+  string status = 13;
+  google.protobuf.Timestamp created_at = 14;
+}

@@ -30,6 +30,15 @@ message LoginWithPasscodeRequest {
   string login_passcode = 2; // 4-6 digit passcode
 }
 
+message RegisterPasscodeRequest {
+  string login_passcode = 1; // 6-digit passcode to register
+}
+
+message RegisterPasscodeResponse {
+  bool success = 1;
+  string msg = 2;
+}
+
 message LoginResponse {
   Data data = 1;
   bool success = 2;
@@ -87,7 +96,7 @@ message VerifyEmailResponse {
 
 // --- Password Reset Messages (Email/Token Based) ---
 
-// Request to initiate password reset process via email.
+// Request to initiate password reset process via email or SMS.
 message RequestPasswordResetRequest {
   option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
     json_schema: {
@@ -96,6 +105,8 @@ message RequestPasswordResetRequest {
   };
   // User provides their email to initiate reset.
   string email = 1;
+  // Delivery method for OTP: "EMAIL" or "SMS" (default: "SMS")
+  string delivery_method = 2;
 }
 
 // Response for requesting password reset.
@@ -122,7 +133,61 @@ message ResetPasswordResponse {
   string msg = 2; // e.g., "Password reset successfully."
 }
 
+// Request to verify password reset code (6-digit OTP)
+message VerifyPasswordResetCodeRequest {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+      required: ["email", "code"]
+    }
+  };
+  string email = 1; // Email used in the reset request
+  string code = 2;  // 6-digit OTP code
+}
+
+// Response for verifying password reset code
+message VerifyPasswordResetCodeResponse {
+  bool success = 1;
+  string msg = 2;
+  string reset_token = 3; // Temporary token for password reset (valid 15 minutes)
+}
+
 // --- End Password Reset Messages ---
+
+// --- Facial Recognition Messages ---
+
+// Request to login with facial recognition
+message LoginWithFaceRequest {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+      required: ["email", "image_data"]
+    }
+  };
+  string email = 1;
+  bytes image_data = 2;
+  string image_filename = 3;
+}
+
+// Response for facial recognition login
+message LoginWithFaceResponse {
+  Data data = 1;
+  bool success = 2;
+  string msg = 3;
+  double confidence = 4; // Confidence score from facial recognition
+}
+
+// Request to check if user has facial recognition enabled
+message CheckFaceRegistrationRequest {
+  // User identified via auth token, no parameters needed
+}
+
+// Response for checking face registration status
+message CheckFaceRegistrationResponse {
+  bool is_registered = 1;
+  string registered_at = 2; // ISO 8601 timestamp
+  string msg = 3;
+}
+
+// --- End Facial Recognition Messages ---
 
 // --- Social Sign-In Messages ---
 message SignInWithGoogleRequest {
@@ -211,6 +276,23 @@ service AuthService {
     };
   }
 
+  rpc RegisterPasscode(RegisterPasscodeRequest) returns (RegisterPasscodeResponse) {
+    option (google.api.http) = {
+      post: "/v1/auth/register-passcode"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Register Passcode"
+      description: "Registers a login passcode for the authenticated user."
+      tags: ["Auth"]
+      security: {
+        security_requirement: {
+          key: "bearer" value: {}
+        }
+      }
+    };
+  }
+
 rpc RefreshToken(RefreshTokenRequest) returns (RefreshTokenResponse) {
     option (google.api.http) = {
       post: "/v1/auth/refresh-token"
@@ -289,7 +371,55 @@ rpc RefreshToken(RefreshTokenRequest) returns (RefreshTokenResponse) {
     };
   }
 
+  // Verify password reset code (6-digit OTP)
+  rpc VerifyPasswordResetCode(VerifyPasswordResetCodeRequest) returns (VerifyPasswordResetCodeResponse) {
+    option (google.api.http) = {
+      post: "/v1/auth/verify-password-reset-code"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Verify Password Reset Code"
+      description: "Verifies the 6-digit OTP code received via email/SMS and returns a temporary reset token."
+      tags: ["Auth"]
+    };
+  }
+
   // --- End Password Reset RPCs ---
+
+  // --- Facial Recognition RPCs ---
+
+  // Login with facial recognition
+  rpc LoginWithFace(LoginWithFaceRequest) returns (LoginWithFaceResponse) {
+    option (google.api.http) = {
+      post: "/v1/auth/login-face"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Login with Face Recognition"
+      description: "Authenticates a user using facial recognition."
+      tags: ["Auth"]
+    };
+  }
+
+  // Check if user has facial recognition enabled
+  rpc CheckFaceRegistration(CheckFaceRegistrationRequest) returns (CheckFaceRegistrationResponse) {
+    option (google.api.http) = {
+      post: "/v1/auth/check-face-registration"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Check Face Registration Status"
+      description: "Checks if the authenticated user has facial recognition enabled."
+      tags: ["Auth"]
+      security: {
+        security_requirement: {
+          key: "bearer" value: {}
+        }
+      }
+    };
+  }
+
+  // --- End Facial Recognition RPCs ---
 
   // --- Social Sign-In RPCs ---
   rpc SignInWithGoogle(SignInWithGoogleRequest) returns (LoginResponse) {

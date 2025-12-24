@@ -13,9 +13,13 @@ const (
 	TypeEmailSendDepositReversal = "email:send:deposit_reversal"
 	TypeEmailSendWithdrawalConf  = "email:send:withdrawal_confirm"
 	TypeEmailSendWithdrawalFail  = "email:send:withdrawal_failure"
+	TypeEmailSendInvoice         = "email:send:invoice"
+	TypeEmailSendPaymentReceipt  = "email:send:payment_receipt"
+	TypeEmailSendPaymentConfirm  = "email:send:payment_confirm"
 
 	// OTP Tasks
-	TaskSendPasswordResetOTP = "task:send_password_reset_otp"
+	TaskSendPasswordResetOTP      = "task:send_password_reset_otp"
+	TaskSendPasswordResetEmailOTP = "task:send_password_reset_email_otp"
 
 	// Transaction Processing Tasks
 	TypeDepositProcessing       = "deposit:process"
@@ -31,6 +35,12 @@ const (
 
 	// Transaction File Tasks
 	TypeUpdateTxFileAndIndex = "txfile:update_and_index" // New task type
+
+	// Scheduled Transfer Tasks
+	TypeScheduledTransferCheck = "scheduled:transfer:check"
+
+	// Auto-Save Tasks
+	TypeScheduledAutoSaveCheck = "scheduled:autosave:check"
 )
 
 // Queue name constants
@@ -72,6 +82,19 @@ func NewUpdateTxFileAndIndexTask(userID uint, txData string) ([]byte, error) {
 	payload := UpdateTxFileAndIndexPayload{
 		UserID: userID,
 		TxData: txData,
+	}
+	return json.Marshal(payload)
+}
+
+// Payload for scheduled auto-save check
+type ScheduledAutoSaveCheckPayload struct {
+	CheckedAt string `json:"checked_at"` // ISO 8601 timestamp
+}
+
+// NewScheduledAutoSaveCheckTask creates a new task payload for scheduled auto-save check
+func NewScheduledAutoSaveCheckTask(checkedAt string) ([]byte, error) {
+	payload := ScheduledAutoSaveCheckPayload{
+		CheckedAt: checkedAt,
 	}
 	return json.Marshal(payload)
 }

@@ -12,11 +12,16 @@ message User {
     string last_name = 3;
     string email = 4;
     string phone_number = 5;
-    string role = 6;
-    bool verified = 7;
-    bool is_email_verified = 8;
-    google.protobuf.Timestamp created_at = 9;
-    google.protobuf.Timestamp updated_at = 10;
+    string username = 6;
+    string role = 7;
+    bool verified = 8;
+    bool is_email_verified = 9;
+    google.protobuf.Timestamp created_at = 10;
+    google.protobuf.Timestamp updated_at = 11;
+    string language = 12;
+    string currency = 13;
+    string country = 14;
+    string profile_picture = 15;
   }
   
   

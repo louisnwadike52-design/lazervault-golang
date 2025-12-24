@@ -1,0 +1,436 @@
+syntax = "proto3";
+
+package pb;
+
+option go_package = "lazervaultGo/pb";
+
+import "google/api/annotations.proto";
+import "google/protobuf/timestamp.proto";
+import "crypto.proto";
+
+// ============================================================================
+// ENUMS
+// ============================================================================
+
+enum OrderType {
+  ORDER_TYPE_UNSPECIFIED = 0;
+  ORDER_TYPE_MARKET = 1;
+  ORDER_TYPE_LIMIT = 2;
+  ORDER_TYPE_STOP_LOSS = 3;
+  ORDER_TYPE_STOP_LIMIT = 4;
+}
+
+enum OrderSide {
+  ORDER_SIDE_UNSPECIFIED = 0;
+  ORDER_SIDE_BUY = 1;
+  ORDER_SIDE_SELL = 2;
+}
+
+enum OrderStatus {
+  ORDER_STATUS_UNSPECIFIED = 0;
+  ORDER_STATUS_PENDING = 1;
+  ORDER_STATUS_EXECUTED = 2;
+  ORDER_STATUS_CANCELLED = 3;
+  ORDER_STATUS_REJECTED = 4;
+  ORDER_STATUS_PARTIALLY_FILLED = 5;
+}
+
+// ============================================================================
+// MESSAGE TYPES
+// ============================================================================
+
+message StockMessage {
+  string symbol = 1;
+  string name = 2;
+  double current_price = 3;
+  double previous_close = 4;
+  double change = 5;
+  double change_percent = 6;
+  double day_high = 7;
+  double day_low = 8;
+  double volume = 9;
+  double market_cap = 10;
+  double pe_ratio = 11;
+  double dividend_yield = 12;
+  string sector = 13;
+  string industry = 14;
+  string logo_url = 15;
+  repeated PricePoint price_history = 16;
+  google.protobuf.Timestamp last_updated = 17;
+  double week_high_52 = 18;
+  double week_low_52 = 19;
+  double avg_volume = 20;
+  double beta = 21;
+  double eps = 22;
+  string description = 23;
+  string exchange = 24;
+  string currency = 25;
+}
+
+message PortfolioMessage {
+  string id = 1;
+  double total_value = 2;
+  double total_cost = 3;
+  double total_return = 4;
+  double total_return_percent = 5;
+  double day_change = 6;
+  double day_change_percent = 7;
+  repeated StockHoldingMessage holdings = 8;
+  google.protobuf.Timestamp last_updated = 9;
+  double available_cash = 10;
+  double total_invested = 11;
+}
+
+message StockHoldingMessage {
+  string symbol = 1;
+  string name = 2;
+  int32 shares = 3;
+  double average_cost = 4;
+  double current_price = 5;
+  double total_value = 6;
+  double total_return = 7;
+  double total_return_percent = 8;
+  double day_change = 9;
+  double day_change_percent = 10;
+  google.protobuf.Timestamp purchase_date = 11;
+  string logo_url = 12;
+}
+
+message StockOrderMessage {
+  string id = 1;
+  string symbol = 2;
+  OrderType type = 3;
+  OrderSide side = 4;
+  int32 quantity = 5;
+  double price = 6;
+  OrderStatus status = 7;
+  google.protobuf.Timestamp created_at = 8;
+  google.protobuf.Timestamp executed_at = 9;
+  double executed_price = 10;
+  int32 executed_quantity = 11;
+  double fees = 12;
+  string notes = 13;
+}
+
+message WatchlistMessage {
+  string id = 1;
+  string name = 2;
+  repeated string symbols = 3;
+  google.protobuf.Timestamp created_at = 4;
+  google.protobuf.Timestamp last_updated = 5;
+  bool is_default = 6;
+}
+
+message MarketIndexMessage {
+  string symbol = 1;
+  string name = 2;
+  double value = 3;
+  double change = 4;
+  double change_percent = 5;
+  google.protobuf.Timestamp last_updated = 6;
+}
+
+// ============================================================================
+// REQUEST/RESPONSE MESSAGES
+// ============================================================================
+
+// Get Stocks
+message GetStocksRequest {
+  repeated string symbols = 1;
+  int32 page = 2;
+  int32 per_page = 3;
+}
+
+message GetStocksResponse {
+  repeated StockMessage stocks = 1;
+  StockPaginationInfo pagination = 2;
+}
+
+// Get Stock by Symbol
+message GetStockBySymbolRequest {
+  string symbol = 1;
+}
+
+message GetStockBySymbolResponse {
+  StockMessage stock = 1;
+}
+
+// Search Stocks
+message SearchStocksRequest {
+  string query = 1;
+  int32 limit = 2;
+}
+
+message SearchStocksResponse {
+  repeated StockMessage stocks = 1;
+}
+
+// Get Stock Price History
+message GetStockPriceHistoryRequest {
+  string symbol = 1;
+  string timeframe = 2; // 1D, 5D, 1M, 3M, 6M, 1Y, 5Y
+  string interval = 3; // 1m, 5m, 15m, 1h, 1d
+}
+
+message GetStockPriceHistoryResponse {
+  string symbol = 1;
+  repeated PricePoint price_history = 2;
+  string timeframe = 3;
+}
+
+// Get User Portfolio
+message GetUserPortfolioRequest {
+  // No parameters - uses authenticated user
+}
+
+message GetUserPortfolioResponse {
+  PortfolioMessage portfolio = 1;
+}
+
+// Place Order
+message PlaceOrderRequest {
+  string symbol = 1;
+  OrderType type = 2;
+  OrderSide side = 3;
+  int32 quantity = 4;
+  double price = 5; // For limit orders
+  string notes = 6;
+}
+
+message PlaceOrderResponse {
+  StockOrderMessage order = 1;
+  bool success = 2;
+  string message = 3;
+}
+
+// Get User Orders
+message GetUserOrdersRequest {
+  string symbol = 1; // Optional filter
+  OrderStatus status = 2; // Optional filter
+  int32 page = 3;
+  int32 per_page = 4;
+}
+
+message GetUserOrdersResponse {
+  repeated StockOrderMessage orders = 1;
+  StockPaginationInfo pagination = 2;
+}
+
+// Cancel Order
+message CancelOrderRequest {
+  string order_id = 1;
+}
+
+message CancelOrderResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+// Get Market Indices
+message GetMarketIndicesRequest {
+  // No parameters
+}
+
+message GetMarketIndicesResponse {
+  repeated MarketIndexMessage indices = 1;
+}
+
+// Get Trending Stocks
+message GetTrendingStocksRequest {
+  int32 limit = 1;
+}
+
+message GetTrendingStocksResponse {
+  repeated StockMessage stocks = 1;
+}
+
+// Get Top Gainers
+message GetTopGainersRequest {
+  int32 limit = 1;
+}
+
+message GetTopGainersResponse {
+  repeated StockMessage stocks = 1;
+}
+
+// Get Top Losers
+message GetTopLosersRequest {
+  int32 limit = 1;
+}
+
+message GetTopLosersResponse {
+  repeated StockMessage stocks = 1;
+}
+
+// Watchlist Management
+message CreateWatchlistRequest {
+  string name = 1;
+  repeated string symbols = 2;
+}
+
+message CreateWatchlistResponse {
+  WatchlistMessage watchlist = 1;
+}
+
+message GetUserWatchlistsRequest {
+  // No parameters
+}
+
+message GetUserWatchlistsResponse {
+  repeated WatchlistMessage watchlists = 1;
+}
+
+message AddToWatchlistRequest {
+  string watchlist_id = 1;
+  string symbol = 2;
+}
+
+message AddToWatchlistResponse {
+  bool success = 1;
+  WatchlistMessage watchlist = 2;
+}
+
+message RemoveFromWatchlistRequest {
+  string watchlist_id = 1;
+  string symbol = 2;
+}
+
+message RemoveFromWatchlistResponse {
+  bool success = 1;
+  WatchlistMessage watchlist = 2;
+}
+
+// ============================================================================
+// PAGINATION INFO
+// ============================================================================
+
+message StockPaginationInfo {
+  int32 current_page = 1;
+  int32 total_pages = 2;
+  int32 total_items = 3;
+  int32 items_per_page = 4;
+  bool has_next = 5;
+  bool has_prev = 6;
+}
+
+// ============================================================================
+// SERVICE DEFINITION
+// ============================================================================
+
+service StockService {
+  // Get multiple stocks
+  rpc GetStocks(GetStocksRequest) returns (GetStocksResponse) {
+    option (google.api.http) = {
+      get: "/v1/stocks"
+    };
+  }
+
+  // Get stock by symbol
+  rpc GetStockBySymbol(GetStockBySymbolRequest) returns (GetStockBySymbolResponse) {
+    option (google.api.http) = {
+      get: "/v1/stocks/{symbol}"
+    };
+  }
+
+  // Search stocks
+  rpc SearchStocks(SearchStocksRequest) returns (SearchStocksResponse) {
+    option (google.api.http) = {
+      get: "/v1/stocks/search"
+    };
+  }
+
+  // Get price history
+  rpc GetStockPriceHistory(GetStockPriceHistoryRequest) returns (GetStockPriceHistoryResponse) {
+    option (google.api.http) = {
+      get: "/v1/stocks/{symbol}/history"
+    };
+  }
+
+  // Get user's portfolio
+  rpc GetUserPortfolio(GetUserPortfolioRequest) returns (GetUserPortfolioResponse) {
+    option (google.api.http) = {
+      get: "/v1/stocks/portfolio"
+    };
+  }
+
+  // Place order
+  rpc PlaceOrder(PlaceOrderRequest) returns (PlaceOrderResponse) {
+    option (google.api.http) = {
+      post: "/v1/stocks/orders"
+      body: "*"
+    };
+  }
+
+  // Get user orders
+  rpc GetUserOrders(GetUserOrdersRequest) returns (GetUserOrdersResponse) {
+    option (google.api.http) = {
+      get: "/v1/stocks/orders"
+    };
+  }
+
+  // Cancel order
+  rpc CancelOrder(CancelOrderRequest) returns (CancelOrderResponse) {
+    option (google.api.http) = {
+      post: "/v1/stocks/orders/{order_id}/cancel"
+      body: "*"
+    };
+  }
+
+  // Get market indices
+  rpc GetMarketIndices(GetMarketIndicesRequest) returns (GetMarketIndicesResponse) {
+    option (google.api.http) = {
+      get: "/v1/stocks/market/indices"
+    };
+  }
+
+  // Get trending stocks
+  rpc GetTrendingStocks(GetTrendingStocksRequest) returns (GetTrendingStocksResponse) {
+    option (google.api.http) = {
+      get: "/v1/stocks/market/trending"
+    };
+  }
+
+  // Get top gainers
+  rpc GetTopGainers(GetTopGainersRequest) returns (GetTopGainersResponse) {
+    option (google.api.http) = {
+      get: "/v1/stocks/market/gainers"
+    };
+  }
+
+  // Get top losers
+  rpc GetTopLosers(GetTopLosersRequest) returns (GetTopLosersResponse) {
+    option (google.api.http) = {
+      get: "/v1/stocks/market/losers"
+    };
+  }
+
+  // Create watchlist
+  rpc CreateWatchlist(CreateWatchlistRequest) returns (CreateWatchlistResponse) {
+    option (google.api.http) = {
+      post: "/v1/stocks/watchlists"
+      body: "*"
+    };
+  }
+
+  // Get user watchlists
+  rpc GetUserWatchlists(GetUserWatchlistsRequest) returns (GetUserWatchlistsResponse) {
+    option (google.api.http) = {
+      get: "/v1/stocks/watchlists"
+    };
+  }
+
+  // Add to watchlist
+  rpc AddToWatchlist(AddToWatchlistRequest) returns (AddToWatchlistResponse) {
+    option (google.api.http) = {
+      post: "/v1/stocks/watchlists/{watchlist_id}/symbols"
+      body: "*"
+    };
+  }
+
+  // Remove from watchlist
+  rpc RemoveFromWatchlist(RemoveFromWatchlistRequest) returns (RemoveFromWatchlistResponse) {
+    option (google.api.http) = {
+      delete: "/v1/stocks/watchlists/{watchlist_id}/symbols/{symbol}"
+    };
+  }
+}

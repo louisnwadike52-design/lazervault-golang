@@ -30,12 +30,14 @@ type TaskProcessor interface {
 }
 
 type RedisTaskProcessor struct {
-	server              *asynq.Server
-	db                  *gorm.DB
-	mailer              mail.EmailSender
-	config              *configs.Config
-	distributor         tasks.TaskDistributor
-	txDataFileProcessor *GenerateTxDataFileProcessor
+	server                      *asynq.Server
+	db                          *gorm.DB
+	mailer                      mail.EmailSender
+	config                      *configs.Config
+	distributor                 tasks.TaskDistributor
+	txDataFileProcessor         *GenerateTxDataFileProcessor
+	scheduledTransferProcessor  *ScheduledTransferProcessor
+	scheduledAutoSaveProcessor  *ScheduledAutoSaveProcessor
 }
 
 func NewRedisTaskProcessor(redisOpt asynq.RedisClientOpt, db *gorm.DB, mailer mail.EmailSender, config *configs.Config, distributor tasks.TaskDistributor) TaskProcessor {
@@ -43,31 +45,63 @@ func NewRedisTaskProcessor(redisOpt asynq.RedisClientOpt, db *gorm.DB, mailer ma
 	redis.SetLogger(logger)
 
 	txDataFileProcessor := NewGenerateTxDataFileProcessor(db, *config)
+	scheduledTransferProcessor := NewScheduledTransferProcessor(db, distributor)
+
+	// Initialize auto-save service and processor
+	accountService := services.NewAccountService(db, distributor)
+	recipientService := services.NewRecipientService(db)
+	transferService := services.NewTransferService(db, config, distributor, recipientService, accountService)
+	autoSaveService := services.NewAutoSaveService(db, distributor, accountService, transferService)
+	scheduledAutoSaveProcessor := NewScheduledAutoSaveProcessor(db, autoSaveService, distributor)
 
 	server := asynq.NewServer(
 		redisOpt,
 		asynq.Config{
 			Queues: map[string]int{
-				tasks.QueueCritical: 10,
-				tasks.QueueDefault:  5,
-				tasks.QueueLow:      5,
+				tasks.QueueCritical: 10, // High priority for critical tasks
+				tasks.QueueDefault:  5,  // Normal priority
+				tasks.QueueLow:      5,  // Low priority for non-urgent tasks
 			},
+			// PRODUCTION-GRADE ERROR HANDLING
 			ErrorHandler: asynq.ErrorHandlerFunc(func(ctx context.Context, task *asynq.Task, err error) {
-				log.Error().Err(err).Str("type", task.Type()).
-					Bytes("payload", task.Payload()).Msg("process task failed")
+				log.Error().
+					Err(err).
+					Str("task_type", task.Type()).
+					Bytes("payload", task.Payload()).
+					Msg("CRITICAL: Task processing failed")
+
+				// TODO: Send alert to monitoring service (Sentry, Datadog, etc.)
+				// TODO: Store failed task in dead letter queue for manual review
 			}),
 			Logger:      logger,
-			Concurrency: 10,
+			Concurrency: 10, // Process up to 10 tasks concurrently
+
+			// PRODUCTION-GRADE RETRY CONFIGURATION
+			RetryDelayFunc: func(n int, err error, task *asynq.Task) time.Duration {
+				// Exponential backoff: 2^n seconds with jitter
+				baseDelay := time.Duration(1<<uint(n)) * time.Second
+				// Add jitter to prevent thundering herd
+				jitter := time.Duration(n*500) * time.Millisecond
+				return baseDelay + jitter
+			},
+
+			// Health check interval
+			HealthCheckInterval: 15 * time.Second,
+
+			// Graceful shutdown timeout
+			ShutdownTimeout: 30 * time.Second,
 		},
 	)
 
 	return &RedisTaskProcessor{
-		server:              server,
-		db:                  db,
-		mailer:              mailer,
-		config:              config,
-		distributor:         distributor,
-		txDataFileProcessor: txDataFileProcessor,
+		server:                     server,
+		db:                         db,
+		mailer:                     mailer,
+		config:                     config,
+		distributor:                distributor,
+		txDataFileProcessor:        txDataFileProcessor,
+		scheduledTransferProcessor: scheduledTransferProcessor,
+		scheduledAutoSaveProcessor: scheduledAutoSaveProcessor,
 	}
 }
 
@@ -80,6 +114,9 @@ func (processor *RedisTaskProcessor) Start() error {
 	})
 	mux.HandleFunc(tasks.TaskProcessTransfer, processor.ProcessTaskProcessTransfer)
 	mux.HandleFunc(tasks.TaskSendPasswordResetOTP, processor.ProcessTaskSendPasswordResetOTP)
+	mux.HandleFunc(tasks.TaskSendPasswordResetEmailOTP, func(ctx context.Context, task *asynq.Task) error {
+		return HandleEmailSendPasswordResetOTPTask(ctx, task, processor.mailer)
+	})
 	mux.HandleFunc(tasks.TypeDepositProcessing, func(ctx context.Context, task *asynq.Task) error {
 		txService := services.NewTransactionService(processor.db)
 		return HandleDepositProcessTask(ctx, task, processor.db, processor.mailer, processor.distributor, txService, processor.txDataFileProcessor.txFileService)
@@ -116,6 +153,20 @@ func (processor *RedisTaskProcessor) Start() error {
 	// Register the new transaction file update handler
 	mux.HandleFunc(tasks.TypeUpdateTxFileAndIndex, processor.HandleUpdateTxFile)
 
+	// Register the scheduled transfer check handler
+	mux.HandleFunc(tasks.TypeScheduledTransferCheck, processor.scheduledTransferProcessor.ProcessScheduledTransferCheck)
+
+	// Register the scheduled auto-save check handler
+	mux.HandleFunc(tasks.TypeScheduledAutoSaveCheck, processor.scheduledAutoSaveProcessor.ProcessScheduledAutoSaveCheck)
+
+	// Register invoice email handlers
+	mux.HandleFunc(tasks.TypeEmailSendInvoice, func(ctx context.Context, task *asynq.Task) error {
+		return HandleEmailSendInvoiceTask(ctx, task, processor.mailer)
+	})
+	mux.HandleFunc(tasks.TypeEmailSendPaymentConfirm, func(ctx context.Context, task *asynq.Task) error {
+		return HandleEmailSendPaymentConfirmationTask(ctx, task, processor.mailer)
+	})
+
 	log.Info().Msg("starting task processor server")
 	return processor.server.Start(mux)
 }
@@ -146,78 +197,217 @@ func (processor *RedisTaskProcessor) ProcessTaskProcessTransfer(ctx context.Cont
 }
 
 func (processor *RedisTaskProcessor) ProcessTransferLogic(ctx context.Context, transferID uint) error {
+	// PRODUCTION-GRADE TRANSACTION PROCESSING WITH COMPREHENSIVE ERROR HANDLING
+
+	log.Info().Uint("transfer_id", transferID).Msg("Starting transfer processing")
+
+	// Start database transaction with proper error handling
 	tx := processor.db.WithContext(ctx).Begin()
 	if tx.Error != nil {
-		return tx.Error
+		log.Error().Err(tx.Error).Uint("transfer_id", transferID).Msg("Failed to begin database transaction")
+		return fmt.Errorf("failed to begin transaction: %w", tx.Error)
 	}
+
+	// Ensure rollback on panic or error
+	var commitError error
 	defer func() {
 		if r := recover(); r != nil {
 			tx.Rollback()
-		} else if tx.Error != nil {
+			log.Error().
+				Uint("transfer_id", transferID).
+				Interface("panic", r).
+				Msg("CRITICAL: Panic during transfer processing - transaction rolled back")
+		} else if commitError != nil || tx.Error != nil {
 			tx.Rollback()
+			log.Warn().Uint("transfer_id", transferID).Msg("Transaction rolled back due to error")
 		}
 	}()
 
+	// Fetch transfer with account details
 	var transfer models.Transfer
 	if err := tx.Preload("FromAccount").Preload("ToAccount").First(&transfer, transferID).Error; err != nil {
-		tx.Rollback()
-		return fmt.Errorf("failed to get transfer with accounts: %w", err)
+		commitError = err
+		log.Error().Err(err).Uint("transfer_id", transferID).Msg("Failed to fetch transfer record")
+		return fmt.Errorf("failed to get transfer: %w", err)
 	}
 
+	// EDGE CASE: Validate accounts exist
 	if transfer.FromAccount.ID == 0 || transfer.ToAccount.ID == 0 {
 		transfer.Status = models.TransferStatusFailed
 		now := time.Now()
 		transfer.FailedAt = &now
 		transfer.FailureReason = "invalid source or destination account"
+
 		if err := tx.Save(&transfer).Error; err != nil {
-			tx.Rollback()
+			commitError = err
+			log.Error().Err(err).Uint("transfer_id", transferID).Msg("Failed to save failure status")
 			return err
 		}
-		tx.Rollback()
+
+		commitError = tx.Commit().Error
+		if commitError != nil {
+			log.Error().Err(commitError).Uint("transfer_id", transferID).Msg("Failed to commit failure status")
+			return commitError
+		}
+
+		log.Warn().Uint("transfer_id", transferID).Msg("Transfer failed: invalid accounts")
 		return fmt.Errorf("transfer %d links to non-existent account(s)", transferID)
 	}
 
-	if transfer.Status != models.TransferStatusPending {
-		log.Warn().Uint("transfer_id", transferID).Str("status", string(transfer.Status)).Msg("transfer already processed or in unexpected state")
+	// EDGE CASE: Check if already processed (idempotency)
+	if transfer.Status != models.TransferStatusPending && transfer.Status != models.TransferStatusProcessing {
+		log.Warn().
+			Uint("transfer_id", transferID).
+			Str("status", string(transfer.Status)).
+			Msg("Transfer already processed - skipping (idempotent)")
 		return nil
 	}
 
+	// Update status to processing
+	transfer.Status = models.TransferStatusProcessing
+	if err := tx.Save(&transfer).Error; err != nil {
+		commitError = err
+		log.Error().Err(err).Uint("transfer_id", transferID).Msg("Failed to update status to processing")
+		return err
+	}
+
+	// EDGE CASE: Validate sufficient balance
 	if transfer.FromAccount.Balance < transfer.TotalAmount {
 		transfer.Status = models.TransferStatusFailed
 		now := time.Now()
 		transfer.FailedAt = &now
-		transfer.FailureReason = "insufficient funds"
+		transfer.FailureReason = "insufficient funds at processing time"
 
 		if err := tx.Save(&transfer).Error; err != nil {
-			tx.Rollback()
+			commitError = err
+			log.Error().Err(err).Uint("transfer_id", transferID).Msg("Failed to save insufficient funds failure")
 			return fmt.Errorf("failed to update transfer status to failed: %w", err)
 		}
 
-		log.Warn().Uint("transfer_id", transferID).Msg("transfer failed due to insufficient funds")
-		return tx.Commit().Error
+		commitError = tx.Commit().Error
+		if commitError != nil {
+			log.Error().Err(commitError).Uint("transfer_id", transferID).Msg("Failed to commit insufficient funds status")
+			return commitError
+		}
+
+		log.Warn().
+			Uint("transfer_id", transferID).
+			Int64("required", transfer.TotalAmount).
+			Int64("available", transfer.FromAccount.Balance).
+			Msg("Transfer failed: insufficient funds")
+
+		// TODO: Send notification to user about failed transfer
+		return nil // Not an error - properly handled failure
 	}
 
+	// EDGE CASE: Check account status (frozen, locked, closed)
+	if transfer.FromAccount.Status != "active" {
+		transfer.Status = models.TransferStatusFailed
+		now := time.Now()
+		transfer.FailedAt = &now
+		transfer.FailureReason = fmt.Sprintf("source account is %s", transfer.FromAccount.Status)
+
+		if err := tx.Save(&transfer).Error; err != nil {
+			commitError = err
+			return err
+		}
+
+		commitError = tx.Commit().Error
+		log.Warn().
+			Uint("transfer_id", transferID).
+			Str("account_status", transfer.FromAccount.Status).
+			Msg("Transfer failed: account not active")
+		return commitError
+	}
+
+	// Execute the transfer - debit and credit atomically
+	log.Info().
+		Uint("transfer_id", transferID).
+		Int64("amount", transfer.Amount).
+		Int64("fee", transfer.Fee).
+		Int64("total", transfer.TotalAmount).
+		Msg("Executing transfer")
+
+	// Debit from source account
+	originalSourceBalance := transfer.FromAccount.Balance
 	transfer.FromAccount.Balance -= transfer.TotalAmount
-	transfer.ToAccount.Balance += transfer.Amount
 
 	if err := tx.Save(&transfer.FromAccount).Error; err != nil {
-		tx.Rollback()
+		commitError = err
+		log.Error().
+			Err(err).
+			Uint("transfer_id", transferID).
+			Uint("account_id", transfer.FromAccount.ID).
+			Msg("CRITICAL: Failed to debit source account")
 		return fmt.Errorf("failed to update sender account balance: %w", err)
 	}
 
+	// Credit to destination account
+	originalDestBalance := transfer.ToAccount.Balance
+	transfer.ToAccount.Balance += transfer.Amount
+
 	if err := tx.Save(&transfer.ToAccount).Error; err != nil {
-		tx.Rollback()
+		commitError = err
+		log.Error().
+			Err(err).
+			Uint("transfer_id", transferID).
+			Uint("account_id", transfer.ToAccount.ID).
+			Msg("CRITICAL: Failed to credit destination account - rolling back")
+
+		// ROLLBACK: Restore source account balance
+		transfer.FromAccount.Balance = originalSourceBalance
+		if rollbackErr := tx.Save(&transfer.FromAccount).Error; rollbackErr != nil {
+			log.Error().
+				Err(rollbackErr).
+				Uint("transfer_id", transferID).
+				Msg("CRITICAL: Failed to rollback source account - MANUAL INTERVENTION REQUIRED")
+		}
+
 		return fmt.Errorf("failed to update recipient account balance: %w", err)
 	}
 
+	// Mark transfer as completed
 	transfer.Status = models.TransferStatusCompleted
 	now := time.Now()
 	transfer.CompletedAt = &now
 
 	if err := tx.Save(&transfer).Error; err != nil {
-		tx.Rollback()
+		commitError = err
+		log.Error().
+			Err(err).
+			Uint("transfer_id", transferID).
+			Msg("CRITICAL: Failed to update transfer status to completed")
+
+		// ROLLBACK: Restore account balances
+		transfer.FromAccount.Balance = originalSourceBalance
+		transfer.ToAccount.Balance = originalDestBalance
+
+		if rollbackErr := tx.Save(&transfer.FromAccount).Error; rollbackErr != nil {
+			log.Error().Err(rollbackErr).Msg("CRITICAL: Rollback failed for source account")
+		}
+		if rollbackErr := tx.Save(&transfer.ToAccount).Error; rollbackErr != nil {
+			log.Error().Err(rollbackErr).Msg("CRITICAL: Rollback failed for destination account")
+		}
+
 		return fmt.Errorf("failed to update transfer status to completed: %w", err)
 	}
+
+	// Commit the transaction
+	commitError = tx.Commit().Error
+	if commitError != nil {
+		log.Error().
+			Err(commitError).
+			Uint("transfer_id", transferID).
+			Msg("CRITICAL: Failed to commit transfer transaction")
+		return fmt.Errorf("failed to commit transaction: %w", commitError)
+	}
+
+	log.Info().
+		Uint("transfer_id", transferID).
+		Uint("from_account", transfer.FromAccountID).
+		Uint("to_account", *transfer.ToAccountID).
+		Int64("amount", transfer.Amount).
+		Msg("Transfer completed successfully")
 
 	// Create transaction record
 	txService := services.NewTransactionService(processor.db)

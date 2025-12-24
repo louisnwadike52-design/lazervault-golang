@@ -93,6 +93,27 @@ func (distributor *RedisTaskDistributor) DistributeTaskSendPasswordResetOTP(
 	return nil
 }
 
+func (distributor *RedisTaskDistributor) DistributeTaskSendPasswordResetEmailOTP(
+	ctx context.Context,
+	payload *tasks.PayloadSendPasswordResetEmailOTP,
+	opts ...asynq.Option,
+) error {
+	jsonPayload, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("failed to marshal task payload: %w", err)
+	}
+
+	task := asynq.NewTask(tasks.TaskSendPasswordResetEmailOTP, jsonPayload, opts...)
+	info, err := distributor.client.EnqueueContext(ctx, task)
+	if err != nil {
+		return fmt.Errorf("failed to enqueue task: %w", err)
+	}
+
+	log.Info().Str("type", task.Type()).Bytes("payload", task.Payload()).
+		Str("queue", info.Queue).Int("max_retry", info.MaxRetry).Msg("enqueued task")
+	return nil
+}
+
 // Generic DistributeTask implementation
 func (distributor *RedisTaskDistributor) DistributeTask(
 	ctx context.Context,
@@ -190,4 +211,43 @@ func (distributor *RedisTaskDistributor) DistributeTaskGenerateTxDataFile(
 
 	// Use the generic DistributeTask method internally
 	return distributor.DistributeTask(ctx, tasks.TypeGenerateTxDataFile, jsonPayload, opts...)
+}
+
+// DistributeProcessTransferTask distributes a transfer processing task
+func (distributor *RedisTaskDistributor) DistributeProcessTransferTask(
+	ctx context.Context,
+	payload *tasks.ProcessTransferPayload,
+	opts ...asynq.Option,
+) error {
+	jsonPayload, err := payload.MarshalBinary()
+	if err != nil {
+		return fmt.Errorf("failed to marshal process transfer payload: %w", err)
+	}
+	return distributor.DistributeTask(ctx, tasks.TaskProcessTransfer, jsonPayload, opts...)
+}
+
+// DistributeScheduledTransferCheckTask distributes a scheduled transfer check task
+func (distributor *RedisTaskDistributor) DistributeScheduledTransferCheckTask(
+	ctx context.Context,
+	payload *tasks.ScheduledTransferCheckPayload,
+	opts ...asynq.Option,
+) error {
+	jsonPayload, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("failed to marshal scheduled transfer check payload: %w", err)
+	}
+	return distributor.DistributeTask(ctx, tasks.TypeScheduledTransferCheck, jsonPayload, opts...)
+}
+
+// DistributeScheduledAutoSaveCheckTask distributes a scheduled auto-save check task
+func (distributor *RedisTaskDistributor) DistributeScheduledAutoSaveCheckTask(
+	ctx context.Context,
+	payload *tasks.ScheduledAutoSaveCheckPayload,
+	opts ...asynq.Option,
+) error {
+	jsonPayload, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("failed to marshal scheduled auto-save check payload: %w", err)
+	}
+	return distributor.DistributeTask(ctx, tasks.TypeScheduledAutoSaveCheck, jsonPayload, opts...)
 }

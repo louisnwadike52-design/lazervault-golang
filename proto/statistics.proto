@@ -1,0 +1,1090 @@
+syntax = "proto3";
+
+package pb;
+
+option go_package = "lazervaultGo/pb";
+
+import "google/api/annotations.proto";
+import "google/protobuf/timestamp.proto";
+
+// ========================================
+// STATISTICS & EXPENSE TRACKING SERVICE
+// ========================================
+
+service StatisticsService {
+  // Expense Management
+  rpc CreateExpense(CreateExpenseRequest) returns (CreateExpenseResponse) {
+    option (google.api.http) = {
+      post: "/v1/statistics/expenses"
+      body: "*"
+    };
+  }
+
+  rpc GetExpenses(GetExpensesRequest) returns (GetExpensesResponse) {
+    option (google.api.http) = {
+      get: "/v1/statistics/expenses"
+    };
+  }
+
+  rpc GetExpenseById(GetExpenseByIdRequest) returns (GetExpenseByIdResponse) {
+    option (google.api.http) = {
+      get: "/v1/statistics/expenses/{expense_id}"
+    };
+  }
+
+  rpc UpdateExpense(UpdateExpenseRequest) returns (UpdateExpenseResponse) {
+    option (google.api.http) = {
+      put: "/v1/statistics/expenses/{expense_id}"
+      body: "*"
+    };
+  }
+
+  rpc DeleteExpense(DeleteExpenseRequest) returns (DeleteExpenseResponse) {
+    option (google.api.http) = {
+      delete: "/v1/statistics/expenses/{expense_id}"
+    };
+  }
+
+  // Budget Management
+  rpc CreateBudget(CreateBudgetRequest) returns (CreateBudgetResponse) {
+    option (google.api.http) = {
+      post: "/v1/statistics/budgets"
+      body: "*"
+    };
+  }
+
+  rpc GetBudgets(GetBudgetsRequest) returns (GetBudgetsResponse) {
+    option (google.api.http) = {
+      get: "/v1/statistics/budgets"
+    };
+  }
+
+  rpc GetBudgetById(GetBudgetByIdRequest) returns (GetBudgetByIdResponse) {
+    option (google.api.http) = {
+      get: "/v1/statistics/budgets/{budget_id}"
+    };
+  }
+
+  rpc UpdateBudget(UpdateBudgetRequest) returns (UpdateBudgetResponse) {
+    option (google.api.http) = {
+      put: "/v1/statistics/budgets/{budget_id}"
+      body: "*"
+    };
+  }
+
+  rpc DeleteBudget(DeleteBudgetRequest) returns (DeleteBudgetResponse) {
+    option (google.api.http) = {
+      delete: "/v1/statistics/budgets/{budget_id}"
+    };
+  }
+
+  // Analytics & Reports
+  rpc GetSpendingAnalytics(GetSpendingAnalyticsRequest) returns (GetSpendingAnalyticsResponse) {
+    option (google.api.http) = {
+      get: "/v1/statistics/analytics/spending"
+    };
+  }
+
+  rpc GetCategoryBreakdown(GetCategoryBreakdownRequest) returns (GetCategoryBreakdownResponse) {
+    option (google.api.http) = {
+      get: "/v1/statistics/analytics/categories"
+    };
+  }
+
+  rpc GetBudgetProgress(GetBudgetProgressRequest) returns (GetBudgetProgressResponse) {
+    option (google.api.http) = {
+      get: "/v1/statistics/analytics/budget-progress"
+    };
+  }
+
+  rpc GetSpendingTrends(GetSpendingTrendsRequest) returns (GetSpendingTrendsResponse) {
+    option (google.api.http) = {
+      get: "/v1/statistics/analytics/trends"
+    };
+  }
+
+  // Notifications
+  rpc GetBudgetAlerts(GetBudgetAlertsRequest) returns (GetBudgetAlertsResponse) {
+    option (google.api.http) = {
+      get: "/v1/statistics/alerts"
+    };
+  }
+
+  rpc MarkAlertAsRead(MarkAlertAsReadRequest) returns (MarkAlertAsReadResponse) {
+    option (google.api.http) = {
+      put: "/v1/statistics/alerts/{alert_id}/read"
+    };
+  }
+
+  // AI-Powered Statistics
+  rpc GetAISpendingInsights(GetAISpendingInsightsRequest) returns (GetAISpendingInsightsResponse) {
+    option (google.api.http) = {
+      post: "/v1/statistics/ai/insights/spending"
+      body: "*"
+    };
+  }
+
+  rpc GetAIBudgetingRecommendations(GetAIBudgetingRecommendationsRequest) returns (GetAIBudgetingRecommendationsResponse) {
+    option (google.api.http) = {
+      post: "/v1/statistics/ai/recommendations/budgeting"
+      body: "*"
+    };
+  }
+
+  rpc AutoCategorizeExpense(AutoCategorizeExpenseRequest) returns (AutoCategorizeExpenseResponse) {
+    option (google.api.http) = {
+      post: "/v1/statistics/ai/categorize"
+      body: "*"
+    };
+  }
+
+  rpc GetAIFinancialAdvice(GetAIFinancialAdviceRequest) returns (GetAIFinancialAdviceResponse) {
+    option (google.api.http) = {
+      post: "/v1/statistics/ai/advice"
+      body: "*"
+    };
+  }
+
+  // Income Management
+  rpc GetIncomeSources(GetIncomeSourcesRequest) returns (GetIncomeSourcesResponse) {
+    option (google.api.http) = {
+      get: "/v1/statistics/income/sources"
+    };
+  }
+
+  rpc GetIncomeBreakdown(GetIncomeBreakdownRequest) returns (GetIncomeBreakdownResponse) {
+    option (google.api.http) = {
+      get: "/v1/statistics/income/breakdown"
+    };
+  }
+
+  rpc CreateIncomeSource(CreateIncomeSourceRequest) returns (CreateIncomeSourceResponse) {
+    option (google.api.http) = {
+      post: "/v1/statistics/income/sources"
+      body: "*"
+    };
+  }
+
+  // Investment Management
+  rpc GetInvestmentPortfolio(GetInvestmentPortfolioRequest) returns (GetInvestmentPortfolioResponse) {
+    option (google.api.http) = {
+      get: "/v1/statistics/investments/portfolio"
+    };
+  }
+
+  rpc CreateInvestment(CreateInvestmentRequest) returns (CreateInvestmentResponse) {
+    option (google.api.http) = {
+      post: "/v1/statistics/investments"
+      body: "*"
+    };
+  }
+
+  // Financial Goals Management
+  rpc GetFinancialGoals(GetFinancialGoalsRequest) returns (GetFinancialGoalsResponse) {
+    option (google.api.http) = {
+      get: "/v1/statistics/goals"
+    };
+  }
+
+  rpc CreateFinancialGoal(CreateFinancialGoalRequest) returns (CreateFinancialGoalResponse) {
+    option (google.api.http) = {
+      post: "/v1/statistics/goals"
+      body: "*"
+    };
+  }
+
+  rpc UpdateFinancialGoalProgress(UpdateFinancialGoalProgressRequest) returns (UpdateFinancialGoalProgressResponse) {
+    option (google.api.http) = {
+      put: "/v1/statistics/goals/{goal_id}/progress"
+      body: "*"
+    };
+  }
+
+  // Savings Goal Management
+  rpc GetSavingsGoal(GetSavingsGoalRequest) returns (GetSavingsGoalResponse) {
+    option (google.api.http) = {
+      get: "/v1/statistics/savings/goal"
+    };
+  }
+
+  rpc CreateOrUpdateSavingsGoal(CreateOrUpdateSavingsGoalRequest) returns (CreateOrUpdateSavingsGoalResponse) {
+    option (google.api.http) = {
+      post: "/v1/statistics/savings/goal"
+      body: "*"
+    };
+  }
+
+  // Recurring Bills Management
+  rpc GetUpcomingBills(GetUpcomingBillsRequest) returns (GetUpcomingBillsResponse) {
+    option (google.api.http) = {
+      get: "/v1/statistics/bills/upcoming"
+    };
+  }
+
+  rpc CreateRecurringBill(CreateRecurringBillRequest) returns (CreateRecurringBillResponse) {
+    option (google.api.http) = {
+      post: "/v1/statistics/bills/recurring"
+      body: "*"
+    };
+  }
+}
+
+// ========================================
+// MESSAGES
+// ========================================
+
+// Expense Messages
+message ExpenseMessage {
+  string id = 1;
+  uint64 user_id = 2;
+  string account_id = 3;
+  double amount = 4;
+  string currency = 5;
+  ExpenseCategory category = 6;
+  string subcategory = 7;
+  string description = 8;
+  string merchant = 9;
+  google.protobuf.Timestamp transaction_date = 10;
+  string payment_method = 11;
+  string receipt_url = 12;
+  repeated string tags = 13;
+  string notes = 14;
+  bool is_recurring = 15;
+  string recurrence_pattern = 16; // daily, weekly, monthly, yearly
+  google.protobuf.Timestamp created_at = 17;
+  google.protobuf.Timestamp updated_at = 18;
+}
+
+enum ExpenseCategory {
+  EXPENSE_CATEGORY_UNSPECIFIED = 0;
+  EXPENSE_CATEGORY_FOOD_DINING = 1;
+  EXPENSE_CATEGORY_TRANSPORTATION = 2;
+  EXPENSE_CATEGORY_SHOPPING = 3;
+  EXPENSE_CATEGORY_ENTERTAINMENT = 4;
+  EXPENSE_CATEGORY_BILLS_UTILITIES = 5;
+  EXPENSE_CATEGORY_HEALTHCARE = 6;
+  EXPENSE_CATEGORY_EDUCATION = 7;
+  EXPENSE_CATEGORY_TRAVEL = 8;
+  EXPENSE_CATEGORY_GROCERIES = 9;
+  EXPENSE_CATEGORY_RENT_MORTGAGE = 10;
+  EXPENSE_CATEGORY_INSURANCE = 11;
+  EXPENSE_CATEGORY_INVESTMENTS = 12;
+  EXPENSE_CATEGORY_GIFTS_DONATIONS = 13;
+  EXPENSE_CATEGORY_PERSONAL_CARE = 14;
+  EXPENSE_CATEGORY_SUBSCRIPTIONS = 15;
+  EXPENSE_CATEGORY_OTHER = 16;
+}
+
+// Budget Messages
+message BudgetMessage {
+  string id = 1;
+  uint64 user_id = 2;
+  string name = 3;
+  double amount = 4;
+  string currency = 5;
+  ExpenseCategory category = 6;
+  BudgetPeriod period = 7;
+  google.protobuf.Timestamp start_date = 8;
+  google.protobuf.Timestamp end_date = 9;
+  double spent_amount = 10;
+  double remaining_amount = 11;
+  double percentage_used = 12;
+  BudgetStatus status = 13;
+  bool enable_alerts = 14;
+  double alert_threshold = 15; // percentage (e.g., 80 for 80%)
+  google.protobuf.Timestamp created_at = 16;
+  google.protobuf.Timestamp updated_at = 17;
+}
+
+enum BudgetPeriod {
+  BUDGET_PERIOD_UNSPECIFIED = 0;
+  BUDGET_PERIOD_DAILY = 1;
+  BUDGET_PERIOD_WEEKLY = 2;
+  BUDGET_PERIOD_MONTHLY = 3;
+  BUDGET_PERIOD_QUARTERLY = 4;
+  BUDGET_PERIOD_YEARLY = 5;
+  BUDGET_PERIOD_CUSTOM = 6;
+}
+
+enum BudgetStatus {
+  BUDGET_STATUS_UNSPECIFIED = 0;
+  BUDGET_STATUS_ACTIVE = 1;
+  BUDGET_STATUS_EXCEEDED = 2;
+  BUDGET_STATUS_NEAR_LIMIT = 3;
+  BUDGET_STATUS_INACTIVE = 4;
+  BUDGET_STATUS_COMPLETED = 5;
+}
+
+// Alert Messages
+message BudgetAlertMessage {
+  string id = 1;
+  uint64 user_id = 2;
+  string budget_id = 3;
+  string budget_name = 4;
+  AlertType alert_type = 5;
+  string message = 6;
+  double current_spent = 7;
+  double budget_limit = 8;
+  double percentage_used = 9;
+  bool is_read = 10;
+  google.protobuf.Timestamp created_at = 11;
+}
+
+enum AlertType {
+  ALERT_TYPE_UNSPECIFIED = 0;
+  ALERT_TYPE_THRESHOLD_REACHED = 1; // e.g., 80% reached
+  ALERT_TYPE_BUDGET_EXCEEDED = 2;
+  ALERT_TYPE_APPROACHING_LIMIT = 3; // e.g., 90% reached
+  ALERT_TYPE_RECURRING_EXPENSE_DUE = 4;
+}
+
+// Analytics Messages
+message SpendingAnalytics {
+  string period = 1; // "daily", "weekly", "monthly", "yearly"
+  double total_spent = 2;
+  double total_budget = 3;
+  double remaining_budget = 4;
+  int32 transaction_count = 5;
+  double average_transaction = 6;
+  repeated CategorySpending category_breakdown = 7;
+  repeated DailySpending daily_trend = 8;
+  string top_category = 9;
+  double top_category_amount = 10;
+  double savings_rate = 11; // percentage of budget saved
+}
+
+message CategorySpending {
+  ExpenseCategory category = 1;
+  string category_name = 2;
+  double amount = 3;
+  double percentage = 4;
+  int32 transaction_count = 5;
+  double budget_allocated = 6;
+  double budget_remaining = 7;
+}
+
+message DailySpending {
+  google.protobuf.Timestamp date = 1;
+  double amount = 2;
+  int32 transaction_count = 3;
+}
+
+message BudgetProgressItem {
+  string budget_id = 1;
+  string budget_name = 2;
+  ExpenseCategory category = 3;
+  double budget_amount = 4;
+  double spent_amount = 5;
+  double remaining_amount = 6;
+  double percentage_used = 7;
+  BudgetStatus status = 8;
+  int32 days_remaining = 9;
+  double daily_average_spend = 10;
+  double projected_spend = 11;
+  bool will_exceed = 12;
+}
+
+message SpendingTrend {
+  string period_label = 1; // "Jan", "Feb", "Week 1", etc.
+  google.protobuf.Timestamp period_start = 2;
+  google.protobuf.Timestamp period_end = 3;
+  double total_spent = 4;
+  double budget_amount = 5;
+  double variance = 6; // positive or negative difference
+  double variance_percentage = 7;
+  repeated CategorySpending categories = 8;
+}
+
+// ========================================
+// REQUEST/RESPONSE MESSAGES
+// ========================================
+
+// Expense Requests
+message CreateExpenseRequest {
+  string account_id = 1;
+  double amount = 2;
+  string currency = 3;
+  ExpenseCategory category = 4;
+  string subcategory = 5;
+  string description = 6;
+  string merchant = 7;
+  google.protobuf.Timestamp transaction_date = 8;
+  string payment_method = 9;
+  string receipt_url = 10;
+  repeated string tags = 11;
+  string notes = 12;
+  bool is_recurring = 13;
+  string recurrence_pattern = 14;
+}
+
+message CreateExpenseResponse {
+  ExpenseMessage expense = 1;
+  bool success = 2;
+  string message = 3;
+}
+
+message GetExpensesRequest {
+  int32 page = 1;
+  int32 per_page = 2;
+  google.protobuf.Timestamp start_date = 3;
+  google.protobuf.Timestamp end_date = 4;
+  ExpenseCategory category = 5;
+  double min_amount = 6;
+  double max_amount = 7;
+  string search_query = 8;
+  repeated string tags = 9;
+}
+
+message GetExpensesResponse {
+  repeated ExpenseMessage expenses = 1;
+  PaginationMetadata pagination = 2;
+  double total_amount = 3;
+  int32 total_count = 4;
+}
+
+message GetExpenseByIdRequest {
+  string expense_id = 1;
+}
+
+message GetExpenseByIdResponse {
+  ExpenseMessage expense = 1;
+}
+
+message UpdateExpenseRequest {
+  string expense_id = 1;
+  double amount = 2;
+  ExpenseCategory category = 3;
+  string subcategory = 4;
+  string description = 5;
+  string merchant = 6;
+  google.protobuf.Timestamp transaction_date = 7;
+  string payment_method = 8;
+  repeated string tags = 9;
+  string notes = 10;
+}
+
+message UpdateExpenseResponse {
+  ExpenseMessage expense = 1;
+  bool success = 2;
+  string message = 3;
+}
+
+message DeleteExpenseRequest {
+  string expense_id = 1;
+}
+
+message DeleteExpenseResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+// Budget Requests
+message CreateBudgetRequest {
+  string name = 1;
+  double amount = 2;
+  string currency = 3;
+  ExpenseCategory category = 4;
+  BudgetPeriod period = 5;
+  google.protobuf.Timestamp start_date = 6;
+  google.protobuf.Timestamp end_date = 7;
+  bool enable_alerts = 8;
+  double alert_threshold = 9;
+}
+
+message CreateBudgetResponse {
+  BudgetMessage budget = 1;
+  bool success = 2;
+  string message = 3;
+}
+
+message GetBudgetsRequest {
+  int32 page = 1;
+  int32 per_page = 2;
+  BudgetStatus status = 3;
+  ExpenseCategory category = 4;
+}
+
+message GetBudgetsResponse {
+  repeated BudgetMessage budgets = 1;
+  PaginationMetadata pagination = 2;
+  double total_budget_amount = 3;
+  double total_spent_amount = 4;
+}
+
+message GetBudgetByIdRequest {
+  string budget_id = 1;
+}
+
+message GetBudgetByIdResponse {
+  BudgetMessage budget = 1;
+  repeated ExpenseMessage recent_expenses = 2;
+}
+
+message UpdateBudgetRequest {
+  string budget_id = 1;
+  string name = 2;
+  double amount = 3;
+  BudgetPeriod period = 4;
+  google.protobuf.Timestamp start_date = 5;
+  google.protobuf.Timestamp end_date = 6;
+  bool enable_alerts = 7;
+  double alert_threshold = 8;
+}
+
+message UpdateBudgetResponse {
+  BudgetMessage budget = 1;
+  bool success = 2;
+  string message = 3;
+}
+
+message DeleteBudgetRequest {
+  string budget_id = 1;
+}
+
+message DeleteBudgetResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+// Analytics Requests
+message GetSpendingAnalyticsRequest {
+  string period = 1; // "daily", "weekly", "monthly", "yearly"
+  google.protobuf.Timestamp start_date = 2;
+  google.protobuf.Timestamp end_date = 3;
+  ExpenseCategory category = 4;
+}
+
+message GetSpendingAnalyticsResponse {
+  SpendingAnalytics analytics = 1;
+}
+
+message GetCategoryBreakdownRequest {
+  google.protobuf.Timestamp start_date = 1;
+  google.protobuf.Timestamp end_date = 2;
+}
+
+message GetCategoryBreakdownResponse {
+  repeated CategorySpending categories = 1;
+  double total_spent = 2;
+}
+
+message GetBudgetProgressRequest {
+  BudgetPeriod period = 1;
+}
+
+message GetBudgetProgressResponse {
+  repeated BudgetProgressItem budgets = 1;
+  double total_budget = 2;
+  double total_spent = 3;
+  double overall_percentage = 4;
+}
+
+message GetSpendingTrendsRequest {
+  string period_type = 1; // "monthly", "weekly", "daily"
+  int32 periods_count = 2; // number of periods to return
+  google.protobuf.Timestamp end_date = 3;
+}
+
+message GetSpendingTrendsResponse {
+  repeated SpendingTrend trends = 1;
+}
+
+// Alert Requests
+message GetBudgetAlertsRequest {
+  bool unread_only = 1;
+  int32 limit = 2;
+}
+
+message GetBudgetAlertsResponse {
+  repeated BudgetAlertMessage alerts = 1;
+  int32 unread_count = 2;
+}
+
+message MarkAlertAsReadRequest {
+  string alert_id = 1;
+}
+
+message MarkAlertAsReadResponse {
+  bool success = 1;
+}
+
+// Pagination
+message PaginationMetadata {
+  int32 current_page = 1;
+  int32 per_page = 2;
+  int32 total_pages = 3;
+  int32 total_items = 4;
+  bool has_next = 5;
+  bool has_prev = 6;
+}
+
+// ========================================
+// AI-POWERED STATISTICS MESSAGES
+// ========================================
+
+// AI Spending Insights Request
+message GetAISpendingInsightsRequest {
+  google.protobuf.Timestamp start_date = 1;
+  google.protobuf.Timestamp end_date = 2;
+  string focus_area = 3; // "savings", "categories", "trends", "anomalies"
+}
+
+// AI Spending Insights Response
+message GetAISpendingInsightsResponse {
+  bool success = 1;
+  string summary = 2; // AI-generated summary
+  repeated AIInsight insights = 3;
+  repeated AIRecommendation recommendations = 4;
+  repeated AnomalyDetection anomalies = 5;
+}
+
+// Individual AI Insight
+message AIInsight {
+  string title = 1;
+  string description = 2;
+  string insight_type = 3; // "positive", "warning", "informational"
+  double impact_amount = 4;
+  repeated string supporting_data = 5;
+}
+
+// AI Recommendation
+message AIRecommendation {
+  string title = 1;
+  string description = 2;
+  string action = 3; // suggested action to take
+  double potential_savings = 4;
+  string priority = 5; // "high", "medium", "low"
+  ExpenseCategory affected_category = 6;
+}
+
+// Anomaly Detection
+message AnomalyDetection {
+  string anomaly_type = 1; // "unusual_spending", "duplicate_transaction", "missing_budget"
+  string description = 2;
+  google.protobuf.Timestamp detected_date = 3;
+  double amount = 4;
+  ExpenseCategory category = 5;
+  string severity = 6; // "low", "medium", "high"
+}
+
+// AI Budgeting Recommendations Request
+message GetAIBudgetingRecommendationsRequest {
+  double monthly_income = 1;
+  repeated string financial_goals = 2; // "save_more", "reduce_debt", "invest"
+  string risk_tolerance = 3; // "conservative", "moderate", "aggressive"
+}
+
+// AI Budgeting Recommendations Response
+message GetAIBudgetingRecommendationsResponse {
+  bool success = 1;
+  string summary = 2;
+  repeated BudgetRecommendation budget_recommendations = 3;
+  double recommended_savings_rate = 4;
+  string rationale = 5;
+}
+
+// Individual Budget Recommendation
+message BudgetRecommendation {
+  ExpenseCategory category = 1;
+  string category_name = 2;
+  double recommended_amount = 3;
+  double current_amount = 4;
+  double difference = 5;
+  string reasoning = 6;
+  BudgetPeriod recommended_period = 7;
+}
+
+// Auto Categorize Expense Request
+message AutoCategorizeExpenseRequest {
+  string description = 1;
+  string merchant = 2;
+  double amount = 3;
+  string notes = 4;
+}
+
+// Auto Categorize Expense Response
+message AutoCategorizeExpenseResponse {
+  bool success = 1;
+  ExpenseCategory suggested_category = 2;
+  string category_name = 3;
+  double confidence_score = 4; // 0.0 to 1.0
+  repeated CategorySuggestion alternative_categories = 5;
+  string reasoning = 6;
+}
+
+// Category Suggestion
+message CategorySuggestion {
+  ExpenseCategory category = 1;
+  string category_name = 2;
+  double confidence_score = 3;
+}
+
+// AI Financial Advice Request
+message GetAIFinancialAdviceRequest {
+  string query = 1; // user's specific question
+  repeated string context_areas = 2; // "spending", "budgeting", "savings", "investments"
+}
+
+// AI Financial Advice Response
+message GetAIFinancialAdviceResponse {
+  bool success = 1;
+  string query = 2;
+  string advice = 3;
+  repeated ActionStep action_steps = 4;
+  repeated string relevant_resources = 5;
+  string disclaimer = 6;
+}
+
+// Action Step
+message ActionStep {
+  int32 step_number = 1;
+  string title = 2;
+  string description = 3;
+  string estimated_impact = 4;
+  bool is_completed = 5;
+}
+
+// ========================================
+// INCOME, INVESTMENTS & GOALS MESSAGES
+// ========================================
+
+// Income Source Messages
+enum IncomeCategory {
+  INCOME_CATEGORY_UNSPECIFIED = 0;
+  INCOME_CATEGORY_SALARY = 1;
+  INCOME_CATEGORY_FREELANCE = 2;
+  INCOME_CATEGORY_INVESTMENTS = 3;
+  INCOME_CATEGORY_RENTAL = 4;
+  INCOME_CATEGORY_BUSINESS = 5;
+  INCOME_CATEGORY_DIVIDEND = 6;
+  INCOME_CATEGORY_INTEREST = 7;
+  INCOME_CATEGORY_GIFT = 8;
+  INCOME_CATEGORY_OTHER = 9;
+}
+
+message IncomeSource {
+  string id = 1;
+  uint64 user_id = 2;
+  string name = 3;
+  double amount = 4;
+  string currency = 5;
+  IncomeCategory category = 6;
+  bool is_recurring = 7;
+  string recurrence_pattern = 8; // monthly, yearly, etc.
+  google.protobuf.Timestamp last_received = 9;
+  google.protobuf.Timestamp next_expected = 10;
+  bool is_active = 11;
+  google.protobuf.Timestamp created_at = 12;
+  google.protobuf.Timestamp updated_at = 13;
+}
+
+message IncomeBreakdown {
+  repeated IncomeCategoryData categories = 1;
+  double total_income = 2;
+  string period = 3;
+}
+
+message IncomeCategoryData {
+  IncomeCategory category = 1;
+  string category_name = 2;
+  double amount = 3;
+  double percentage = 4;
+  int32 source_count = 5;
+}
+
+// Investment Portfolio Messages
+enum InvestmentType {
+  INVESTMENT_TYPE_UNSPECIFIED = 0;
+  INVESTMENT_TYPE_STOCKS = 1;
+  INVESTMENT_TYPE_CRYPTO = 2;
+  INVESTMENT_TYPE_MUTUAL_FUNDS = 3;
+  INVESTMENT_TYPE_BONDS = 4;
+  INVESTMENT_TYPE_ETF = 5;
+  INVESTMENT_TYPE_REAL_ESTATE = 6;
+  INVESTMENT_TYPE_COMMODITIES = 7;
+  INVESTMENT_TYPE_OTHER = 8;
+}
+
+message Investment {
+  string id = 1;
+  uint64 user_id = 2;
+  string name = 3;
+  InvestmentType investment_type = 4;
+  double current_value = 5;
+  double initial_investment = 6;
+  double gain_loss = 7;
+  double gain_loss_percentage = 8;
+  string currency = 9;
+  google.protobuf.Timestamp purchase_date = 10;
+  google.protobuf.Timestamp last_updated = 11;
+  string ticker_symbol = 12;
+  int32 quantity = 13;
+  double current_price = 14;
+}
+
+message InvestmentPortfolio {
+  repeated InvestmentTypeData investments = 1;
+  double total_value = 2;
+  double total_invested = 3;
+  double total_gain_loss = 4;
+  double total_gain_loss_percentage = 5;
+}
+
+message InvestmentTypeData {
+  InvestmentType investment_type = 1;
+  string type_name = 2;
+  double current_value = 3;
+  double gain_loss = 4;
+  double gain_loss_percentage = 5;
+  int32 asset_count = 6;
+}
+
+// Financial Goals Messages
+enum GoalStatus {
+  GOAL_STATUS_UNSPECIFIED = 0;
+  GOAL_STATUS_IN_PROGRESS = 1;
+  GOAL_STATUS_COMPLETED = 2;
+  GOAL_STATUS_CANCELLED = 3;
+  GOAL_STATUS_PAUSED = 4;
+}
+
+enum GoalType {
+  GOAL_TYPE_UNSPECIFIED = 0;
+  GOAL_TYPE_EMERGENCY_FUND = 1;
+  GOAL_TYPE_VACATION = 2;
+  GOAL_TYPE_CAR = 3;
+  GOAL_TYPE_HOUSE = 4;
+  GOAL_TYPE_EDUCATION = 5;
+  GOAL_TYPE_RETIREMENT = 6;
+  GOAL_TYPE_WEDDING = 7;
+  GOAL_TYPE_DEBT_PAYOFF = 8;
+  GOAL_TYPE_CUSTOM = 9;
+}
+
+message FinancialGoal {
+  string id = 1;
+  uint64 user_id = 2;
+  string name = 3;
+  GoalType goal_type = 4;
+  double target_amount = 5;
+  double current_amount = 6;
+  double monthly_contribution = 7;
+  string currency = 8;
+  google.protobuf.Timestamp target_date = 9;
+  GoalStatus status = 10;
+  double percentage_complete = 11;
+  int32 months_remaining = 12;
+  string icon = 13;
+  string color = 14;
+  google.protobuf.Timestamp created_at = 15;
+  google.protobuf.Timestamp updated_at = 16;
+}
+
+message FinancialGoalsList {
+  repeated FinancialGoal goals = 1;
+  double total_target = 2;
+  double total_saved = 3;
+  int32 active_goals_count = 4;
+}
+
+// Savings Goal (Primary/Main savings target)
+message SavingsGoal {
+  string id = 1;
+  uint64 user_id = 2;
+  string name = 3;
+  double target_amount = 4;
+  double current_amount = 5;
+  double percentage_complete = 6;
+  google.protobuf.Timestamp target_date = 7;
+  google.protobuf.Timestamp created_at = 8;
+  google.protobuf.Timestamp updated_at = 9;
+}
+
+// Recurring Bills / Upcoming Bills Messages
+enum BillStatus {
+  BILL_STATUS_UNSPECIFIED = 0;
+  BILL_STATUS_UPCOMING = 1;
+  BILL_STATUS_PAID = 2;
+  BILL_STATUS_OVERDUE = 3;
+  BILL_STATUS_CANCELLED = 4;
+}
+
+message RecurringBill {
+  string id = 1;
+  uint64 user_id = 2;
+  string name = 3;
+  double amount = 4;
+  string currency = 5;
+  ExpenseCategory category = 6;
+  string recurrence_pattern = 7; // monthly, weekly, yearly
+  google.protobuf.Timestamp next_due_date = 8;
+  google.protobuf.Timestamp last_paid_date = 9;
+  BillStatus status = 10;
+  int32 days_until_due = 11;
+  string merchant = 12;
+  string icon = 13;
+  bool auto_pay_enabled = 14;
+  google.protobuf.Timestamp created_at = 15;
+  google.protobuf.Timestamp updated_at = 16;
+}
+
+message UpcomingBillsList {
+  repeated RecurringBill bills = 1;
+  double total_upcoming = 2;
+  int32 bills_count = 3;
+}
+
+// ========================================
+// NEW SERVICE METHODS
+// ========================================
+
+// Add to StatisticsService:
+// Income Management
+message CreateIncomeSourceRequest {
+  string name = 1;
+  double amount = 2;
+  string currency = 3;
+  IncomeCategory category = 4;
+  bool is_recurring = 5;
+  string recurrence_pattern = 6;
+  google.protobuf.Timestamp last_received = 7;
+  google.protobuf.Timestamp next_expected = 8;
+}
+
+message CreateIncomeSourceResponse {
+  IncomeSource income_source = 1;
+  bool success = 2;
+  string message = 3;
+}
+
+message GetIncomeSourcesRequest {
+  bool active_only = 1;
+}
+
+message GetIncomeSourcesResponse {
+  repeated IncomeSource income_sources = 1;
+  double total_monthly_income = 2;
+}
+
+message GetIncomeBreakdownRequest {
+  google.protobuf.Timestamp start_date = 1;
+  google.protobuf.Timestamp end_date = 2;
+}
+
+message GetIncomeBreakdownResponse {
+  IncomeBreakdown breakdown = 1;
+}
+
+// Investment Management
+message GetInvestmentPortfolioRequest {
+  // No parameters needed, returns user's portfolio
+}
+
+message GetInvestmentPortfolioResponse {
+  InvestmentPortfolio portfolio = 1;
+  repeated Investment individual_investments = 2;
+}
+
+message CreateInvestmentRequest {
+  string name = 1;
+  InvestmentType investment_type = 2;
+  double initial_investment = 3;
+  string currency = 4;
+  google.protobuf.Timestamp purchase_date = 5;
+  string ticker_symbol = 6;
+  int32 quantity = 7;
+}
+
+message CreateInvestmentResponse {
+  Investment investment = 1;
+  bool success = 2;
+  string message = 3;
+}
+
+// Financial Goals Management
+message CreateFinancialGoalRequest {
+  string name = 1;
+  GoalType goal_type = 2;
+  double target_amount = 3;
+  double current_amount = 4;
+  double monthly_contribution = 5;
+  string currency = 6;
+  google.protobuf.Timestamp target_date = 7;
+  string icon = 8;
+  string color = 9;
+}
+
+message CreateFinancialGoalResponse {
+  FinancialGoal goal = 1;
+  bool success = 2;
+  string message = 3;
+}
+
+message GetFinancialGoalsRequest {
+  GoalStatus status = 1;
+}
+
+message GetFinancialGoalsResponse {
+  FinancialGoalsList goals_list = 1;
+}
+
+message UpdateFinancialGoalProgressRequest {
+  string goal_id = 1;
+  double amount_to_add = 2;
+}
+
+message UpdateFinancialGoalProgressResponse {
+  FinancialGoal goal = 1;
+  bool success = 2;
+  string message = 3;
+}
+
+// Savings Goal Management
+message GetSavingsGoalRequest {
+  // No parameters needed
+}
+
+message GetSavingsGoalResponse {
+  SavingsGoal savings_goal = 1;
+  bool has_goal = 2;
+}
+
+message CreateOrUpdateSavingsGoalRequest {
+  string name = 1;
+  double target_amount = 2;
+  double current_amount = 3;
+  google.protobuf.Timestamp target_date = 4;
+}
+
+message CreateOrUpdateSavingsGoalResponse {
+  SavingsGoal savings_goal = 1;
+  bool success = 2;
+  string message = 3;
+}
+
+// Recurring Bills Management
+message CreateRecurringBillRequest {
+  string name = 1;
+  double amount = 2;
+  string currency = 3;
+  ExpenseCategory category = 4;
+  string recurrence_pattern = 5;
+  google.protobuf.Timestamp next_due_date = 6;
+  string merchant = 7;
+  string icon = 8;
+  bool auto_pay_enabled = 9;
+}
+
+message CreateRecurringBillResponse {
+  RecurringBill bill = 1;
+  bool success = 2;
+  string message = 3;
+}
+
+message GetUpcomingBillsRequest {
+  int32 days_ahead = 1; // how many days to look ahead
+}
+
+message GetUpcomingBillsResponse {
+  UpcomingBillsList bills_list = 1;
+}

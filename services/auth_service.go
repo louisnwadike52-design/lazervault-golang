@@ -46,12 +46,16 @@ var (
 type IAuthService interface {
 	Login(req *LoginRequest, userAgent, clientIP string) (*LoginResponse, error)
 	LoginWithPasscode(req *LoginWithPasscodeRequest, userAgent, clientIP string) (*LoginResponse, error)
+	LoginWithFace(ctx context.Context, email string, imageData []byte, userAgent, clientIP string) (*LoginResponse, error)
+	RegisterPasscode(ctx context.Context, email string, passcode string) error
 	RefreshToken(req *RefreshTokenRequest) (*RefreshTokenResponse, error)
 	Logout(sessionID string) error
 	CheckEmailAvailability(ctx context.Context, email string) (bool, error)
+	CheckFaceRegistration(ctx context.Context, email string) (bool, *time.Time, error)
 	RequestEmailVerification(ctx context.Context, email string) error
 	VerifyEmail(ctx context.Context, verificationCode string) error
-	RequestPasswordReset(ctx context.Context, email string) error
+	RequestPasswordReset(ctx context.Context, email string, deliveryMethod string) error
+	VerifyPasswordResetCode(ctx context.Context, email string, code string) (string, error)
 	ResetPassword(ctx context.Context, email, token, newPassword string) error
 	VerifyPin(ctx context.Context, email string, pin string) error
 }
@@ -120,18 +124,28 @@ func NewAuthService(db *gorm.DB, config *configs.Config, tokenMaker token.Maker,
 
 func (s *AuthService) Login(req *LoginRequest, userAgent, clientIP string) (*LoginResponse, error) {
 	// Validate request
-	if err := validators.ValidateLoginUser(&models.User{Email: req.Email, Password: &req.Password}); err != nil {
+	if err := validators.ValidateLoginUser(&models.User{Email: req.Email, Password: req.Password}); err != nil {
+		fmt.Printf("❌ Login validation failed for %s: %v\n", req.Email, err)
 		return nil, err
 	}
 
 	user, err := s.getUserByEmail(req.Email)
 	if err != nil {
+		fmt.Printf("❌ User not found: %s - %v\n", req.Email, err)
 		return nil, err
 	}
 
+	fmt.Printf("✅ User found: %s, has password: %v\n", user.Email, user.Password != "")
+	if user.Password != "" {
+		fmt.Printf("   Password hash length: %d\n", len(user.Password))
+	}
+
 	if ok, err := user.ComparePassword(req.Password); err != nil || !ok {
+		fmt.Printf("❌ Password comparison failed: ok=%v, err=%v\n", ok, err)
 		return nil, models.ErrPasswordMismatch
 	}
+
+	fmt.Printf("✅ Password comparison succeeded!\n")
 
 	// Create access token
 	accessToken, accessPayload, err := s.tokenMaker.CreateToken(
@@ -249,14 +263,49 @@ func (s *AuthService) LoginWithPasscode(req *LoginWithPasscodeRequest, userAgent
 	}, nil
 }
 
+// RegisterPasscode registers a login passcode for the authenticated user
+func (s *AuthService) RegisterPasscode(ctx context.Context, email string, passcode string) error {
+	// Validate passcode (4-6 digits)
+	if len(passcode) < 4 || len(passcode) > 6 {
+		return errors.New("passcode must be between 4 and 6 digits")
+	}
+
+	// Get user by email
+	user, err := s.getUserByEmail(email)
+	if err != nil {
+		return err
+	}
+
+	// Set the login passcode (hashes internally)
+	if err := user.SetLoginPasscode(passcode); err != nil {
+		return err
+	}
+
+	// Save the user with the new passcode
+	if err := s.db.Save(&user).Error; err != nil {
+		return errors.New("failed to save passcode")
+	}
+
+	return nil
+}
+
 func (s *AuthService) getUserByEmail(email string) (*models.User, error) {
 	var user models.User
-	err := s.db.Where("email = ?", email).First(&user).Error
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
+	fmt.Printf("🔍 Attempting to find user with email: %s\n", email)
+
+	result := s.db.Where("email = ?", email).First(&user)
+
+	fmt.Printf("   Query result - RowsAffected: %d, Error: %v\n", result.RowsAffected, result.Error)
+	if result.Error == nil {
+		fmt.Printf("   User fields - ID: %d, Email: %s, FirstName: %s, LastName: %s, UUID: %s\n",
+			user.ID, user.Email, user.FirstName, user.LastName, user.UUID)
+	}
+
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return nil, ErrUserNotFound
 		}
-		return nil, err
+		return nil, result.Error
 	}
 	return &user, nil
 }
@@ -388,8 +437,8 @@ func (s *AuthService) RequestEmailVerification(ctx context.Context, email string
 		return ErrUserAlreadyVerified
 	}
 
-	// Generate code
-	code, err := generateVerificationCode(32)
+	// Generate 6-digit numeric code instead of 32-char code
+	code, err := generateNumericOTP(6)
 	if err != nil {
 		return fmt.Errorf("failed to generate verification code: %w", err)
 	}
@@ -526,7 +575,7 @@ func generateNumericOTP(length int) (string, error) {
 }
 
 // RequestPasswordReset handles the initiation of the password reset flow.
-func (s *AuthService) RequestPasswordReset(ctx context.Context, email string) error {
+func (s *AuthService) RequestPasswordReset(ctx context.Context, email string, deliveryMethod string) error {
 	// 1. Find user by identifier (email or phone)
 	user, err := s.getUserByEmailOrPhone(email)
 	if err != nil {
@@ -552,32 +601,52 @@ func (s *AuthService) RequestPasswordReset(ctx context.Context, email string) er
 		return fmt.Errorf("failed to generate password reset OTP: %w", err)
 	}
 
-	// 4. Create OTP record
+	// 4. Validate delivery method
+	if deliveryMethod != "EMAIL" && deliveryMethod != "SMS" {
+		deliveryMethod = "SMS" // Default to SMS for backward compatibility
+	}
+
+	// 5. Create OTP record
 	otpRecord := models.PasswordResetOTP{
-		UserID:     user.ID,
-		Identifier: email,   // Store the identifier used (email or phone)
-		OTPCode:    otpCode, // Store the plain OTP for now
-		ExpiresAt:  time.Now().Add(s.config.PasswordResetOTPDuration),
+		UserID:         user.ID,
+		Identifier:     email,         // Store the identifier used (email or phone)
+		OTPCode:        otpCode,       // Store the plain OTP for now
+		DeliveryMethod: deliveryMethod, // Store the delivery method
+		ExpiresAt:      time.Now().Add(s.config.PasswordResetOTPDuration),
 	}
 
 	if err := s.db.Create(&otpRecord).Error; err != nil {
 		return fmt.Errorf("failed to save password reset OTP record: %w", err)
 	}
 
-	// 5. Enqueue task to send OTP via Twilio SMS
-	taskPayload := &tasks.PayloadSendPasswordResetOTP{
-		PhoneNumber: user.PhoneNumber,
-		OTPCode:     otpCode,
-	}
+	// 6. Enqueue task based on delivery method
 	opts := []asynq.Option{
 		asynq.MaxRetry(3), // Fewer retries for OTP
 		asynq.Timeout(30 * time.Second),
 	}
 
-	err = s.taskDistributor.DistributeTaskSendPasswordResetOTP(ctx, taskPayload, opts...)
-	if err != nil {
-		fmt.Printf("WARN: Failed to enqueue password reset OTP task for user %d: %v\n", user.ID, err)
-		// Log, but don't fail the request here.
+	if deliveryMethod == "EMAIL" {
+		// Send via email
+		taskPayload := &tasks.PayloadSendPasswordResetEmailOTP{
+			UserID:   user.ID,
+			Email:    user.Email,
+			Username: user.FirstName + " " + user.LastName,
+			OTPCode:  otpCode,
+		}
+		err = s.taskDistributor.DistributeTaskSendPasswordResetEmailOTP(ctx, taskPayload, opts...)
+		if err != nil {
+			fmt.Printf("WARN: Failed to enqueue password reset email OTP task for user %d: %v\n", user.ID, err)
+		}
+	} else {
+		// Send via SMS (default)
+		taskPayload := &tasks.PayloadSendPasswordResetOTP{
+			PhoneNumber: user.PhoneNumber,
+			OTPCode:     otpCode,
+		}
+		err = s.taskDistributor.DistributeTaskSendPasswordResetOTP(ctx, taskPayload, opts...)
+		if err != nil {
+			fmt.Printf("WARN: Failed to enqueue password reset SMS OTP task for user %d: %v\n", user.ID, err)
+		}
 	}
 
 	return nil // Indicate success (task enqueued)
@@ -672,4 +741,99 @@ func (s *AuthService) VerifyPin(ctx context.Context, email string, pin string) e
 
 	// 4. PIN is valid
 	return nil
+}
+
+// VerifyPasswordResetCode validates the 6-digit code and returns a temporary reset token
+func (s *AuthService) VerifyPasswordResetCode(ctx context.Context, email string, code string) (string, error) {
+	var otpRecord models.PasswordResetOTP
+
+	// 1. Find the latest, unused, unexpired OTP record for the identifier and code
+	err := s.db.WithContext(ctx).Where("identifier = ? AND otp_code = ? AND used_at IS NULL AND expires_at > ?",
+		email, code, time.Now()).
+		Order("created_at DESC").
+		First(&otpRecord).Error
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return "", errors.New("invalid or expired code")
+		}
+		return "", fmt.Errorf("database error finding password reset code: %w", err)
+	}
+
+	// 2. Generate a temporary reset token (valid for 15 minutes)
+	resetToken := uuid.New().String()
+	resetTokenExpiry := time.Now().Add(15 * time.Minute)
+
+	// 3. Transaction: Mark OTP used and set reset token on user
+	txErr := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// Mark OTP as used
+		now := time.Now()
+		otpRecord.UsedAt = &now
+		if err := tx.Save(&otpRecord).Error; err != nil {
+			return fmt.Errorf("failed to mark password reset code as used: %w", err)
+		}
+
+		// Set reset token on user
+		result := tx.Model(&models.User{}).
+			Where("id = ?", otpRecord.UserID).
+			Updates(map[string]interface{}{
+				"reset_password_token":            resetToken,
+				"reset_password_token_expires_at": resetTokenExpiry,
+			})
+
+		if result.Error != nil {
+			return fmt.Errorf("failed to set reset token: %w", result.Error)
+		}
+		if result.RowsAffected == 0 {
+			return ErrUserNotFound
+		}
+
+		return nil
+	})
+
+	if txErr != nil {
+		return "", txErr
+	}
+
+	return resetToken, nil
+}
+
+// LoginWithFace authenticates a user using facial recognition
+func (s *AuthService) LoginWithFace(ctx context.Context, email string, imageData []byte, userAgent, clientIP string) (*LoginResponse, error) {
+	// 1. Get user by email
+	user, err := s.getUserByEmail(email)
+	if err != nil {
+		return nil, err
+	}
+
+	// 2. Check if facial recognition is enabled for this user
+	if !user.FacialRecognitionEnabled {
+		return nil, errors.New("facial recognition not enabled for this account")
+	}
+
+	// 3. Call facial recognition service to verify face
+	// TODO: Implement actual facial recognition service call here
+	// This would typically call the AI microservice endpoint
+	// For now, we'll return an error indicating the service needs to be integrated
+	// The integration should:
+	// - Send imageData to AI microservice /api/face/verify endpoint
+	// - Pass user.ID to identify the user
+	// - Check if confidence score is >= 0.7
+	// - Return error if verification fails
+
+	return nil, errors.New("facial recognition service integration pending")
+}
+
+// CheckFaceRegistration checks if a user has facial recognition enabled
+func (s *AuthService) CheckFaceRegistration(ctx context.Context, email string) (bool, *time.Time, error) {
+	user, err := s.getUserByEmail(email)
+	if err != nil {
+		if errors.Is(err, ErrUserNotFound) {
+			// Don't reveal if user exists
+			return false, nil, nil
+		}
+		return false, nil, err
+	}
+
+	return user.FacialRecognitionEnabled, user.FaceRegisteredAt, nil
 }

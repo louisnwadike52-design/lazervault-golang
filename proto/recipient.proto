@@ -37,6 +37,11 @@ message Recipient {
   string sort_code = 8;
   string bank_name = 9;
   string country_code = 10; // e.g., "GB", "US"
+  string email = 13; // Recipient email address
+  string phone_number = 14; // Recipient phone number
+  string currency = 15; // Currency for this recipient (e.g., "USD", "GBP")
+  string swift_code = 16; // SWIFT/BIC code for international transfers
+  string iban = 17; // IBAN for European transfers
 
   google.protobuf.Timestamp created_at = 11;
   google.protobuf.Timestamp updated_at = 12;
@@ -55,6 +60,11 @@ message CreateRecipientRequest {
   optional string bank_name = 6;
   optional string sort_code = 7;
   optional string country_code = 8;
+  optional string email = 9;
+  optional string phone_number = 10;
+  optional string currency = 11;
+  optional string swift_code = 12;
+  optional string iban = 13;
 }
 
 message CreateRecipientResponse {
@@ -64,8 +74,9 @@ message CreateRecipientResponse {
 // --- List Recipients ---
 
 message ListRecipientsRequest {
-  // Future filtering/pagination options can go here
-  // User ID is derived from the authentication context on the server
+  optional string country_code = 1; // Filter by country code (e.g., "GB", "US")
+  optional string currency = 2; // Filter by currency (e.g., "USD", "GBP")
+  optional bool favorites_only = 3; // Only return favorite recipients
 }
 
 message ListRecipientsResponse {

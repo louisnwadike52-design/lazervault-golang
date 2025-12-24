@@ -1,0 +1,261 @@
+syntax = "proto3";
+
+package pb;
+
+option go_package = "lazervaultGo/pb";
+
+import "google/api/annotations.proto";
+import "google/protobuf/timestamp.proto";
+
+// ============================================================================
+// ENUMS
+// ============================================================================
+
+enum CryptoPriceChangeTimeframe {
+  CRYPTO_PRICE_CHANGE_TIMEFRAME_UNSPECIFIED = 0;
+  CRYPTO_PRICE_CHANGE_TIMEFRAME_1H = 1;
+  CRYPTO_PRICE_CHANGE_TIMEFRAME_24H = 2;
+  CRYPTO_PRICE_CHANGE_TIMEFRAME_7D = 3;
+  CRYPTO_PRICE_CHANGE_TIMEFRAME_30D = 4;
+  CRYPTO_PRICE_CHANGE_TIMEFRAME_1Y = 5;
+}
+
+enum CryptoHistoryRange {
+  CRYPTO_HISTORY_RANGE_UNSPECIFIED = 0;
+  CRYPTO_HISTORY_RANGE_1D = 1;
+  CRYPTO_HISTORY_RANGE_7D = 2;
+  CRYPTO_HISTORY_RANGE_30D = 3;
+  CRYPTO_HISTORY_RANGE_90D = 4;
+  CRYPTO_HISTORY_RANGE_1Y = 5;
+  CRYPTO_HISTORY_RANGE_ALL = 6;
+}
+
+// ============================================================================
+// MESSAGE TYPES
+// ============================================================================
+
+message CryptoMessage {
+  string id = 1;
+  string symbol = 2;
+  string name = 3;
+  string image = 4;
+  double current_price = 5;
+  uint64 market_cap = 6;
+  int32 market_cap_rank = 7;
+  uint64 total_volume = 8;
+  double high_24h = 9;
+  double low_24h = 10;
+  double price_change_24h = 11;
+  double price_change_percentage_24h = 12;
+  double price_change_percentage_7d = 13;
+  double price_change_percentage_30d = 14;
+  double price_change_percentage_1y = 15;
+  double circulating_supply = 16;
+  double total_supply = 17;
+  double max_supply = 18;
+  double ath = 19;
+  double ath_change_percentage = 20;
+  google.protobuf.Timestamp ath_date = 21;
+  double atl = 22;
+  double atl_change_percentage = 23;
+  google.protobuf.Timestamp atl_date = 24;
+  google.protobuf.Timestamp last_updated = 25;
+  repeated PricePoint price_history = 26;
+
+  // Additional fields for detailed view
+  string description = 27;
+  repeated string categories = 28;
+  map<string, string> links = 29;
+  double fully_diluted_valuation = 30;
+  double market_cap_change_24h = 31;
+  double market_cap_change_percentage_24h = 32;
+}
+
+message PricePoint {
+  google.protobuf.Timestamp timestamp = 1;
+  double price = 2;
+  double volume = 3;
+  double market_cap = 4;
+  double open = 5;
+  double high = 6;
+  double low = 7;
+  double close = 8;
+}
+
+// ============================================================================
+// REQUEST/RESPONSE MESSAGES
+// ============================================================================
+
+// Get Cryptos
+message GetCryptosRequest {
+  int32 page = 1;
+  int32 per_page = 2;
+  string vs_currency = 3; // Default: usd
+  string order = 4; // market_cap_desc, volume_desc, etc.
+  repeated string ids = 5; // Optional: specific crypto IDs
+  string category = 6; // Optional: defi, stablecoins, etc.
+}
+
+message GetCryptosResponse {
+  repeated CryptoMessage cryptos = 1;
+  CryptoPaginationInfo pagination = 2;
+}
+
+// Get Crypto By ID
+message GetCryptoByIdRequest {
+  string id = 1;
+  bool include_market_data = 2;
+  bool include_community_data = 3;
+  bool include_developer_data = 4;
+  string vs_currency = 5; // Default: usd
+}
+
+message GetCryptoByIdResponse {
+  CryptoMessage crypto = 1;
+}
+
+// Search Cryptos
+message SearchCryptosRequest {
+  string query = 1;
+}
+
+message SearchCryptosResponse {
+  repeated CryptoMessage cryptos = 1;
+}
+
+// Get Crypto Price History
+message GetCryptoPriceHistoryRequest {
+  string id = 1;
+  string range = 2; // 1d, 7d, 30d, 90d, 1y, all
+  string vs_currency = 3; // Default: usd
+  int32 interval = 4; // Optional: data interval in minutes
+}
+
+message GetCryptoPriceHistoryResponse {
+  repeated PricePoint price_history = 1;
+  string crypto_id = 2;
+  string range = 3;
+}
+
+// Get Trending Cryptos
+message GetTrendingCryptosRequest {
+  int32 limit = 1; // Default: 10
+}
+
+message GetTrendingCryptosResponse {
+  repeated CryptoMessage cryptos = 1;
+}
+
+// Get Top Cryptos
+message GetTopCryptosRequest {
+  int32 limit = 1; // Default: 100
+  string vs_currency = 2; // Default: usd
+}
+
+message GetTopCryptosResponse {
+  repeated CryptoMessage cryptos = 1;
+}
+
+// Get Market Chart
+message GetMarketChartRequest {
+  string id = 1;
+  string vs_currency = 2;
+  int32 days = 3;
+  string interval = 4; // daily, hourly
+}
+
+message GetMarketChartResponse {
+  repeated PricePoint prices = 1;
+  repeated PricePoint market_caps = 2;
+  repeated PricePoint total_volumes = 3;
+}
+
+// Get Global Market Data
+message GetGlobalMarketDataRequest {
+  // No parameters needed
+}
+
+message GetGlobalMarketDataResponse {
+  double total_market_cap = 1;
+  double total_volume_24h = 2;
+  double market_cap_percentage_btc = 3;
+  double market_cap_percentage_eth = 4;
+  int32 active_cryptocurrencies = 5;
+  int32 markets = 6;
+  google.protobuf.Timestamp updated_at = 7;
+}
+
+// ============================================================================
+// PAGINATION INFO
+// ============================================================================
+
+message CryptoPaginationInfo {
+  int32 current_page = 1;
+  int32 total_pages = 2;
+  int32 total_items = 3;
+  int32 items_per_page = 4;
+  bool has_next = 5;
+  bool has_prev = 6;
+}
+
+// ============================================================================
+// SERVICE DEFINITION
+// ============================================================================
+
+service CryptoService {
+  // Get list of cryptocurrencies with market data
+  rpc GetCryptos(GetCryptosRequest) returns (GetCryptosResponse) {
+    option (google.api.http) = {
+      get: "/v1/cryptos"
+    };
+  }
+
+  // Get detailed cryptocurrency information
+  rpc GetCryptoById(GetCryptoByIdRequest) returns (GetCryptoByIdResponse) {
+    option (google.api.http) = {
+      get: "/v1/cryptos/{id}"
+    };
+  }
+
+  // Search cryptocurrencies by name or symbol
+  rpc SearchCryptos(SearchCryptosRequest) returns (SearchCryptosResponse) {
+    option (google.api.http) = {
+      get: "/v1/cryptos/search"
+    };
+  }
+
+  // Get historical price data for a cryptocurrency
+  rpc GetCryptoPriceHistory(GetCryptoPriceHistoryRequest) returns (GetCryptoPriceHistoryResponse) {
+    option (google.api.http) = {
+      get: "/v1/cryptos/{id}/history"
+    };
+  }
+
+  // Get trending cryptocurrencies
+  rpc GetTrendingCryptos(GetTrendingCryptosRequest) returns (GetTrendingCryptosResponse) {
+    option (google.api.http) = {
+      get: "/v1/cryptos/trending"
+    };
+  }
+
+  // Get top cryptocurrencies by market cap
+  rpc GetTopCryptos(GetTopCryptosRequest) returns (GetTopCryptosResponse) {
+    option (google.api.http) = {
+      get: "/v1/cryptos/top"
+    };
+  }
+
+  // Get market chart data
+  rpc GetMarketChart(GetMarketChartRequest) returns (GetMarketChartResponse) {
+    option (google.api.http) = {
+      get: "/v1/cryptos/{id}/market-chart"
+    };
+  }
+
+  // Get global cryptocurrency market data
+  rpc GetGlobalMarketData(GetGlobalMarketDataRequest) returns (GetGlobalMarketDataResponse) {
+    option (google.api.http) = {
+      get: "/v1/cryptos/global"
+    };
+  }
+}

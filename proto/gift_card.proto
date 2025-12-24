@@ -1,0 +1,330 @@
+syntax = "proto3";
+
+package pb;
+
+option go_package = "lazervaultGo/pb";
+
+import "google/api/annotations.proto";
+import "google/protobuf/timestamp.proto";
+
+// ============================================================================
+// ENUMS
+// ============================================================================
+
+enum GiftCardStatus {
+  GIFT_CARD_STATUS_UNSPECIFIED = 0;
+  GIFT_CARD_STATUS_ACTIVE = 1;
+  GIFT_CARD_STATUS_USED = 2;
+  GIFT_CARD_STATUS_EXPIRED = 3;
+  GIFT_CARD_STATUS_PENDING = 4;
+  GIFT_CARD_STATUS_CANCELLED = 5;
+}
+
+enum GiftCardType {
+  GIFT_CARD_TYPE_UNSPECIFIED = 0;
+  GIFT_CARD_TYPE_DIGITAL = 1;
+  GIFT_CARD_TYPE_PHYSICAL = 2;
+}
+
+enum GiftCardCategory {
+  GIFT_CARD_CATEGORY_UNSPECIFIED = 0;
+  GIFT_CARD_CATEGORY_ENTERTAINMENT = 1;
+  GIFT_CARD_CATEGORY_SHOPPING = 2;
+  GIFT_CARD_CATEGORY_DINING = 3;
+  GIFT_CARD_CATEGORY_TRAVEL = 4;
+  GIFT_CARD_CATEGORY_GAMING = 5;
+  GIFT_CARD_CATEGORY_OTHER = 6;
+}
+
+// ============================================================================
+// MESSAGE TYPES
+// ============================================================================
+
+message GiftCardMessage {
+  string id = 1;
+  string brand_id = 2;
+  string brand_name = 3;
+  string logo_url = 4;
+  double amount = 5;
+  double discount_percentage = 6;
+  double final_price = 7;
+  string currency = 8;
+  GiftCardStatus status = 9;
+  GiftCardType type = 10;
+  GiftCardCategory category = 11;
+  string description = 12;
+  string terms_and_conditions = 13;
+  google.protobuf.Timestamp expiry_date = 14;
+  google.protobuf.Timestamp purchase_date = 15;
+  string recipient_email = 16;
+  string recipient_name = 17;
+  string message = 18;
+  string code = 19;
+  string pin = 20;
+  bool is_redeemed = 21;
+  string transaction_id = 22;
+  repeated string available_denominations = 23;
+  string qr_code_url = 24;
+  string barcode_url = 25;
+  map<string, string> additional_info = 26;
+}
+
+message GiftCardBrandMessage {
+  string id = 1;
+  string name = 2;
+  string logo_url = 3;
+  string description = 4;
+  GiftCardCategory category = 5;
+  double discount_percentage = 6;
+  bool is_popular = 7;
+  repeated string available_denominations = 8;
+  string min_amount = 9;
+  string max_amount = 10;
+  string country = 11;
+}
+
+message GiftCardTransactionMessage {
+  string id = 1;
+  string gift_card_id = 2;
+  string user_id = 3;
+  double amount = 4;
+  string currency = 5;
+  google.protobuf.Timestamp transaction_date = 6;
+  string transaction_type = 7; // purchase, redeem, refund
+  GiftCardStatus status = 8;
+  string failure_reason = 9;
+  map<string, string> additional_details = 10;
+}
+
+// ============================================================================
+// REQUEST/RESPONSE MESSAGES
+// ============================================================================
+
+// Get Gift Card Brands
+message GetGiftCardBrandsRequest {
+  int32 page = 1;
+  int32 per_page = 2;
+  string country = 3; // Optional: filter by country
+}
+
+message GetGiftCardBrandsResponse {
+  repeated GiftCardBrandMessage brands = 1;
+  GiftCardPaginationInfo pagination = 2;
+}
+
+// Get Gift Card Brands by Category
+message GetGiftCardBrandsByCategoryRequest {
+  GiftCardCategory category = 1;
+  int32 page = 2;
+  int32 per_page = 3;
+  string country = 4;
+}
+
+message GetGiftCardBrandsByCategoryResponse {
+  repeated GiftCardBrandMessage brands = 1;
+  GiftCardPaginationInfo pagination = 2;
+}
+
+// Search Gift Card Brands
+message SearchGiftCardBrandsRequest {
+  string query = 1;
+  int32 page = 2;
+  int32 per_page = 3;
+  string country = 4;
+}
+
+message SearchGiftCardBrandsResponse {
+  repeated GiftCardBrandMessage brands = 1;
+  GiftCardPaginationInfo pagination = 2;
+}
+
+// Get My Gift Cards
+message GetMyGiftCardsRequest {
+  int32 page = 1;
+  int32 per_page = 2;
+  GiftCardStatus status = 3; // Optional filter
+}
+
+message GetMyGiftCardsResponse {
+  repeated GiftCardMessage gift_cards = 1;
+  GiftCardPaginationInfo pagination = 2;
+}
+
+// Get Gift Card Brand by ID
+message GetGiftCardBrandByIdRequest {
+  string brand_id = 1;
+}
+
+message GetGiftCardBrandByIdResponse {
+  GiftCardBrandMessage brand = 1;
+}
+
+// Get Popular Brands
+message GetPopularBrandsRequest {
+  int32 limit = 1;
+  string country = 2;
+}
+
+message GetPopularBrandsResponse {
+  repeated GiftCardBrandMessage brands = 1;
+}
+
+// Purchase Gift Card
+message PurchaseGiftCardRequest {
+  string brand_id = 1;
+  double amount = 2;
+  string currency = 3;
+  string recipient_email = 4;
+  string recipient_name = 5;
+  string message = 6;
+  map<string, string> additional_info = 7;
+}
+
+message PurchaseGiftCardResponse {
+  GiftCardMessage gift_card = 1;
+  GiftCardTransactionMessage transaction = 2;
+}
+
+// Get Gift Card by ID
+message GetGiftCardByIdRequest {
+  string gift_card_id = 1;
+}
+
+message GetGiftCardByIdResponse {
+  GiftCardMessage gift_card = 1;
+}
+
+// Redeem Gift Card
+message RedeemGiftCardRequest {
+  string gift_card_id = 1;
+  string code = 2;
+  string pin = 3;
+}
+
+message RedeemGiftCardResponse {
+  GiftCardMessage gift_card = 1;
+  bool success = 2;
+  string message = 3;
+}
+
+// Get Gift Card Transactions
+message GetGiftCardTransactionsRequest {
+  string gift_card_id = 1;
+  int32 page = 2;
+  int32 per_page = 3;
+}
+
+message GetGiftCardTransactionsResponse {
+  repeated GiftCardTransactionMessage transactions = 1;
+  GiftCardPaginationInfo pagination = 2;
+}
+
+// Get User Transactions
+message GetUserTransactionsRequest {
+  int32 page = 1;
+  int32 per_page = 2;
+  string transaction_type = 3; // Optional filter
+}
+
+message GetUserTransactionsResponse {
+  repeated GiftCardTransactionMessage transactions = 1;
+  GiftCardPaginationInfo pagination = 2;
+}
+
+// ============================================================================
+// PAGINATION INFO
+// ============================================================================
+
+message GiftCardPaginationInfo {
+  int32 current_page = 1;
+  int32 total_pages = 2;
+  int32 total_items = 3;
+  int32 items_per_page = 4;
+  bool has_next = 5;
+  bool has_prev = 6;
+}
+
+// ============================================================================
+// SERVICE DEFINITION
+// ============================================================================
+
+service GiftCardService {
+  // Get list of available gift card brands
+  rpc GetGiftCardBrands(GetGiftCardBrandsRequest) returns (GetGiftCardBrandsResponse) {
+    option (google.api.http) = {
+      get: "/v1/gift-cards/brands"
+    };
+  }
+
+  // Get gift card brands by category
+  rpc GetGiftCardBrandsByCategory(GetGiftCardBrandsByCategoryRequest) returns (GetGiftCardBrandsByCategoryResponse) {
+    option (google.api.http) = {
+      get: "/v1/gift-cards/brands/category/{category}"
+    };
+  }
+
+  // Search gift card brands
+  rpc SearchGiftCardBrands(SearchGiftCardBrandsRequest) returns (SearchGiftCardBrandsResponse) {
+    option (google.api.http) = {
+      get: "/v1/gift-cards/brands/search"
+    };
+  }
+
+  // Get user's purchased gift cards
+  rpc GetMyGiftCards(GetMyGiftCardsRequest) returns (GetMyGiftCardsResponse) {
+    option (google.api.http) = {
+      get: "/v1/gift-cards/my-cards"
+    };
+  }
+
+  // Get specific gift card brand details
+  rpc GetGiftCardBrandById(GetGiftCardBrandByIdRequest) returns (GetGiftCardBrandByIdResponse) {
+    option (google.api.http) = {
+      get: "/v1/gift-cards/brands/{brand_id}"
+    };
+  }
+
+  // Get popular gift card brands
+  rpc GetPopularBrands(GetPopularBrandsRequest) returns (GetPopularBrandsResponse) {
+    option (google.api.http) = {
+      get: "/v1/gift-cards/brands/popular"
+    };
+  }
+
+  // Purchase a gift card
+  rpc PurchaseGiftCard(PurchaseGiftCardRequest) returns (PurchaseGiftCardResponse) {
+    option (google.api.http) = {
+      post: "/v1/gift-cards/purchase"
+      body: "*"
+    };
+  }
+
+  // Get gift card by ID
+  rpc GetGiftCardById(GetGiftCardByIdRequest) returns (GetGiftCardByIdResponse) {
+    option (google.api.http) = {
+      get: "/v1/gift-cards/{gift_card_id}"
+    };
+  }
+
+  // Redeem a gift card
+  rpc RedeemGiftCard(RedeemGiftCardRequest) returns (RedeemGiftCardResponse) {
+    option (google.api.http) = {
+      post: "/v1/gift-cards/{gift_card_id}/redeem"
+      body: "*"
+    };
+  }
+
+  // Get gift card transactions
+  rpc GetGiftCardTransactions(GetGiftCardTransactionsRequest) returns (GetGiftCardTransactionsResponse) {
+    option (google.api.http) = {
+      get: "/v1/gift-cards/{gift_card_id}/transactions"
+    };
+  }
+
+  // Get user's gift card transactions
+  rpc GetUserTransactions(GetUserTransactionsRequest) returns (GetUserTransactionsResponse) {
+    option (google.api.http) = {
+      get: "/v1/gift-cards/transactions"
+    };
+  }
+}

@@ -3,6 +3,7 @@ package tasks
 import (
 	"context"
 	"encoding"
+	"encoding/json"
 	"fmt"
 
 	"github.com/hibiken/asynq"
@@ -36,6 +37,12 @@ type TaskDistributor interface {
 		opts ...asynq.Option,
 	) error
 
+	DistributeTaskSendPasswordResetEmailOTP(
+		ctx context.Context,
+		payload *PayloadSendPasswordResetEmailOTP,
+		opts ...asynq.Option,
+	) error
+
 	// Deposit processing task
 	DistributeTaskDepositProcess(
 		ctx context.Context,
@@ -60,6 +67,11 @@ type TaskDistributor interface {
 	// Use encoding.BinaryMarshaler for transfer tasks to accept different payload structs
 	DistributeTaskProcessTransfer(ctx context.Context, payload encoding.BinaryMarshaler, opts ...asynq.Option) error
 	DistributeTaskProcessExternalTransfer(ctx context.Context, payload encoding.BinaryMarshaler, opts ...asynq.Option) error
+
+	// New helper methods for convenience
+	DistributeProcessTransferTask(ctx context.Context, payload *ProcessTransferPayload, opts ...asynq.Option) error
+	DistributeScheduledTransferCheckTask(ctx context.Context, payload *ScheduledTransferCheckPayload, opts ...asynq.Option) error
+	DistributeScheduledAutoSaveCheckTask(ctx context.Context, payload *ScheduledAutoSaveCheckPayload, opts ...asynq.Option) error
 }
 
 // RedisTaskDistributor implements TaskDistributor using Redis.
@@ -106,17 +118,27 @@ func (distributor *RedisTaskDistributor) DistributeTaskProcessExternalTransfer(c
 // --- Implementations for specific task types (forwarding to generic method) ---
 
 func (distributor *RedisTaskDistributor) DistributeTaskSendVerifyEmail(ctx context.Context, payload *PayloadSendVerifyEmail, opts ...asynq.Option) error {
-	panic("DistributeTaskSendVerifyEmail not implemented for RedisTaskDistributor - Use DistributeTask")
-	// Or marshal and call DistributeTask:
-	// jsonPayload, err := json.Marshal(payload)
-	// if err != nil {
-	// 	return fmt.Errorf("failed to marshal payload for %s: %w", TaskSendVerifyEmail, err)
-	// }
-	// return distributor.DistributeTask(ctx, TaskSendVerifyEmail, jsonPayload, opts...)
+	jsonPayload, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("failed to marshal payload for %s: %w", TaskSendVerifyEmail, err)
+	}
+	return distributor.DistributeTask(ctx, TaskSendVerifyEmail, jsonPayload, opts...)
 }
 
 func (distributor *RedisTaskDistributor) DistributeTaskSendPasswordResetOTP(ctx context.Context, payload *PayloadSendPasswordResetOTP, opts ...asynq.Option) error {
-	panic("DistributeTaskSendPasswordResetOTP not implemented for RedisTaskDistributor - Use DistributeTask")
+	jsonPayload, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("failed to marshal payload for %s: %w", TaskSendPasswordResetOTP, err)
+	}
+	return distributor.DistributeTask(ctx, TaskSendPasswordResetOTP, jsonPayload, opts...)
+}
+
+func (distributor *RedisTaskDistributor) DistributeTaskSendPasswordResetEmailOTP(ctx context.Context, payload *PayloadSendPasswordResetEmailOTP, opts ...asynq.Option) error {
+	jsonPayload, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("failed to marshal payload for %s: %w", TaskSendPasswordResetEmailOTP, err)
+	}
+	return distributor.DistributeTask(ctx, TaskSendPasswordResetEmailOTP, jsonPayload, opts...)
 }
 
 func (distributor *RedisTaskDistributor) DistributeTaskDepositProcess(ctx context.Context, payload *DepositProcessPayload, opts ...asynq.Option) error {
@@ -129,4 +151,31 @@ func (distributor *RedisTaskDistributor) DistributeTaskWithdrawalProcess(ctx con
 
 func (distributor *RedisTaskDistributor) DistributeTaskSendWithdrawalConfirmation(ctx context.Context, payload *EmailSendWithdrawalConfirmationPayload, opts ...asynq.Option) error {
 	panic("DistributeTaskSendWithdrawalConfirmation not implemented for RedisTaskDistributor - Use DistributeTask")
+}
+
+// DistributeProcessTransferTask distributes a transfer processing task
+func (distributor *RedisTaskDistributor) DistributeProcessTransferTask(ctx context.Context, payload *ProcessTransferPayload, opts ...asynq.Option) error {
+	jsonPayload, err := payload.MarshalBinary()
+	if err != nil {
+		return fmt.Errorf("failed to marshal payload for %s: %w", TaskProcessTransfer, err)
+	}
+	return distributor.DistributeTask(ctx, TaskProcessTransfer, jsonPayload, opts...)
+}
+
+// DistributeScheduledTransferCheckTask distributes a scheduled transfer check task
+func (distributor *RedisTaskDistributor) DistributeScheduledTransferCheckTask(ctx context.Context, payload *ScheduledTransferCheckPayload, opts ...asynq.Option) error {
+	jsonPayload, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("failed to marshal payload for %s: %w", TypeScheduledTransferCheck, err)
+	}
+	return distributor.DistributeTask(ctx, TypeScheduledTransferCheck, jsonPayload, opts...)
+}
+
+// DistributeScheduledAutoSaveCheckTask distributes a scheduled auto-save check task
+func (distributor *RedisTaskDistributor) DistributeScheduledAutoSaveCheckTask(ctx context.Context, payload *ScheduledAutoSaveCheckPayload, opts ...asynq.Option) error {
+	jsonPayload, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("failed to marshal payload for %s: %w", TypeScheduledAutoSaveCheck, err)
+	}
+	return distributor.DistributeTask(ctx, TypeScheduledAutoSaveCheck, jsonPayload, opts...)
 }

@@ -40,7 +40,8 @@ func (c *AuthController) Login(ctx context.Context, req *pb.LoginRequest) (*pb.L
 
 	result, err := c.authService.Login(loginReq, userAgent, clientIP)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "login failed: %v", err)
+		// Return generic error message for security (don't reveal if email or password is wrong)
+		return nil, status.Errorf(codes.Unauthenticated, "Invalid email or password")
 	}
 
 	// Convert User model to pb.User
@@ -118,6 +119,35 @@ func (c *AuthController) LoginWithPasscode(ctx context.Context, req *pb.LoginWit
 		},
 		Success: result.Success,
 		Msg:     result.Msg,
+	}, nil
+}
+
+func (c *AuthController) RegisterPasscode(ctx context.Context, req *pb.RegisterPasscodeRequest) (*pb.RegisterPasscodeResponse, error) {
+	// 1. Get user details from context (set by auth middleware)
+	authPayload, ok := ctx.Value(middleware.AuthorizationPayloadKey).(*token.Payload)
+	if !ok || authPayload == nil {
+		return nil, status.Errorf(codes.Unauthenticated, "missing or invalid authorization payload")
+	}
+
+	// 2. Validate passcode
+	passcode := strings.TrimSpace(req.GetLoginPasscode())
+	if passcode == "" {
+		return nil, status.Errorf(codes.InvalidArgument, "passcode is required")
+	}
+	if len(passcode) < 4 || len(passcode) > 6 {
+		return nil, status.Errorf(codes.InvalidArgument, "passcode must be between 4 and 6 digits")
+	}
+
+	// 3. Call service to register passcode
+	err := c.authService.RegisterPasscode(ctx, authPayload.Email, passcode)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to register passcode: %v", err)
+	}
+
+	// 4. Return success
+	return &pb.RegisterPasscodeResponse{
+		Success: true,
+		Msg:     "Passcode registered successfully",
 	}, nil
 }
 
@@ -271,7 +301,11 @@ func (c *AuthController) RequestPasswordReset(ctx context.Context, req *pb.Reque
 		return nil, status.Errorf(codes.InvalidArgument, "invalid email format")
 	}
 
-	err := c.authService.RequestPasswordReset(ctx, email)
+	// Default to SMS if not specified for backward compatibility
+	deliveryMethod := "SMS"
+	// Note: When we update the proto, we'll get delivery_method from req.GetDeliveryMethod()
+
+	err := c.authService.RequestPasswordReset(ctx, email, deliveryMethod)
 	if err != nil {
 		// Service layer should ideally handle logging internal errors
 		// and preventing user enumeration by always returning nil error here.
@@ -390,3 +424,126 @@ func (c *AuthController) VerifyPin(ctx context.Context, req *pb.VerifyPinRequest
 		Msg:     "PIN verified successfully.",
 	}, nil
 }
+
+// --- Password Reset Code Verification Handler ---
+
+func (c *AuthController) VerifyPasswordResetCode(ctx context.Context, req *pb.VerifyPasswordResetCodeRequest) (*pb.VerifyPasswordResetCodeResponse, error) {
+	// 1. Validate request
+	email := strings.TrimSpace(req.GetEmail())
+	code := strings.TrimSpace(req.GetCode())
+
+	if !utils.IsValidEmail(email) {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid email format")
+	}
+	if code == "" {
+		return nil, status.Errorf(codes.InvalidArgument, "code is required")
+	}
+	if len(code) != 6 {
+		return nil, status.Errorf(codes.InvalidArgument, "code must be 6 digits")
+	}
+
+	// 2. Call service to verify code and get reset token
+	resetToken, err := c.authService.VerifyPasswordResetCode(ctx, email, code)
+	if err != nil {
+		// Generic error message to prevent timing attacks
+		return nil, status.Errorf(codes.InvalidArgument, "invalid or expired verification code")
+	}
+
+	// 3. Return success with reset token
+	return &pb.VerifyPasswordResetCodeResponse{
+		Success:    true,
+		Msg:        "Code verified successfully. You can now reset your password.",
+		ResetToken: resetToken,
+	}, nil
+}
+
+// --- End Password Reset Code Verification Handler ---
+
+// --- Facial Recognition Handlers ---
+
+func (c *AuthController) LoginWithFace(ctx context.Context, req *pb.LoginWithFaceRequest) (*pb.LoginWithFaceResponse, error) {
+	// 1. Validate request
+	email := strings.TrimSpace(req.GetEmail())
+	if !utils.IsValidEmail(email) {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid email format")
+	}
+	if len(req.GetImageData()) == 0 {
+		return nil, status.Errorf(codes.InvalidArgument, "image_data is required")
+	}
+
+	// 2. Get client metadata
+	md, _ := metadata.FromIncomingContext(ctx)
+	userAgent := strings.Join(md.Get("user-agent"), "")
+	clientIP := strings.Join(md.Get("x-forwarded-for"), "")
+
+	// 3. Call service to perform facial recognition login
+	result, err := c.authService.LoginWithFace(ctx, email, req.GetImageData(), userAgent, clientIP)
+	if err != nil {
+		// Return generic error for security
+		return nil, status.Errorf(codes.Unauthenticated, "facial recognition login failed")
+	}
+
+	// 4. Convert User model to pb.User
+	pbUser := &pb.User{
+		Id:              uint64(result.Data.User.ID),
+		Email:           result.Data.User.Email,
+		FirstName:       result.Data.User.FirstName,
+		LastName:        result.Data.User.LastName,
+		PhoneNumber:     result.Data.User.PhoneNumber,
+		IsEmailVerified: result.Data.User.Verified,
+		CreatedAt:       timestamppb.New(result.Data.User.CreatedAt),
+		UpdatedAt:       timestamppb.New(result.Data.User.UpdatedAt),
+	}
+
+	// 5. Convert Session model to pb.Session
+	pbSession := &pb.Session{
+		Id:                    result.Data.Session.SessionID,
+		UserId:                uint64(result.Data.User.ID),
+		AccessToken:           result.Data.Session.AccessToken,
+		RefreshToken:          result.Data.Session.RefreshToken,
+		AccessTokenExpiresAt:  timestamppb.New(result.Data.Session.AccessTokenExpiresAt),
+		RefreshTokenExpiresAt: timestamppb.New(result.Data.Session.RefreshTokenExpiresAt),
+	}
+
+	// 6. Return success response
+	return &pb.LoginWithFaceResponse{
+		Data: &pb.Data{
+			User:    pbUser,
+			Session: pbSession,
+		},
+		Success:    result.Success,
+		Msg:        result.Msg,
+		Confidence: 0.0, // TODO: Get confidence from facial recognition service
+	}, nil
+}
+
+func (c *AuthController) CheckFaceRegistration(ctx context.Context, req *pb.CheckFaceRegistrationRequest) (*pb.CheckFaceRegistrationResponse, error) {
+	// 1. Get user details from context (set by auth middleware)
+	authPayload, ok := ctx.Value(middleware.AuthorizationPayloadKey).(*token.Payload)
+	if !ok || authPayload == nil {
+		return nil, status.Errorf(codes.Unauthenticated, "missing or invalid authorization payload")
+	}
+
+	// 2. Call service to check face registration status
+	isRegistered, registeredAt, err := c.authService.CheckFaceRegistration(ctx, authPayload.Email)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to check face registration status: %v", err)
+	}
+
+	// 3. Prepare response
+	msg := "Face recognition is not enabled"
+	registeredAtStr := ""
+	if isRegistered && registeredAt != nil {
+		msg = "Face recognition is enabled"
+		registeredAtStr = registeredAt.Format("2006-01-02T15:04:05Z07:00") // ISO 8601 format
+	}
+
+	// 4. Return response
+	return &pb.CheckFaceRegistrationResponse{
+		IsRegistered: isRegistered,
+		RegisteredAt: registeredAtStr,
+		Msg:          msg,
+	}, nil
+}
+
+// --- End Facial Recognition Handlers ---

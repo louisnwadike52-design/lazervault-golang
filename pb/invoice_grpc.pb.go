@@ -27,6 +27,8 @@ const (
 	InvoiceService_GetInvoicesByStatus_FullMethodName = "/pb.InvoiceService/GetInvoicesByStatus"
 	InvoiceService_MarkInvoiceAsPaid_FullMethodName   = "/pb.InvoiceService/MarkInvoiceAsPaid"
 	InvoiceService_SendInvoice_FullMethodName         = "/pb.InvoiceService/SendInvoice"
+	InvoiceService_TagUsersToInvoice_FullMethodName   = "/pb.InvoiceService/TagUsersToInvoice"
+	InvoiceService_SearchInvoiceUsers_FullMethodName  = "/pb.InvoiceService/SearchInvoiceUsers"
 )
 
 // InvoiceServiceClient is the client API for InvoiceService service.
@@ -51,6 +53,10 @@ type InvoiceServiceClient interface {
 	MarkInvoiceAsPaid(ctx context.Context, in *MarkInvoiceAsPaidRequest, opts ...grpc.CallOption) (*MarkInvoiceAsPaidResponse, error)
 	// Send invoice to recipient
 	SendInvoice(ctx context.Context, in *SendInvoiceRequest, opts ...grpc.CallOption) (*SendInvoiceResponse, error)
+	// Tag multiple users to an invoice
+	TagUsersToInvoice(ctx context.Context, in *TagUsersToInvoiceRequest, opts ...grpc.CallOption) (*TagUsersToInvoiceResponse, error)
+	// Search for users to tag in invoice
+	SearchInvoiceUsers(ctx context.Context, in *SearchInvoiceUsersRequest, opts ...grpc.CallOption) (*SearchInvoiceUsersResponse, error)
 }
 
 type invoiceServiceClient struct {
@@ -141,6 +147,26 @@ func (c *invoiceServiceClient) SendInvoice(ctx context.Context, in *SendInvoiceR
 	return out, nil
 }
 
+func (c *invoiceServiceClient) TagUsersToInvoice(ctx context.Context, in *TagUsersToInvoiceRequest, opts ...grpc.CallOption) (*TagUsersToInvoiceResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(TagUsersToInvoiceResponse)
+	err := c.cc.Invoke(ctx, InvoiceService_TagUsersToInvoice_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *invoiceServiceClient) SearchInvoiceUsers(ctx context.Context, in *SearchInvoiceUsersRequest, opts ...grpc.CallOption) (*SearchInvoiceUsersResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SearchInvoiceUsersResponse)
+	err := c.cc.Invoke(ctx, InvoiceService_SearchInvoiceUsers_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // InvoiceServiceServer is the server API for InvoiceService service.
 // All implementations must embed UnimplementedInvoiceServiceServer
 // for forward compatibility.
@@ -163,6 +189,10 @@ type InvoiceServiceServer interface {
 	MarkInvoiceAsPaid(context.Context, *MarkInvoiceAsPaidRequest) (*MarkInvoiceAsPaidResponse, error)
 	// Send invoice to recipient
 	SendInvoice(context.Context, *SendInvoiceRequest) (*SendInvoiceResponse, error)
+	// Tag multiple users to an invoice
+	TagUsersToInvoice(context.Context, *TagUsersToInvoiceRequest) (*TagUsersToInvoiceResponse, error)
+	// Search for users to tag in invoice
+	SearchInvoiceUsers(context.Context, *SearchInvoiceUsersRequest) (*SearchInvoiceUsersResponse, error)
 	mustEmbedUnimplementedInvoiceServiceServer()
 }
 
@@ -196,6 +226,12 @@ func (UnimplementedInvoiceServiceServer) MarkInvoiceAsPaid(context.Context, *Mar
 }
 func (UnimplementedInvoiceServiceServer) SendInvoice(context.Context, *SendInvoiceRequest) (*SendInvoiceResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SendInvoice not implemented")
+}
+func (UnimplementedInvoiceServiceServer) TagUsersToInvoice(context.Context, *TagUsersToInvoiceRequest) (*TagUsersToInvoiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method TagUsersToInvoice not implemented")
+}
+func (UnimplementedInvoiceServiceServer) SearchInvoiceUsers(context.Context, *SearchInvoiceUsersRequest) (*SearchInvoiceUsersResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SearchInvoiceUsers not implemented")
 }
 func (UnimplementedInvoiceServiceServer) mustEmbedUnimplementedInvoiceServiceServer() {}
 func (UnimplementedInvoiceServiceServer) testEmbeddedByValue()                        {}
@@ -362,6 +398,42 @@ func _InvoiceService_SendInvoice_Handler(srv interface{}, ctx context.Context, d
 	return interceptor(ctx, in, info, handler)
 }
 
+func _InvoiceService_TagUsersToInvoice_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TagUsersToInvoiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(InvoiceServiceServer).TagUsersToInvoice(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: InvoiceService_TagUsersToInvoice_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(InvoiceServiceServer).TagUsersToInvoice(ctx, req.(*TagUsersToInvoiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _InvoiceService_SearchInvoiceUsers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SearchInvoiceUsersRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(InvoiceServiceServer).SearchInvoiceUsers(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: InvoiceService_SearchInvoiceUsers_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(InvoiceServiceServer).SearchInvoiceUsers(ctx, req.(*SearchInvoiceUsersRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // InvoiceService_ServiceDesc is the grpc.ServiceDesc for InvoiceService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -400,6 +472,14 @@ var InvoiceService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SendInvoice",
 			Handler:    _InvoiceService_SendInvoice_Handler,
+		},
+		{
+			MethodName: "TagUsersToInvoice",
+			Handler:    _InvoiceService_TagUsersToInvoice_Handler,
+		},
+		{
+			MethodName: "SearchInvoiceUsers",
+			Handler:    _InvoiceService_SearchInvoiceUsers_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

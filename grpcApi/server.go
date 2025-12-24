@@ -8,6 +8,7 @@ import (
 	"io"
 	"lazervaultGo/configs"
 	"lazervaultGo/grpcApi/middleware"
+	securityMiddleware "lazervaultGo/middleware"
 	"lazervaultGo/models"
 	"lazervaultGo/pb"
 	"lazervaultGo/services"
@@ -36,6 +37,8 @@ type Server struct {
 	redisWorker            *worker.RedisWorker
 	voiceSessionController *VoiceSessionController
 	userService            services.IUserService
+	qrCodeService          services.IQRCodeService
+	transferService        services.ITransferService
 }
 
 func NewServer(
@@ -69,7 +72,7 @@ func NewServer(
 	chatService := services.NewChatService(db)
 	userService := services.NewUserService(db, config, tokenMaker)
 	exchangeService := services.NewExchangeService(db, distributor)
-	invoiceService := services.NewInvoiceService(db)
+	invoiceService := services.NewInvoiceService(db, distributor)
 	depositService := services.NewDepositService(db, distributor, accountService)
 	withdrawalService := services.NewWithdrawalService(db, distributor)
 	generateTxDataService := services.NewGenerateTxDataService(db, *config)
@@ -82,6 +85,54 @@ func NewServer(
 
 	// Initialize AI Chat Controller
 	aiChatController := NewAIChatController(aiChatService, userService)
+
+	// Initialize Group Account Service
+	groupAccountService := services.NewGroupAccountService(db)
+
+	// Initialize Group Account Controller
+	groupAccountController := NewGroupAccountController(groupAccountService, userService)
+
+	// Initialize Crypto Service
+	cryptoService := services.NewCryptoService()
+
+	// Initialize Crypto Controller
+	cryptoController := NewCryptoController(cryptoService)
+
+	// Initialize Gift Card Service
+	giftCardService := services.NewGiftCardService()
+
+	// Initialize Gift Card Controller
+	giftCardController := NewGiftCardController(giftCardService, userService)
+
+	// Initialize Stock Service
+	stockService := services.NewStockService()
+
+	// Initialize Stock Controller
+	stockController := NewStockController(stockService, userService)
+
+	// Initialize Statistics Service
+	statisticsService := services.NewStatisticsService(db)
+
+	// Initialize AI Statistics Service
+	aiStatisticsService := services.NewAIStatisticsService(db, config, statisticsService, aiChatService)
+
+	// Initialize Tag Pay Service
+	tagPayService := services.NewTagPayService(db)
+
+	// Initialize Barcode Payment Service
+	barcodePaymentService := services.NewBarcodePaymentService(db)
+
+	// Initialize Support Controller
+	supportController := NewSupportController(db, userService)
+
+	// Initialize Statistics Controller
+	statisticsController := NewStatisticsController(db, userService, aiStatisticsService)
+
+	// Initialize AI Scan Service
+	aiScanService := services.NewAiScanService(db, config)
+
+	// Initialize AI Scan Controller
+	aiScanController := NewAiScanController(aiScanService)
 
 	// Initialize Voice Session Service
 	voiceSessionService := services.NewVoiceSessionService(db, config, tokenMaker, aiChatService)
@@ -119,12 +170,29 @@ func NewServer(
 	// Initialize Insurance Controller
 	insuranceController := NewInsuranceController(insuranceService)
 
+	// Initialize Contact Sync Service
+	contactSyncService := services.NewContactSyncService(db)
+
+	// Initialize Contact Sync Controller
+	contactSyncController := NewContactSyncController(contactSyncService, userService)
+
+	// Initialize Auto-Save Service
+	autoSaveService := services.NewAutoSaveService(db, redisWorker.GetDistributor(), accountService, transferService)
+
+	// Initialize Auto-Save Controller
+	autoSaveController := NewAutoSaveController(autoSaveService, userService)
+
 	// Initialize Invoice Controller
 	invoiceController := NewInvoiceController(invoiceService, userService)
 
-	// Store controllers in server for HTTP handlers
+	// Initialize QR Code Service
+	qrCodeService := services.NewQRCodeService(db, config)
+
+	// Store controllers and services in server for HTTP handlers
 	server.voiceSessionController = voiceSessionController
 	server.userService = userService
+	server.qrCodeService = qrCodeService
+	server.transferService = transferService
 
 	// Store facial recognition controller for custom HTTP handlers if needed
 	_ = facialRecognitionController
@@ -139,7 +207,7 @@ func NewServer(
 	pb.RegisterChatServiceServer(grpcServer, NewChatController(chatService))
 	pb.RegisterExchangeServiceServer(grpcServer, NewExchangeController(exchangeService, userService))
 	pb.RegisterInvoiceServiceServer(grpcServer, invoiceController)
-	pb.RegisterDepositServiceServer(grpcServer, NewDepositController(depositService, userService))
+	pb.RegisterDepositServiceServer(grpcServer, NewDepositController(depositService, userService, db))
 	pb.RegisterWithdrawServiceServer(grpcServer, NewWithdrawalController(withdrawalService, userService))
 	pb.RegisterGenerateTxDataServiceServer(grpcServer, generateTxDataController)
 	pb.RegisterTxFileServiceServer(grpcServer, txFileController)
@@ -149,6 +217,17 @@ func NewServer(
 	pb.RegisterInvoicePaymentServiceServer(grpcServer, invoicePaymentController)
 	pb.RegisterTaggedInvoiceServiceServer(grpcServer, taggedInvoiceController)
 	pb.RegisterInsuranceServiceServer(grpcServer, insuranceController)
+	pb.RegisterContactSyncServiceServer(grpcServer, contactSyncController)
+	pb.RegisterGroupAccountServiceServer(grpcServer, groupAccountController)
+	pb.RegisterCryptoServiceServer(grpcServer, cryptoController)
+	pb.RegisterGiftCardServiceServer(grpcServer, giftCardController)
+	pb.RegisterStockServiceServer(grpcServer, stockController)
+	pb.RegisterStatisticsServiceServer(grpcServer, statisticsController)
+	pb.RegisterAiScanServiceServer(grpcServer, aiScanController)
+	pb.RegisterTagPayServiceServer(grpcServer, tagPayService)
+	pb.RegisterBarcodePaymentServiceServer(grpcServer, barcodePaymentService)
+	pb.RegisterSupportServiceServer(grpcServer, supportController)
+	pb.RegisterAutoSaveServiceServer(grpcServer, autoSaveController)
 	server.grpcServer = grpcServer
 
 	// Register reflection service on gRPC server.
@@ -245,6 +324,28 @@ func (s *Server) startHTTPServer() error {
 	if err := pb.RegisterInsuranceServiceHandlerFromEndpoint(ctx, gwmux, grpcDialAddr, opts); err != nil {
 		return fmt.Errorf("failed to register insurance gateway: %w", err)
 	}
+	if err := pb.RegisterContactSyncServiceHandlerFromEndpoint(ctx, gwmux, grpcDialAddr, opts); err != nil {
+		return fmt.Errorf("failed to register contact sync gateway: %w", err)
+	}
+	if err := pb.RegisterCryptoServiceHandlerFromEndpoint(ctx, gwmux, grpcDialAddr, opts); err != nil {
+		return fmt.Errorf("failed to register crypto gateway: %w", err)
+	}
+	if err := pb.RegisterGiftCardServiceHandlerFromEndpoint(ctx, gwmux, grpcDialAddr, opts); err != nil {
+		return fmt.Errorf("failed to register gift card gateway: %w", err)
+	}
+	if err := pb.RegisterStockServiceHandlerFromEndpoint(ctx, gwmux, grpcDialAddr, opts); err != nil {
+		return fmt.Errorf("failed to register stock gateway: %w", err)
+	}
+	if err := pb.RegisterStatisticsServiceHandlerFromEndpoint(ctx, gwmux, grpcDialAddr, opts); err != nil {
+		return fmt.Errorf("failed to register statistics gateway: %w", err)
+	}
+	if err := pb.RegisterGroupAccountServiceHandlerFromEndpoint(ctx, gwmux, grpcDialAddr, opts); err != nil {
+		return fmt.Errorf("failed to register group account gateway: %w", err)
+	}
+	if err := pb.RegisterAutoSaveServiceHandlerFromEndpoint(ctx, gwmux, grpcDialAddr, opts); err != nil {
+		return fmt.Errorf("failed to register auto-save gateway: %w", err)
+	}
+	// Note: Support service doesn't have HTTP gateway as it uses gRPC only
 
 	// Create main HTTP mux for non-gRPC traffic (swagger, gateway)
 	httpMux := http.NewServeMux()
@@ -255,6 +356,16 @@ func (s *Server) startHTTPServer() error {
 	// Add custom voice note handler for multipart form uploads
 	httpMux.HandleFunc("/v1/voice/note/upload", func(w http.ResponseWriter, r *http.Request) {
 		s.handleVoiceNoteUpload(w, r, s.voiceSessionController, s.userService)
+	})
+
+	// Add QR code generation endpoint
+	httpMux.HandleFunc("/v1/user/qr-code", func(w http.ResponseWriter, r *http.Request) {
+		s.handleQRCodeGeneration(w, r)
+	})
+
+	// Add split bill batch transfer endpoint
+	httpMux.HandleFunc("/v1/transfers/split-bill", func(w http.ResponseWriter, r *http.Request) {
+		s.handleSplitBillBatch(w, r)
 	})
 
 	// Add gateway handler (this should come last to catch all other routes)
@@ -290,6 +401,17 @@ func (s *Server) startHTTPServer() error {
 	// Wrap the HTTP mux with CORS
 	corsEnabledHttpMux := corsHandler.Handler(httpMux)
 
+	// Apply security middleware chain (wraps CORS handler)
+	// Order matters: RequestID -> SecurityHeaders -> RateLimit -> XSS -> SQLInjection -> CORS + Mux
+	securityHandler := securityMiddleware.ChainMiddleware(
+		corsEnabledHttpMux,
+		securityMiddleware.RequestIDHTTP(),
+		securityMiddleware.SecurityHeadersHTTP(),
+		securityMiddleware.RateLimitMiddlewareHTTP(100, 200), // 100 req/sec per IP, burst 200
+		securityMiddleware.XSSProtectionHTTP(),
+		securityMiddleware.SQLInjectionProtectionHTTP(),
+	)
+
 	// Determine port for HTTP server
 	httpPort := s.config.HTTPServerPort
 	if httpPort == "" {
@@ -303,7 +425,7 @@ func (s *Server) startHTTPServer() error {
 	// Store the server instance so it can be shut down gracefully if needed.
 	s.httpServer = &http.Server{
 		Addr:    httpAddr,
-		Handler: corsEnabledHttpMux, // No longer using h2c.NewHandler
+		Handler: securityHandler, // Now using security-wrapped handler
 	}
 	return s.httpServer.ListenAndServe()
 }
@@ -478,4 +600,195 @@ func getUserByEmail(userService services.IUserService, db *gorm.DB, email string
 		return nil, err
 	}
 	return user, nil
+}
+
+// handleQRCodeGeneration generates a QR code for the authenticated user
+func (s *Server) handleQRCodeGeneration(w http.ResponseWriter, r *http.Request) {
+	// Set CORS headers
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+
+	// Handle preflight requests
+	if r.Method == "OPTIONS" {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	// Only allow GET method
+	if r.Method != "GET" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Extract JWT token from Authorization header
+	authHeader := r.Header.Get("Authorization")
+	if authHeader == "" {
+		http.Error(w, "Authorization header is required", http.StatusUnauthorized)
+		return
+	}
+
+	// Validate Bearer token format
+	const bearerPrefix = "Bearer "
+	if !strings.HasPrefix(authHeader, bearerPrefix) {
+		http.Error(w, "Authorization header must be Bearer token", http.StatusUnauthorized)
+		return
+	}
+
+	jwtToken := authHeader[len(bearerPrefix):]
+	if jwtToken == "" {
+		http.Error(w, "JWT token is required", http.StatusUnauthorized)
+		return
+	}
+
+	// Verify and parse JWT token to get user info
+	payload, err := s.tokenMaker.VerifyToken(jwtToken)
+	if err != nil {
+		http.Error(w, "Invalid JWT token", http.StatusUnauthorized)
+		return
+	}
+
+	// Get user from token payload
+	user, err := getUserByEmail(s.userService, s.db, payload.Email)
+	if err != nil {
+		http.Error(w, "User not found", http.StatusUnauthorized)
+		return
+	}
+
+	// Generate QR code
+	ctx := r.Context()
+	qrCodeResp, err := s.qrCodeService.GenerateUserQRCode(ctx, user.ID)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to generate QR code: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	// Set response headers
+	w.Header().Set("Content-Type", "application/json")
+
+	// Convert response to JSON
+	jsonResp, err := json.Marshal(map[string]interface{}{
+		"type":         qrCodeResp.Type,
+		"recipient_id": qrCodeResp.RecipientID,
+		"username":     qrCodeResp.Username,
+		"name":         qrCodeResp.Name,
+		"version":      qrCodeResp.Version,
+		"qr_code_image": qrCodeResp.QRCodeImage,
+	})
+	if err != nil {
+		http.Error(w, "Failed to marshal response", http.StatusInternalServerError)
+		return
+	}
+
+	// Send response
+	w.WriteHeader(http.StatusOK)
+	w.Write(jsonResp)
+}
+
+// handleSplitBillBatch handles batch transfer creation for split bills
+func (s *Server) handleSplitBillBatch(w http.ResponseWriter, r *http.Request) {
+	// Set CORS headers
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+
+	// Handle preflight requests
+	if r.Method == "OPTIONS" {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	// Only allow POST method
+	if r.Method != "POST" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Extract JWT token from Authorization header
+	authHeader := r.Header.Get("Authorization")
+	if authHeader == "" {
+		http.Error(w, "Authorization header is required", http.StatusUnauthorized)
+		return
+	}
+
+	// Validate Bearer token format
+	const bearerPrefix = "Bearer "
+	if !strings.HasPrefix(authHeader, bearerPrefix) {
+		http.Error(w, "Authorization header must be Bearer token", http.StatusUnauthorized)
+		return
+	}
+
+	jwtToken := authHeader[len(bearerPrefix):]
+	if jwtToken == "" {
+		http.Error(w, "JWT token is required", http.StatusUnauthorized)
+		return
+	}
+
+	// Verify and parse JWT token to get user info
+	payload, err := s.tokenMaker.VerifyToken(jwtToken)
+	if err != nil {
+		http.Error(w, "Invalid JWT token", http.StatusUnauthorized)
+		return
+	}
+
+	// Get user from token payload
+	user, err := getUserByEmail(s.userService, s.db, payload.Email)
+	if err != nil {
+		http.Error(w, "User not found", http.StatusUnauthorized)
+		return
+	}
+
+	// Parse request body
+	var req services.SplitBillRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, fmt.Sprintf("Invalid request body: %v", err), http.StatusBadRequest)
+		return
+	}
+
+	// Call service
+	ctx := r.Context()
+	resp, err := s.transferService.InitiateSplitBillBatch(ctx, user.ID, req)
+	if err != nil {
+		// Map service errors to HTTP status codes
+		if strings.Contains(err.Error(), "not found") {
+			http.Error(w, err.Error(), http.StatusNotFound)
+		} else if strings.Contains(err.Error(), "insufficient") {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+		} else if strings.Contains(err.Error(), "invalid") || strings.Contains(err.Error(), "must") {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+		} else if strings.Contains(err.Error(), "duplicate") || strings.Contains(err.Error(), "already processed") {
+			http.Error(w, err.Error(), http.StatusConflict)
+		} else {
+			http.Error(w, fmt.Sprintf("Failed to process split bill: %v", err), http.StatusInternalServerError)
+		}
+		return
+	}
+
+	// Set response headers
+	w.Header().Set("Content-Type", "application/json")
+
+	// Extract transfer IDs from transfers array
+	transferIDs := make([]uint, len(resp.Transfers))
+	for i, t := range resp.Transfers {
+		transferIDs[i] = t.TransferID
+	}
+
+	// Convert response to JSON
+	jsonResp, err := json.Marshal(map[string]interface{}{
+		"batch_id":     resp.BatchID,
+		"split_count":  resp.SplitCount,
+		"total_amount": resp.TotalAmount,
+		"status":       resp.Status,
+		"created_at":   resp.CreatedAt,
+		"transfer_ids": transferIDs,
+		"transfers":    resp.Transfers,
+	})
+	if err != nil {
+		http.Error(w, "Failed to marshal response", http.StatusInternalServerError)
+		return
+	}
+
+	// Send response
+	w.WriteHeader(http.StatusCreated)
+	w.Write(jsonResp)
 }

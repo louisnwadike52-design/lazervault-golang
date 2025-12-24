@@ -116,7 +116,20 @@ func HandleDepositProcessTask(ctx context.Context, t *asynq.Task, db *gorm.DB, m
 		}
 
 		fmt.Printf("Deposit %s completed successfully.\n", depositID)
-		// Optional: Enqueue success notification task
+
+		// Trigger auto-save rules for this deposit
+		accountService := services.NewAccountService(db, distributor)
+		recipientService := services.NewRecipientService(db)
+		transferService := services.NewTransferService(db, nil, distributor, recipientService, accountService) // config can be nil for this use case
+		autoSaveService := services.NewAutoSaveService(db, distributor, accountService, transferService)
+
+		depositAmountFloat := float64(deposit.Amount) / 100.0 // Convert from minor units to float
+		if err := autoSaveService.ProcessOnDepositTrigger(ctx, deposit.UserID, deposit.TargetAccountID, depositAmountFloat); err != nil {
+			fmt.Printf("Warning: Failed to process auto-save trigger for deposit %s: %v (non-critical)\n", depositID, err)
+			// Don't fail the deposit task if auto-save fails
+		} else {
+			fmt.Printf("Auto-save rules processed for deposit %s\n", depositID)
+		}
 
 	} else {
 		// --- Failure Case: Update Deposit Status to FAILED and Enqueue Reversal Email ---

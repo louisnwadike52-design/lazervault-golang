@@ -21,12 +21,16 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	AuthService_Login_FullMethodName                    = "/pb.AuthService/Login"
 	AuthService_LoginWithPasscode_FullMethodName        = "/pb.AuthService/LoginWithPasscode"
+	AuthService_RegisterPasscode_FullMethodName         = "/pb.AuthService/RegisterPasscode"
 	AuthService_RefreshToken_FullMethodName             = "/pb.AuthService/RefreshToken"
 	AuthService_Logout_FullMethodName                   = "/pb.AuthService/Logout"
 	AuthService_RequestEmailVerification_FullMethodName = "/pb.AuthService/RequestEmailVerification"
 	AuthService_VerifyEmail_FullMethodName              = "/pb.AuthService/VerifyEmail"
 	AuthService_RequestPasswordReset_FullMethodName     = "/pb.AuthService/RequestPasswordReset"
 	AuthService_ResetPassword_FullMethodName            = "/pb.AuthService/ResetPassword"
+	AuthService_VerifyPasswordResetCode_FullMethodName  = "/pb.AuthService/VerifyPasswordResetCode"
+	AuthService_LoginWithFace_FullMethodName            = "/pb.AuthService/LoginWithFace"
+	AuthService_CheckFaceRegistration_FullMethodName    = "/pb.AuthService/CheckFaceRegistration"
 	AuthService_SignInWithGoogle_FullMethodName         = "/pb.AuthService/SignInWithGoogle"
 	AuthService_SignInWithApple_FullMethodName          = "/pb.AuthService/SignInWithApple"
 	AuthService_CheckEmailAvailability_FullMethodName   = "/pb.AuthService/CheckEmailAvailability"
@@ -41,6 +45,7 @@ const (
 type AuthServiceClient interface {
 	Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*LoginResponse, error)
 	LoginWithPasscode(ctx context.Context, in *LoginWithPasscodeRequest, opts ...grpc.CallOption) (*LoginResponse, error)
+	RegisterPasscode(ctx context.Context, in *RegisterPasscodeRequest, opts ...grpc.CallOption) (*RegisterPasscodeResponse, error)
 	RefreshToken(ctx context.Context, in *RefreshTokenRequest, opts ...grpc.CallOption) (*RefreshTokenResponse, error)
 	Logout(ctx context.Context, in *LogoutRequest, opts ...grpc.CallOption) (*LogoutResponse, error)
 	// Request sending a verification email to the authenticated user.
@@ -51,6 +56,12 @@ type AuthServiceClient interface {
 	RequestPasswordReset(ctx context.Context, in *RequestPasswordResetRequest, opts ...grpc.CallOption) (*RequestPasswordResetResponse, error)
 	// Reset the user's password using the email token.
 	ResetPassword(ctx context.Context, in *ResetPasswordRequest, opts ...grpc.CallOption) (*ResetPasswordResponse, error)
+	// Verify password reset code (6-digit OTP)
+	VerifyPasswordResetCode(ctx context.Context, in *VerifyPasswordResetCodeRequest, opts ...grpc.CallOption) (*VerifyPasswordResetCodeResponse, error)
+	// Login with facial recognition
+	LoginWithFace(ctx context.Context, in *LoginWithFaceRequest, opts ...grpc.CallOption) (*LoginWithFaceResponse, error)
+	// Check if user has facial recognition enabled
+	CheckFaceRegistration(ctx context.Context, in *CheckFaceRegistrationRequest, opts ...grpc.CallOption) (*CheckFaceRegistrationResponse, error)
 	// --- Social Sign-In RPCs ---
 	SignInWithGoogle(ctx context.Context, in *SignInWithGoogleRequest, opts ...grpc.CallOption) (*LoginResponse, error)
 	SignInWithApple(ctx context.Context, in *SignInWithAppleRequest, opts ...grpc.CallOption) (*LoginResponse, error)
@@ -82,6 +93,16 @@ func (c *authServiceClient) LoginWithPasscode(ctx context.Context, in *LoginWith
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(LoginResponse)
 	err := c.cc.Invoke(ctx, AuthService_LoginWithPasscode_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authServiceClient) RegisterPasscode(ctx context.Context, in *RegisterPasscodeRequest, opts ...grpc.CallOption) (*RegisterPasscodeResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RegisterPasscodeResponse)
+	err := c.cc.Invoke(ctx, AuthService_RegisterPasscode_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -148,6 +169,36 @@ func (c *authServiceClient) ResetPassword(ctx context.Context, in *ResetPassword
 	return out, nil
 }
 
+func (c *authServiceClient) VerifyPasswordResetCode(ctx context.Context, in *VerifyPasswordResetCodeRequest, opts ...grpc.CallOption) (*VerifyPasswordResetCodeResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(VerifyPasswordResetCodeResponse)
+	err := c.cc.Invoke(ctx, AuthService_VerifyPasswordResetCode_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authServiceClient) LoginWithFace(ctx context.Context, in *LoginWithFaceRequest, opts ...grpc.CallOption) (*LoginWithFaceResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(LoginWithFaceResponse)
+	err := c.cc.Invoke(ctx, AuthService_LoginWithFace_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authServiceClient) CheckFaceRegistration(ctx context.Context, in *CheckFaceRegistrationRequest, opts ...grpc.CallOption) (*CheckFaceRegistrationResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CheckFaceRegistrationResponse)
+	err := c.cc.Invoke(ctx, AuthService_CheckFaceRegistration_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *authServiceClient) SignInWithGoogle(ctx context.Context, in *SignInWithGoogleRequest, opts ...grpc.CallOption) (*LoginResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(LoginResponse)
@@ -196,6 +247,7 @@ func (c *authServiceClient) VerifyPin(ctx context.Context, in *VerifyPinRequest,
 type AuthServiceServer interface {
 	Login(context.Context, *LoginRequest) (*LoginResponse, error)
 	LoginWithPasscode(context.Context, *LoginWithPasscodeRequest) (*LoginResponse, error)
+	RegisterPasscode(context.Context, *RegisterPasscodeRequest) (*RegisterPasscodeResponse, error)
 	RefreshToken(context.Context, *RefreshTokenRequest) (*RefreshTokenResponse, error)
 	Logout(context.Context, *LogoutRequest) (*LogoutResponse, error)
 	// Request sending a verification email to the authenticated user.
@@ -206,6 +258,12 @@ type AuthServiceServer interface {
 	RequestPasswordReset(context.Context, *RequestPasswordResetRequest) (*RequestPasswordResetResponse, error)
 	// Reset the user's password using the email token.
 	ResetPassword(context.Context, *ResetPasswordRequest) (*ResetPasswordResponse, error)
+	// Verify password reset code (6-digit OTP)
+	VerifyPasswordResetCode(context.Context, *VerifyPasswordResetCodeRequest) (*VerifyPasswordResetCodeResponse, error)
+	// Login with facial recognition
+	LoginWithFace(context.Context, *LoginWithFaceRequest) (*LoginWithFaceResponse, error)
+	// Check if user has facial recognition enabled
+	CheckFaceRegistration(context.Context, *CheckFaceRegistrationRequest) (*CheckFaceRegistrationResponse, error)
 	// --- Social Sign-In RPCs ---
 	SignInWithGoogle(context.Context, *SignInWithGoogleRequest) (*LoginResponse, error)
 	SignInWithApple(context.Context, *SignInWithAppleRequest) (*LoginResponse, error)
@@ -229,6 +287,9 @@ func (UnimplementedAuthServiceServer) Login(context.Context, *LoginRequest) (*Lo
 func (UnimplementedAuthServiceServer) LoginWithPasscode(context.Context, *LoginWithPasscodeRequest) (*LoginResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method LoginWithPasscode not implemented")
 }
+func (UnimplementedAuthServiceServer) RegisterPasscode(context.Context, *RegisterPasscodeRequest) (*RegisterPasscodeResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RegisterPasscode not implemented")
+}
 func (UnimplementedAuthServiceServer) RefreshToken(context.Context, *RefreshTokenRequest) (*RefreshTokenResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RefreshToken not implemented")
 }
@@ -246,6 +307,15 @@ func (UnimplementedAuthServiceServer) RequestPasswordReset(context.Context, *Req
 }
 func (UnimplementedAuthServiceServer) ResetPassword(context.Context, *ResetPasswordRequest) (*ResetPasswordResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ResetPassword not implemented")
+}
+func (UnimplementedAuthServiceServer) VerifyPasswordResetCode(context.Context, *VerifyPasswordResetCodeRequest) (*VerifyPasswordResetCodeResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method VerifyPasswordResetCode not implemented")
+}
+func (UnimplementedAuthServiceServer) LoginWithFace(context.Context, *LoginWithFaceRequest) (*LoginWithFaceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method LoginWithFace not implemented")
+}
+func (UnimplementedAuthServiceServer) CheckFaceRegistration(context.Context, *CheckFaceRegistrationRequest) (*CheckFaceRegistrationResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CheckFaceRegistration not implemented")
 }
 func (UnimplementedAuthServiceServer) SignInWithGoogle(context.Context, *SignInWithGoogleRequest) (*LoginResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SignInWithGoogle not implemented")
@@ -312,6 +382,24 @@ func _AuthService_LoginWithPasscode_Handler(srv interface{}, ctx context.Context
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(AuthServiceServer).LoginWithPasscode(ctx, req.(*LoginWithPasscodeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthService_RegisterPasscode_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RegisterPasscodeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).RegisterPasscode(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_RegisterPasscode_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).RegisterPasscode(ctx, req.(*RegisterPasscodeRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -424,6 +512,60 @@ func _AuthService_ResetPassword_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AuthService_VerifyPasswordResetCode_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(VerifyPasswordResetCodeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).VerifyPasswordResetCode(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_VerifyPasswordResetCode_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).VerifyPasswordResetCode(ctx, req.(*VerifyPasswordResetCodeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthService_LoginWithFace_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(LoginWithFaceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).LoginWithFace(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_LoginWithFace_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).LoginWithFace(ctx, req.(*LoginWithFaceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthService_CheckFaceRegistration_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CheckFaceRegistrationRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).CheckFaceRegistration(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_CheckFaceRegistration_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).CheckFaceRegistration(ctx, req.(*CheckFaceRegistrationRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _AuthService_SignInWithGoogle_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(SignInWithGoogleRequest)
 	if err := dec(in); err != nil {
@@ -512,6 +654,10 @@ var AuthService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _AuthService_LoginWithPasscode_Handler,
 		},
 		{
+			MethodName: "RegisterPasscode",
+			Handler:    _AuthService_RegisterPasscode_Handler,
+		},
+		{
 			MethodName: "RefreshToken",
 			Handler:    _AuthService_RefreshToken_Handler,
 		},
@@ -534,6 +680,18 @@ var AuthService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ResetPassword",
 			Handler:    _AuthService_ResetPassword_Handler,
+		},
+		{
+			MethodName: "VerifyPasswordResetCode",
+			Handler:    _AuthService_VerifyPasswordResetCode_Handler,
+		},
+		{
+			MethodName: "LoginWithFace",
+			Handler:    _AuthService_LoginWithFace_Handler,
+		},
+		{
+			MethodName: "CheckFaceRegistration",
+			Handler:    _AuthService_CheckFaceRegistration_Handler,
 		},
 		{
 			MethodName: "SignInWithGoogle",

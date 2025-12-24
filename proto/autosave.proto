@@ -1,0 +1,418 @@
+syntax = "proto3";
+
+package pb;
+option go_package = "lazervaultGo/pb";
+
+import "google/api/annotations.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+import "google/protobuf/timestamp.proto";
+
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+    info: {
+        title: "LazerVault AutoSave API"
+        version: "1.0"
+        description: "Automated savings service for LazerVault"
+    }
+    schemes: HTTP
+    schemes: HTTPS
+    consumes: "application/json"
+    produces: "application/json"
+};
+
+// Auto-save rule trigger types
+enum TriggerType {
+    TRIGGER_UNKNOWN = 0;
+    TRIGGER_ON_DEPOSIT = 1;      // Trigger when money is deposited
+    TRIGGER_SCHEDULED = 2;        // Trigger on a schedule
+    TRIGGER_ROUND_UP = 3;         // Round up transactions to nearest value
+}
+
+// Schedule frequency for scheduled auto-saves
+enum ScheduleFrequency {
+    FREQUENCY_UNKNOWN = 0;
+    FREQUENCY_DAILY = 1;
+    FREQUENCY_WEEKLY = 2;
+    FREQUENCY_BIWEEKLY = 3;
+    FREQUENCY_MONTHLY = 4;
+}
+
+// Auto-save rule status
+enum AutoSaveStatus {
+    STATUS_UNKNOWN = 0;
+    STATUS_ACTIVE = 1;
+    STATUS_PAUSED = 2;
+    STATUS_COMPLETED = 3;
+    STATUS_CANCELLED = 4;
+}
+
+// Amount calculation type
+enum AmountType {
+    AMOUNT_UNKNOWN = 0;
+    AMOUNT_FIXED = 1;           // Fixed amount per trigger
+    AMOUNT_PERCENTAGE = 2;      // Percentage of incoming amount
+}
+
+// Auto-save rule definition
+message AutoSaveRule {
+    string id = 1;
+    string user_id = 2;
+    string name = 3;                           // User-defined name for the rule
+    string description = 4;
+    TriggerType trigger_type = 5;
+    AmountType amount_type = 6;
+    double amount_value = 7;                   // Fixed amount or percentage value
+    string source_account_id = 8;              // Account to debit from
+    string destination_account_id = 9;         // Savings account to credit
+    AutoSaveStatus status = 10;
+
+    // For scheduled triggers
+    ScheduleFrequency frequency = 11;
+    string schedule_time = 12;                 // HH:MM format
+    int32 schedule_day = 13;                   // Day of week (1-7) or month (1-31)
+
+    // For round-up triggers
+    int32 round_up_to = 14;                    // Round up to nearest (e.g., 100, 1000)
+
+    // Goals and limits
+    double target_amount = 15;                 // Optional savings goal
+    double minimum_balance = 16;               // Min balance to maintain in source
+    double maximum_per_save = 17;              // Max amount per save
+
+    // Metadata
+    google.protobuf.Timestamp created_at = 18;
+    google.protobuf.Timestamp updated_at = 19;
+    google.protobuf.Timestamp last_triggered_at = 20;
+    int32 trigger_count = 21;                  // Number of times triggered
+    double total_saved = 22;                   // Total amount saved via this rule
+}
+
+// Create auto-save rule request
+message CreateAutoSaveRuleRequest {
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+        json_schema: {
+            required: ["name", "trigger_type", "amount_type", "amount_value", "source_account_id", "destination_account_id"]
+        }
+    };
+
+    string name = 1;
+    string description = 2;
+    TriggerType trigger_type = 3;
+    AmountType amount_type = 4;
+    double amount_value = 5;
+    string source_account_id = 6;
+    string destination_account_id = 7;
+
+    // Optional fields based on trigger type
+    ScheduleFrequency frequency = 8;
+    string schedule_time = 9;
+    int32 schedule_day = 10;
+    int32 round_up_to = 11;
+
+    // Optional goals and limits
+    double target_amount = 12;
+    double minimum_balance = 13;
+    double maximum_per_save = 14;
+}
+
+// Create auto-save rule response
+message CreateAutoSaveRuleResponse {
+    bool success = 1;
+    string msg = 2;
+    AutoSaveRule rule = 3;
+}
+
+// Get auto-save rules request
+message GetAutoSaveRulesRequest {
+    string account_id = 1;          // Optional: filter by account
+    AutoSaveStatus status = 2;       // Optional: filter by status
+}
+
+// Get auto-save rules response
+message GetAutoSaveRulesResponse {
+    bool success = 1;
+    string msg = 2;
+    repeated AutoSaveRule rules = 3;
+}
+
+// Update auto-save rule request
+message UpdateAutoSaveRuleRequest {
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+        json_schema: {
+            required: ["rule_id"]
+        }
+    };
+
+    string rule_id = 1;
+    string name = 2;
+    string description = 3;
+    AmountType amount_type = 4;
+    double amount_value = 5;
+
+    // Optional fields
+    ScheduleFrequency frequency = 6;
+    string schedule_time = 7;
+    int32 schedule_day = 8;
+    int32 round_up_to = 9;
+
+    double target_amount = 10;
+    double minimum_balance = 11;
+    double maximum_per_save = 12;
+}
+
+// Update auto-save rule response
+message UpdateAutoSaveRuleResponse {
+    bool success = 1;
+    string msg = 2;
+    AutoSaveRule rule = 3;
+}
+
+// Pause/resume auto-save rule request
+message ToggleAutoSaveRuleRequest {
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+        json_schema: {
+            required: ["rule_id", "action"]
+        }
+    };
+
+    string rule_id = 1;
+    string action = 2;  // "pause" or "resume"
+}
+
+// Pause/resume auto-save rule response
+message ToggleAutoSaveRuleResponse {
+    bool success = 1;
+    string msg = 2;
+    AutoSaveRule rule = 3;
+}
+
+// Delete auto-save rule request
+message DeleteAutoSaveRuleRequest {
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+        json_schema: {
+            required: ["rule_id"]
+        }
+    };
+
+    string rule_id = 1;
+}
+
+// Delete auto-save rule response
+message DeleteAutoSaveRuleResponse {
+    bool success = 1;
+    string msg = 2;
+}
+
+// Auto-save transaction record
+message AutoSaveTransaction {
+    string id = 1;
+    string rule_id = 2;
+    string user_id = 3;
+    string source_account_id = 4;
+    string destination_account_id = 5;
+    double amount = 6;
+    TriggerType trigger_type = 7;
+    string trigger_reason = 8;           // Description of what triggered the save
+    bool success = 9;
+    string error_message = 10;
+    google.protobuf.Timestamp created_at = 11;
+}
+
+// Get auto-save transactions request
+message GetAutoSaveTransactionsRequest {
+    string rule_id = 1;              // Optional: filter by rule
+    string account_id = 2;           // Optional: filter by account
+    int32 limit = 3;                 // Optional: limit results
+    int32 offset = 4;                // Optional: pagination offset
+}
+
+// Get auto-save transactions response
+message GetAutoSaveTransactionsResponse {
+    bool success = 1;
+    string msg = 2;
+    repeated AutoSaveTransaction transactions = 3;
+    int32 total_count = 4;
+}
+
+// Auto-save statistics
+message AutoSaveStatistics {
+    string user_id = 1;
+    int32 active_rules_count = 2;
+    double total_saved_all_time = 3;
+    double total_saved_this_month = 4;
+    double total_saved_this_week = 5;
+    int32 total_transactions = 6;
+    double average_save_amount = 7;
+    AutoSaveRule most_active_rule = 8;
+}
+
+// Get auto-save statistics request
+message GetAutoSaveStatisticsRequest {}
+
+// Get auto-save statistics response
+message GetAutoSaveStatisticsResponse {
+    bool success = 1;
+    string msg = 2;
+    AutoSaveStatistics statistics = 3;
+}
+
+// Manual trigger auto-save request (for testing or manual execution)
+message TriggerAutoSaveRequest {
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+        json_schema: {
+            required: ["rule_id"]
+        }
+    };
+
+    string rule_id = 1;
+    double custom_amount = 2;  // Optional: override calculated amount
+}
+
+// Manual trigger auto-save response
+message TriggerAutoSaveResponse {
+    bool success = 1;
+    string msg = 2;
+    AutoSaveTransaction transaction = 3;
+}
+
+// Service definition
+service AutoSaveService {
+    // Create a new auto-save rule
+    rpc CreateAutoSaveRule(CreateAutoSaveRuleRequest) returns (CreateAutoSaveRuleResponse) {
+        option (google.api.http) = {
+            post: "/v1/autosave/rules"
+            body: "*"
+        };
+        option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            summary: "Create Auto-Save Rule"
+            description: "Creates a new automated savings rule for the authenticated user."
+            tags: ["AutoSave"]
+            security: {
+                security_requirement: {
+                    key: "bearer" value: {}
+                }
+            }
+        };
+    }
+
+    // Get all auto-save rules for the user
+    rpc GetAutoSaveRules(GetAutoSaveRulesRequest) returns (GetAutoSaveRulesResponse) {
+        option (google.api.http) = {
+            get: "/v1/autosave/rules"
+        };
+        option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            summary: "Get Auto-Save Rules"
+            description: "Retrieves all auto-save rules for the authenticated user."
+            tags: ["AutoSave"]
+            security: {
+                security_requirement: {
+                    key: "bearer" value: {}
+                }
+            }
+        };
+    }
+
+    // Update an existing auto-save rule
+    rpc UpdateAutoSaveRule(UpdateAutoSaveRuleRequest) returns (UpdateAutoSaveRuleResponse) {
+        option (google.api.http) = {
+            put: "/v1/autosave/rules/{rule_id}"
+            body: "*"
+        };
+        option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            summary: "Update Auto-Save Rule"
+            description: "Updates an existing auto-save rule."
+            tags: ["AutoSave"]
+            security: {
+                security_requirement: {
+                    key: "bearer" value: {}
+                }
+            }
+        };
+    }
+
+    // Pause or resume an auto-save rule
+    rpc ToggleAutoSaveRule(ToggleAutoSaveRuleRequest) returns (ToggleAutoSaveRuleResponse) {
+        option (google.api.http) = {
+            post: "/v1/autosave/rules/{rule_id}/toggle"
+            body: "*"
+        };
+        option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            summary: "Toggle Auto-Save Rule"
+            description: "Pauses or resumes an auto-save rule."
+            tags: ["AutoSave"]
+            security: {
+                security_requirement: {
+                    key: "bearer" value: {}
+                }
+            }
+        };
+    }
+
+    // Delete an auto-save rule
+    rpc DeleteAutoSaveRule(DeleteAutoSaveRuleRequest) returns (DeleteAutoSaveRuleResponse) {
+        option (google.api.http) = {
+            delete: "/v1/autosave/rules/{rule_id}"
+        };
+        option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            summary: "Delete Auto-Save Rule"
+            description: "Deletes an auto-save rule."
+            tags: ["AutoSave"]
+            security: {
+                security_requirement: {
+                    key: "bearer" value: {}
+                }
+            }
+        };
+    }
+
+    // Get auto-save transaction history
+    rpc GetAutoSaveTransactions(GetAutoSaveTransactionsRequest) returns (GetAutoSaveTransactionsResponse) {
+        option (google.api.http) = {
+            get: "/v1/autosave/transactions"
+        };
+        option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            summary: "Get Auto-Save Transactions"
+            description: "Retrieves auto-save transaction history."
+            tags: ["AutoSave"]
+            security: {
+                security_requirement: {
+                    key: "bearer" value: {}
+                }
+            }
+        };
+    }
+
+    // Get auto-save statistics
+    rpc GetAutoSaveStatistics(GetAutoSaveStatisticsRequest) returns (GetAutoSaveStatisticsResponse) {
+        option (google.api.http) = {
+            get: "/v1/autosave/statistics"
+        };
+        option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            summary: "Get Auto-Save Statistics"
+            description: "Retrieves auto-save statistics for the authenticated user."
+            tags: ["AutoSave"]
+            security: {
+                security_requirement: {
+                    key: "bearer" value: {}
+                }
+            }
+        };
+    }
+
+    // Manually trigger an auto-save rule
+    rpc TriggerAutoSave(TriggerAutoSaveRequest) returns (TriggerAutoSaveResponse) {
+        option (google.api.http) = {
+            post: "/v1/autosave/rules/{rule_id}/trigger"
+            body: "*"
+        };
+        option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            summary: "Trigger Auto-Save Manually"
+            description: "Manually triggers an auto-save rule execution."
+            tags: ["AutoSave"]
+            security: {
+                security_requirement: {
+                    key: "bearer" value: {}
+                }
+            }
+        };
+    }
+}

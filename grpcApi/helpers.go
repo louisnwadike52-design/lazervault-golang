@@ -29,3 +29,21 @@ func getUserFromContext(ctx context.Context, userService services.IUserService) 
 	}
 	return user, nil
 }
+
+// getUserAndTokenFromContext retrieves both the user and the access token from context.
+// Used by AI services that need to pass the token to external AI microservices.
+func getUserAndTokenFromContext(ctx context.Context, userService services.IUserService) (*models.User, string, error) {
+	// Get user using existing helper
+	user, err := getUserFromContext(ctx, userService)
+	if err != nil {
+		return nil, "", err
+	}
+
+	// Extract access token from context
+	accessToken, ok := ctx.Value(middleware.AccessTokenKey).(string)
+	if !ok || accessToken == "" {
+		return nil, "", status.Error(codes.Unauthenticated, "missing access token")
+	}
+
+	return user, accessToken, nil
+}

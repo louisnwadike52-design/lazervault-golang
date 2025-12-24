@@ -60,7 +60,7 @@ func (c *RecipientController) ListRecipients(ctx context.Context, req *pb.ListRe
 		return nil, err
 	}
 
-	recipientModels, err := c.recipientService.ListRecipients(ctx, user.ID)
+	recipientModels, err := c.recipientService.ListRecipients(ctx, user.ID, req)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to list recipients: %v", err)
 	}

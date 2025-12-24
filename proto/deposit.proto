@@ -94,6 +94,31 @@ message GetDepositDetailsResponse {
   AccountDetails updated_account = 13 [json_name = "updated_account"];
 }
 
+// Pagination metadata for deposit lists
+message DepositPaginationInfo {
+  int32 current_page = 1;
+  int32 total_pages = 2;
+  int32 total_items = 3;
+  int32 items_per_page = 4;
+  bool has_next = 5;
+  bool has_prev = 6;
+}
+
+// Request message for listing deposits with pagination
+message ListDepositsRequest {
+  int32 page = 1;          // Page number (default: 1)
+  int32 page_size = 2;     // Items per page (default: 20, max: 100)
+  string status = 3;       // Optional filter by status
+  string sort_by = 4;      // Sort field (default: "created_at")
+  string sort_order = 5;   // "asc" or "desc" (default: "desc")
+}
+
+// Response message for listing deposits
+message ListDepositsResponse {
+  repeated GetDepositDetailsResponse deposits = 1;
+  DepositPaginationInfo pagination = 2;
+}
+
 // Service for handling deposits (asynchronous)
 service DepositService {
   option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_tag) = {
@@ -111,6 +136,21 @@ service DepositService {
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "Initiate Deposit (Async)"
       description: "Initiates the process of depositing funds. The actual balance update occurs asynchronously. Amount should be provided in the smallest currency unit (e.g., cents)."
+      tags: ["Deposits"]
+      security: {
+         security_requirement: { key: "bearer" }
+      }
+    };
+  }
+
+  // Lists all deposits for the authenticated user with pagination
+  rpc ListDeposits(ListDepositsRequest) returns (ListDepositsResponse) {
+    option (google.api.http) = {
+      get: "/v1/deposits"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "List Deposits"
+      description: "Retrieves a paginated list of deposits for the authenticated user"
       tags: ["Deposits"]
       security: {
          security_requirement: { key: "bearer" }
