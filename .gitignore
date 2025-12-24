@@ -1,1 +1,41 @@
 tmp/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Google Cloud credentials
+*.json
+!package.json
+!nodemon.json
+
+# Build artifacts and binaries
+lazervault-server
+lazervault-golang
+lazervaultGo
+main
+bin/
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Test and debug files
+*.test
+*.out
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+*.log
+golang.log
+
+# Claude IDE
+.claude/
