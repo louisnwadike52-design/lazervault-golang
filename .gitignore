@@ -1,9 +1,11 @@
 tmp/
 
 # Environment variables
-.env
-.env.local
-.env.*.local
+# NOTE: .env files are temporarily tracked for deployment
+# TODO: Move secrets to cloud secret manager
+# .env
+# .env.local
+# .env.*.local
 
 # Google Cloud credentials
 *.json
