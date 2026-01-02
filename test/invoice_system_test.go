@@ -68,7 +68,7 @@ func TestInvoiceService(t *testing.T) {
 	_ = createTestUser(t, db) // We don't use the user directly in tests anymore
 
 	// Initialize services
-	invoiceService := services.NewInvoiceService(db)
+	invoiceService := services.NewInvoiceService(db, nil, nil)
 	require.NotNil(t, invoiceService)
 
 	t.Run("CreateInvoice", func(t *testing.T) {
@@ -211,7 +211,7 @@ func TestInvoiceController(t *testing.T) {
 	recipient := createTestRecipient(t, db, user.ID)
 
 	// Initialize services and controller
-	invoiceService := services.NewInvoiceService(db)
+	invoiceService := services.NewInvoiceService(db, nil, nil)
 	userService := &mockUserService{user: user}
 	controller := grpcApi.NewInvoiceController(invoiceService, userService, db)
 	require.NotNil(t, controller)
@@ -330,7 +330,7 @@ func TestInvoicePaymentService(t *testing.T) {
 	db := setupTestDB(t)
 
 	// Initialize services
-	invoicePaymentService := services.NewInvoicePaymentService(db)
+	invoicePaymentService := services.NewInvoicePaymentService(db, nil)
 	if invoicePaymentService == nil {
 		t.Fatal("Failed to create invoice payment service")
 	}
@@ -366,7 +366,7 @@ func TestInvoicePaymentController(t *testing.T) {
 	db := setupTestDB(t)
 
 	// Initialize services
-	invoicePaymentService := services.NewInvoicePaymentService(db)
+	invoicePaymentService := services.NewInvoicePaymentService(db, nil)
 	userService := &mockUserService{user: createTestUser(t, db)}
 
 	// Create controller with proper dependencies

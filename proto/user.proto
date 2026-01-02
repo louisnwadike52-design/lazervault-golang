@@ -40,6 +40,7 @@ message CreateUserRequest {
   string role = 6;
   string login_passcode = 7; // Optional 4-6 digit passcode for quick login
   string username = 8; // Optional unique username
+  string referral_code = 9; // Optional referral code from another user
 }
 
 
@@ -227,7 +228,6 @@ message GetFacialDataResponse {
 // Passcode Messages
 message SetPasscodeRequest {
   string passcode = 1; // 4-6 digit passcode
-  string password = 2; // Require password confirmation for security
 }
 
 message SetPasscodeResponse {
@@ -246,7 +246,7 @@ message VerifyPasscodeResponse {
 }
 
 message RemovePasscodeRequest {
-  string password = 1; // Require password confirmation
+  // No parameters needed - user is authenticated via token
 }
 
 message RemovePasscodeResponse {

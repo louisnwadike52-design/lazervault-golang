@@ -13,12 +13,18 @@ import (
 
 // PaymentProcessor handles actual payment processing logic
 type PaymentProcessor struct {
-	db *gorm.DB
+	db                  *gorm.DB
+	notificationService *NotificationService
+	txTracker           *TransactionTracker // Tracks income/expenditure for statistics
 }
 
 // NewPaymentProcessor creates a new payment processor
-func NewPaymentProcessor(db *gorm.DB) *PaymentProcessor {
-	return &PaymentProcessor{db: db}
+func NewPaymentProcessor(db *gorm.DB, notificationService *NotificationService) *PaymentProcessor {
+	return &PaymentProcessor{
+		db:                  db,
+		notificationService: notificationService,
+		txTracker:           NewTransactionTracker(db), // Initialize transaction tracker
+	}
 }
 
 // ProcessAccountPayment processes payment from user's account balance
@@ -155,6 +161,93 @@ func (p *PaymentProcessor) ProcessAccountPayment(
 		return nil, fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
+	// 13. Track transaction for statistics (Non-blocking)
+	// Get payer user for tracking
+	var payer models.User
+	var payerUserID uint
+	var payerName string
+	if err := p.db.WithContext(ctx).Where("uuid = ?", userID).First(&payer).Error; err == nil {
+		payerUserID = payer.ID
+		payerName = payer.FirstName + " " + payer.LastName
+		if payerName == " " {
+			payerName = payer.Email
+		}
+	}
+
+	// Get invoice creator (recipient) for tracking
+	var invoiceCreator models.User
+	var creatorUserID uint
+	var creatorName string
+	// Note: invoice.UserID is a string UUID, attempt to find matching user
+	// This may need adjustment based on actual user ID format
+	if err := p.db.WithContext(ctx).Where("username = ? OR email = ?", invoice.UserID, invoice.UserID).First(&invoiceCreator).Error; err == nil {
+		creatorUserID = invoiceCreator.ID
+		creatorName = invoiceCreator.FirstName + " " + invoiceCreator.LastName
+		if creatorName == " " {
+			creatorName = invoiceCreator.Email
+		}
+	} else {
+		// Fallback to invoice recipient details
+		creatorName = invoice.ToName
+		if creatorName == "" {
+			creatorName = invoice.ToEmail
+		}
+	}
+
+	// Track expenditure for payer
+	if payerUserID > 0 {
+		p.txTracker.TrackExpenditureAsync(ctx, ExpenditureTrackingParams{
+			UserID:          payerUserID,
+			Amount:          transaction.Amount + transaction.FeeAmount, // Include fee
+			Currency:        transaction.Currency,
+			ExpenseType:     "invoice_payment_made",
+			ExpenseID:       transaction.TransactionID,
+			ExpenseReference: invoiceID,
+			Category:        "EXPENSE_CATEGORY_OTHER",
+			RecipientID:     &creatorUserID,
+			RecipientName:   creatorName,
+			Description:     fmt.Sprintf("Invoice payment to %s", creatorName),
+			TransactionDate: transaction.ProcessedAt,
+			Metadata: map[string]interface{}{
+				"transaction_id":   transaction.TransactionID,
+				"invoice_id":       invoiceID,
+				"payment_method":   "account_balance",
+				"fee_amount":       transaction.FeeAmount,
+				"confirmation_code": transaction.ConfirmationCode,
+			},
+		})
+	}
+
+	// Track income for invoice creator (recipient)
+	if creatorUserID > 0 {
+		p.txTracker.TrackIncomeAsync(ctx, IncomeTrackingParams{
+			UserID:          creatorUserID,
+			Amount:          transaction.Amount, // Recipient gets amount without fee
+			Currency:        transaction.Currency,
+			SourceType:      "invoice_payment_received",
+			SourceID:        transaction.TransactionID,
+			SourceReference: invoiceID,
+			Category:        "INCOME_CATEGORY_OTHER",
+			Description:     fmt.Sprintf("Invoice payment from %s", payerName),
+			SenderID:        &payerUserID,
+			SenderName:      payerName,
+			TransactionDate: transaction.ProcessedAt,
+			Metadata: map[string]interface{}{
+				"transaction_id":   transaction.TransactionID,
+				"invoice_id":       invoiceID,
+				"confirmation_code": transaction.ConfirmationCode,
+			},
+		})
+	}
+
+	// 14. Send notification to invoice creator
+	if p.notificationService != nil && payerName != "" {
+		// Send notification asynchronously
+		go func() {
+			_ = p.notificationService.SendInvoicePaidNotification(context.Background(), &invoice, payerName)
+		}()
+	}
+
 	return transaction, nil
 }
 
@@ -287,6 +380,21 @@ func (p *PaymentProcessor) ProcessPartialAccountPayment(
 	// 10. Commit transaction
 	if err := tx.Commit().Error; err != nil {
 		return nil, 0, fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	// 11. Send notification to invoice creator if payment is completed
+	if paymentStatus == models.InvoicePaymentStatusCompleted && p.notificationService != nil {
+		var payer models.User
+		if err := p.db.WithContext(ctx).Where("uuid = ?", userID).First(&payer).Error; err == nil {
+			payerName := payer.FirstName + " " + payer.LastName
+			if payerName == " " {
+				payerName = payer.Email
+			}
+			// Send notification asynchronously
+			go func() {
+				_ = p.notificationService.SendInvoicePaidNotification(context.Background(), &invoice, payerName)
+			}()
+		}
 	}
 
 	return transaction, remainingAmount, nil

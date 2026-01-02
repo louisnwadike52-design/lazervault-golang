@@ -38,6 +38,7 @@ type IExchangeService interface {
 type ExchangeService struct {
 	db          *gorm.DB
 	distributor tasks.TaskDistributor // Added task distributor
+	txTracker   *TransactionTracker   // Tracks income/expenditure for statistics
 	// Add dependencies like AccountService or a RateProvider later
 }
 
@@ -47,6 +48,7 @@ func NewExchangeService(db *gorm.DB, distributor tasks.TaskDistributor) IExchang
 	return &ExchangeService{
 		db:          db,
 		distributor: distributor,
+		txTracker:   NewTransactionTracker(db), // Initialize transaction tracker
 	}
 }
 
@@ -169,6 +171,33 @@ func (s *ExchangeService) InitiateInternationalTransfer(ctx context.Context, req
 	if err := tx.Commit().Error; err != nil {
 		return nil, fmt.Errorf("failed to commit transaction: %w", err)
 	}
+
+	// --- Track exchange transaction for statistics (Non-blocking) ---
+	s.txTracker.TrackExpenditureAsync(ctx, ExpenditureTrackingParams{
+		UserID:          transaction.UserID,
+		Amount:          transaction.AmountFrom + transaction.Fees,
+		Currency:        transaction.FromCurrency,
+		ExpenseType:     "currency_exchange",
+		ExpenseID:       transaction.ID,
+		Category:        "EXPENSE_CATEGORY_OTHER",
+		RecipientName:   req.ReceiverDetails.FullName,
+		Merchant:        req.ReceiverDetails.BankName,
+		Description:     fmt.Sprintf("Currency exchange %s to %s for %s", req.FromCurrency, req.ToCurrency, req.ReceiverDetails.FullName),
+		TransactionDate: &transaction.CreatedAt,
+		Metadata: map[string]interface{}{
+			"exchange_id":    transaction.ID,
+			"from_currency":  transaction.FromCurrency,
+			"to_currency":    transaction.ToCurrency,
+			"amount_from":    transaction.AmountFrom,
+			"amount_to":      transaction.AmountTo,
+			"exchange_rate":  transaction.ExchangeRate,
+			"fees":           transaction.Fees,
+			"receiver_name":  req.ReceiverDetails.FullName,
+			"bank_name":      req.ReceiverDetails.BankName,
+			"account_number": req.ReceiverDetails.AccountNumber,
+			"swift_code":     req.ReceiverDetails.SwiftBicCode,
+		},
+	})
 
 	// --- Enqueue Tx File Update Task (AFTER successful commit) ---
 	txFilePayloadBytes, err := tasks.NewGenerateTxDataFileTask(transaction.UserID)

@@ -498,3 +498,90 @@ func (r *RecurringBill) UpdateDaysUntilDue() {
 		}
 	}
 }
+
+// ========================================
+// AUTOMATIC TRANSACTION TRACKING MODELS
+// ========================================
+
+// IncomeTransaction automatically tracks ALL income operations across the platform
+// This is separate from user-entered income sources and tracks actual transactions
+type IncomeTransaction struct {
+	ID                uuid.UUID `gorm:"type:uuid;default:uuid_generate_v4();primaryKey"`
+	UserID            uint      `gorm:"not null;index:idx_income_txn_user"`
+	User              User      `gorm:"foreignKey:UserID"`
+	Amount            float64   `gorm:"not null;index:idx_income_txn_amount"`
+	Currency          string    `gorm:"size:3;default:'USD';not null"`
+	SourceType        string    `gorm:"size:50;not null;index:idx_income_txn_source_type"` // deposit, transfer_received, invoice_payment_received, tagged_invoice_payment_received, etc.
+	SourceID          string    `gorm:"size:255;index:idx_income_txn_source_id"`            // ID of the source transaction (transfer_id, deposit_id, etc.)
+	SourceReference   string    `gorm:"size:500"`                                           // Additional reference (invoice number, transfer reference, etc.)
+	Category          string    `gorm:"size:50;index:idx_income_txn_category"`              // Maps to IncomeCategory enum
+	Description       string    `gorm:"type:text"`
+	SenderID          *uint     `gorm:"index:idx_income_txn_sender"` // User ID of sender (if applicable, e.g., for transfers)
+	SenderName        string    `gorm:"size:255"`
+	TransactionDate   time.Time `gorm:"not null;index:idx_income_txn_date"`
+	Metadata          string    `gorm:"type:jsonb"` // Additional flexible data stored as JSON
+	CreatedAt         time.Time
+	UpdatedAt         time.Time
+	DeletedAt         gorm.DeletedAt `gorm:"index"`
+}
+
+// TableName specifies the table name for IncomeTransaction model
+func (IncomeTransaction) TableName() string {
+	return "income_transactions"
+}
+
+// BeforeCreate hook for IncomeTransaction
+func (i *IncomeTransaction) BeforeCreate(tx *gorm.DB) error {
+	if i.ID == uuid.Nil {
+		i.ID = uuid.New()
+	}
+	if i.Currency == "" {
+		i.Currency = "USD"
+	}
+	if i.TransactionDate.IsZero() {
+		i.TransactionDate = time.Now()
+	}
+	return nil
+}
+
+// ExpenditureTransaction automatically tracks ALL expenditure operations across the platform
+// This is separate from user-entered expenses and tracks actual transactions
+type ExpenditureTransaction struct {
+	ID                uuid.UUID `gorm:"type:uuid;default:uuid_generate_v4();primaryKey"`
+	UserID            uint      `gorm:"not null;index:idx_expenditure_txn_user"`
+	User              User      `gorm:"foreignKey:UserID"`
+	Amount            float64   `gorm:"not null;index:idx_expenditure_txn_amount"`
+	Currency          string    `gorm:"size:3;default:'USD';not null"`
+	ExpenseType       string    `gorm:"size:50;not null;index:idx_expenditure_txn_type"` // withdrawal, transfer_sent, invoice_payment_made, bill_payment, exchange, etc.
+	ExpenseID         string    `gorm:"size:255;index:idx_expenditure_txn_expense_id"`   // ID of the expense transaction
+	ExpenseReference  string    `gorm:"size:500"`                                        // Additional reference
+	Category          string    `gorm:"size:50;index:idx_expenditure_txn_category"`      // Maps to ExpenseCategory enum
+	RecipientID       *uint     `gorm:"index:idx_expenditure_txn_recipient"`             // User ID of recipient (if applicable)
+	RecipientName     string    `gorm:"size:255"`
+	Merchant          string    `gorm:"size:255;index:idx_expenditure_txn_merchant"`
+	Description       string    `gorm:"type:text"`
+	TransactionDate   time.Time `gorm:"not null;index:idx_expenditure_txn_date"`
+	Metadata          string    `gorm:"type:jsonb"` // Additional flexible data stored as JSON
+	CreatedAt         time.Time
+	UpdatedAt         time.Time
+	DeletedAt         gorm.DeletedAt `gorm:"index"`
+}
+
+// TableName specifies the table name for ExpenditureTransaction model
+func (ExpenditureTransaction) TableName() string {
+	return "expenditure_transactions"
+}
+
+// BeforeCreate hook for ExpenditureTransaction
+func (e *ExpenditureTransaction) BeforeCreate(tx *gorm.DB) error {
+	if e.ID == uuid.Nil {
+		e.ID = uuid.New()
+	}
+	if e.Currency == "" {
+		e.Currency = "USD"
+	}
+	if e.TransactionDate.IsZero() {
+		e.TransactionDate = time.Now()
+	}
+	return nil
+}

@@ -48,6 +48,7 @@ type IAuthService interface {
 	LoginWithPasscode(req *LoginWithPasscodeRequest, userAgent, clientIP string) (*LoginResponse, error)
 	LoginWithFace(ctx context.Context, email string, imageData []byte, userAgent, clientIP string) (*LoginResponse, error)
 	RegisterPasscode(ctx context.Context, email string, passcode string) error
+	ChangePasscode(ctx context.Context, email string, oldPasscode string, newPasscode string) error
 	RefreshToken(req *RefreshTokenRequest) (*RefreshTokenResponse, error)
 	Logout(sessionID string) error
 	CheckEmailAvailability(ctx context.Context, email string) (bool, error)
@@ -284,6 +285,43 @@ func (s *AuthService) RegisterPasscode(ctx context.Context, email string, passco
 	// Save the user with the new passcode
 	if err := s.db.Save(&user).Error; err != nil {
 		return errors.New("failed to save passcode")
+	}
+
+	return nil
+}
+
+// ChangePasscode changes the login passcode for the authenticated user
+func (s *AuthService) ChangePasscode(ctx context.Context, email string, oldPasscode string, newPasscode string) error {
+	// Validate new passcode (4-6 digits)
+	if len(newPasscode) < 4 || len(newPasscode) > 6 {
+		return errors.New("new passcode must be between 4 and 6 digits")
+	}
+
+	// Validate old passcode is provided
+	if oldPasscode == "" {
+		return errors.New("old passcode is required")
+	}
+
+	// Get user by email
+	user, err := s.getUserByEmail(email)
+	if err != nil {
+		return err
+	}
+
+	// Verify the old passcode
+	match, err := user.CompareLoginPasscode(oldPasscode)
+	if err != nil || !match {
+		return errors.New("incorrect old passcode")
+	}
+
+	// Set the new login passcode (hashes internally)
+	if err := user.SetLoginPasscode(newPasscode); err != nil {
+		return err
+	}
+
+	// Save the user with the new passcode
+	if err := s.db.Save(&user).Error; err != nil {
+		return errors.New("failed to save new passcode")
 	}
 
 	return nil

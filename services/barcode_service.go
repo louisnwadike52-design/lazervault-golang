@@ -6,8 +6,10 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"lazervaultGo/grpcApi/middleware"
 	"lazervaultGo/models"
 	pb "lazervaultGo/pb"
+	"lazervaultGo/token"
 	"time"
 
 	"google.golang.org/grpc/codes"
@@ -28,10 +30,11 @@ func NewBarcodePaymentService(db *gorm.DB) *BarcodePaymentService {
 // GenerateBarcode creates a new payment barcode
 func (s *BarcodePaymentService) GenerateBarcode(ctx context.Context, req *pb.GenerateBarcodeRequest) (*pb.GenerateBarcodeResponse, error) {
 	// Get user from context
-	userEmail, ok := ctx.Value("email").(string)
-	if !ok || userEmail == "" {
+	payload, ok := ctx.Value(middleware.AuthorizationPayloadKey).(*token.Payload)
+	if !ok || payload == nil {
 		return nil, status.Error(codes.Unauthenticated, "user not authenticated")
 	}
+	userEmail := payload.Email
 
 	// Get user details
 	var user models.User
@@ -82,13 +85,16 @@ func (s *BarcodePaymentService) GenerateBarcode(ctx context.Context, req *pb.Gen
 		return nil, status.Error(codes.Internal, "failed to create barcode")
 	}
 
-	// Create QR data JSON
+	// Create QR data JSON with complete transaction metadata
 	qrData := map[string]interface{}{
 		"type":         "barcode_payment",
+		"barcode_id":   barcode.ID,
 		"barcode_code": barcodeCode,
 		"amount":       req.Amount,
 		"currency":     req.Currency,
 		"recipient":    username,
+		"recipient_id": barcode.UserID,
+		"description":  req.Description,
 		"expires_at":   expiresAt.Unix(),
 	}
 
@@ -128,10 +134,11 @@ func (s *BarcodePaymentService) GetBarcodeDetails(ctx context.Context, req *pb.G
 // ProcessBarcodePayment processes payment for a scanned barcode
 func (s *BarcodePaymentService) ProcessBarcodePayment(ctx context.Context, req *pb.ProcessBarcodePaymentRequest) (*pb.ProcessBarcodePaymentResponse, error) {
 	// Get payer user from context
-	payerEmail, ok := ctx.Value("email").(string)
-	if !ok || payerEmail == "" {
+	payload, ok := ctx.Value(middleware.AuthorizationPayloadKey).(*token.Payload)
+	if !ok || payload == nil {
 		return nil, status.Error(codes.Unauthenticated, "user not authenticated")
 	}
+	payerEmail := payload.Email
 
 	// Get payer details
 	var payer models.User
@@ -229,10 +236,11 @@ func (s *BarcodePaymentService) ProcessBarcodePayment(ctx context.Context, req *
 
 // GetMyGeneratedBarcodes retrieves user's generated barcodes
 func (s *BarcodePaymentService) GetMyGeneratedBarcodes(ctx context.Context, req *pb.GetMyGeneratedBarcodesRequest) (*pb.GetMyGeneratedBarcodesResponse, error) {
-	userEmail, ok := ctx.Value("email").(string)
-	if !ok || userEmail == "" {
+	payload, ok := ctx.Value(middleware.AuthorizationPayloadKey).(*token.Payload)
+	if !ok || payload == nil {
 		return nil, status.Error(codes.Unauthenticated, "user not authenticated")
 	}
+	userEmail := payload.Email
 
 	var user models.User
 	if err := s.db.Where("email = ?", userEmail).First(&user).Error; err != nil {
@@ -283,10 +291,11 @@ func (s *BarcodePaymentService) GetMyGeneratedBarcodes(ctx context.Context, req 
 
 // GetMyScannedBarcodes retrieves user's scanned/paid barcodes
 func (s *BarcodePaymentService) GetMyScannedBarcodes(ctx context.Context, req *pb.GetMyScannedBarcodesRequest) (*pb.GetMyScannedBarcodesResponse, error) {
-	userEmail, ok := ctx.Value("email").(string)
-	if !ok || userEmail == "" {
+	payload, ok := ctx.Value(middleware.AuthorizationPayloadKey).(*token.Payload)
+	if !ok || payload == nil {
 		return nil, status.Error(codes.Unauthenticated, "user not authenticated")
 	}
+	userEmail := payload.Email
 
 	var user models.User
 	if err := s.db.Where("email = ?", userEmail).First(&user).Error; err != nil {
@@ -330,10 +339,11 @@ func (s *BarcodePaymentService) GetMyScannedBarcodes(ctx context.Context, req *p
 
 // CancelBarcode cancels/invalidates a generated barcode
 func (s *BarcodePaymentService) CancelBarcode(ctx context.Context, req *pb.CancelBarcodeRequest) (*pb.CancelBarcodeResponse, error) {
-	userEmail, ok := ctx.Value("email").(string)
-	if !ok || userEmail == "" {
+	payload, ok := ctx.Value(middleware.AuthorizationPayloadKey).(*token.Payload)
+	if !ok || payload == nil {
 		return nil, status.Error(codes.Unauthenticated, "user not authenticated")
 	}
+	userEmail := payload.Email
 
 	var user models.User
 	if err := s.db.Where("email = ?", userEmail).First(&user).Error; err != nil {

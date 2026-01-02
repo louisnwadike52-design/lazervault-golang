@@ -34,11 +34,17 @@
       "name": "ContactSyncService"
     },
     {
+      "name": "CrowdfundService"
+    },
+    {
       "name": "CryptoService"
     },
     {
       "name": "DepositService",
       "description": "Handles asynchronous fund deposits into user accounts."
+    },
+    {
+      "name": "ElectricityBillService"
     },
     {
       "name": "ExchangeService"
@@ -66,7 +72,16 @@
       "name": "InvoiceService"
     },
     {
+      "name": "LockFundsService"
+    },
+    {
+      "name": "PortfolioService"
+    },
+    {
       "name": "RecipientService"
+    },
+    {
+      "name": "ReferralService"
     },
     {
       "name": "StatisticsService"
@@ -200,165 +215,6 @@
         ],
         "tags": [
           "Accounts"
-        ]
-      }
-    },
-    "/v1/accounts/{accountId}/cards": {
-      "get": {
-        "summary": "Get Account Cards",
-        "description": "Retrieves all cards associated with a specific account owned by the authenticated user.",
-        "operationId": "AccountCardService_GetAccountCards",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/pbGetAccountCardsResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "accountId",
-            "description": "Required: ID of the account whose cards to fetch",
-            "in": "path",
-            "required": true,
-            "type": "string",
-            "format": "uint64"
-          }
-        ],
-        "tags": [
-          "AccountCardService"
-        ]
-      },
-      "post": {
-        "summary": "Add Account Card",
-        "description": "Adds a new debit/credit card (Virtual, Disposable, Permanent) to a specified account owned by the authenticated user.",
-        "operationId": "AccountCardService_AddAccountCard",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/pbAddAccountCardResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "accountId",
-            "description": "Required: ID of the account to link the card to",
-            "in": "path",
-            "required": true,
-            "type": "string",
-            "format": "uint64"
-          },
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/AccountCardServiceAddAccountCardBody"
-            }
-          }
-        ],
-        "tags": [
-          "AccountCardService"
-        ]
-      }
-    },
-    "/v1/accounts/{accountId}/cards/{cardId}": {
-      "delete": {
-        "summary": "Delete Account Card",
-        "description": "Removes a specific card associated with an account.",
-        "operationId": "AccountCardService_DeleteAccountCard",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "type": "object",
-              "properties": {}
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "accountId",
-            "description": "Required for context/URL binding",
-            "in": "path",
-            "required": true,
-            "type": "string",
-            "format": "uint64"
-          },
-          {
-            "name": "cardId",
-            "description": "Required: ID of the card to delete",
-            "in": "path",
-            "required": true,
-            "type": "string",
-            "format": "uint64"
-          }
-        ],
-        "tags": [
-          "AccountCardService"
-        ]
-      }
-    },
-    "/v1/accounts/{accountId}/cards/{cardId}/default": {
-      "put": {
-        "summary": "Set Default Account Card",
-        "description": "Marks a specific card as the default payment method for the associated account.",
-        "operationId": "AccountCardService_UpdateAccountCardDefaultStatus",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/pbUpdateAccountCardDefaultStatusResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "accountId",
-            "description": "Required for context/URL binding",
-            "in": "path",
-            "required": true,
-            "type": "string",
-            "format": "uint64"
-          },
-          {
-            "name": "cardId",
-            "description": "Required: ID of the card to set as default",
-            "in": "path",
-            "required": true,
-            "type": "string",
-            "format": "uint64"
-          }
-        ],
-        "tags": [
-          "AccountCardService"
         ]
       }
     },
@@ -819,6 +675,45 @@
         ],
         "tags": [
           "Auth"
+        ]
+      }
+    },
+    "/v1/auth/change-passcode": {
+      "post": {
+        "summary": "Change Passcode",
+        "description": "Changes the login passcode for the authenticated user.",
+        "operationId": "AuthService_ChangePasscode",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbChangePasscodeResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/pbChangePasscodeRequest"
+            }
+          }
+        ],
+        "tags": [
+          "Auth"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
         ]
       }
     },
@@ -1701,6 +1596,439 @@
         ]
       }
     },
+    "/v1/cards": {
+      "get": {
+        "summary": "Get User Cards",
+        "description": "Retrieves all cards for the authenticated user with optional filters.",
+        "operationId": "AccountCardService_GetUserCards",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbGetUserCardsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "cardTypeFilter",
+            "description": "Optional: \"Virtual\", \"Disposable\", \"Permanent\"",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "statusFilter",
+            "description": "Optional: \"active\", \"frozen\", \"cancelled\", \"expired\"",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "AccountCardService"
+        ]
+      }
+    },
+    "/v1/cards/disposable": {
+      "post": {
+        "summary": "Create Disposable Card",
+        "description": "Creates a new disposable card with spending limits and expiration.",
+        "operationId": "AccountCardService_CreateDisposableCard",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbCreateDisposableCardResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/pbCreateDisposableCardRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AccountCardService"
+        ]
+      }
+    },
+    "/v1/cards/virtual": {
+      "post": {
+        "summary": "Create Virtual Card",
+        "description": "Creates a new virtual debit card for online transactions.",
+        "operationId": "AccountCardService_CreateVirtualCard",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbCreateVirtualCardResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/pbCreateVirtualCardRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AccountCardService"
+        ]
+      }
+    },
+    "/v1/cards/{cardUuid}": {
+      "get": {
+        "summary": "Get Card Details",
+        "description": "Retrieves detailed information about a specific card.",
+        "operationId": "AccountCardService_GetCardDetails",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbGetCardDetailsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "cardUuid",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "includeFullDetails",
+            "description": "Include full card number and CVV",
+            "in": "query",
+            "required": false,
+            "type": "boolean"
+          }
+        ],
+        "tags": [
+          "AccountCardService"
+        ]
+      }
+    },
+    "/v1/cards/{cardUuid}/cancel": {
+      "post": {
+        "summary": "Cancel Card",
+        "description": "Permanently cancels a card.",
+        "operationId": "AccountCardService_CancelCard",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbCancelCardResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "cardUuid",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/AccountCardServiceCancelCardBody"
+            }
+          }
+        ],
+        "tags": [
+          "AccountCardService"
+        ]
+      }
+    },
+    "/v1/cards/{cardUuid}/default": {
+      "put": {
+        "summary": "Set Default Card",
+        "description": "Sets a card as the default payment method.",
+        "operationId": "AccountCardService_SetDefaultCard",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbSetDefaultCardResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "cardUuid",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/AccountCardServiceSetDefaultCardBody"
+            }
+          }
+        ],
+        "tags": [
+          "AccountCardService"
+        ]
+      }
+    },
+    "/v1/cards/{cardUuid}/freeze": {
+      "post": {
+        "summary": "Freeze Card",
+        "description": "Temporarily freezes a card to prevent transactions.",
+        "operationId": "AccountCardService_FreezeCard",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbFreezeCardResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "cardUuid",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/AccountCardServiceFreezeCardBody"
+            }
+          }
+        ],
+        "tags": [
+          "AccountCardService"
+        ]
+      }
+    },
+    "/v1/cards/{cardUuid}/nickname": {
+      "put": {
+        "summary": "Update Card Nickname",
+        "description": "Updates the nickname of a card.",
+        "operationId": "AccountCardService_UpdateCardNickname",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbUpdateCardNicknameResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "cardUuid",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/AccountCardServiceUpdateCardNicknameBody"
+            }
+          }
+        ],
+        "tags": [
+          "AccountCardService"
+        ]
+      }
+    },
+    "/v1/cards/{cardUuid}/spending-limit": {
+      "put": {
+        "summary": "Update Card Spending Limit",
+        "description": "Updates the spending limit for a disposable card.",
+        "operationId": "AccountCardService_UpdateCardSpendingLimit",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbUpdateCardSpendingLimitResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "cardUuid",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/AccountCardServiceUpdateCardSpendingLimitBody"
+            }
+          }
+        ],
+        "tags": [
+          "AccountCardService"
+        ]
+      }
+    },
+    "/v1/cards/{cardUuid}/transactions": {
+      "get": {
+        "summary": "Get Card Transactions",
+        "description": "Retrieves transaction history for a specific card.",
+        "operationId": "AccountCardService_GetCardTransactions",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbGetCardTransactionsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "cardUuid",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "tags": [
+          "AccountCardService"
+        ]
+      }
+    },
+    "/v1/cards/{cardUuid}/unfreeze": {
+      "post": {
+        "summary": "Unfreeze Card",
+        "description": "Unfreezes a previously frozen card.",
+        "operationId": "AccountCardService_UnfreezeCard",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbUnfreezeCardResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "cardUuid",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/AccountCardServiceUnfreezeCardBody"
+            }
+          }
+        ],
+        "tags": [
+          "AccountCardService"
+        ]
+      }
+    },
     "/v1/chats/history/{peerUserId}": {
       "get": {
         "summary": "Get Chat History",
@@ -2444,6 +2772,378 @@
         ]
       }
     },
+    "/v1/crowdfund-receipts": {
+      "get": {
+        "operationId": "CrowdfundService_GetUserCrowdfundReceipts",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbGetUserCrowdfundReceiptsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "tags": [
+          "CrowdfundService"
+        ]
+      }
+    },
+    "/v1/crowdfunds": {
+      "get": {
+        "operationId": "CrowdfundService_ListCrowdfunds",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbListCrowdfundsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "status",
+            "description": "Optional filter",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "category",
+            "description": "Optional filter",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "myCrowdfundsOnly",
+            "description": "Filter to user's own crowdfunds",
+            "in": "query",
+            "required": false,
+            "type": "boolean"
+          }
+        ],
+        "tags": [
+          "CrowdfundService"
+        ]
+      },
+      "post": {
+        "summary": "Crowdfund Management",
+        "operationId": "CrowdfundService_CreateCrowdfund",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbCreateCrowdfundResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/pbCreateCrowdfundRequest"
+            }
+          }
+        ],
+        "tags": [
+          "CrowdfundService"
+        ]
+      }
+    },
+    "/v1/crowdfunds/search": {
+      "get": {
+        "operationId": "CrowdfundService_SearchCrowdfunds",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbSearchCrowdfundsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "query",
+            "description": "Search by username or crowdfund code",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "tags": [
+          "CrowdfundService"
+        ]
+      }
+    },
+    "/v1/crowdfunds/{crowdfundId}": {
+      "get": {
+        "operationId": "CrowdfundService_GetCrowdfund",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbGetCrowdfundResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "crowdfundId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "CrowdfundService"
+        ]
+      },
+      "delete": {
+        "operationId": "CrowdfundService_DeleteCrowdfund",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbDeleteCrowdfundResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "crowdfundId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "CrowdfundService"
+        ]
+      },
+      "put": {
+        "operationId": "CrowdfundService_UpdateCrowdfund",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbUpdateCrowdfundResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "crowdfundId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/CrowdfundServiceUpdateCrowdfundBody"
+            }
+          }
+        ],
+        "tags": [
+          "CrowdfundService"
+        ]
+      }
+    },
+    "/v1/crowdfunds/{crowdfundId}/donations": {
+      "get": {
+        "operationId": "CrowdfundService_GetCrowdfundDonations",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbGetCrowdfundDonationsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "crowdfundId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "tags": [
+          "CrowdfundService"
+        ]
+      },
+      "post": {
+        "summary": "Donation Operations",
+        "operationId": "CrowdfundService_MakeDonation",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbMakeDonationResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "crowdfundId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/CrowdfundServiceMakeDonationBody"
+            }
+          }
+        ],
+        "tags": [
+          "CrowdfundService"
+        ]
+      }
+    },
+    "/v1/crowdfunds/{crowdfundId}/statistics": {
+      "get": {
+        "summary": "Statistics",
+        "operationId": "CrowdfundService_GetCrowdfundStatistics",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbGetCrowdfundStatisticsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "crowdfundId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "CrowdfundService"
+        ]
+      }
+    },
     "/v1/cryptos": {
       "get": {
         "summary": "Get list of cryptocurrencies with market data",
@@ -2942,6 +3642,868 @@
           {
             "bearer": []
           }
+        ]
+      }
+    },
+    "/v1/donations": {
+      "get": {
+        "operationId": "CrowdfundService_GetUserDonations",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbGetUserDonationsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "tags": [
+          "CrowdfundService"
+        ]
+      }
+    },
+    "/v1/donations/{donationId}/receipt": {
+      "post": {
+        "summary": "Receipt Operations",
+        "operationId": "CrowdfundService_GenerateDonationReceipt",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbGenerateDonationReceiptResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "donationId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/CrowdfundServiceGenerateDonationReceiptBody"
+            }
+          }
+        ],
+        "tags": [
+          "CrowdfundService"
+        ]
+      }
+    },
+    "/v1/electricity/auto-recharge": {
+      "get": {
+        "operationId": "ElectricityBillService_GetAutoRecharges",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbGetAutoRechargesResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "ElectricityBillService"
+        ]
+      },
+      "post": {
+        "summary": "Auto-Recharge",
+        "operationId": "ElectricityBillService_CreateAutoRecharge",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbCreateAutoRechargeResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/pbCreateAutoRechargeRequest"
+            }
+          }
+        ],
+        "tags": [
+          "ElectricityBillService"
+        ]
+      }
+    },
+    "/v1/electricity/auto-recharge/{autoRechargeId}": {
+      "delete": {
+        "operationId": "ElectricityBillService_DeleteAutoRecharge",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbDeleteAutoRechargeResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "autoRechargeId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "ElectricityBillService"
+        ]
+      },
+      "put": {
+        "operationId": "ElectricityBillService_UpdateAutoRecharge",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbUpdateAutoRechargeResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "autoRechargeId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/ElectricityBillServiceUpdateAutoRechargeBody"
+            }
+          }
+        ],
+        "tags": [
+          "ElectricityBillService"
+        ]
+      }
+    },
+    "/v1/electricity/auto-recharge/{autoRechargeId}/pause": {
+      "post": {
+        "operationId": "ElectricityBillService_PauseAutoRecharge",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbPauseAutoRechargeResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "autoRechargeId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/ElectricityBillServicePauseAutoRechargeBody"
+            }
+          }
+        ],
+        "tags": [
+          "ElectricityBillService"
+        ]
+      }
+    },
+    "/v1/electricity/auto-recharge/{autoRechargeId}/resume": {
+      "post": {
+        "operationId": "ElectricityBillService_ResumeAutoRecharge",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbResumeAutoRechargeResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "autoRechargeId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/ElectricityBillServiceResumeAutoRechargeBody"
+            }
+          }
+        ],
+        "tags": [
+          "ElectricityBillService"
+        ]
+      }
+    },
+    "/v1/electricity/beneficiaries": {
+      "get": {
+        "operationId": "ElectricityBillService_GetBeneficiaries",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbGetBeneficiariesResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "providerCode",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "ElectricityBillService"
+        ]
+      },
+      "post": {
+        "summary": "Beneficiary Management",
+        "operationId": "ElectricityBillService_SaveBeneficiary",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbSaveBeneficiaryResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/pbSaveBeneficiaryRequest"
+            }
+          }
+        ],
+        "tags": [
+          "ElectricityBillService"
+        ]
+      }
+    },
+    "/v1/electricity/beneficiaries/{beneficiaryId}": {
+      "delete": {
+        "operationId": "ElectricityBillService_DeleteBeneficiary",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbDeleteBeneficiaryResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "beneficiaryId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "ElectricityBillService"
+        ]
+      },
+      "put": {
+        "operationId": "ElectricityBillService_UpdateBeneficiary",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbUpdateBeneficiaryResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "beneficiaryId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/ElectricityBillServiceUpdateBeneficiaryBody"
+            }
+          }
+        ],
+        "tags": [
+          "ElectricityBillService"
+        ]
+      }
+    },
+    "/v1/electricity/bill-details": {
+      "post": {
+        "operationId": "ElectricityBillService_GetBillDetails",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbGetBillDetailsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/pbGetBillDetailsRequest"
+            }
+          }
+        ],
+        "tags": [
+          "ElectricityBillService"
+        ]
+      }
+    },
+    "/v1/electricity/pay": {
+      "post": {
+        "summary": "Payment Processing",
+        "operationId": "ElectricityBillService_InitiatePayment",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbInitiatePaymentResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/pbInitiatePaymentRequest"
+            }
+          }
+        ],
+        "tags": [
+          "ElectricityBillService"
+        ]
+      }
+    },
+    "/v1/electricity/payments": {
+      "get": {
+        "summary": "Payment History",
+        "operationId": "ElectricityBillService_GetPaymentHistory",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbGetPaymentHistoryResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "providerCode",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "ElectricityBillService"
+        ]
+      }
+    },
+    "/v1/electricity/payments/{paymentId}/receipt": {
+      "get": {
+        "operationId": "ElectricityBillService_GetPaymentReceipt",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbGetPaymentReceiptResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "paymentId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "ElectricityBillService"
+        ]
+      }
+    },
+    "/v1/electricity/payments/{paymentId}/verify": {
+      "get": {
+        "operationId": "ElectricityBillService_VerifyPayment",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbVerifyPaymentResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "paymentId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "referenceNumber",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "ElectricityBillService"
+        ]
+      }
+    },
+    "/v1/electricity/providers": {
+      "get": {
+        "summary": "Provider Management",
+        "operationId": "ElectricityBillService_GetProviders",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbGetProvidersResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "country",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "paymentGateway",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "ElectricityBillService"
+        ]
+      }
+    },
+    "/v1/electricity/providers/sync": {
+      "post": {
+        "operationId": "ElectricityBillService_SyncProviders",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbSyncProvidersResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/pbSyncProvidersRequest"
+            }
+          }
+        ],
+        "tags": [
+          "ElectricityBillService"
+        ]
+      }
+    },
+    "/v1/electricity/reminders": {
+      "get": {
+        "operationId": "ElectricityBillService_GetReminders",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbGetRemindersResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "includePast",
+            "in": "query",
+            "required": false,
+            "type": "boolean"
+          }
+        ],
+        "tags": [
+          "ElectricityBillService"
+        ]
+      },
+      "post": {
+        "summary": "Reminders",
+        "operationId": "ElectricityBillService_CreateReminder",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbCreateReminderResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/pbCreateReminderRequest"
+            }
+          }
+        ],
+        "tags": [
+          "ElectricityBillService"
+        ]
+      }
+    },
+    "/v1/electricity/reminders/{reminderId}": {
+      "delete": {
+        "operationId": "ElectricityBillService_DeleteReminder",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbDeleteReminderResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "reminderId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "ElectricityBillService"
+        ]
+      },
+      "put": {
+        "operationId": "ElectricityBillService_UpdateReminder",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbUpdateReminderResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "reminderId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/ElectricityBillServiceUpdateReminderBody"
+            }
+          }
+        ],
+        "tags": [
+          "ElectricityBillService"
+        ]
+      }
+    },
+    "/v1/electricity/reminders/{reminderId}/complete": {
+      "post": {
+        "operationId": "ElectricityBillService_MarkReminderComplete",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbMarkReminderCompleteResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "reminderId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/ElectricityBillServiceMarkReminderCompleteBody"
+            }
+          }
+        ],
+        "tags": [
+          "ElectricityBillService"
+        ]
+      }
+    },
+    "/v1/electricity/validate-meter": {
+      "post": {
+        "summary": "Meter Validation \u0026 Bill Lookup",
+        "operationId": "ElectricityBillService_ValidateMeterNumber",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbValidateMeterResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/pbValidateMeterRequest"
+            }
+          }
+        ],
+        "tags": [
+          "ElectricityBillService"
         ]
       }
     },
@@ -5188,6 +6750,318 @@
         ]
       }
     },
+    "/v1/lock-funds": {
+      "get": {
+        "summary": "Get all lock funds for the user",
+        "operationId": "LockFundsService_GetLockFunds",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbGetLockFundsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "status",
+            "description": "Optional filter",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "LOCK_STATUS_UNSPECIFIED",
+              "LOCK_STATUS_ACTIVE",
+              "LOCK_STATUS_MATURED",
+              "LOCK_STATUS_UNLOCKED",
+              "LOCK_STATUS_CANCELLED"
+            ],
+            "default": "LOCK_STATUS_UNSPECIFIED"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "perPage",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "tags": [
+          "LockFundsService"
+        ]
+      },
+      "post": {
+        "summary": "Create a new lock fund",
+        "operationId": "LockFundsService_CreateLockFund",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbCreateLockFundResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/pbCreateLockFundRequest"
+            }
+          }
+        ],
+        "tags": [
+          "LockFundsService"
+        ]
+      }
+    },
+    "/v1/lock-funds/calculate-interest": {
+      "post": {
+        "summary": "Calculate potential interest",
+        "operationId": "LockFundsService_CalculateInterest",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbCalculateInterestResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/pbCalculateInterestRequest"
+            }
+          }
+        ],
+        "tags": [
+          "LockFundsService"
+        ]
+      }
+    },
+    "/v1/lock-funds/transactions": {
+      "get": {
+        "summary": "Get lock transactions",
+        "operationId": "LockFundsService_GetLockTransactions",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbGetLockTransactionsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "lockFundId",
+            "description": "Optional filter",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "perPage",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "tags": [
+          "LockFundsService"
+        ]
+      }
+    },
+    "/v1/lock-funds/{lockFundId}": {
+      "get": {
+        "summary": "Get lock fund by ID",
+        "operationId": "LockFundsService_GetLockFund",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbGetLockFundResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "lockFundId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "LockFundsService"
+        ]
+      }
+    },
+    "/v1/lock-funds/{lockFundId}/cancel": {
+      "post": {
+        "summary": "Cancel a lock fund",
+        "operationId": "LockFundsService_CancelLockFund",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbCancelLockFundResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "lockFundId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/LockFundsServiceCancelLockFundBody"
+            }
+          }
+        ],
+        "tags": [
+          "LockFundsService"
+        ]
+      }
+    },
+    "/v1/lock-funds/{lockFundId}/renew": {
+      "post": {
+        "summary": "Renew a matured lock fund",
+        "operationId": "LockFundsService_RenewLockFund",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbRenewLockFundResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "lockFundId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/LockFundsServiceRenewLockFundBody"
+            }
+          }
+        ],
+        "tags": [
+          "LockFundsService"
+        ]
+      }
+    },
+    "/v1/lock-funds/{lockFundId}/unlock": {
+      "post": {
+        "summary": "Unlock a fund",
+        "operationId": "LockFundsService_UnlockFund",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbUnlockFundResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "lockFundId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/LockFundsServiceUnlockFundBody"
+            }
+          }
+        ],
+        "tags": [
+          "LockFundsService"
+        ]
+      }
+    },
     "/v1/payments/{paymentId}": {
       "put": {
         "operationId": "GroupAccountService_UpdatePaymentStatus",
@@ -5300,6 +7174,140 @@
         ],
         "tags": [
           "GroupAccountService"
+        ]
+      }
+    },
+    "/v1/portfolio/by-type": {
+      "post": {
+        "summary": "Get portfolio filtered by asset type",
+        "operationId": "PortfolioService_GetPortfolioByAssetType",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbGetPortfolioByAssetTypeResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/pbGetPortfolioByAssetTypeRequest"
+            }
+          }
+        ],
+        "tags": [
+          "PortfolioService"
+        ]
+      }
+    },
+    "/v1/portfolio/complete": {
+      "post": {
+        "summary": "Get complete user portfolio with all assets",
+        "operationId": "PortfolioService_GetCompletePortfolio",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbGetCompletePortfolioResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "user_id is extracted from JWT token",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/pbGetCompletePortfolioRequest"
+            }
+          }
+        ],
+        "tags": [
+          "PortfolioService"
+        ]
+      }
+    },
+    "/v1/portfolio/history": {
+      "post": {
+        "summary": "Get portfolio value history",
+        "operationId": "PortfolioService_GetPortfolioHistory",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbGetPortfolioHistoryResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/pbGetPortfolioHistoryRequest"
+            }
+          }
+        ],
+        "tags": [
+          "PortfolioService"
+        ]
+      }
+    },
+    "/v1/portfolio/summary": {
+      "post": {
+        "summary": "Get portfolio summary only (without asset details)",
+        "operationId": "PortfolioService_GetPortfolioSummary",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbGetPortfolioSummaryResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "user_id is extracted from JWT token",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/pbGetPortfolioSummaryRequest"
+            }
+          }
+        ],
+        "tags": [
+          "PortfolioService"
         ]
       }
     },
@@ -5561,6 +7569,253 @@
         ],
         "tags": [
           "RecipientService"
+        ]
+      }
+    },
+    "/v1/referral/country-config/{countryCode}": {
+      "get": {
+        "summary": "Get reward configuration for a specific country",
+        "operationId": "ReferralService_GetCountryRewardConfig",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbGetCountryRewardConfigResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "countryCode",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "ReferralService"
+        ]
+      }
+    },
+    "/v1/referral/credit-rewards": {
+      "post": {
+        "summary": "Credit referral rewards to both referrer and referee (internal use)",
+        "operationId": "ReferralService_CreditReferralRewards",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbCreditReferralRewardsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/pbCreditReferralRewardsRequest"
+            }
+          }
+        ],
+        "tags": [
+          "ReferralService"
+        ]
+      }
+    },
+    "/v1/referral/leaderboard": {
+      "get": {
+        "summary": "Get referral leaderboard (top referrers)",
+        "operationId": "ReferralService_GetReferralLeaderboard",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbGetReferralLeaderboardResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "tags": [
+          "ReferralService"
+        ]
+      }
+    },
+    "/v1/referral/my-code": {
+      "get": {
+        "summary": "Get the authenticated user's referral code",
+        "operationId": "ReferralService_GetMyReferralCode",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbGetMyReferralCodeResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "ReferralService"
+        ]
+      }
+    },
+    "/v1/referral/my-referrals": {
+      "get": {
+        "summary": "Get paginated list of referrals made by the authenticated user",
+        "operationId": "ReferralService_GetMyReferrals",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbGetMyReferralsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "tags": [
+          "ReferralService"
+        ]
+      }
+    },
+    "/v1/referral/my-stats": {
+      "get": {
+        "summary": "Get aggregated referral statistics for the authenticated user",
+        "operationId": "ReferralService_GetMyReferralStats",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbGetMyReferralStatsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "ReferralService"
+        ]
+      }
+    },
+    "/v1/referral/record": {
+      "post": {
+        "summary": "Record a referral transaction (internal use)",
+        "operationId": "ReferralService_RecordReferral",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbRecordReferralResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/pbRecordReferralRequest"
+            }
+          }
+        ],
+        "tags": [
+          "ReferralService"
+        ]
+      }
+    },
+    "/v1/referral/validate": {
+      "post": {
+        "summary": "Validate if a referral code exists and is active",
+        "operationId": "ReferralService_ValidateReferralCode",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbValidateReferralCodeResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/pbValidateReferralCodeRequest"
+            }
+          }
+        ],
+        "tags": [
+          "ReferralService"
         ]
       }
     },
@@ -6226,6 +8481,44 @@
         ]
       }
     },
+    "/v1/statistics/comprehensive/summary": {
+      "get": {
+        "operationId": "StatisticsService_GetComprehensiveFinancialSummary",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbGetComprehensiveFinancialSummaryResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "startDate",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "date-time"
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "date-time"
+          }
+        ],
+        "tags": [
+          "StatisticsService"
+        ]
+      }
+    },
     "/v1/statistics/expenses": {
       "get": {
         "operationId": "StatisticsService_GetExpenses",
@@ -6766,6 +9059,251 @@
             "schema": {
               "$ref": "#/definitions/pbCreateOrUpdateSavingsGoalRequest"
             }
+          }
+        ],
+        "tags": [
+          "StatisticsService"
+        ]
+      }
+    },
+    "/v1/statistics/tracked/expenditure": {
+      "get": {
+        "operationId": "StatisticsService_GetTrackedExpenditure",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbGetTrackedExpenditureResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "startDate",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "date-time"
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "date-time"
+          }
+        ],
+        "tags": [
+          "StatisticsService"
+        ]
+      }
+    },
+    "/v1/statistics/tracked/expenditure/breakdown": {
+      "get": {
+        "operationId": "StatisticsService_GetTrackedExpenditureBreakdown",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbGetTrackedExpenditureBreakdownResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "startDate",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "date-time"
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "date-time"
+          }
+        ],
+        "tags": [
+          "StatisticsService"
+        ]
+      }
+    },
+    "/v1/statistics/tracked/expenditure/transactions": {
+      "get": {
+        "operationId": "StatisticsService_GetTrackedExpenditureTransactions",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbGetTrackedExpenditureTransactionsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "startDate",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "date-time"
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "date-time"
+          },
+          {
+            "name": "limit",
+            "description": "max number of transactions to return",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "tags": [
+          "StatisticsService"
+        ]
+      }
+    },
+    "/v1/statistics/tracked/income": {
+      "get": {
+        "summary": "Tracked Transaction Methods",
+        "operationId": "StatisticsService_GetTrackedIncome",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbGetTrackedIncomeResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "startDate",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "date-time"
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "date-time"
+          }
+        ],
+        "tags": [
+          "StatisticsService"
+        ]
+      }
+    },
+    "/v1/statistics/tracked/income/breakdown": {
+      "get": {
+        "operationId": "StatisticsService_GetTrackedIncomeBreakdown",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbGetTrackedIncomeBreakdownResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "startDate",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "date-time"
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "date-time"
+          }
+        ],
+        "tags": [
+          "StatisticsService"
+        ]
+      }
+    },
+    "/v1/statistics/tracked/income/transactions": {
+      "get": {
+        "operationId": "StatisticsService_GetTrackedIncomeTransactions",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbGetTrackedIncomeTransactionsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "startDate",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "date-time"
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "date-time"
+          },
+          {
+            "name": "limit",
+            "description": "max number of transactions to return",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
           }
         ],
         "tags": [
@@ -8568,31 +11106,52 @@
     }
   },
   "definitions": {
-    "AccountCardServiceAddAccountCardBody": {
+    "AccountCardServiceCancelCardBody": {
       "type": "object",
       "properties": {
-        "cardHolderName": {
+        "reason": {
           "type": "string",
-          "title": "Required"
-        },
-        "cardNumber": {
-          "type": "string",
-          "title": "Required: Full card number (will be handled securely on backend)"
-        },
-        "cardExpiry": {
-          "type": "string",
-          "title": "Required: MM/YY format"
-        },
-        "cardType": {
-          "type": "string",
-          "title": "Required: \"Virtual\", \"Disposable\", \"Permanent\""
-        },
-        "makeDefault": {
-          "type": "boolean",
-          "title": "Optional: Set this new card as the default for the account"
+          "title": "Optional reason for cancellation"
         }
       },
-      "title": "Request to add a new card to an account"
+      "title": "Cancel card request"
+    },
+    "AccountCardServiceFreezeCardBody": {
+      "type": "object",
+      "properties": {
+        "reason": {
+          "type": "string",
+          "title": "Optional reason for freezing"
+        }
+      },
+      "title": "Freeze card request"
+    },
+    "AccountCardServiceSetDefaultCardBody": {
+      "type": "object",
+      "title": "Set default card request"
+    },
+    "AccountCardServiceUnfreezeCardBody": {
+      "type": "object",
+      "title": "Unfreeze card request"
+    },
+    "AccountCardServiceUpdateCardNicknameBody": {
+      "type": "object",
+      "properties": {
+        "nickname": {
+          "type": "string"
+        }
+      },
+      "title": "Update card nickname request"
+    },
+    "AccountCardServiceUpdateCardSpendingLimitBody": {
+      "type": "object",
+      "properties": {
+        "newLimit": {
+          "type": "number",
+          "format": "double"
+        }
+      },
+      "title": "Update card spending limit request (for disposable cards)"
     },
     "AccountServiceUpdateAccountStatusBody": {
       "type": "object",
@@ -8686,6 +11245,130 @@
         }
       },
       "title": "Update auto-save rule request"
+    },
+    "CrowdfundServiceGenerateDonationReceiptBody": {
+      "type": "object",
+      "title": "Generate Receipt"
+    },
+    "CrowdfundServiceMakeDonationBody": {
+      "type": "object",
+      "properties": {
+        "amount": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "message": {
+          "type": "string"
+        },
+        "isAnonymous": {
+          "type": "boolean"
+        },
+        "sourceAccountId": {
+          "type": "string",
+          "format": "uint64"
+        }
+      },
+      "title": "Make Donation"
+    },
+    "CrowdfundServiceUpdateCrowdfundBody": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "story": {
+          "type": "string"
+        },
+        "deadline": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "status": {
+          "$ref": "#/definitions/pbCrowdfundStatus"
+        },
+        "imageUrl": {
+          "type": "string"
+        },
+        "metadata": {
+          "type": "string"
+        }
+      },
+      "title": "Update Crowdfund"
+    },
+    "ElectricityBillServiceMarkReminderCompleteBody": {
+      "type": "object"
+    },
+    "ElectricityBillServicePauseAutoRechargeBody": {
+      "type": "object"
+    },
+    "ElectricityBillServiceResumeAutoRechargeBody": {
+      "type": "object"
+    },
+    "ElectricityBillServiceUpdateAutoRechargeBody": {
+      "type": "object",
+      "properties": {
+        "amount": {
+          "type": "number",
+          "format": "double"
+        },
+        "frequency": {
+          "type": "string"
+        },
+        "dayOfWeek": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "dayOfMonth": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "maxRetries": {
+          "type": "integer",
+          "format": "int32"
+        }
+      }
+    },
+    "ElectricityBillServiceUpdateBeneficiaryBody": {
+      "type": "object",
+      "properties": {
+        "nickname": {
+          "type": "string"
+        },
+        "isDefault": {
+          "type": "boolean"
+        }
+      }
+    },
+    "ElectricityBillServiceUpdateReminderBody": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "reminderDate": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "amount": {
+          "type": "number",
+          "format": "double"
+        },
+        "currency": {
+          "type": "string"
+        },
+        "isRecurring": {
+          "type": "boolean"
+        },
+        "recurrenceType": {
+          "type": "string"
+        }
+      }
     },
     "GetContributionAnalyticsResponseMemberParticipation": {
       "type": "object",
@@ -9048,6 +11731,34 @@
         }
       },
       "title": "UpdateInvoiceRequest represents a request to update an existing invoice"
+    },
+    "LockFundsServiceCancelLockFundBody": {
+      "type": "object",
+      "properties": {
+        "reason": {
+          "type": "string"
+        }
+      },
+      "title": "Cancel lock fund request"
+    },
+    "LockFundsServiceRenewLockFundBody": {
+      "type": "object",
+      "properties": {
+        "newDurationDays": {
+          "type": "integer",
+          "format": "int32"
+        }
+      },
+      "title": "Renew lock fund request"
+    },
+    "LockFundsServiceUnlockFundBody": {
+      "type": "object",
+      "properties": {
+        "forceEarlyUnlock": {
+          "type": "boolean"
+        }
+      },
+      "title": "Unlock fund request"
     },
     "RecipientServiceUpdateRecipientBody": {
       "type": "object",
@@ -9996,7 +12707,14 @@
           "type": "string",
           "format": "uint64"
         },
+        "uuid": {
+          "type": "string"
+        },
         "accountId": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "userId": {
           "type": "string",
           "format": "uint64"
         },
@@ -10021,6 +12739,54 @@
         "isDefault": {
           "type": "boolean"
         },
+        "cardType": {
+          "type": "string",
+          "title": "\"Virtual\", \"Disposable\", \"Permanent\""
+        },
+        "cardNickname": {
+          "type": "string"
+        },
+        "spendingLimit": {
+          "type": "number",
+          "format": "double",
+          "title": "For disposable cards"
+        },
+        "remainingLimit": {
+          "type": "number",
+          "format": "double",
+          "title": "Remaining spending limit"
+        },
+        "expiresAt": {
+          "type": "string",
+          "format": "date-time",
+          "title": "For disposable cards"
+        },
+        "usageCount": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "maxUsageCount": {
+          "type": "integer",
+          "format": "int32",
+          "title": "Max usage (0 = unlimited)"
+        },
+        "currency": {
+          "type": "string"
+        },
+        "billingAddress": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string",
+          "title": "active, frozen, cancelled, expired"
+        },
+        "frozenReason": {
+          "type": "string"
+        },
+        "lastUsedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
         "createdAt": {
           "type": "string",
           "format": "date-time"
@@ -10029,9 +12795,13 @@
           "type": "string",
           "format": "date-time"
         },
-        "cardType": {
+        "cardNumber": {
           "type": "string",
-          "title": "\"Virtual\", \"Disposable\", \"Permanent\""
+          "title": "Full number (only for creation response, encrypted)"
+        },
+        "cvv": {
+          "type": "string",
+          "title": "CVV (only for creation response, encrypted)"
         }
       },
       "title": "Represents a specific card linked to an account"
@@ -10174,16 +12944,6 @@
       },
       "title": "Action Step"
     },
-    "pbAddAccountCardResponse": {
-      "type": "object",
-      "properties": {
-        "card": {
-          "$ref": "#/definitions/pbAccountCard",
-          "title": "Return the newly added card (with sensitive data masked)"
-        }
-      },
-      "title": "Response after adding a card"
-    },
     "pbAddInvoicePaymentMethodResponse": {
       "type": "object",
       "properties": {
@@ -10267,6 +13027,38 @@
         },
         "taxId": {
           "type": "string"
+        },
+        "bankName": {
+          "type": "string",
+          "title": "Additional bank details for comprehensive payment support"
+        },
+        "accountType": {
+          "type": "string",
+          "title": "e.g., \"checking\", \"savings\""
+        },
+        "swiftCode": {
+          "type": "string",
+          "title": "SWIFT/BIC code for international transfers"
+        },
+        "sortCode": {
+          "type": "string",
+          "title": "For UK payments"
+        },
+        "bankAddress": {
+          "type": "string",
+          "title": "Bank's physical address"
+        },
+        "intermediaryBankName": {
+          "type": "string",
+          "title": "For international transfers"
+        },
+        "intermediaryBankSwift": {
+          "type": "string",
+          "title": "Intermediary bank's SWIFT code"
+        },
+        "accountHolderName": {
+          "type": "string",
+          "title": "Name on the bank account"
         }
       },
       "title": "AddressDetails represents address information for invoice participants"
@@ -10392,6 +13184,86 @@
         }
       },
       "title": "Auto Categorize Expense Response"
+    },
+    "pbAutoRecharge": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "userId": {
+          "type": "string"
+        },
+        "beneficiaryId": {
+          "type": "string"
+        },
+        "meterNumber": {
+          "type": "string"
+        },
+        "amount": {
+          "type": "number",
+          "format": "double"
+        },
+        "currency": {
+          "type": "string"
+        },
+        "frequency": {
+          "type": "string"
+        },
+        "dayOfWeek": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "dayOfMonth": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "nextRunDate": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "lastRunDate": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "status": {
+          "type": "string"
+        },
+        "failureCount": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "beneficiary": {
+          "$ref": "#/definitions/pbBillBeneficiary"
+        },
+        "providerId": {
+          "type": "string"
+        },
+        "providerCode": {
+          "type": "string"
+        },
+        "providerName": {
+          "type": "string"
+        },
+        "customerName": {
+          "type": "string"
+        },
+        "meterType": {
+          "type": "string"
+        },
+        "maxRetries": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
     },
     "pbAutoSaveRule": {
       "type": "object",
@@ -10674,6 +13546,196 @@
       },
       "title": "Represents the result of a single transfer within a batch"
     },
+    "pbBillBeneficiary": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "userId": {
+          "type": "string"
+        },
+        "providerCode": {
+          "type": "string"
+        },
+        "providerName": {
+          "type": "string"
+        },
+        "meterNumber": {
+          "type": "string"
+        },
+        "customerName": {
+          "type": "string"
+        },
+        "nickname": {
+          "type": "string"
+        },
+        "meterType": {
+          "type": "string"
+        },
+        "isDefault": {
+          "type": "boolean"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "lastUsedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "providerId": {
+          "type": "string"
+        },
+        "customerAddress": {
+          "type": "string"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "pbBillPayment": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "userId": {
+          "type": "string"
+        },
+        "providerCode": {
+          "type": "string"
+        },
+        "providerName": {
+          "type": "string"
+        },
+        "meterNumber": {
+          "type": "string"
+        },
+        "customerName": {
+          "type": "string"
+        },
+        "customerAddress": {
+          "type": "string"
+        },
+        "amount": {
+          "type": "number",
+          "format": "double"
+        },
+        "serviceFee": {
+          "type": "number",
+          "format": "double"
+        },
+        "totalAmount": {
+          "type": "number",
+          "format": "double"
+        },
+        "currency": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "paymentGateway": {
+          "type": "string"
+        },
+        "gatewayReference": {
+          "type": "string"
+        },
+        "referenceNumber": {
+          "type": "string"
+        },
+        "token": {
+          "type": "string"
+        },
+        "units": {
+          "type": "number",
+          "format": "double"
+        },
+        "meterType": {
+          "type": "string"
+        },
+        "failureReason": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "completedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "providerId": {
+          "type": "string"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "errorMessage": {
+          "type": "string"
+        },
+        "failedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "pbBillPaymentReminder": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "userId": {
+          "type": "string"
+        },
+        "beneficiaryId": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "reminderDate": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "amount": {
+          "type": "number",
+          "format": "double"
+        },
+        "isRecurring": {
+          "type": "boolean"
+        },
+        "recurrenceType": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "notifiedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "currency": {
+          "type": "string"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
     "pbBillStatus": {
       "type": "string",
       "enum": [
@@ -10916,6 +13978,58 @@
         }
       }
     },
+    "pbCalculateInterestRequest": {
+      "type": "object",
+      "properties": {
+        "lockType": {
+          "$ref": "#/definitions/pbLockType"
+        },
+        "amount": {
+          "type": "number",
+          "format": "double"
+        },
+        "lockDurationDays": {
+          "type": "integer",
+          "format": "int32"
+        }
+      },
+      "title": "Calculate interest request"
+    },
+    "pbCalculateInterestResponse": {
+      "type": "object",
+      "properties": {
+        "interestRate": {
+          "type": "number",
+          "format": "double"
+        },
+        "estimatedInterest": {
+          "type": "number",
+          "format": "double"
+        },
+        "totalReturn": {
+          "type": "number",
+          "format": "double"
+        },
+        "apy": {
+          "type": "number",
+          "format": "double",
+          "title": "Annual Percentage Yield"
+        }
+      },
+      "title": "Calculate interest response"
+    },
+    "pbCancelCardResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "title": "Cancel card response"
+    },
     "pbCancelInvoicePaymentResponse": {
       "type": "object",
       "properties": {
@@ -10934,6 +14048,22 @@
         }
       }
     },
+    "pbCancelLockFundResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "message": {
+          "type": "string"
+        },
+        "refundAmount": {
+          "type": "number",
+          "format": "double"
+        }
+      },
+      "title": "Cancel lock fund response"
+    },
     "pbCancelOrderResponse": {
       "type": "object",
       "properties": {
@@ -10944,6 +14074,107 @@
           "type": "string"
         }
       }
+    },
+    "pbCardStatistics": {
+      "type": "object",
+      "properties": {
+        "totalCards": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "activeCards": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "virtualCards": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "disposableCards": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "frozenCards": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "totalSpendingLimit": {
+          "type": "number",
+          "format": "double"
+        },
+        "totalRemainingLimit": {
+          "type": "number",
+          "format": "double"
+        }
+      },
+      "title": "Card statistics"
+    },
+    "pbCardTransaction": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "uuid": {
+          "type": "string"
+        },
+        "cardId": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "userId": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "accountId": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "amount": {
+          "type": "number",
+          "format": "double"
+        },
+        "currency": {
+          "type": "string"
+        },
+        "merchantName": {
+          "type": "string"
+        },
+        "merchantCategory": {
+          "type": "string"
+        },
+        "transactionType": {
+          "type": "string",
+          "title": "purchase, refund, reversal"
+        },
+        "status": {
+          "type": "string",
+          "title": "pending, completed, failed, declined"
+        },
+        "declineReason": {
+          "type": "string"
+        },
+        "authorizationCode": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "transactionDate": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "settledAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "title": "Card transaction message"
     },
     "pbCategorySpending": {
       "type": "object",
@@ -11010,6 +14241,30 @@
         }
       },
       "title": "Represents summary data for a specific category"
+    },
+    "pbChangePasscodeRequest": {
+      "type": "object",
+      "properties": {
+        "oldPasscode": {
+          "type": "string",
+          "title": "Current 6-digit passcode"
+        },
+        "newPasscode": {
+          "type": "string",
+          "title": "New 6-digit passcode"
+        }
+      }
+    },
+    "pbChangePasscodeResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "msg": {
+          "type": "string"
+        }
+      }
     },
     "pbChatFile": {
       "type": "object",
@@ -11191,6 +14446,96 @@
         }
       },
       "title": "Represents data for month-over-month comparison"
+    },
+    "pbComprehensiveExpenditureData": {
+      "type": "object",
+      "properties": {
+        "manualExpenses": {
+          "type": "number",
+          "format": "double",
+          "title": "from expenses table"
+        },
+        "trackedExpenditure": {
+          "type": "number",
+          "format": "double",
+          "title": "from expenditure_transactions table (automatic tracking)"
+        },
+        "totalExpenditure": {
+          "type": "number",
+          "format": "double"
+        },
+        "expenditureBreakdown": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "number",
+            "format": "double"
+          },
+          "title": "breakdown by expense type"
+        }
+      }
+    },
+    "pbComprehensiveFinancialSummary": {
+      "type": "object",
+      "properties": {
+        "period": {
+          "$ref": "#/definitions/pbComprehensivePeriod"
+        },
+        "income": {
+          "$ref": "#/definitions/pbComprehensiveIncomeData"
+        },
+        "expenditure": {
+          "$ref": "#/definitions/pbComprehensiveExpenditureData"
+        },
+        "netIncome": {
+          "type": "number",
+          "format": "double"
+        },
+        "savingsRate": {
+          "type": "number",
+          "format": "double",
+          "title": "percentage"
+        }
+      }
+    },
+    "pbComprehensiveIncomeData": {
+      "type": "object",
+      "properties": {
+        "manualIncome": {
+          "type": "number",
+          "format": "double",
+          "title": "from income_sources table"
+        },
+        "trackedIncome": {
+          "type": "number",
+          "format": "double",
+          "title": "from income_transactions table (automatic tracking)"
+        },
+        "totalIncome": {
+          "type": "number",
+          "format": "double"
+        },
+        "incomeBreakdown": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "number",
+            "format": "double"
+          },
+          "title": "breakdown by source type"
+        }
+      }
+    },
+    "pbComprehensivePeriod": {
+      "type": "object",
+      "properties": {
+        "startDate": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "endDate": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
     },
     "pbContactToSync": {
       "type": "object",
@@ -11602,6 +14947,41 @@
       },
       "title": "Response to convert contact to recipient"
     },
+    "pbCountryRewardConfig": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "countryCode": {
+          "type": "string"
+        },
+        "currency": {
+          "type": "string"
+        },
+        "referrerReward": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "refereeReward": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "isActive": {
+          "type": "boolean"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "title": "CountryRewardConfig message represents country-specific reward configuration"
+    },
     "pbCreateAccountRequest": {
       "type": "object",
       "properties": {
@@ -11633,6 +15013,48 @@
         }
       },
       "description": "Response message after creating an account."
+    },
+    "pbCreateAutoRechargeRequest": {
+      "type": "object",
+      "properties": {
+        "beneficiaryId": {
+          "type": "string"
+        },
+        "amount": {
+          "type": "number",
+          "format": "double"
+        },
+        "currency": {
+          "type": "string"
+        },
+        "frequency": {
+          "type": "string"
+        },
+        "dayOfWeek": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "dayOfMonth": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "maxRetries": {
+          "type": "integer",
+          "format": "int32"
+        }
+      },
+      "title": "Auto-Recharge Messages"
+    },
+    "pbCreateAutoRechargeResponse": {
+      "type": "object",
+      "properties": {
+        "autoRecharge": {
+          "$ref": "#/definitions/pbAutoRecharge"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
     },
     "pbCreateAutoSaveRuleRequest": {
       "type": "object",
@@ -11793,6 +15215,97 @@
           "$ref": "#/definitions/pbContributionMessage"
         }
       }
+    },
+    "pbCreateCrowdfundRequest": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "story": {
+          "type": "string"
+        },
+        "targetAmount": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "currency": {
+          "type": "string"
+        },
+        "deadline": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "category": {
+          "type": "string"
+        },
+        "imageUrl": {
+          "type": "string"
+        },
+        "visibility": {
+          "$ref": "#/definitions/pbCrowdfundVisibility"
+        },
+        "metadata": {
+          "type": "string"
+        }
+      },
+      "title": "Create Crowdfund"
+    },
+    "pbCreateCrowdfundResponse": {
+      "type": "object",
+      "properties": {
+        "crowdfund": {
+          "$ref": "#/definitions/pbCrowdfundMessage"
+        }
+      }
+    },
+    "pbCreateDisposableCardRequest": {
+      "type": "object",
+      "properties": {
+        "accountId": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "cardNickname": {
+          "type": "string",
+          "title": "Optional nickname"
+        },
+        "spendingLimit": {
+          "type": "number",
+          "format": "double",
+          "title": "Required for disposable"
+        },
+        "currency": {
+          "type": "string"
+        },
+        "maxUsageCount": {
+          "type": "integer",
+          "format": "int32",
+          "title": "Optional, 0 = unlimited"
+        },
+        "expiresInHours": {
+          "type": "integer",
+          "format": "int32",
+          "title": "Optional, how many hours until expiry"
+        },
+        "billingAddress": {
+          "type": "string"
+        }
+      },
+      "title": "Create disposable card request"
+    },
+    "pbCreateDisposableCardResponse": {
+      "type": "object",
+      "properties": {
+        "card": {
+          "$ref": "#/definitions/pbAccountCard",
+          "title": "Includes full card details including CVV"
+        }
+      },
+      "title": "Create disposable card response"
     },
     "pbCreateExpenseRequest": {
       "type": "object",
@@ -12111,6 +15624,56 @@
       },
       "title": "CreateInvoiceResponse represents a response containing the created invoice"
     },
+    "pbCreateLockFundRequest": {
+      "type": "object",
+      "properties": {
+        "lockType": {
+          "$ref": "#/definitions/pbLockType"
+        },
+        "amount": {
+          "type": "number",
+          "format": "double"
+        },
+        "currency": {
+          "type": "string"
+        },
+        "lockDurationDays": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "autoRenew": {
+          "type": "boolean"
+        },
+        "goalName": {
+          "type": "string"
+        },
+        "goalDescription": {
+          "type": "string"
+        },
+        "paymentMethod": {
+          "type": "string"
+        }
+      },
+      "title": "Create lock fund request"
+    },
+    "pbCreateLockFundResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "message": {
+          "type": "string"
+        },
+        "lockFund": {
+          "$ref": "#/definitions/pbLockFund"
+        },
+        "paymentUrl": {
+          "type": "string"
+        }
+      },
+      "title": "Create lock fund response"
+    },
     "pbCreateOrUpdateSavingsGoalRequest": {
       "type": "object",
       "properties": {
@@ -12274,6 +15837,49 @@
         }
       }
     },
+    "pbCreateReminderRequest": {
+      "type": "object",
+      "properties": {
+        "beneficiaryId": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "reminderDate": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "amount": {
+          "type": "number",
+          "format": "double"
+        },
+        "isRecurring": {
+          "type": "boolean"
+        },
+        "recurrenceType": {
+          "type": "string"
+        },
+        "currency": {
+          "type": "string"
+        }
+      },
+      "title": "Reminder Messages"
+    },
+    "pbCreateReminderResponse": {
+      "type": "object",
+      "properties": {
+        "reminder": {
+          "$ref": "#/definitions/pbBillPaymentReminder"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
     "pbCreateTagPayResponse": {
       "type": "object",
       "properties": {
@@ -12330,6 +15936,10 @@
         "username": {
           "type": "string",
           "title": "Optional unique username"
+        },
+        "referralCode": {
+          "type": "string",
+          "title": "Optional referral code from another user"
         }
       }
     },
@@ -12346,6 +15956,37 @@
           "$ref": "#/definitions/pbData"
         }
       }
+    },
+    "pbCreateVirtualCardRequest": {
+      "type": "object",
+      "properties": {
+        "accountId": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "cardNickname": {
+          "type": "string",
+          "title": "Optional nickname"
+        },
+        "currency": {
+          "type": "string",
+          "title": "Default to account currency"
+        },
+        "billingAddress": {
+          "type": "string"
+        }
+      },
+      "title": "Create virtual card request"
+    },
+    "pbCreateVirtualCardResponse": {
+      "type": "object",
+      "properties": {
+        "card": {
+          "$ref": "#/definitions/pbAccountCard",
+          "title": "Includes full card details including CVV"
+        }
+      },
+      "title": "Create virtual card response"
     },
     "pbCreateWatchlistRequest": {
       "type": "object",
@@ -12369,6 +16010,335 @@
           "$ref": "#/definitions/pbWatchlistMessage"
         }
       }
+    },
+    "pbCreditReferralRewardsRequest": {
+      "type": "object",
+      "properties": {
+        "transactionId": {
+          "type": "string",
+          "format": "uint64"
+        }
+      },
+      "title": "Request/Response messages for CreditReferralRewards"
+    },
+    "pbCreditReferralRewardsResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "pbCrowdfundCreatorMessage": {
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "username": {
+          "type": "string"
+        },
+        "firstName": {
+          "type": "string"
+        },
+        "lastName": {
+          "type": "string"
+        },
+        "profilePicture": {
+          "type": "string"
+        },
+        "verified": {
+          "type": "boolean"
+        },
+        "verifiedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "facialRecognitionEnabled": {
+          "type": "boolean"
+        }
+      }
+    },
+    "pbCrowdfundDonationMessage": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "crowdfundId": {
+          "type": "string"
+        },
+        "donorUserId": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "donor": {
+          "$ref": "#/definitions/pbCrowdfundDonorMessage"
+        },
+        "amount": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "currency": {
+          "type": "string"
+        },
+        "donationDate": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "status": {
+          "$ref": "#/definitions/pbDonationStatus"
+        },
+        "transactionId": {
+          "type": "string"
+        },
+        "receiptId": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "isAnonymous": {
+          "type": "boolean"
+        },
+        "paymentMethod": {
+          "type": "string"
+        },
+        "metadata": {
+          "type": "string",
+          "title": "JSON string"
+        }
+      }
+    },
+    "pbCrowdfundDonorMessage": {
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "displayName": {
+          "type": "string",
+          "title": "Abstracted or full based on context"
+        },
+        "profilePicture": {
+          "type": "string"
+        },
+        "isAnonymous": {
+          "type": "boolean"
+        },
+        "isCreator": {
+          "type": "boolean",
+          "title": "True if viewing as crowdfund creator"
+        }
+      }
+    },
+    "pbCrowdfundMessage": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "creatorUserId": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "creator": {
+          "$ref": "#/definitions/pbCrowdfundCreatorMessage"
+        },
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "story": {
+          "type": "string"
+        },
+        "crowdfundCode": {
+          "type": "string"
+        },
+        "targetAmount": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "currentAmount": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "currency": {
+          "type": "string"
+        },
+        "deadline": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "category": {
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/definitions/pbCrowdfundStatus"
+        },
+        "imageUrl": {
+          "type": "string"
+        },
+        "visibility": {
+          "$ref": "#/definitions/pbCrowdfundVisibility"
+        },
+        "metadata": {
+          "type": "string",
+          "title": "JSON string"
+        },
+        "donorCount": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "progressPercentage": {
+          "type": "number",
+          "format": "double"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "recentDonations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbCrowdfundDonationMessage"
+          },
+          "title": "Top 5"
+        }
+      }
+    },
+    "pbCrowdfundPaginationInfo": {
+      "type": "object",
+      "properties": {
+        "currentPage": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "totalPages": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "totalItems": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "itemsPerPage": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "hasNext": {
+          "type": "boolean"
+        },
+        "hasPrev": {
+          "type": "boolean"
+        }
+      }
+    },
+    "pbCrowdfundReceiptMessage": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "donationId": {
+          "type": "string"
+        },
+        "crowdfundId": {
+          "type": "string"
+        },
+        "crowdfundTitle": {
+          "type": "string"
+        },
+        "donorUserId": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "donorName": {
+          "type": "string"
+        },
+        "amount": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "currency": {
+          "type": "string"
+        },
+        "donationDate": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "generatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "receiptNumber": {
+          "type": "string"
+        },
+        "receiptData": {
+          "type": "string",
+          "title": "JSON string"
+        }
+      }
+    },
+    "pbCrowdfundReceiptPaginationInfo": {
+      "type": "object",
+      "properties": {
+        "currentPage": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "totalPages": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "totalItems": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "itemsPerPage": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "hasNext": {
+          "type": "boolean"
+        },
+        "hasPrev": {
+          "type": "boolean"
+        }
+      }
+    },
+    "pbCrowdfundStatus": {
+      "type": "string",
+      "enum": [
+        "CROWDFUND_STATUS_UNSPECIFIED",
+        "CROWDFUND_STATUS_ACTIVE",
+        "CROWDFUND_STATUS_PAUSED",
+        "CROWDFUND_STATUS_COMPLETED",
+        "CROWDFUND_STATUS_CANCELLED"
+      ],
+      "default": "CROWDFUND_STATUS_UNSPECIFIED"
+    },
+    "pbCrowdfundVisibility": {
+      "type": "string",
+      "enum": [
+        "CROWDFUND_VISIBILITY_UNSPECIFIED",
+        "CROWDFUND_VISIBILITY_PUBLIC",
+        "CROWDFUND_VISIBILITY_PRIVATE",
+        "CROWDFUND_VISIBILITY_UNLISTED"
+      ],
+      "default": "CROWDFUND_VISIBILITY_UNSPECIFIED"
     },
     "pbCryptoMessage": {
       "type": "object",
@@ -12572,6 +16542,14 @@
         }
       }
     },
+    "pbDeleteAutoRechargeResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      }
+    },
     "pbDeleteAutoSaveRuleResponse": {
       "type": "object",
       "properties": {
@@ -12583,6 +16561,14 @@
         }
       },
       "title": "Delete auto-save rule response"
+    },
+    "pbDeleteBeneficiaryResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      }
     },
     "pbDeleteBudgetResponse": {
       "type": "object",
@@ -12600,6 +16586,17 @@
       "properties": {
         "success": {
           "type": "boolean"
+        }
+      }
+    },
+    "pbDeleteCrowdfundResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "message": {
+          "type": "string"
         }
       }
     },
@@ -12648,6 +16645,14 @@
         "message": {
           "type": "string",
           "title": "e.g., \"Recipient deleted successfully\""
+        }
+      }
+    },
+    "pbDeleteReminderResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
         }
       }
     },
@@ -12771,6 +16776,45 @@
       "default": "DOCUMENT_TYPE_PASSPORT",
       "title": "Identity Verification Messages"
     },
+    "pbDonationPaginationInfo": {
+      "type": "object",
+      "properties": {
+        "currentPage": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "totalPages": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "totalItems": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "itemsPerPage": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "hasNext": {
+          "type": "boolean"
+        },
+        "hasPrev": {
+          "type": "boolean"
+        }
+      }
+    },
+    "pbDonationStatus": {
+      "type": "string",
+      "enum": [
+        "DONATION_STATUS_UNSPECIFIED",
+        "DONATION_STATUS_PENDING",
+        "DONATION_STATUS_PROCESSING",
+        "DONATION_STATUS_COMPLETED",
+        "DONATION_STATUS_FAILED",
+        "DONATION_STATUS_REFUNDED"
+      ],
+      "default": "DONATION_STATUS_UNSPECIFIED"
+    },
     "pbDuplicateDetails": {
       "type": "object",
       "properties": {
@@ -12803,6 +16847,51 @@
         }
       },
       "title": "Duplicate Details for Registration"
+    },
+    "pbElectricityProvider": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "providerCode": {
+          "type": "string"
+        },
+        "providerName": {
+          "type": "string"
+        },
+        "country": {
+          "type": "string"
+        },
+        "logoUrl": {
+          "type": "string"
+        },
+        "isActive": {
+          "type": "boolean"
+        },
+        "paymentGateway": {
+          "type": "string"
+        },
+        "minAmount": {
+          "type": "number",
+          "format": "double"
+        },
+        "maxAmount": {
+          "type": "number",
+          "format": "double"
+        },
+        "serviceFee": {
+          "type": "number",
+          "format": "double"
+        },
+        "feeType": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
     },
     "pbEmailInvoicePaymentReceiptResponse": {
       "type": "object",
@@ -13258,6 +17347,23 @@
       },
       "title": "Renamed from SimilarRecipientUser and fields adjusted"
     },
+    "pbFreezeCardResponse": {
+      "type": "object",
+      "properties": {
+        "card": {
+          "$ref": "#/definitions/pbAccountCard"
+        }
+      },
+      "title": "Freeze card response"
+    },
+    "pbGenerateDonationReceiptResponse": {
+      "type": "object",
+      "properties": {
+        "receipt": {
+          "$ref": "#/definitions/pbCrowdfundReceiptMessage"
+        }
+      }
+    },
     "pbGenerateInvoicePaymentReceiptResponse": {
       "type": "object",
       "properties": {
@@ -13506,24 +17612,23 @@
         }
       }
     },
-    "pbGetAccountCardsResponse": {
-      "type": "object",
-      "properties": {
-        "cards": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/pbAccountCard"
-          }
-        }
-      },
-      "title": "Response containing the list of cards for an account"
-    },
     "pbGetAccountDetailsResponse": {
       "type": "object",
       "properties": {
         "account": {
           "$ref": "#/definitions/pbAccountDetails"
+        }
+      }
+    },
+    "pbGetAutoRechargesResponse": {
+      "type": "object",
+      "properties": {
+        "autoRecharges": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbAutoRecharge"
+          }
         }
       }
     },
@@ -13652,6 +17757,50 @@
       },
       "title": "Response message for getting batch transfer status (same as initiate response)"
     },
+    "pbGetBeneficiariesResponse": {
+      "type": "object",
+      "properties": {
+        "beneficiaries": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbBillBeneficiary"
+          }
+        }
+      }
+    },
+    "pbGetBillDetailsRequest": {
+      "type": "object",
+      "properties": {
+        "providerCode": {
+          "type": "string"
+        },
+        "meterNumber": {
+          "type": "string"
+        }
+      }
+    },
+    "pbGetBillDetailsResponse": {
+      "type": "object",
+      "properties": {
+        "customerName": {
+          "type": "string"
+        },
+        "customerAddress": {
+          "type": "string"
+        },
+        "outstandingAmount": {
+          "type": "number",
+          "format": "double"
+        },
+        "dueDate": {
+          "type": "string"
+        },
+        "meterType": {
+          "type": "string"
+        }
+      }
+    },
     "pbGetBudgetAlertsResponse": {
       "type": "object",
       "properties": {
@@ -13730,6 +17879,48 @@
         }
       }
     },
+    "pbGetCardDetailsResponse": {
+      "type": "object",
+      "properties": {
+        "card": {
+          "$ref": "#/definitions/pbAccountCard"
+        },
+        "recentTransactions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbCardTransaction"
+          },
+          "title": "Last 10 transactions"
+        }
+      },
+      "title": "Get card details response"
+    },
+    "pbGetCardTransactionsResponse": {
+      "type": "object",
+      "properties": {
+        "transactions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbCardTransaction"
+          }
+        },
+        "totalCount": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "currentPage": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "totalPages": {
+          "type": "integer",
+          "format": "int32"
+        }
+      },
+      "title": "Get card transactions response"
+    },
     "pbGetCategoryBreakdownResponse": {
       "type": "object",
       "properties": {
@@ -13776,6 +17967,43 @@
         },
         "msg": {
           "type": "string"
+        }
+      }
+    },
+    "pbGetCompletePortfolioRequest": {
+      "type": "object",
+      "description": "user_id is extracted from JWT token",
+      "title": "Get Complete Portfolio Request/Response"
+    },
+    "pbGetCompletePortfolioResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "message": {
+          "type": "string"
+        },
+        "summary": {
+          "$ref": "#/definitions/pbPortfolioSummary"
+        },
+        "assets": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbPortfolioAsset"
+          }
+        }
+      }
+    },
+    "pbGetComprehensiveFinancialSummaryResponse": {
+      "type": "object",
+      "properties": {
+        "summary": {
+          "$ref": "#/definitions/pbComprehensiveFinancialSummary"
+        },
+        "success": {
+          "type": "boolean"
         }
       }
     },
@@ -13843,6 +18071,80 @@
       "properties": {
         "contribution": {
           "$ref": "#/definitions/pbContributionMessage"
+        }
+      }
+    },
+    "pbGetCountryRewardConfigResponse": {
+      "type": "object",
+      "properties": {
+        "config": {
+          "$ref": "#/definitions/pbCountryRewardConfig"
+        }
+      }
+    },
+    "pbGetCrowdfundDonationsResponse": {
+      "type": "object",
+      "properties": {
+        "donations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbCrowdfundDonationMessage"
+          }
+        },
+        "pagination": {
+          "$ref": "#/definitions/pbDonationPaginationInfo"
+        }
+      }
+    },
+    "pbGetCrowdfundResponse": {
+      "type": "object",
+      "properties": {
+        "crowdfund": {
+          "$ref": "#/definitions/pbCrowdfundMessage"
+        }
+      }
+    },
+    "pbGetCrowdfundStatisticsResponse": {
+      "type": "object",
+      "properties": {
+        "crowdfundId": {
+          "type": "string"
+        },
+        "totalRaised": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "targetAmount": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "progressPercentage": {
+          "type": "number",
+          "format": "double"
+        },
+        "donorCount": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "averageDonation": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "largestDonation": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "daysRemaining": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "isCompleted": {
+          "type": "boolean"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
         }
       }
     },
@@ -14541,6 +18843,81 @@
       },
       "title": "GetInvoicesResponse represents a response containing a list of invoices"
     },
+    "pbGetLockFundResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "lockFund": {
+          "$ref": "#/definitions/pbLockFund"
+        }
+      },
+      "title": "Get lock fund by ID response"
+    },
+    "pbGetLockFundsResponse": {
+      "type": "object",
+      "properties": {
+        "lockFunds": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbLockFund"
+          }
+        },
+        "totalCount": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "page": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "totalPages": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "totalLockedAmount": {
+          "type": "number",
+          "format": "double",
+          "title": "Summary statistics"
+        },
+        "totalAccruedInterest": {
+          "type": "number",
+          "format": "double"
+        },
+        "activeLocksCount": {
+          "type": "integer",
+          "format": "int32"
+        }
+      },
+      "title": "Get lock funds response"
+    },
+    "pbGetLockTransactionsResponse": {
+      "type": "object",
+      "properties": {
+        "transactions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbLockTransaction"
+          }
+        },
+        "totalCount": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "page": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "totalPages": {
+          "type": "integer",
+          "format": "int32"
+        }
+      },
+      "title": "Get lock transactions response"
+    },
     "pbGetMarketChartResponse": {
       "type": "object",
       "properties": {
@@ -14591,6 +18968,42 @@
         },
         "pagination": {
           "$ref": "#/definitions/pbGiftCardPaginationInfo"
+        }
+      }
+    },
+    "pbGetMyReferralCodeResponse": {
+      "type": "object",
+      "properties": {
+        "referralCode": {
+          "$ref": "#/definitions/pbReferralCode"
+        }
+      }
+    },
+    "pbGetMyReferralStatsResponse": {
+      "type": "object",
+      "properties": {
+        "stats": {
+          "$ref": "#/definitions/pbReferralStats"
+        }
+      }
+    },
+    "pbGetMyReferralsResponse": {
+      "type": "object",
+      "properties": {
+        "referrals": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbReferralTransaction"
+          }
+        },
+        "page": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "pageSize": {
+          "type": "integer",
+          "format": "int32"
         }
       }
     },
@@ -14685,6 +19098,33 @@
         }
       }
     },
+    "pbGetPaymentHistoryResponse": {
+      "type": "object",
+      "properties": {
+        "payments": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbBillPayment"
+          }
+        },
+        "total": {
+          "type": "integer",
+          "format": "int32"
+        }
+      }
+    },
+    "pbGetPaymentReceiptResponse": {
+      "type": "object",
+      "properties": {
+        "payment": {
+          "$ref": "#/definitions/pbBillPayment"
+        },
+        "receiptData": {
+          "$ref": "#/definitions/pbReceiptData"
+        }
+      }
+    },
     "pbGetPaymentStatisticsResponse": {
       "type": "object",
       "properties": {
@@ -14775,6 +19215,97 @@
         }
       }
     },
+    "pbGetPortfolioByAssetTypeRequest": {
+      "type": "object",
+      "properties": {
+        "assetType": {
+          "type": "string",
+          "title": "\"crypto\", \"stock\", \"investment\", \"account\", \"savings\""
+        }
+      },
+      "title": "Get Portfolio By Asset Type Request/Response"
+    },
+    "pbGetPortfolioByAssetTypeResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "message": {
+          "type": "string"
+        },
+        "assets": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbPortfolioAsset"
+          }
+        },
+        "totalValue": {
+          "type": "number",
+          "format": "double"
+        }
+      }
+    },
+    "pbGetPortfolioHistoryRequest": {
+      "type": "object",
+      "properties": {
+        "period": {
+          "type": "string",
+          "title": "\"1D\", \"1W\", \"1M\", \"3M\", \"1Y\", \"ALL\""
+        }
+      },
+      "title": "Get Portfolio History Request/Response"
+    },
+    "pbGetPortfolioHistoryResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "message": {
+          "type": "string"
+        },
+        "history": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbPortfolioHistoryPoint"
+          }
+        }
+      }
+    },
+    "pbGetPortfolioSummaryRequest": {
+      "type": "object",
+      "description": "user_id is extracted from JWT token",
+      "title": "Get Portfolio Summary Request/Response"
+    },
+    "pbGetPortfolioSummaryResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "message": {
+          "type": "string"
+        },
+        "summary": {
+          "$ref": "#/definitions/pbPortfolioSummary"
+        }
+      }
+    },
+    "pbGetProvidersResponse": {
+      "type": "object",
+      "properties": {
+        "providers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbElectricityProvider"
+          }
+        }
+      }
+    },
     "pbGetRecentExchangesResponse": {
       "type": "object",
       "properties": {
@@ -14809,6 +19340,30 @@
       "properties": {
         "recipient": {
           "$ref": "#/definitions/pbRecipient"
+        }
+      }
+    },
+    "pbGetReferralLeaderboardResponse": {
+      "type": "object",
+      "properties": {
+        "entries": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbLeaderboardEntry"
+          }
+        }
+      }
+    },
+    "pbGetRemindersResponse": {
+      "type": "object",
+      "properties": {
+        "reminders": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbBillPaymentReminder"
+          }
         }
       }
     },
@@ -15103,6 +19658,108 @@
         }
       }
     },
+    "pbGetTrackedExpenditureBreakdownResponse": {
+      "type": "object",
+      "properties": {
+        "breakdownByType": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "number",
+            "format": "double"
+          },
+          "title": "expense_type -\u003e amount"
+        },
+        "totalExpenditure": {
+          "type": "number",
+          "format": "double"
+        },
+        "success": {
+          "type": "boolean"
+        }
+      }
+    },
+    "pbGetTrackedExpenditureResponse": {
+      "type": "object",
+      "properties": {
+        "totalExpenditure": {
+          "type": "number",
+          "format": "double"
+        },
+        "success": {
+          "type": "boolean"
+        }
+      }
+    },
+    "pbGetTrackedExpenditureTransactionsResponse": {
+      "type": "object",
+      "properties": {
+        "transactions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbTrackedExpenditureTransaction"
+          }
+        },
+        "totalCount": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "success": {
+          "type": "boolean"
+        }
+      }
+    },
+    "pbGetTrackedIncomeBreakdownResponse": {
+      "type": "object",
+      "properties": {
+        "breakdownBySource": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "number",
+            "format": "double"
+          },
+          "title": "source_type -\u003e amount"
+        },
+        "totalIncome": {
+          "type": "number",
+          "format": "double"
+        },
+        "success": {
+          "type": "boolean"
+        }
+      }
+    },
+    "pbGetTrackedIncomeResponse": {
+      "type": "object",
+      "properties": {
+        "totalIncome": {
+          "type": "number",
+          "format": "double"
+        },
+        "success": {
+          "type": "boolean"
+        }
+      }
+    },
+    "pbGetTrackedIncomeTransactionsResponse": {
+      "type": "object",
+      "properties": {
+        "transactions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbTrackedIncomeTransaction"
+          }
+        },
+        "totalCount": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "success": {
+          "type": "boolean"
+        }
+      }
+    },
     "pbGetTransactionsResponse": {
       "type": "object",
       "properties": {
@@ -15288,6 +19945,22 @@
         }
       }
     },
+    "pbGetUserCardsResponse": {
+      "type": "object",
+      "properties": {
+        "cards": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbAccountCard"
+          }
+        },
+        "statistics": {
+          "$ref": "#/definitions/pbCardStatistics"
+        }
+      },
+      "title": "Get all cards response"
+    },
     "pbGetUserClaimsResponse": {
       "type": "object",
       "properties": {
@@ -15342,6 +20015,36 @@
         "averagePayment": {
           "type": "number",
           "format": "double"
+        }
+      }
+    },
+    "pbGetUserCrowdfundReceiptsResponse": {
+      "type": "object",
+      "properties": {
+        "receipts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbCrowdfundReceiptMessage"
+          }
+        },
+        "pagination": {
+          "$ref": "#/definitions/pbCrowdfundReceiptPaginationInfo"
+        }
+      }
+    },
+    "pbGetUserDonationsResponse": {
+      "type": "object",
+      "properties": {
+        "donations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbCrowdfundDonationMessage"
+          }
+        },
+        "pagination": {
+          "$ref": "#/definitions/pbDonationPaginationInfo"
         }
       }
     },
@@ -16380,6 +21083,62 @@
       "description": "Contains details of the initiated transfer.",
       "title": "Initiate International Transfer Response"
     },
+    "pbInitiatePaymentRequest": {
+      "type": "object",
+      "properties": {
+        "providerCode": {
+          "type": "string"
+        },
+        "meterNumber": {
+          "type": "string"
+        },
+        "amount": {
+          "type": "number",
+          "format": "double"
+        },
+        "currency": {
+          "type": "string"
+        },
+        "meterType": {
+          "type": "string"
+        },
+        "paymentGateway": {
+          "type": "string"
+        },
+        "sourceAccountId": {
+          "type": "string"
+        },
+        "beneficiaryId": {
+          "type": "string"
+        }
+      },
+      "title": "Payment Messages"
+    },
+    "pbInitiatePaymentResponse": {
+      "type": "object",
+      "properties": {
+        "paymentId": {
+          "type": "string"
+        },
+        "referenceNumber": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "totalAmount": {
+          "type": "number",
+          "format": "double"
+        },
+        "serviceFee": {
+          "type": "number",
+          "format": "double"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
     "pbInitiateTransferRequest": {
       "type": "object",
       "properties": {
@@ -17202,6 +21961,48 @@
       },
       "title": "Matched LazerVault user from contacts"
     },
+    "pbLeaderboardEntry": {
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "firstName": {
+          "type": "string"
+        },
+        "lastName": {
+          "type": "string"
+        },
+        "username": {
+          "type": "string"
+        },
+        "totalReferrals": {
+          "type": "string",
+          "format": "int64"
+        },
+        "rank": {
+          "type": "integer",
+          "format": "int32"
+        }
+      },
+      "title": "LeaderboardEntry message represents a top referrer"
+    },
+    "pbListCrowdfundsResponse": {
+      "type": "object",
+      "properties": {
+        "crowdfunds": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbCrowdfundMessage"
+          }
+        },
+        "pagination": {
+          "$ref": "#/definitions/pbCrowdfundPaginationInfo"
+        }
+      }
+    },
     "pbListDepositsResponse": {
       "type": "object",
       "properties": {
@@ -17275,6 +22076,160 @@
           "$ref": "#/definitions/pbGroupPaginationInfo"
         }
       }
+    },
+    "pbLockFund": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "userId": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "lockType": {
+          "$ref": "#/definitions/pbLockType"
+        },
+        "amount": {
+          "type": "number",
+          "format": "double"
+        },
+        "currency": {
+          "type": "string"
+        },
+        "lockDurationDays": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "interestRate": {
+          "type": "number",
+          "format": "double"
+        },
+        "lockedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "unlockAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "status": {
+          "$ref": "#/definitions/pbLockStatus"
+        },
+        "autoRenew": {
+          "type": "boolean"
+        },
+        "goalName": {
+          "type": "string"
+        },
+        "goalDescription": {
+          "type": "string"
+        },
+        "earlyUnlockPenaltyPercent": {
+          "type": "number",
+          "format": "double"
+        },
+        "accruedInterest": {
+          "type": "number",
+          "format": "double"
+        },
+        "paymentMethod": {
+          "type": "string"
+        },
+        "transactionId": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "daysRemaining": {
+          "type": "integer",
+          "format": "int32",
+          "title": "Computed fields"
+        },
+        "progressPercent": {
+          "type": "number",
+          "format": "double"
+        },
+        "totalValue": {
+          "type": "number",
+          "format": "double",
+          "title": "amount + accrued_interest"
+        },
+        "canUnlockEarly": {
+          "type": "boolean"
+        }
+      },
+      "title": "Lock fund message"
+    },
+    "pbLockStatus": {
+      "type": "string",
+      "enum": [
+        "LOCK_STATUS_UNSPECIFIED",
+        "LOCK_STATUS_ACTIVE",
+        "LOCK_STATUS_MATURED",
+        "LOCK_STATUS_UNLOCKED",
+        "LOCK_STATUS_CANCELLED"
+      ],
+      "default": "LOCK_STATUS_UNSPECIFIED",
+      "title": "Lock status enumeration"
+    },
+    "pbLockTransaction": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "lockFundId": {
+          "type": "string"
+        },
+        "userId": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "transactionType": {
+          "type": "string",
+          "title": "LOCK, UNLOCK, INTEREST_ACCRUAL"
+        },
+        "amount": {
+          "type": "number",
+          "format": "double"
+        },
+        "currency": {
+          "type": "string"
+        },
+        "paymentMethod": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "transactionDate": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "description": {
+          "type": "string"
+        }
+      },
+      "title": "Lock transaction message"
+    },
+    "pbLockType": {
+      "type": "string",
+      "enum": [
+        "LOCK_TYPE_UNSPECIFIED",
+        "LOCK_TYPE_SAVINGS",
+        "LOCK_TYPE_INVESTMENT",
+        "LOCK_TYPE_EMERGENCY_FUND",
+        "LOCK_TYPE_GOAL_BASED"
+      ],
+      "default": "LOCK_TYPE_UNSPECIFIED",
+      "title": "Lock type enumeration"
     },
     "pbLoginRequest": {
       "type": "object",
@@ -17372,6 +22327,14 @@
         }
       }
     },
+    "pbMakeDonationResponse": {
+      "type": "object",
+      "properties": {
+        "donation": {
+          "$ref": "#/definitions/pbCrowdfundDonationMessage"
+        }
+      }
+    },
     "pbMakePaymentResponse": {
       "type": "object",
       "properties": {
@@ -17409,6 +22372,14 @@
         "updatedCount": {
           "type": "string",
           "format": "uint64"
+        }
+      }
+    },
+    "pbMarkReminderCompleteResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
         }
       }
     },
@@ -17652,6 +22623,14 @@
         }
       },
       "title": "Pagination"
+    },
+    "pbPauseAutoRechargeResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      }
     },
     "pbPayTagResponse": {
       "type": "object",
@@ -18044,6 +23023,71 @@
         }
       }
     },
+    "pbPortfolioAsset": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "assetType": {
+          "type": "string",
+          "title": "\"crypto\", \"stock\", \"investment\", \"account\", \"savings\", \"financial_goal\""
+        },
+        "name": {
+          "type": "string"
+        },
+        "symbol": {
+          "type": "string"
+        },
+        "currentValue": {
+          "type": "number",
+          "format": "double"
+        },
+        "quantity": {
+          "type": "number",
+          "format": "double"
+        },
+        "currentPrice": {
+          "type": "number",
+          "format": "double"
+        },
+        "initialValue": {
+          "type": "number",
+          "format": "double"
+        },
+        "gainLoss": {
+          "type": "number",
+          "format": "double"
+        },
+        "gainLossPercent": {
+          "type": "number",
+          "format": "double"
+        },
+        "currency": {
+          "type": "string"
+        },
+        "lastUpdated": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "iconUrl": {
+          "type": "string"
+        }
+      }
+    },
+    "pbPortfolioHistoryPoint": {
+      "type": "object",
+      "properties": {
+        "date": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "value": {
+          "type": "number",
+          "format": "double"
+        }
+      }
+    },
     "pbPortfolioMessage": {
       "type": "object",
       "properties": {
@@ -18092,6 +23136,45 @@
         "totalInvested": {
           "type": "number",
           "format": "double"
+        }
+      }
+    },
+    "pbPortfolioSummary": {
+      "type": "object",
+      "properties": {
+        "totalValue": {
+          "type": "number",
+          "format": "double"
+        },
+        "totalGainLoss": {
+          "type": "number",
+          "format": "double"
+        },
+        "totalGainLossPercent": {
+          "type": "number",
+          "format": "double"
+        },
+        "totalInvested": {
+          "type": "number",
+          "format": "double"
+        },
+        "currency": {
+          "type": "string"
+        },
+        "assetsByType": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "number",
+            "format": "double"
+          }
+        },
+        "assetCount": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "lastUpdated": {
+          "type": "string",
+          "format": "date-time"
         }
       }
     },
@@ -18409,6 +23492,48 @@
         }
       }
     },
+    "pbReceiptData": {
+      "type": "object",
+      "properties": {
+        "receiptNumber": {
+          "type": "string"
+        },
+        "customerName": {
+          "type": "string"
+        },
+        "meterNumber": {
+          "type": "string"
+        },
+        "providerName": {
+          "type": "string"
+        },
+        "amountPaid": {
+          "type": "number",
+          "format": "double"
+        },
+        "serviceFee": {
+          "type": "number",
+          "format": "double"
+        },
+        "totalAmount": {
+          "type": "number",
+          "format": "double"
+        },
+        "token": {
+          "type": "string"
+        },
+        "units": {
+          "type": "number",
+          "format": "double"
+        },
+        "paymentDate": {
+          "type": "string"
+        },
+        "referenceNumber": {
+          "type": "string"
+        }
+      }
+    },
     "pbReceiptPaginationInfo": {
       "type": "object",
       "properties": {
@@ -18556,6 +23681,33 @@
       },
       "title": "Recipient details"
     },
+    "pbRecordReferralRequest": {
+      "type": "object",
+      "properties": {
+        "refereeUserId": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "referralCode": {
+          "type": "string"
+        }
+      },
+      "title": "Request/Response messages for RecordReferral"
+    },
+    "pbRecordReferralResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "message": {
+          "type": "string"
+        },
+        "transaction": {
+          "$ref": "#/definitions/pbReferralTransaction"
+        }
+      }
+    },
     "pbRecurringBill": {
       "type": "object",
       "properties": {
@@ -18630,6 +23782,112 @@
           "type": "string"
         }
       }
+    },
+    "pbReferralCode": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "userId": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "code": {
+          "type": "string"
+        },
+        "isActive": {
+          "type": "boolean"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "title": "ReferralCode message represents a user's referral code"
+    },
+    "pbReferralStats": {
+      "type": "object",
+      "properties": {
+        "totalReferrals": {
+          "type": "string",
+          "format": "int64"
+        },
+        "totalRewardsEarned": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "pendingRewards": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "currency": {
+          "type": "string"
+        }
+      },
+      "title": "ReferralStats message represents aggregated referral statistics"
+    },
+    "pbReferralStatus": {
+      "type": "string",
+      "enum": [
+        "REFERRAL_STATUS_PENDING",
+        "REFERRAL_STATUS_COMPLETED",
+        "REFERRAL_STATUS_FAILED",
+        "REFERRAL_STATUS_CANCELLED"
+      ],
+      "default": "REFERRAL_STATUS_PENDING",
+      "title": "Referral status enum"
+    },
+    "pbReferralTransaction": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "referrerUserId": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "refereeUserId": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "referralCodeUsed": {
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/definitions/pbReferralStatus"
+        },
+        "referrerRewardAmount": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "refereeRewardAmount": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "currency": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "completedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "failureReason": {
+          "type": "string"
+        }
+      },
+      "title": "ReferralTransaction message represents a referral event"
     },
     "pbRefreshTokenRequest": {
       "type": "object",
@@ -18764,12 +24022,7 @@
     },
     "pbRemovePasscodeRequest": {
       "type": "object",
-      "properties": {
-        "password": {
-          "type": "string",
-          "title": "Require password confirmation"
-        }
-      }
+      "title": "No parameters needed - user is authenticated via token"
     },
     "pbRemovePasscodeResponse": {
       "type": "object",
@@ -18781,6 +24034,21 @@
           "type": "string"
         }
       }
+    },
+    "pbRenewLockFundResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "message": {
+          "type": "string"
+        },
+        "renewedLockFund": {
+          "$ref": "#/definitions/pbLockFund"
+        }
+      },
+      "title": "Renew lock fund response"
     },
     "pbRequestEmailVerificationRequest": {
       "type": "object",
@@ -18928,6 +24196,58 @@
         }
       }
     },
+    "pbResumeAutoRechargeResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "pbSaveBeneficiaryRequest": {
+      "type": "object",
+      "properties": {
+        "providerCode": {
+          "type": "string"
+        },
+        "meterNumber": {
+          "type": "string"
+        },
+        "customerName": {
+          "type": "string"
+        },
+        "nickname": {
+          "type": "string"
+        },
+        "meterType": {
+          "type": "string"
+        },
+        "isDefault": {
+          "type": "boolean"
+        },
+        "providerId": {
+          "type": "string"
+        },
+        "providerName": {
+          "type": "string"
+        },
+        "customerAddress": {
+          "type": "string"
+        }
+      },
+      "title": "Beneficiary Messages"
+    },
+    "pbSaveBeneficiaryResponse": {
+      "type": "object",
+      "properties": {
+        "beneficiary": {
+          "$ref": "#/definitions/pbBillBeneficiary"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
     "pbSavingsGoal": {
       "type": "object",
       "properties": {
@@ -18979,6 +24299,18 @@
       ],
       "default": "FREQUENCY_UNKNOWN",
       "title": "Schedule frequency for scheduled auto-saves"
+    },
+    "pbSearchCrowdfundsResponse": {
+      "type": "object",
+      "properties": {
+        "crowdfunds": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbCrowdfundMessage"
+          }
+        }
+      }
     },
     "pbSearchCryptosResponse": {
       "type": "object",
@@ -19233,6 +24565,15 @@
         }
       }
     },
+    "pbSetDefaultCardResponse": {
+      "type": "object",
+      "properties": {
+        "card": {
+          "$ref": "#/definitions/pbAccountCard"
+        }
+      },
+      "title": "Set default card response"
+    },
     "pbSetInvoicePaymentReminderResponse": {
       "type": "object",
       "properties": {
@@ -19253,10 +24594,6 @@
         "passcode": {
           "type": "string",
           "title": "4-6 digit passcode"
-        },
-        "password": {
-          "type": "string",
-          "title": "Require password confirmation for security"
         }
       },
       "title": "Passcode Messages"
@@ -19753,6 +25090,26 @@
       },
       "title": "Sync preferences"
     },
+    "pbSyncProvidersRequest": {
+      "type": "object",
+      "properties": {
+        "paymentGateway": {
+          "type": "string"
+        }
+      }
+    },
+    "pbSyncProvidersResponse": {
+      "type": "object",
+      "properties": {
+        "syncedCount": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
     "pbSyncedContact": {
       "type": "object",
       "properties": {
@@ -20141,6 +25498,118 @@
       },
       "title": "Pause/resume auto-save rule response"
     },
+    "pbTrackedExpenditureTransaction": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "userId": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "amount": {
+          "type": "number",
+          "format": "double"
+        },
+        "currency": {
+          "type": "string"
+        },
+        "expenseType": {
+          "type": "string",
+          "description": "withdrawal, transfer_sent, invoice_payment_made, bill_payment, exchange, etc."
+        },
+        "expenseId": {
+          "type": "string"
+        },
+        "expenseReference": {
+          "type": "string"
+        },
+        "category": {
+          "type": "string"
+        },
+        "recipientId": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "recipientName": {
+          "type": "string"
+        },
+        "merchant": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "transactionDate": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "metadata": {
+          "type": "string",
+          "title": "JSON string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "pbTrackedIncomeTransaction": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "userId": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "amount": {
+          "type": "number",
+          "format": "double"
+        },
+        "currency": {
+          "type": "string"
+        },
+        "sourceType": {
+          "type": "string",
+          "description": "deposit, transfer_received, invoice_payment_received, etc."
+        },
+        "sourceId": {
+          "type": "string"
+        },
+        "sourceReference": {
+          "type": "string"
+        },
+        "category": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "senderId": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "senderName": {
+          "type": "string"
+        },
+        "transactionDate": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "metadata": {
+          "type": "string",
+          "title": "JSON string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "title": "Tracked Transaction Models"
+    },
     "pbTransaction": {
       "type": "object",
       "properties": {
@@ -20342,6 +25811,42 @@
       "description": "- TRIGGER_ON_DEPOSIT: Trigger when money is deposited\n - TRIGGER_SCHEDULED: Trigger on a schedule\n - TRIGGER_ROUND_UP: Round up transactions to nearest value",
       "title": "Auto-save rule trigger types"
     },
+    "pbUnfreezeCardResponse": {
+      "type": "object",
+      "properties": {
+        "card": {
+          "$ref": "#/definitions/pbAccountCard"
+        }
+      },
+      "title": "Unfreeze card response"
+    },
+    "pbUnlockFundResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "message": {
+          "type": "string"
+        },
+        "amountReturned": {
+          "type": "number",
+          "format": "double"
+        },
+        "penaltyAmount": {
+          "type": "number",
+          "format": "double"
+        },
+        "interestEarned": {
+          "type": "number",
+          "format": "double"
+        },
+        "updatedLockFund": {
+          "$ref": "#/definitions/pbLockFund"
+        }
+      },
+      "title": "Unlock fund response"
+    },
     "pbUpcomingBillsList": {
       "type": "object",
       "properties": {
@@ -20362,21 +25867,23 @@
         }
       }
     },
-    "pbUpdateAccountCardDefaultStatusResponse": {
-      "type": "object",
-      "properties": {
-        "card": {
-          "$ref": "#/definitions/pbAccountCard",
-          "title": "Return the updated card"
-        }
-      }
-    },
     "pbUpdateAccountStatusResponse": {
       "type": "object",
       "properties": {
         "account": {
           "$ref": "#/definitions/pbAccountDetails",
           "title": "Return updated details"
+        }
+      }
+    },
+    "pbUpdateAutoRechargeResponse": {
+      "type": "object",
+      "properties": {
+        "autoRecharge": {
+          "$ref": "#/definitions/pbAutoRecharge"
+        },
+        "message": {
+          "type": "string"
         }
       }
     },
@@ -20395,6 +25902,17 @@
       },
       "title": "Update auto-save rule response"
     },
+    "pbUpdateBeneficiaryResponse": {
+      "type": "object",
+      "properties": {
+        "beneficiary": {
+          "$ref": "#/definitions/pbBillBeneficiary"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
     "pbUpdateBudgetResponse": {
       "type": "object",
       "properties": {
@@ -20408,6 +25926,24 @@
           "type": "string"
         }
       }
+    },
+    "pbUpdateCardNicknameResponse": {
+      "type": "object",
+      "properties": {
+        "card": {
+          "$ref": "#/definitions/pbAccountCard"
+        }
+      },
+      "title": "Update card nickname response"
+    },
+    "pbUpdateCardSpendingLimitResponse": {
+      "type": "object",
+      "properties": {
+        "card": {
+          "$ref": "#/definitions/pbAccountCard"
+        }
+      },
+      "title": "Update card spending limit response"
     },
     "pbUpdateClaimRequest": {
       "type": "object",
@@ -20436,6 +25972,14 @@
       "properties": {
         "contribution": {
           "$ref": "#/definitions/pbContributionMessage"
+        }
+      }
+    },
+    "pbUpdateCrowdfundResponse": {
+      "type": "object",
+      "properties": {
+        "crowdfund": {
+          "$ref": "#/definitions/pbCrowdfundMessage"
         }
       }
     },
@@ -20640,6 +26184,17 @@
       "properties": {
         "recipient": {
           "$ref": "#/definitions/pbRecipient"
+        }
+      }
+    },
+    "pbUpdateReminderResponse": {
+      "type": "object",
+      "properties": {
+        "reminder": {
+          "$ref": "#/definitions/pbBillPaymentReminder"
+        },
+        "message": {
+          "type": "string"
         }
       }
     },
@@ -21087,6 +26642,68 @@
         }
       }
     },
+    "pbValidateMeterRequest": {
+      "type": "object",
+      "properties": {
+        "providerCode": {
+          "type": "string"
+        },
+        "meterNumber": {
+          "type": "string"
+        },
+        "meterType": {
+          "type": "string"
+        }
+      },
+      "title": "Validation Messages"
+    },
+    "pbValidateMeterResponse": {
+      "type": "object",
+      "properties": {
+        "isValid": {
+          "type": "boolean"
+        },
+        "customerName": {
+          "type": "string"
+        },
+        "customerAddress": {
+          "type": "string"
+        },
+        "meterType": {
+          "type": "string"
+        },
+        "outstandingBalance": {
+          "type": "number",
+          "format": "double"
+        },
+        "message": {
+          "type": "string"
+        },
+        "meterNumber": {
+          "type": "string"
+        }
+      }
+    },
+    "pbValidateReferralCodeRequest": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string"
+        }
+      },
+      "title": "Request/Response messages for ValidateReferralCode"
+    },
+    "pbValidateReferralCodeResponse": {
+      "type": "object",
+      "properties": {
+        "isValid": {
+          "type": "boolean"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
     "pbVerificationStatus": {
       "type": "string",
       "enum": [
@@ -21255,6 +26872,17 @@
         }
       },
       "title": "Response for verifying password reset code"
+    },
+    "pbVerifyPaymentResponse": {
+      "type": "object",
+      "properties": {
+        "payment": {
+          "$ref": "#/definitions/pbBillPayment"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
     },
     "pbVerifyPinRequest": {
       "type": "object",

@@ -201,6 +201,7 @@ type CreateUserRequest struct {
 	Role          string                 `protobuf:"bytes,6,opt,name=role,proto3" json:"role,omitempty"`
 	LoginPasscode string                 `protobuf:"bytes,7,opt,name=login_passcode,json=loginPasscode,proto3" json:"login_passcode,omitempty"` // Optional 4-6 digit passcode for quick login
 	Username      string                 `protobuf:"bytes,8,opt,name=username,proto3" json:"username,omitempty"`                                // Optional unique username
+	ReferralCode  string                 `protobuf:"bytes,9,opt,name=referral_code,json=referralCode,proto3" json:"referral_code,omitempty"`    // Optional referral code from another user
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -287,6 +288,13 @@ func (x *CreateUserRequest) GetLoginPasscode() string {
 func (x *CreateUserRequest) GetUsername() string {
 	if x != nil {
 		return x.Username
+	}
+	return ""
+}
+
+func (x *CreateUserRequest) GetReferralCode() string {
+	if x != nil {
+		return x.ReferralCode
 	}
 	return ""
 }
@@ -1888,7 +1896,6 @@ func (x *GetFacialDataResponse) GetFacialData() *FacialData {
 type SetPasscodeRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Passcode      string                 `protobuf:"bytes,1,opt,name=passcode,proto3" json:"passcode,omitempty"` // 4-6 digit passcode
-	Password      string                 `protobuf:"bytes,2,opt,name=password,proto3" json:"password,omitempty"` // Require password confirmation for security
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1926,13 +1933,6 @@ func (*SetPasscodeRequest) Descriptor() ([]byte, []int) {
 func (x *SetPasscodeRequest) GetPasscode() string {
 	if x != nil {
 		return x.Passcode
-	}
-	return ""
-}
-
-func (x *SetPasscodeRequest) GetPassword() string {
-	if x != nil {
-		return x.Password
 	}
 	return ""
 }
@@ -2095,7 +2095,6 @@ func (x *VerifyPasscodeResponse) GetIsValid() bool {
 
 type RemovePasscodeRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Password      string                 `protobuf:"bytes,1,opt,name=password,proto3" json:"password,omitempty"` // Require password confirmation
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2128,13 +2127,6 @@ func (x *RemovePasscodeRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use RemovePasscodeRequest.ProtoReflect.Descriptor instead.
 func (*RemovePasscodeRequest) Descriptor() ([]byte, []int) {
 	return file_user_proto_rawDescGZIP(), []int{29}
-}
-
-func (x *RemovePasscodeRequest) GetPassword() string {
-	if x != nil {
-		return x.Password
-	}
-	return ""
 }
 
 type RemovePasscodeResponse struct {
@@ -2534,7 +2526,7 @@ var File_user_proto protoreflect.FileDescriptor
 const file_user_proto_rawDesc = "" +
 	"\n" +
 	"\n" +
-	"user.proto\x12\x02pb\x1a\x1cgoogle/api/annotations.proto\x1a.protoc-gen-openapiv2/options/annotations.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\fcommon.proto\"\xfb\x01\n" +
+	"user.proto\x12\x02pb\x1a\x1cgoogle/api/annotations.proto\x1a.protoc-gen-openapiv2/options/annotations.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\fcommon.proto\"\xa0\x02\n" +
 	"\x11CreateUserRequest\x12\x1d\n" +
 	"\n" +
 	"first_name\x18\x01 \x01(\tR\tfirstName\x12\x1b\n" +
@@ -2544,7 +2536,8 @@ const file_user_proto_rawDesc = "" +
 	"\fphone_number\x18\x05 \x01(\tR\vphoneNumber\x12\x12\n" +
 	"\x04role\x18\x06 \x01(\tR\x04role\x12%\n" +
 	"\x0elogin_passcode\x18\a \x01(\tR\rloginPasscode\x12\x1a\n" +
-	"\busername\x18\b \x01(\tR\busername\"f\n" +
+	"\busername\x18\b \x01(\tR\busername\x12#\n" +
+	"\rreferral_code\x18\t \x01(\tR\freferralCode\"f\n" +
 	"\x12CreateUserResponse\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x18\n" +
 	"\amessage\x18\x02 \x01(\tR\amessage\x12\x1c\n" +
@@ -2679,10 +2672,9 @@ const file_user_proto_rawDesc = "" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x18\n" +
 	"\amessage\x18\x02 \x01(\tR\amessage\x12/\n" +
 	"\vfacial_data\x18\x03 \x01(\v2\x0e.pb.FacialDataR\n" +
-	"facialData\"L\n" +
+	"facialData\"0\n" +
 	"\x12SetPasscodeRequest\x12\x1a\n" +
-	"\bpasscode\x18\x01 \x01(\tR\bpasscode\x12\x1a\n" +
-	"\bpassword\x18\x02 \x01(\tR\bpassword\"I\n" +
+	"\bpasscode\x18\x01 \x01(\tR\bpasscode\"I\n" +
 	"\x13SetPasscodeResponse\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x18\n" +
 	"\amessage\x18\x02 \x01(\tR\amessage\"3\n" +
@@ -2691,9 +2683,8 @@ const file_user_proto_rawDesc = "" +
 	"\x16VerifyPasscodeResponse\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x18\n" +
 	"\amessage\x18\x02 \x01(\tR\amessage\x12\x19\n" +
-	"\bis_valid\x18\x03 \x01(\bR\aisValid\"3\n" +
-	"\x15RemovePasscodeRequest\x12\x1a\n" +
-	"\bpassword\x18\x01 \x01(\tR\bpassword\"L\n" +
+	"\bis_valid\x18\x03 \x01(\bR\aisValid\"\x17\n" +
+	"\x15RemovePasscodeRequest\"L\n" +
 	"\x16RemovePasscodeResponse\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x18\n" +
 	"\amessage\x18\x02 \x01(\tR\amessage\"\x1c\n" +

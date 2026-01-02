@@ -7343,6 +7343,1358 @@ func (x *GetUpcomingBillsResponse) GetBillsList() *UpcomingBillsList {
 	return nil
 }
 
+// Tracked Transaction Models
+type TrackedIncomeTransaction struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	Id              string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	UserId          uint64                 `protobuf:"varint,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	Amount          float64                `protobuf:"fixed64,3,opt,name=amount,proto3" json:"amount,omitempty"`
+	Currency        string                 `protobuf:"bytes,4,opt,name=currency,proto3" json:"currency,omitempty"`
+	SourceType      string                 `protobuf:"bytes,5,opt,name=source_type,json=sourceType,proto3" json:"source_type,omitempty"` // deposit, transfer_received, invoice_payment_received, etc.
+	SourceId        string                 `protobuf:"bytes,6,opt,name=source_id,json=sourceId,proto3" json:"source_id,omitempty"`
+	SourceReference string                 `protobuf:"bytes,7,opt,name=source_reference,json=sourceReference,proto3" json:"source_reference,omitempty"`
+	Category        string                 `protobuf:"bytes,8,opt,name=category,proto3" json:"category,omitempty"`
+	Description     string                 `protobuf:"bytes,9,opt,name=description,proto3" json:"description,omitempty"`
+	SenderId        uint64                 `protobuf:"varint,10,opt,name=sender_id,json=senderId,proto3" json:"sender_id,omitempty"`
+	SenderName      string                 `protobuf:"bytes,11,opt,name=sender_name,json=senderName,proto3" json:"sender_name,omitempty"`
+	TransactionDate *timestamppb.Timestamp `protobuf:"bytes,12,opt,name=transaction_date,json=transactionDate,proto3" json:"transaction_date,omitempty"`
+	Metadata        string                 `protobuf:"bytes,13,opt,name=metadata,proto3" json:"metadata,omitempty"` // JSON string
+	CreatedAt       *timestamppb.Timestamp `protobuf:"bytes,14,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *TrackedIncomeTransaction) Reset() {
+	*x = TrackedIncomeTransaction{}
+	mi := &file_statistics_proto_msgTypes[90]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TrackedIncomeTransaction) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TrackedIncomeTransaction) ProtoMessage() {}
+
+func (x *TrackedIncomeTransaction) ProtoReflect() protoreflect.Message {
+	mi := &file_statistics_proto_msgTypes[90]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TrackedIncomeTransaction.ProtoReflect.Descriptor instead.
+func (*TrackedIncomeTransaction) Descriptor() ([]byte, []int) {
+	return file_statistics_proto_rawDescGZIP(), []int{90}
+}
+
+func (x *TrackedIncomeTransaction) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *TrackedIncomeTransaction) GetUserId() uint64 {
+	if x != nil {
+		return x.UserId
+	}
+	return 0
+}
+
+func (x *TrackedIncomeTransaction) GetAmount() float64 {
+	if x != nil {
+		return x.Amount
+	}
+	return 0
+}
+
+func (x *TrackedIncomeTransaction) GetCurrency() string {
+	if x != nil {
+		return x.Currency
+	}
+	return ""
+}
+
+func (x *TrackedIncomeTransaction) GetSourceType() string {
+	if x != nil {
+		return x.SourceType
+	}
+	return ""
+}
+
+func (x *TrackedIncomeTransaction) GetSourceId() string {
+	if x != nil {
+		return x.SourceId
+	}
+	return ""
+}
+
+func (x *TrackedIncomeTransaction) GetSourceReference() string {
+	if x != nil {
+		return x.SourceReference
+	}
+	return ""
+}
+
+func (x *TrackedIncomeTransaction) GetCategory() string {
+	if x != nil {
+		return x.Category
+	}
+	return ""
+}
+
+func (x *TrackedIncomeTransaction) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
+func (x *TrackedIncomeTransaction) GetSenderId() uint64 {
+	if x != nil {
+		return x.SenderId
+	}
+	return 0
+}
+
+func (x *TrackedIncomeTransaction) GetSenderName() string {
+	if x != nil {
+		return x.SenderName
+	}
+	return ""
+}
+
+func (x *TrackedIncomeTransaction) GetTransactionDate() *timestamppb.Timestamp {
+	if x != nil {
+		return x.TransactionDate
+	}
+	return nil
+}
+
+func (x *TrackedIncomeTransaction) GetMetadata() string {
+	if x != nil {
+		return x.Metadata
+	}
+	return ""
+}
+
+func (x *TrackedIncomeTransaction) GetCreatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return nil
+}
+
+type TrackedExpenditureTransaction struct {
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	Id               string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	UserId           uint64                 `protobuf:"varint,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	Amount           float64                `protobuf:"fixed64,3,opt,name=amount,proto3" json:"amount,omitempty"`
+	Currency         string                 `protobuf:"bytes,4,opt,name=currency,proto3" json:"currency,omitempty"`
+	ExpenseType      string                 `protobuf:"bytes,5,opt,name=expense_type,json=expenseType,proto3" json:"expense_type,omitempty"` // withdrawal, transfer_sent, invoice_payment_made, bill_payment, exchange, etc.
+	ExpenseId        string                 `protobuf:"bytes,6,opt,name=expense_id,json=expenseId,proto3" json:"expense_id,omitempty"`
+	ExpenseReference string                 `protobuf:"bytes,7,opt,name=expense_reference,json=expenseReference,proto3" json:"expense_reference,omitempty"`
+	Category         string                 `protobuf:"bytes,8,opt,name=category,proto3" json:"category,omitempty"`
+	RecipientId      uint64                 `protobuf:"varint,9,opt,name=recipient_id,json=recipientId,proto3" json:"recipient_id,omitempty"`
+	RecipientName    string                 `protobuf:"bytes,10,opt,name=recipient_name,json=recipientName,proto3" json:"recipient_name,omitempty"`
+	Merchant         string                 `protobuf:"bytes,11,opt,name=merchant,proto3" json:"merchant,omitempty"`
+	Description      string                 `protobuf:"bytes,12,opt,name=description,proto3" json:"description,omitempty"`
+	TransactionDate  *timestamppb.Timestamp `protobuf:"bytes,13,opt,name=transaction_date,json=transactionDate,proto3" json:"transaction_date,omitempty"`
+	Metadata         string                 `protobuf:"bytes,14,opt,name=metadata,proto3" json:"metadata,omitempty"` // JSON string
+	CreatedAt        *timestamppb.Timestamp `protobuf:"bytes,15,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *TrackedExpenditureTransaction) Reset() {
+	*x = TrackedExpenditureTransaction{}
+	mi := &file_statistics_proto_msgTypes[91]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TrackedExpenditureTransaction) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TrackedExpenditureTransaction) ProtoMessage() {}
+
+func (x *TrackedExpenditureTransaction) ProtoReflect() protoreflect.Message {
+	mi := &file_statistics_proto_msgTypes[91]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TrackedExpenditureTransaction.ProtoReflect.Descriptor instead.
+func (*TrackedExpenditureTransaction) Descriptor() ([]byte, []int) {
+	return file_statistics_proto_rawDescGZIP(), []int{91}
+}
+
+func (x *TrackedExpenditureTransaction) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *TrackedExpenditureTransaction) GetUserId() uint64 {
+	if x != nil {
+		return x.UserId
+	}
+	return 0
+}
+
+func (x *TrackedExpenditureTransaction) GetAmount() float64 {
+	if x != nil {
+		return x.Amount
+	}
+	return 0
+}
+
+func (x *TrackedExpenditureTransaction) GetCurrency() string {
+	if x != nil {
+		return x.Currency
+	}
+	return ""
+}
+
+func (x *TrackedExpenditureTransaction) GetExpenseType() string {
+	if x != nil {
+		return x.ExpenseType
+	}
+	return ""
+}
+
+func (x *TrackedExpenditureTransaction) GetExpenseId() string {
+	if x != nil {
+		return x.ExpenseId
+	}
+	return ""
+}
+
+func (x *TrackedExpenditureTransaction) GetExpenseReference() string {
+	if x != nil {
+		return x.ExpenseReference
+	}
+	return ""
+}
+
+func (x *TrackedExpenditureTransaction) GetCategory() string {
+	if x != nil {
+		return x.Category
+	}
+	return ""
+}
+
+func (x *TrackedExpenditureTransaction) GetRecipientId() uint64 {
+	if x != nil {
+		return x.RecipientId
+	}
+	return 0
+}
+
+func (x *TrackedExpenditureTransaction) GetRecipientName() string {
+	if x != nil {
+		return x.RecipientName
+	}
+	return ""
+}
+
+func (x *TrackedExpenditureTransaction) GetMerchant() string {
+	if x != nil {
+		return x.Merchant
+	}
+	return ""
+}
+
+func (x *TrackedExpenditureTransaction) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
+func (x *TrackedExpenditureTransaction) GetTransactionDate() *timestamppb.Timestamp {
+	if x != nil {
+		return x.TransactionDate
+	}
+	return nil
+}
+
+func (x *TrackedExpenditureTransaction) GetMetadata() string {
+	if x != nil {
+		return x.Metadata
+	}
+	return ""
+}
+
+func (x *TrackedExpenditureTransaction) GetCreatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return nil
+}
+
+// Tracked Income Request/Response
+type GetTrackedIncomeRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	StartDate     *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=start_date,json=startDate,proto3" json:"start_date,omitempty"`
+	EndDate       *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=end_date,json=endDate,proto3" json:"end_date,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetTrackedIncomeRequest) Reset() {
+	*x = GetTrackedIncomeRequest{}
+	mi := &file_statistics_proto_msgTypes[92]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetTrackedIncomeRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetTrackedIncomeRequest) ProtoMessage() {}
+
+func (x *GetTrackedIncomeRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_statistics_proto_msgTypes[92]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetTrackedIncomeRequest.ProtoReflect.Descriptor instead.
+func (*GetTrackedIncomeRequest) Descriptor() ([]byte, []int) {
+	return file_statistics_proto_rawDescGZIP(), []int{92}
+}
+
+func (x *GetTrackedIncomeRequest) GetStartDate() *timestamppb.Timestamp {
+	if x != nil {
+		return x.StartDate
+	}
+	return nil
+}
+
+func (x *GetTrackedIncomeRequest) GetEndDate() *timestamppb.Timestamp {
+	if x != nil {
+		return x.EndDate
+	}
+	return nil
+}
+
+type GetTrackedIncomeResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TotalIncome   float64                `protobuf:"fixed64,1,opt,name=total_income,json=totalIncome,proto3" json:"total_income,omitempty"`
+	Success       bool                   `protobuf:"varint,2,opt,name=success,proto3" json:"success,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetTrackedIncomeResponse) Reset() {
+	*x = GetTrackedIncomeResponse{}
+	mi := &file_statistics_proto_msgTypes[93]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetTrackedIncomeResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetTrackedIncomeResponse) ProtoMessage() {}
+
+func (x *GetTrackedIncomeResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_statistics_proto_msgTypes[93]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetTrackedIncomeResponse.ProtoReflect.Descriptor instead.
+func (*GetTrackedIncomeResponse) Descriptor() ([]byte, []int) {
+	return file_statistics_proto_rawDescGZIP(), []int{93}
+}
+
+func (x *GetTrackedIncomeResponse) GetTotalIncome() float64 {
+	if x != nil {
+		return x.TotalIncome
+	}
+	return 0
+}
+
+func (x *GetTrackedIncomeResponse) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
+// Tracked Expenditure Request/Response
+type GetTrackedExpenditureRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	StartDate     *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=start_date,json=startDate,proto3" json:"start_date,omitempty"`
+	EndDate       *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=end_date,json=endDate,proto3" json:"end_date,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetTrackedExpenditureRequest) Reset() {
+	*x = GetTrackedExpenditureRequest{}
+	mi := &file_statistics_proto_msgTypes[94]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetTrackedExpenditureRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetTrackedExpenditureRequest) ProtoMessage() {}
+
+func (x *GetTrackedExpenditureRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_statistics_proto_msgTypes[94]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetTrackedExpenditureRequest.ProtoReflect.Descriptor instead.
+func (*GetTrackedExpenditureRequest) Descriptor() ([]byte, []int) {
+	return file_statistics_proto_rawDescGZIP(), []int{94}
+}
+
+func (x *GetTrackedExpenditureRequest) GetStartDate() *timestamppb.Timestamp {
+	if x != nil {
+		return x.StartDate
+	}
+	return nil
+}
+
+func (x *GetTrackedExpenditureRequest) GetEndDate() *timestamppb.Timestamp {
+	if x != nil {
+		return x.EndDate
+	}
+	return nil
+}
+
+type GetTrackedExpenditureResponse struct {
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	TotalExpenditure float64                `protobuf:"fixed64,1,opt,name=total_expenditure,json=totalExpenditure,proto3" json:"total_expenditure,omitempty"`
+	Success          bool                   `protobuf:"varint,2,opt,name=success,proto3" json:"success,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *GetTrackedExpenditureResponse) Reset() {
+	*x = GetTrackedExpenditureResponse{}
+	mi := &file_statistics_proto_msgTypes[95]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetTrackedExpenditureResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetTrackedExpenditureResponse) ProtoMessage() {}
+
+func (x *GetTrackedExpenditureResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_statistics_proto_msgTypes[95]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetTrackedExpenditureResponse.ProtoReflect.Descriptor instead.
+func (*GetTrackedExpenditureResponse) Descriptor() ([]byte, []int) {
+	return file_statistics_proto_rawDescGZIP(), []int{95}
+}
+
+func (x *GetTrackedExpenditureResponse) GetTotalExpenditure() float64 {
+	if x != nil {
+		return x.TotalExpenditure
+	}
+	return 0
+}
+
+func (x *GetTrackedExpenditureResponse) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
+// Tracked Income Breakdown Request/Response
+type GetTrackedIncomeBreakdownRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	StartDate     *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=start_date,json=startDate,proto3" json:"start_date,omitempty"`
+	EndDate       *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=end_date,json=endDate,proto3" json:"end_date,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetTrackedIncomeBreakdownRequest) Reset() {
+	*x = GetTrackedIncomeBreakdownRequest{}
+	mi := &file_statistics_proto_msgTypes[96]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetTrackedIncomeBreakdownRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetTrackedIncomeBreakdownRequest) ProtoMessage() {}
+
+func (x *GetTrackedIncomeBreakdownRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_statistics_proto_msgTypes[96]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetTrackedIncomeBreakdownRequest.ProtoReflect.Descriptor instead.
+func (*GetTrackedIncomeBreakdownRequest) Descriptor() ([]byte, []int) {
+	return file_statistics_proto_rawDescGZIP(), []int{96}
+}
+
+func (x *GetTrackedIncomeBreakdownRequest) GetStartDate() *timestamppb.Timestamp {
+	if x != nil {
+		return x.StartDate
+	}
+	return nil
+}
+
+func (x *GetTrackedIncomeBreakdownRequest) GetEndDate() *timestamppb.Timestamp {
+	if x != nil {
+		return x.EndDate
+	}
+	return nil
+}
+
+type GetTrackedIncomeBreakdownResponse struct {
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	BreakdownBySource map[string]float64     `protobuf:"bytes,1,rep,name=breakdown_by_source,json=breakdownBySource,proto3" json:"breakdown_by_source,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"fixed64,2,opt,name=value"` // source_type -> amount
+	TotalIncome       float64                `protobuf:"fixed64,2,opt,name=total_income,json=totalIncome,proto3" json:"total_income,omitempty"`
+	Success           bool                   `protobuf:"varint,3,opt,name=success,proto3" json:"success,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *GetTrackedIncomeBreakdownResponse) Reset() {
+	*x = GetTrackedIncomeBreakdownResponse{}
+	mi := &file_statistics_proto_msgTypes[97]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetTrackedIncomeBreakdownResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetTrackedIncomeBreakdownResponse) ProtoMessage() {}
+
+func (x *GetTrackedIncomeBreakdownResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_statistics_proto_msgTypes[97]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetTrackedIncomeBreakdownResponse.ProtoReflect.Descriptor instead.
+func (*GetTrackedIncomeBreakdownResponse) Descriptor() ([]byte, []int) {
+	return file_statistics_proto_rawDescGZIP(), []int{97}
+}
+
+func (x *GetTrackedIncomeBreakdownResponse) GetBreakdownBySource() map[string]float64 {
+	if x != nil {
+		return x.BreakdownBySource
+	}
+	return nil
+}
+
+func (x *GetTrackedIncomeBreakdownResponse) GetTotalIncome() float64 {
+	if x != nil {
+		return x.TotalIncome
+	}
+	return 0
+}
+
+func (x *GetTrackedIncomeBreakdownResponse) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
+// Tracked Expenditure Breakdown Request/Response
+type GetTrackedExpenditureBreakdownRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	StartDate     *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=start_date,json=startDate,proto3" json:"start_date,omitempty"`
+	EndDate       *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=end_date,json=endDate,proto3" json:"end_date,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetTrackedExpenditureBreakdownRequest) Reset() {
+	*x = GetTrackedExpenditureBreakdownRequest{}
+	mi := &file_statistics_proto_msgTypes[98]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetTrackedExpenditureBreakdownRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetTrackedExpenditureBreakdownRequest) ProtoMessage() {}
+
+func (x *GetTrackedExpenditureBreakdownRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_statistics_proto_msgTypes[98]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetTrackedExpenditureBreakdownRequest.ProtoReflect.Descriptor instead.
+func (*GetTrackedExpenditureBreakdownRequest) Descriptor() ([]byte, []int) {
+	return file_statistics_proto_rawDescGZIP(), []int{98}
+}
+
+func (x *GetTrackedExpenditureBreakdownRequest) GetStartDate() *timestamppb.Timestamp {
+	if x != nil {
+		return x.StartDate
+	}
+	return nil
+}
+
+func (x *GetTrackedExpenditureBreakdownRequest) GetEndDate() *timestamppb.Timestamp {
+	if x != nil {
+		return x.EndDate
+	}
+	return nil
+}
+
+type GetTrackedExpenditureBreakdownResponse struct {
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	BreakdownByType  map[string]float64     `protobuf:"bytes,1,rep,name=breakdown_by_type,json=breakdownByType,proto3" json:"breakdown_by_type,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"fixed64,2,opt,name=value"` // expense_type -> amount
+	TotalExpenditure float64                `protobuf:"fixed64,2,opt,name=total_expenditure,json=totalExpenditure,proto3" json:"total_expenditure,omitempty"`
+	Success          bool                   `protobuf:"varint,3,opt,name=success,proto3" json:"success,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *GetTrackedExpenditureBreakdownResponse) Reset() {
+	*x = GetTrackedExpenditureBreakdownResponse{}
+	mi := &file_statistics_proto_msgTypes[99]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetTrackedExpenditureBreakdownResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetTrackedExpenditureBreakdownResponse) ProtoMessage() {}
+
+func (x *GetTrackedExpenditureBreakdownResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_statistics_proto_msgTypes[99]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetTrackedExpenditureBreakdownResponse.ProtoReflect.Descriptor instead.
+func (*GetTrackedExpenditureBreakdownResponse) Descriptor() ([]byte, []int) {
+	return file_statistics_proto_rawDescGZIP(), []int{99}
+}
+
+func (x *GetTrackedExpenditureBreakdownResponse) GetBreakdownByType() map[string]float64 {
+	if x != nil {
+		return x.BreakdownByType
+	}
+	return nil
+}
+
+func (x *GetTrackedExpenditureBreakdownResponse) GetTotalExpenditure() float64 {
+	if x != nil {
+		return x.TotalExpenditure
+	}
+	return 0
+}
+
+func (x *GetTrackedExpenditureBreakdownResponse) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
+// Tracked Income Transactions Request/Response
+type GetTrackedIncomeTransactionsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	StartDate     *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=start_date,json=startDate,proto3" json:"start_date,omitempty"`
+	EndDate       *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=end_date,json=endDate,proto3" json:"end_date,omitempty"`
+	Limit         int32                  `protobuf:"varint,3,opt,name=limit,proto3" json:"limit,omitempty"` // max number of transactions to return
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetTrackedIncomeTransactionsRequest) Reset() {
+	*x = GetTrackedIncomeTransactionsRequest{}
+	mi := &file_statistics_proto_msgTypes[100]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetTrackedIncomeTransactionsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetTrackedIncomeTransactionsRequest) ProtoMessage() {}
+
+func (x *GetTrackedIncomeTransactionsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_statistics_proto_msgTypes[100]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetTrackedIncomeTransactionsRequest.ProtoReflect.Descriptor instead.
+func (*GetTrackedIncomeTransactionsRequest) Descriptor() ([]byte, []int) {
+	return file_statistics_proto_rawDescGZIP(), []int{100}
+}
+
+func (x *GetTrackedIncomeTransactionsRequest) GetStartDate() *timestamppb.Timestamp {
+	if x != nil {
+		return x.StartDate
+	}
+	return nil
+}
+
+func (x *GetTrackedIncomeTransactionsRequest) GetEndDate() *timestamppb.Timestamp {
+	if x != nil {
+		return x.EndDate
+	}
+	return nil
+}
+
+func (x *GetTrackedIncomeTransactionsRequest) GetLimit() int32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+type GetTrackedIncomeTransactionsResponse struct {
+	state         protoimpl.MessageState      `protogen:"open.v1"`
+	Transactions  []*TrackedIncomeTransaction `protobuf:"bytes,1,rep,name=transactions,proto3" json:"transactions,omitempty"`
+	TotalCount    int32                       `protobuf:"varint,2,opt,name=total_count,json=totalCount,proto3" json:"total_count,omitempty"`
+	Success       bool                        `protobuf:"varint,3,opt,name=success,proto3" json:"success,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetTrackedIncomeTransactionsResponse) Reset() {
+	*x = GetTrackedIncomeTransactionsResponse{}
+	mi := &file_statistics_proto_msgTypes[101]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetTrackedIncomeTransactionsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetTrackedIncomeTransactionsResponse) ProtoMessage() {}
+
+func (x *GetTrackedIncomeTransactionsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_statistics_proto_msgTypes[101]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetTrackedIncomeTransactionsResponse.ProtoReflect.Descriptor instead.
+func (*GetTrackedIncomeTransactionsResponse) Descriptor() ([]byte, []int) {
+	return file_statistics_proto_rawDescGZIP(), []int{101}
+}
+
+func (x *GetTrackedIncomeTransactionsResponse) GetTransactions() []*TrackedIncomeTransaction {
+	if x != nil {
+		return x.Transactions
+	}
+	return nil
+}
+
+func (x *GetTrackedIncomeTransactionsResponse) GetTotalCount() int32 {
+	if x != nil {
+		return x.TotalCount
+	}
+	return 0
+}
+
+func (x *GetTrackedIncomeTransactionsResponse) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
+// Tracked Expenditure Transactions Request/Response
+type GetTrackedExpenditureTransactionsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	StartDate     *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=start_date,json=startDate,proto3" json:"start_date,omitempty"`
+	EndDate       *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=end_date,json=endDate,proto3" json:"end_date,omitempty"`
+	Limit         int32                  `protobuf:"varint,3,opt,name=limit,proto3" json:"limit,omitempty"` // max number of transactions to return
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetTrackedExpenditureTransactionsRequest) Reset() {
+	*x = GetTrackedExpenditureTransactionsRequest{}
+	mi := &file_statistics_proto_msgTypes[102]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetTrackedExpenditureTransactionsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetTrackedExpenditureTransactionsRequest) ProtoMessage() {}
+
+func (x *GetTrackedExpenditureTransactionsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_statistics_proto_msgTypes[102]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetTrackedExpenditureTransactionsRequest.ProtoReflect.Descriptor instead.
+func (*GetTrackedExpenditureTransactionsRequest) Descriptor() ([]byte, []int) {
+	return file_statistics_proto_rawDescGZIP(), []int{102}
+}
+
+func (x *GetTrackedExpenditureTransactionsRequest) GetStartDate() *timestamppb.Timestamp {
+	if x != nil {
+		return x.StartDate
+	}
+	return nil
+}
+
+func (x *GetTrackedExpenditureTransactionsRequest) GetEndDate() *timestamppb.Timestamp {
+	if x != nil {
+		return x.EndDate
+	}
+	return nil
+}
+
+func (x *GetTrackedExpenditureTransactionsRequest) GetLimit() int32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+type GetTrackedExpenditureTransactionsResponse struct {
+	state         protoimpl.MessageState           `protogen:"open.v1"`
+	Transactions  []*TrackedExpenditureTransaction `protobuf:"bytes,1,rep,name=transactions,proto3" json:"transactions,omitempty"`
+	TotalCount    int32                            `protobuf:"varint,2,opt,name=total_count,json=totalCount,proto3" json:"total_count,omitempty"`
+	Success       bool                             `protobuf:"varint,3,opt,name=success,proto3" json:"success,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetTrackedExpenditureTransactionsResponse) Reset() {
+	*x = GetTrackedExpenditureTransactionsResponse{}
+	mi := &file_statistics_proto_msgTypes[103]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetTrackedExpenditureTransactionsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetTrackedExpenditureTransactionsResponse) ProtoMessage() {}
+
+func (x *GetTrackedExpenditureTransactionsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_statistics_proto_msgTypes[103]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetTrackedExpenditureTransactionsResponse.ProtoReflect.Descriptor instead.
+func (*GetTrackedExpenditureTransactionsResponse) Descriptor() ([]byte, []int) {
+	return file_statistics_proto_rawDescGZIP(), []int{103}
+}
+
+func (x *GetTrackedExpenditureTransactionsResponse) GetTransactions() []*TrackedExpenditureTransaction {
+	if x != nil {
+		return x.Transactions
+	}
+	return nil
+}
+
+func (x *GetTrackedExpenditureTransactionsResponse) GetTotalCount() int32 {
+	if x != nil {
+		return x.TotalCount
+	}
+	return 0
+}
+
+func (x *GetTrackedExpenditureTransactionsResponse) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
+// Comprehensive Financial Summary Request/Response
+type GetComprehensiveFinancialSummaryRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	StartDate     *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=start_date,json=startDate,proto3" json:"start_date,omitempty"`
+	EndDate       *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=end_date,json=endDate,proto3" json:"end_date,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetComprehensiveFinancialSummaryRequest) Reset() {
+	*x = GetComprehensiveFinancialSummaryRequest{}
+	mi := &file_statistics_proto_msgTypes[104]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetComprehensiveFinancialSummaryRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetComprehensiveFinancialSummaryRequest) ProtoMessage() {}
+
+func (x *GetComprehensiveFinancialSummaryRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_statistics_proto_msgTypes[104]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetComprehensiveFinancialSummaryRequest.ProtoReflect.Descriptor instead.
+func (*GetComprehensiveFinancialSummaryRequest) Descriptor() ([]byte, []int) {
+	return file_statistics_proto_rawDescGZIP(), []int{104}
+}
+
+func (x *GetComprehensiveFinancialSummaryRequest) GetStartDate() *timestamppb.Timestamp {
+	if x != nil {
+		return x.StartDate
+	}
+	return nil
+}
+
+func (x *GetComprehensiveFinancialSummaryRequest) GetEndDate() *timestamppb.Timestamp {
+	if x != nil {
+		return x.EndDate
+	}
+	return nil
+}
+
+type GetComprehensiveFinancialSummaryResponse struct {
+	state         protoimpl.MessageState         `protogen:"open.v1"`
+	Summary       *ComprehensiveFinancialSummary `protobuf:"bytes,1,opt,name=summary,proto3" json:"summary,omitempty"`
+	Success       bool                           `protobuf:"varint,2,opt,name=success,proto3" json:"success,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetComprehensiveFinancialSummaryResponse) Reset() {
+	*x = GetComprehensiveFinancialSummaryResponse{}
+	mi := &file_statistics_proto_msgTypes[105]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetComprehensiveFinancialSummaryResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetComprehensiveFinancialSummaryResponse) ProtoMessage() {}
+
+func (x *GetComprehensiveFinancialSummaryResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_statistics_proto_msgTypes[105]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetComprehensiveFinancialSummaryResponse.ProtoReflect.Descriptor instead.
+func (*GetComprehensiveFinancialSummaryResponse) Descriptor() ([]byte, []int) {
+	return file_statistics_proto_rawDescGZIP(), []int{105}
+}
+
+func (x *GetComprehensiveFinancialSummaryResponse) GetSummary() *ComprehensiveFinancialSummary {
+	if x != nil {
+		return x.Summary
+	}
+	return nil
+}
+
+func (x *GetComprehensiveFinancialSummaryResponse) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
+type ComprehensiveFinancialSummary struct {
+	state         protoimpl.MessageState        `protogen:"open.v1"`
+	Period        *ComprehensivePeriod          `protobuf:"bytes,1,opt,name=period,proto3" json:"period,omitempty"`
+	Income        *ComprehensiveIncomeData      `protobuf:"bytes,2,opt,name=income,proto3" json:"income,omitempty"`
+	Expenditure   *ComprehensiveExpenditureData `protobuf:"bytes,3,opt,name=expenditure,proto3" json:"expenditure,omitempty"`
+	NetIncome     float64                       `protobuf:"fixed64,4,opt,name=net_income,json=netIncome,proto3" json:"net_income,omitempty"`
+	SavingsRate   float64                       `protobuf:"fixed64,5,opt,name=savings_rate,json=savingsRate,proto3" json:"savings_rate,omitempty"` // percentage
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ComprehensiveFinancialSummary) Reset() {
+	*x = ComprehensiveFinancialSummary{}
+	mi := &file_statistics_proto_msgTypes[106]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ComprehensiveFinancialSummary) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ComprehensiveFinancialSummary) ProtoMessage() {}
+
+func (x *ComprehensiveFinancialSummary) ProtoReflect() protoreflect.Message {
+	mi := &file_statistics_proto_msgTypes[106]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ComprehensiveFinancialSummary.ProtoReflect.Descriptor instead.
+func (*ComprehensiveFinancialSummary) Descriptor() ([]byte, []int) {
+	return file_statistics_proto_rawDescGZIP(), []int{106}
+}
+
+func (x *ComprehensiveFinancialSummary) GetPeriod() *ComprehensivePeriod {
+	if x != nil {
+		return x.Period
+	}
+	return nil
+}
+
+func (x *ComprehensiveFinancialSummary) GetIncome() *ComprehensiveIncomeData {
+	if x != nil {
+		return x.Income
+	}
+	return nil
+}
+
+func (x *ComprehensiveFinancialSummary) GetExpenditure() *ComprehensiveExpenditureData {
+	if x != nil {
+		return x.Expenditure
+	}
+	return nil
+}
+
+func (x *ComprehensiveFinancialSummary) GetNetIncome() float64 {
+	if x != nil {
+		return x.NetIncome
+	}
+	return 0
+}
+
+func (x *ComprehensiveFinancialSummary) GetSavingsRate() float64 {
+	if x != nil {
+		return x.SavingsRate
+	}
+	return 0
+}
+
+type ComprehensivePeriod struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	StartDate     *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=start_date,json=startDate,proto3" json:"start_date,omitempty"`
+	EndDate       *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=end_date,json=endDate,proto3" json:"end_date,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ComprehensivePeriod) Reset() {
+	*x = ComprehensivePeriod{}
+	mi := &file_statistics_proto_msgTypes[107]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ComprehensivePeriod) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ComprehensivePeriod) ProtoMessage() {}
+
+func (x *ComprehensivePeriod) ProtoReflect() protoreflect.Message {
+	mi := &file_statistics_proto_msgTypes[107]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ComprehensivePeriod.ProtoReflect.Descriptor instead.
+func (*ComprehensivePeriod) Descriptor() ([]byte, []int) {
+	return file_statistics_proto_rawDescGZIP(), []int{107}
+}
+
+func (x *ComprehensivePeriod) GetStartDate() *timestamppb.Timestamp {
+	if x != nil {
+		return x.StartDate
+	}
+	return nil
+}
+
+func (x *ComprehensivePeriod) GetEndDate() *timestamppb.Timestamp {
+	if x != nil {
+		return x.EndDate
+	}
+	return nil
+}
+
+type ComprehensiveIncomeData struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	ManualIncome    float64                `protobuf:"fixed64,1,opt,name=manual_income,json=manualIncome,proto3" json:"manual_income,omitempty"`    // from income_sources table
+	TrackedIncome   float64                `protobuf:"fixed64,2,opt,name=tracked_income,json=trackedIncome,proto3" json:"tracked_income,omitempty"` // from income_transactions table (automatic tracking)
+	TotalIncome     float64                `protobuf:"fixed64,3,opt,name=total_income,json=totalIncome,proto3" json:"total_income,omitempty"`
+	IncomeBreakdown map[string]float64     `protobuf:"bytes,4,rep,name=income_breakdown,json=incomeBreakdown,proto3" json:"income_breakdown,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"fixed64,2,opt,name=value"` // breakdown by source type
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *ComprehensiveIncomeData) Reset() {
+	*x = ComprehensiveIncomeData{}
+	mi := &file_statistics_proto_msgTypes[108]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ComprehensiveIncomeData) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ComprehensiveIncomeData) ProtoMessage() {}
+
+func (x *ComprehensiveIncomeData) ProtoReflect() protoreflect.Message {
+	mi := &file_statistics_proto_msgTypes[108]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ComprehensiveIncomeData.ProtoReflect.Descriptor instead.
+func (*ComprehensiveIncomeData) Descriptor() ([]byte, []int) {
+	return file_statistics_proto_rawDescGZIP(), []int{108}
+}
+
+func (x *ComprehensiveIncomeData) GetManualIncome() float64 {
+	if x != nil {
+		return x.ManualIncome
+	}
+	return 0
+}
+
+func (x *ComprehensiveIncomeData) GetTrackedIncome() float64 {
+	if x != nil {
+		return x.TrackedIncome
+	}
+	return 0
+}
+
+func (x *ComprehensiveIncomeData) GetTotalIncome() float64 {
+	if x != nil {
+		return x.TotalIncome
+	}
+	return 0
+}
+
+func (x *ComprehensiveIncomeData) GetIncomeBreakdown() map[string]float64 {
+	if x != nil {
+		return x.IncomeBreakdown
+	}
+	return nil
+}
+
+type ComprehensiveExpenditureData struct {
+	state                protoimpl.MessageState `protogen:"open.v1"`
+	ManualExpenses       float64                `protobuf:"fixed64,1,opt,name=manual_expenses,json=manualExpenses,proto3" json:"manual_expenses,omitempty"`             // from expenses table
+	TrackedExpenditure   float64                `protobuf:"fixed64,2,opt,name=tracked_expenditure,json=trackedExpenditure,proto3" json:"tracked_expenditure,omitempty"` // from expenditure_transactions table (automatic tracking)
+	TotalExpenditure     float64                `protobuf:"fixed64,3,opt,name=total_expenditure,json=totalExpenditure,proto3" json:"total_expenditure,omitempty"`
+	ExpenditureBreakdown map[string]float64     `protobuf:"bytes,4,rep,name=expenditure_breakdown,json=expenditureBreakdown,proto3" json:"expenditure_breakdown,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"fixed64,2,opt,name=value"` // breakdown by expense type
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
+}
+
+func (x *ComprehensiveExpenditureData) Reset() {
+	*x = ComprehensiveExpenditureData{}
+	mi := &file_statistics_proto_msgTypes[109]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ComprehensiveExpenditureData) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ComprehensiveExpenditureData) ProtoMessage() {}
+
+func (x *ComprehensiveExpenditureData) ProtoReflect() protoreflect.Message {
+	mi := &file_statistics_proto_msgTypes[109]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ComprehensiveExpenditureData.ProtoReflect.Descriptor instead.
+func (*ComprehensiveExpenditureData) Descriptor() ([]byte, []int) {
+	return file_statistics_proto_rawDescGZIP(), []int{109}
+}
+
+func (x *ComprehensiveExpenditureData) GetManualExpenses() float64 {
+	if x != nil {
+		return x.ManualExpenses
+	}
+	return 0
+}
+
+func (x *ComprehensiveExpenditureData) GetTrackedExpenditure() float64 {
+	if x != nil {
+		return x.TrackedExpenditure
+	}
+	return 0
+}
+
+func (x *ComprehensiveExpenditureData) GetTotalExpenditure() float64 {
+	if x != nil {
+		return x.TotalExpenditure
+	}
+	return 0
+}
+
+func (x *ComprehensiveExpenditureData) GetExpenditureBreakdown() map[string]float64 {
+	if x != nil {
+		return x.ExpenditureBreakdown
+	}
+	return nil
+}
+
 var File_statistics_proto protoreflect.FileDescriptor
 
 const file_statistics_proto_rawDesc = "" +
@@ -7962,7 +9314,135 @@ const file_statistics_proto_rawDesc = "" +
 	"days_ahead\x18\x01 \x01(\x05R\tdaysAhead\"P\n" +
 	"\x18GetUpcomingBillsResponse\x124\n" +
 	"\n" +
-	"bills_list\x18\x01 \x01(\v2\x15.pb.UpcomingBillsListR\tbillsList*\xd1\x04\n" +
+	"bills_list\x18\x01 \x01(\v2\x15.pb.UpcomingBillsListR\tbillsList\"\xfa\x03\n" +
+	"\x18TrackedIncomeTransaction\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
+	"\auser_id\x18\x02 \x01(\x04R\x06userId\x12\x16\n" +
+	"\x06amount\x18\x03 \x01(\x01R\x06amount\x12\x1a\n" +
+	"\bcurrency\x18\x04 \x01(\tR\bcurrency\x12\x1f\n" +
+	"\vsource_type\x18\x05 \x01(\tR\n" +
+	"sourceType\x12\x1b\n" +
+	"\tsource_id\x18\x06 \x01(\tR\bsourceId\x12)\n" +
+	"\x10source_reference\x18\a \x01(\tR\x0fsourceReference\x12\x1a\n" +
+	"\bcategory\x18\b \x01(\tR\bcategory\x12 \n" +
+	"\vdescription\x18\t \x01(\tR\vdescription\x12\x1b\n" +
+	"\tsender_id\x18\n" +
+	" \x01(\x04R\bsenderId\x12\x1f\n" +
+	"\vsender_name\x18\v \x01(\tR\n" +
+	"senderName\x12E\n" +
+	"\x10transaction_date\x18\f \x01(\v2\x1a.google.protobuf.TimestampR\x0ftransactionDate\x12\x1a\n" +
+	"\bmetadata\x18\r \x01(\tR\bmetadata\x129\n" +
+	"\n" +
+	"created_at\x18\x0e \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\"\xad\x04\n" +
+	"\x1dTrackedExpenditureTransaction\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
+	"\auser_id\x18\x02 \x01(\x04R\x06userId\x12\x16\n" +
+	"\x06amount\x18\x03 \x01(\x01R\x06amount\x12\x1a\n" +
+	"\bcurrency\x18\x04 \x01(\tR\bcurrency\x12!\n" +
+	"\fexpense_type\x18\x05 \x01(\tR\vexpenseType\x12\x1d\n" +
+	"\n" +
+	"expense_id\x18\x06 \x01(\tR\texpenseId\x12+\n" +
+	"\x11expense_reference\x18\a \x01(\tR\x10expenseReference\x12\x1a\n" +
+	"\bcategory\x18\b \x01(\tR\bcategory\x12!\n" +
+	"\frecipient_id\x18\t \x01(\x04R\vrecipientId\x12%\n" +
+	"\x0erecipient_name\x18\n" +
+	" \x01(\tR\rrecipientName\x12\x1a\n" +
+	"\bmerchant\x18\v \x01(\tR\bmerchant\x12 \n" +
+	"\vdescription\x18\f \x01(\tR\vdescription\x12E\n" +
+	"\x10transaction_date\x18\r \x01(\v2\x1a.google.protobuf.TimestampR\x0ftransactionDate\x12\x1a\n" +
+	"\bmetadata\x18\x0e \x01(\tR\bmetadata\x129\n" +
+	"\n" +
+	"created_at\x18\x0f \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\"\x8b\x01\n" +
+	"\x17GetTrackedIncomeRequest\x129\n" +
+	"\n" +
+	"start_date\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\tstartDate\x125\n" +
+	"\bend_date\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\aendDate\"W\n" +
+	"\x18GetTrackedIncomeResponse\x12!\n" +
+	"\ftotal_income\x18\x01 \x01(\x01R\vtotalIncome\x12\x18\n" +
+	"\asuccess\x18\x02 \x01(\bR\asuccess\"\x90\x01\n" +
+	"\x1cGetTrackedExpenditureRequest\x129\n" +
+	"\n" +
+	"start_date\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\tstartDate\x125\n" +
+	"\bend_date\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\aendDate\"f\n" +
+	"\x1dGetTrackedExpenditureResponse\x12+\n" +
+	"\x11total_expenditure\x18\x01 \x01(\x01R\x10totalExpenditure\x12\x18\n" +
+	"\asuccess\x18\x02 \x01(\bR\asuccess\"\x94\x01\n" +
+	" GetTrackedIncomeBreakdownRequest\x129\n" +
+	"\n" +
+	"start_date\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\tstartDate\x125\n" +
+	"\bend_date\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\aendDate\"\x94\x02\n" +
+	"!GetTrackedIncomeBreakdownResponse\x12l\n" +
+	"\x13breakdown_by_source\x18\x01 \x03(\v2<.pb.GetTrackedIncomeBreakdownResponse.BreakdownBySourceEntryR\x11breakdownBySource\x12!\n" +
+	"\ftotal_income\x18\x02 \x01(\x01R\vtotalIncome\x12\x18\n" +
+	"\asuccess\x18\x03 \x01(\bR\asuccess\x1aD\n" +
+	"\x16BreakdownBySourceEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\x01R\x05value:\x028\x01\"\x99\x01\n" +
+	"%GetTrackedExpenditureBreakdownRequest\x129\n" +
+	"\n" +
+	"start_date\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\tstartDate\x125\n" +
+	"\bend_date\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\aendDate\"\xa0\x02\n" +
+	"&GetTrackedExpenditureBreakdownResponse\x12k\n" +
+	"\x11breakdown_by_type\x18\x01 \x03(\v2?.pb.GetTrackedExpenditureBreakdownResponse.BreakdownByTypeEntryR\x0fbreakdownByType\x12+\n" +
+	"\x11total_expenditure\x18\x02 \x01(\x01R\x10totalExpenditure\x12\x18\n" +
+	"\asuccess\x18\x03 \x01(\bR\asuccess\x1aB\n" +
+	"\x14BreakdownByTypeEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\x01R\x05value:\x028\x01\"\xad\x01\n" +
+	"#GetTrackedIncomeTransactionsRequest\x129\n" +
+	"\n" +
+	"start_date\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\tstartDate\x125\n" +
+	"\bend_date\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\aendDate\x12\x14\n" +
+	"\x05limit\x18\x03 \x01(\x05R\x05limit\"\xa3\x01\n" +
+	"$GetTrackedIncomeTransactionsResponse\x12@\n" +
+	"\ftransactions\x18\x01 \x03(\v2\x1c.pb.TrackedIncomeTransactionR\ftransactions\x12\x1f\n" +
+	"\vtotal_count\x18\x02 \x01(\x05R\n" +
+	"totalCount\x12\x18\n" +
+	"\asuccess\x18\x03 \x01(\bR\asuccess\"\xb2\x01\n" +
+	"(GetTrackedExpenditureTransactionsRequest\x129\n" +
+	"\n" +
+	"start_date\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\tstartDate\x125\n" +
+	"\bend_date\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\aendDate\x12\x14\n" +
+	"\x05limit\x18\x03 \x01(\x05R\x05limit\"\xad\x01\n" +
+	")GetTrackedExpenditureTransactionsResponse\x12E\n" +
+	"\ftransactions\x18\x01 \x03(\v2!.pb.TrackedExpenditureTransactionR\ftransactions\x12\x1f\n" +
+	"\vtotal_count\x18\x02 \x01(\x05R\n" +
+	"totalCount\x12\x18\n" +
+	"\asuccess\x18\x03 \x01(\bR\asuccess\"\x9b\x01\n" +
+	"'GetComprehensiveFinancialSummaryRequest\x129\n" +
+	"\n" +
+	"start_date\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\tstartDate\x125\n" +
+	"\bend_date\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\aendDate\"\x81\x01\n" +
+	"(GetComprehensiveFinancialSummaryResponse\x12;\n" +
+	"\asummary\x18\x01 \x01(\v2!.pb.ComprehensiveFinancialSummaryR\asummary\x12\x18\n" +
+	"\asuccess\x18\x02 \x01(\bR\asuccess\"\x8b\x02\n" +
+	"\x1dComprehensiveFinancialSummary\x12/\n" +
+	"\x06period\x18\x01 \x01(\v2\x17.pb.ComprehensivePeriodR\x06period\x123\n" +
+	"\x06income\x18\x02 \x01(\v2\x1b.pb.ComprehensiveIncomeDataR\x06income\x12B\n" +
+	"\vexpenditure\x18\x03 \x01(\v2 .pb.ComprehensiveExpenditureDataR\vexpenditure\x12\x1d\n" +
+	"\n" +
+	"net_income\x18\x04 \x01(\x01R\tnetIncome\x12!\n" +
+	"\fsavings_rate\x18\x05 \x01(\x01R\vsavingsRate\"\x87\x01\n" +
+	"\x13ComprehensivePeriod\x129\n" +
+	"\n" +
+	"start_date\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\tstartDate\x125\n" +
+	"\bend_date\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\aendDate\"\xa9\x02\n" +
+	"\x17ComprehensiveIncomeData\x12#\n" +
+	"\rmanual_income\x18\x01 \x01(\x01R\fmanualIncome\x12%\n" +
+	"\x0etracked_income\x18\x02 \x01(\x01R\rtrackedIncome\x12!\n" +
+	"\ftotal_income\x18\x03 \x01(\x01R\vtotalIncome\x12[\n" +
+	"\x10income_breakdown\x18\x04 \x03(\v20.pb.ComprehensiveIncomeData.IncomeBreakdownEntryR\x0fincomeBreakdown\x1aB\n" +
+	"\x14IncomeBreakdownEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\x01R\x05value:\x028\x01\"\xdf\x02\n" +
+	"\x1cComprehensiveExpenditureData\x12'\n" +
+	"\x0fmanual_expenses\x18\x01 \x01(\x01R\x0emanualExpenses\x12/\n" +
+	"\x13tracked_expenditure\x18\x02 \x01(\x01R\x12trackedExpenditure\x12+\n" +
+	"\x11total_expenditure\x18\x03 \x01(\x01R\x10totalExpenditure\x12o\n" +
+	"\x15expenditure_breakdown\x18\x04 \x03(\v2:.pb.ComprehensiveExpenditureData.ExpenditureBreakdownEntryR\x14expenditureBreakdown\x1aG\n" +
+	"\x19ExpenditureBreakdownEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\x01R\x05value:\x028\x01*\xd1\x04\n" +
 	"\x0fExpenseCategory\x12 \n" +
 	"\x1cEXPENSE_CATEGORY_UNSPECIFIED\x10\x00\x12 \n" +
 	"\x1cEXPENSE_CATEGORY_FOOD_DINING\x10\x01\x12#\n" +
@@ -8048,7 +9528,7 @@ const file_statistics_proto_rawDesc = "" +
 	"\x14BILL_STATUS_UPCOMING\x10\x01\x12\x14\n" +
 	"\x10BILL_STATUS_PAID\x10\x02\x12\x17\n" +
 	"\x13BILL_STATUS_OVERDUE\x10\x03\x12\x19\n" +
-	"\x15BILL_STATUS_CANCELLED\x10\x042\x94\x1f\n" +
+	"\x15BILL_STATUS_CANCELLED\x10\x042\xf3'\n" +
 	"\x11StatisticsService\x12h\n" +
 	"\rCreateExpense\x12\x18.pb.CreateExpenseRequest\x1a\x19.pb.CreateExpenseResponse\"\"\x82\xd3\xe4\x93\x02\x1c:\x01*\"\x17/v1/statistics/expenses\x12_\n" +
 	"\vGetExpenses\x12\x16.pb.GetExpensesRequest\x1a\x17.pb.GetExpensesResponse\"\x1f\x82\xd3\xe4\x93\x02\x19\x12\x17/v1/statistics/expenses\x12u\n" +
@@ -8082,7 +9562,14 @@ const file_statistics_proto_rawDesc = "" +
 	"\x0eGetSavingsGoal\x12\x19.pb.GetSavingsGoalRequest\x1a\x1a.pb.GetSavingsGoalResponse\"#\x82\xd3\xe4\x93\x02\x1d\x12\x1b/v1/statistics/savings/goal\x12\x90\x01\n" +
 	"\x19CreateOrUpdateSavingsGoal\x12$.pb.CreateOrUpdateSavingsGoalRequest\x1a%.pb.CreateOrUpdateSavingsGoalResponse\"&\x82\xd3\xe4\x93\x02 :\x01*\"\x1b/v1/statistics/savings/goal\x12t\n" +
 	"\x10GetUpcomingBills\x12\x1b.pb.GetUpcomingBillsRequest\x1a\x1c.pb.GetUpcomingBillsResponse\"%\x82\xd3\xe4\x93\x02\x1f\x12\x1d/v1/statistics/bills/upcoming\x12\x81\x01\n" +
-	"\x13CreateRecurringBill\x12\x1e.pb.CreateRecurringBillRequest\x1a\x1f.pb.CreateRecurringBillResponse\")\x82\xd3\xe4\x93\x02#:\x01*\"\x1e/v1/statistics/bills/recurringB\x11Z\x0flazervaultGo/pbb\x06proto3"
+	"\x13CreateRecurringBill\x12\x1e.pb.CreateRecurringBillRequest\x1a\x1f.pb.CreateRecurringBillResponse\")\x82\xd3\xe4\x93\x02#:\x01*\"\x1e/v1/statistics/bills/recurring\x12t\n" +
+	"\x10GetTrackedIncome\x12\x1b.pb.GetTrackedIncomeRequest\x1a\x1c.pb.GetTrackedIncomeResponse\"%\x82\xd3\xe4\x93\x02\x1f\x12\x1d/v1/statistics/tracked/income\x12\x88\x01\n" +
+	"\x15GetTrackedExpenditure\x12 .pb.GetTrackedExpenditureRequest\x1a!.pb.GetTrackedExpenditureResponse\"*\x82\xd3\xe4\x93\x02$\x12\"/v1/statistics/tracked/expenditure\x12\x99\x01\n" +
+	"\x19GetTrackedIncomeBreakdown\x12$.pb.GetTrackedIncomeBreakdownRequest\x1a%.pb.GetTrackedIncomeBreakdownResponse\"/\x82\xd3\xe4\x93\x02)\x12'/v1/statistics/tracked/income/breakdown\x12\xad\x01\n" +
+	"\x1eGetTrackedExpenditureBreakdown\x12).pb.GetTrackedExpenditureBreakdownRequest\x1a*.pb.GetTrackedExpenditureBreakdownResponse\"4\x82\xd3\xe4\x93\x02.\x12,/v1/statistics/tracked/expenditure/breakdown\x12\xa5\x01\n" +
+	"\x1cGetTrackedIncomeTransactions\x12'.pb.GetTrackedIncomeTransactionsRequest\x1a(.pb.GetTrackedIncomeTransactionsResponse\"2\x82\xd3\xe4\x93\x02,\x12*/v1/statistics/tracked/income/transactions\x12\xb9\x01\n" +
+	"!GetTrackedExpenditureTransactions\x12,.pb.GetTrackedExpenditureTransactionsRequest\x1a-.pb.GetTrackedExpenditureTransactionsResponse\"7\x82\xd3\xe4\x93\x021\x12//v1/statistics/tracked/expenditure/transactions\x12\xab\x01\n" +
+	" GetComprehensiveFinancialSummary\x12+.pb.GetComprehensiveFinancialSummaryRequest\x1a,.pb.GetComprehensiveFinancialSummaryResponse\",\x82\xd3\xe4\x93\x02&\x12$/v1/statistics/comprehensive/summaryB\x11Z\x0flazervaultGo/pbb\x06proto3"
 
 var (
 	file_statistics_proto_rawDescOnce sync.Once
@@ -8097,148 +9584,172 @@ func file_statistics_proto_rawDescGZIP() []byte {
 }
 
 var file_statistics_proto_enumTypes = make([]protoimpl.EnumInfo, 9)
-var file_statistics_proto_msgTypes = make([]protoimpl.MessageInfo, 90)
+var file_statistics_proto_msgTypes = make([]protoimpl.MessageInfo, 114)
 var file_statistics_proto_goTypes = []any{
-	(ExpenseCategory)(0),                          // 0: pb.ExpenseCategory
-	(BudgetPeriod)(0),                             // 1: pb.BudgetPeriod
-	(BudgetStatus)(0),                             // 2: pb.BudgetStatus
-	(AlertType)(0),                                // 3: pb.AlertType
-	(IncomeCategory)(0),                           // 4: pb.IncomeCategory
-	(InvestmentType)(0),                           // 5: pb.InvestmentType
-	(GoalStatus)(0),                               // 6: pb.GoalStatus
-	(GoalType)(0),                                 // 7: pb.GoalType
-	(BillStatus)(0),                               // 8: pb.BillStatus
-	(*ExpenseMessage)(nil),                        // 9: pb.ExpenseMessage
-	(*BudgetMessage)(nil),                         // 10: pb.BudgetMessage
-	(*BudgetAlertMessage)(nil),                    // 11: pb.BudgetAlertMessage
-	(*SpendingAnalytics)(nil),                     // 12: pb.SpendingAnalytics
-	(*CategorySpending)(nil),                      // 13: pb.CategorySpending
-	(*DailySpending)(nil),                         // 14: pb.DailySpending
-	(*BudgetProgressItem)(nil),                    // 15: pb.BudgetProgressItem
-	(*SpendingTrend)(nil),                         // 16: pb.SpendingTrend
-	(*CreateExpenseRequest)(nil),                  // 17: pb.CreateExpenseRequest
-	(*CreateExpenseResponse)(nil),                 // 18: pb.CreateExpenseResponse
-	(*GetExpensesRequest)(nil),                    // 19: pb.GetExpensesRequest
-	(*GetExpensesResponse)(nil),                   // 20: pb.GetExpensesResponse
-	(*GetExpenseByIdRequest)(nil),                 // 21: pb.GetExpenseByIdRequest
-	(*GetExpenseByIdResponse)(nil),                // 22: pb.GetExpenseByIdResponse
-	(*UpdateExpenseRequest)(nil),                  // 23: pb.UpdateExpenseRequest
-	(*UpdateExpenseResponse)(nil),                 // 24: pb.UpdateExpenseResponse
-	(*DeleteExpenseRequest)(nil),                  // 25: pb.DeleteExpenseRequest
-	(*DeleteExpenseResponse)(nil),                 // 26: pb.DeleteExpenseResponse
-	(*CreateBudgetRequest)(nil),                   // 27: pb.CreateBudgetRequest
-	(*CreateBudgetResponse)(nil),                  // 28: pb.CreateBudgetResponse
-	(*GetBudgetsRequest)(nil),                     // 29: pb.GetBudgetsRequest
-	(*GetBudgetsResponse)(nil),                    // 30: pb.GetBudgetsResponse
-	(*GetBudgetByIdRequest)(nil),                  // 31: pb.GetBudgetByIdRequest
-	(*GetBudgetByIdResponse)(nil),                 // 32: pb.GetBudgetByIdResponse
-	(*UpdateBudgetRequest)(nil),                   // 33: pb.UpdateBudgetRequest
-	(*UpdateBudgetResponse)(nil),                  // 34: pb.UpdateBudgetResponse
-	(*DeleteBudgetRequest)(nil),                   // 35: pb.DeleteBudgetRequest
-	(*DeleteBudgetResponse)(nil),                  // 36: pb.DeleteBudgetResponse
-	(*GetSpendingAnalyticsRequest)(nil),           // 37: pb.GetSpendingAnalyticsRequest
-	(*GetSpendingAnalyticsResponse)(nil),          // 38: pb.GetSpendingAnalyticsResponse
-	(*GetCategoryBreakdownRequest)(nil),           // 39: pb.GetCategoryBreakdownRequest
-	(*GetCategoryBreakdownResponse)(nil),          // 40: pb.GetCategoryBreakdownResponse
-	(*GetBudgetProgressRequest)(nil),              // 41: pb.GetBudgetProgressRequest
-	(*GetBudgetProgressResponse)(nil),             // 42: pb.GetBudgetProgressResponse
-	(*GetSpendingTrendsRequest)(nil),              // 43: pb.GetSpendingTrendsRequest
-	(*GetSpendingTrendsResponse)(nil),             // 44: pb.GetSpendingTrendsResponse
-	(*GetBudgetAlertsRequest)(nil),                // 45: pb.GetBudgetAlertsRequest
-	(*GetBudgetAlertsResponse)(nil),               // 46: pb.GetBudgetAlertsResponse
-	(*MarkAlertAsReadRequest)(nil),                // 47: pb.MarkAlertAsReadRequest
-	(*MarkAlertAsReadResponse)(nil),               // 48: pb.MarkAlertAsReadResponse
-	(*PaginationMetadata)(nil),                    // 49: pb.PaginationMetadata
-	(*GetAISpendingInsightsRequest)(nil),          // 50: pb.GetAISpendingInsightsRequest
-	(*GetAISpendingInsightsResponse)(nil),         // 51: pb.GetAISpendingInsightsResponse
-	(*AIInsight)(nil),                             // 52: pb.AIInsight
-	(*AIRecommendation)(nil),                      // 53: pb.AIRecommendation
-	(*AnomalyDetection)(nil),                      // 54: pb.AnomalyDetection
-	(*GetAIBudgetingRecommendationsRequest)(nil),  // 55: pb.GetAIBudgetingRecommendationsRequest
-	(*GetAIBudgetingRecommendationsResponse)(nil), // 56: pb.GetAIBudgetingRecommendationsResponse
-	(*BudgetRecommendation)(nil),                  // 57: pb.BudgetRecommendation
-	(*AutoCategorizeExpenseRequest)(nil),          // 58: pb.AutoCategorizeExpenseRequest
-	(*AutoCategorizeExpenseResponse)(nil),         // 59: pb.AutoCategorizeExpenseResponse
-	(*CategorySuggestion)(nil),                    // 60: pb.CategorySuggestion
-	(*GetAIFinancialAdviceRequest)(nil),           // 61: pb.GetAIFinancialAdviceRequest
-	(*GetAIFinancialAdviceResponse)(nil),          // 62: pb.GetAIFinancialAdviceResponse
-	(*ActionStep)(nil),                            // 63: pb.ActionStep
-	(*IncomeSource)(nil),                          // 64: pb.IncomeSource
-	(*IncomeBreakdown)(nil),                       // 65: pb.IncomeBreakdown
-	(*IncomeCategoryData)(nil),                    // 66: pb.IncomeCategoryData
-	(*Investment)(nil),                            // 67: pb.Investment
-	(*InvestmentPortfolio)(nil),                   // 68: pb.InvestmentPortfolio
-	(*InvestmentTypeData)(nil),                    // 69: pb.InvestmentTypeData
-	(*FinancialGoal)(nil),                         // 70: pb.FinancialGoal
-	(*FinancialGoalsList)(nil),                    // 71: pb.FinancialGoalsList
-	(*SavingsGoal)(nil),                           // 72: pb.SavingsGoal
-	(*RecurringBill)(nil),                         // 73: pb.RecurringBill
-	(*UpcomingBillsList)(nil),                     // 74: pb.UpcomingBillsList
-	(*CreateIncomeSourceRequest)(nil),             // 75: pb.CreateIncomeSourceRequest
-	(*CreateIncomeSourceResponse)(nil),            // 76: pb.CreateIncomeSourceResponse
-	(*GetIncomeSourcesRequest)(nil),               // 77: pb.GetIncomeSourcesRequest
-	(*GetIncomeSourcesResponse)(nil),              // 78: pb.GetIncomeSourcesResponse
-	(*GetIncomeBreakdownRequest)(nil),             // 79: pb.GetIncomeBreakdownRequest
-	(*GetIncomeBreakdownResponse)(nil),            // 80: pb.GetIncomeBreakdownResponse
-	(*GetInvestmentPortfolioRequest)(nil),         // 81: pb.GetInvestmentPortfolioRequest
-	(*GetInvestmentPortfolioResponse)(nil),        // 82: pb.GetInvestmentPortfolioResponse
-	(*CreateInvestmentRequest)(nil),               // 83: pb.CreateInvestmentRequest
-	(*CreateInvestmentResponse)(nil),              // 84: pb.CreateInvestmentResponse
-	(*CreateFinancialGoalRequest)(nil),            // 85: pb.CreateFinancialGoalRequest
-	(*CreateFinancialGoalResponse)(nil),           // 86: pb.CreateFinancialGoalResponse
-	(*GetFinancialGoalsRequest)(nil),              // 87: pb.GetFinancialGoalsRequest
-	(*GetFinancialGoalsResponse)(nil),             // 88: pb.GetFinancialGoalsResponse
-	(*UpdateFinancialGoalProgressRequest)(nil),    // 89: pb.UpdateFinancialGoalProgressRequest
-	(*UpdateFinancialGoalProgressResponse)(nil),   // 90: pb.UpdateFinancialGoalProgressResponse
-	(*GetSavingsGoalRequest)(nil),                 // 91: pb.GetSavingsGoalRequest
-	(*GetSavingsGoalResponse)(nil),                // 92: pb.GetSavingsGoalResponse
-	(*CreateOrUpdateSavingsGoalRequest)(nil),      // 93: pb.CreateOrUpdateSavingsGoalRequest
-	(*CreateOrUpdateSavingsGoalResponse)(nil),     // 94: pb.CreateOrUpdateSavingsGoalResponse
-	(*CreateRecurringBillRequest)(nil),            // 95: pb.CreateRecurringBillRequest
-	(*CreateRecurringBillResponse)(nil),           // 96: pb.CreateRecurringBillResponse
-	(*GetUpcomingBillsRequest)(nil),               // 97: pb.GetUpcomingBillsRequest
-	(*GetUpcomingBillsResponse)(nil),              // 98: pb.GetUpcomingBillsResponse
-	(*timestamppb.Timestamp)(nil),                 // 99: google.protobuf.Timestamp
+	(ExpenseCategory)(0),                              // 0: pb.ExpenseCategory
+	(BudgetPeriod)(0),                                 // 1: pb.BudgetPeriod
+	(BudgetStatus)(0),                                 // 2: pb.BudgetStatus
+	(AlertType)(0),                                    // 3: pb.AlertType
+	(IncomeCategory)(0),                               // 4: pb.IncomeCategory
+	(InvestmentType)(0),                               // 5: pb.InvestmentType
+	(GoalStatus)(0),                                   // 6: pb.GoalStatus
+	(GoalType)(0),                                     // 7: pb.GoalType
+	(BillStatus)(0),                                   // 8: pb.BillStatus
+	(*ExpenseMessage)(nil),                            // 9: pb.ExpenseMessage
+	(*BudgetMessage)(nil),                             // 10: pb.BudgetMessage
+	(*BudgetAlertMessage)(nil),                        // 11: pb.BudgetAlertMessage
+	(*SpendingAnalytics)(nil),                         // 12: pb.SpendingAnalytics
+	(*CategorySpending)(nil),                          // 13: pb.CategorySpending
+	(*DailySpending)(nil),                             // 14: pb.DailySpending
+	(*BudgetProgressItem)(nil),                        // 15: pb.BudgetProgressItem
+	(*SpendingTrend)(nil),                             // 16: pb.SpendingTrend
+	(*CreateExpenseRequest)(nil),                      // 17: pb.CreateExpenseRequest
+	(*CreateExpenseResponse)(nil),                     // 18: pb.CreateExpenseResponse
+	(*GetExpensesRequest)(nil),                        // 19: pb.GetExpensesRequest
+	(*GetExpensesResponse)(nil),                       // 20: pb.GetExpensesResponse
+	(*GetExpenseByIdRequest)(nil),                     // 21: pb.GetExpenseByIdRequest
+	(*GetExpenseByIdResponse)(nil),                    // 22: pb.GetExpenseByIdResponse
+	(*UpdateExpenseRequest)(nil),                      // 23: pb.UpdateExpenseRequest
+	(*UpdateExpenseResponse)(nil),                     // 24: pb.UpdateExpenseResponse
+	(*DeleteExpenseRequest)(nil),                      // 25: pb.DeleteExpenseRequest
+	(*DeleteExpenseResponse)(nil),                     // 26: pb.DeleteExpenseResponse
+	(*CreateBudgetRequest)(nil),                       // 27: pb.CreateBudgetRequest
+	(*CreateBudgetResponse)(nil),                      // 28: pb.CreateBudgetResponse
+	(*GetBudgetsRequest)(nil),                         // 29: pb.GetBudgetsRequest
+	(*GetBudgetsResponse)(nil),                        // 30: pb.GetBudgetsResponse
+	(*GetBudgetByIdRequest)(nil),                      // 31: pb.GetBudgetByIdRequest
+	(*GetBudgetByIdResponse)(nil),                     // 32: pb.GetBudgetByIdResponse
+	(*UpdateBudgetRequest)(nil),                       // 33: pb.UpdateBudgetRequest
+	(*UpdateBudgetResponse)(nil),                      // 34: pb.UpdateBudgetResponse
+	(*DeleteBudgetRequest)(nil),                       // 35: pb.DeleteBudgetRequest
+	(*DeleteBudgetResponse)(nil),                      // 36: pb.DeleteBudgetResponse
+	(*GetSpendingAnalyticsRequest)(nil),               // 37: pb.GetSpendingAnalyticsRequest
+	(*GetSpendingAnalyticsResponse)(nil),              // 38: pb.GetSpendingAnalyticsResponse
+	(*GetCategoryBreakdownRequest)(nil),               // 39: pb.GetCategoryBreakdownRequest
+	(*GetCategoryBreakdownResponse)(nil),              // 40: pb.GetCategoryBreakdownResponse
+	(*GetBudgetProgressRequest)(nil),                  // 41: pb.GetBudgetProgressRequest
+	(*GetBudgetProgressResponse)(nil),                 // 42: pb.GetBudgetProgressResponse
+	(*GetSpendingTrendsRequest)(nil),                  // 43: pb.GetSpendingTrendsRequest
+	(*GetSpendingTrendsResponse)(nil),                 // 44: pb.GetSpendingTrendsResponse
+	(*GetBudgetAlertsRequest)(nil),                    // 45: pb.GetBudgetAlertsRequest
+	(*GetBudgetAlertsResponse)(nil),                   // 46: pb.GetBudgetAlertsResponse
+	(*MarkAlertAsReadRequest)(nil),                    // 47: pb.MarkAlertAsReadRequest
+	(*MarkAlertAsReadResponse)(nil),                   // 48: pb.MarkAlertAsReadResponse
+	(*PaginationMetadata)(nil),                        // 49: pb.PaginationMetadata
+	(*GetAISpendingInsightsRequest)(nil),              // 50: pb.GetAISpendingInsightsRequest
+	(*GetAISpendingInsightsResponse)(nil),             // 51: pb.GetAISpendingInsightsResponse
+	(*AIInsight)(nil),                                 // 52: pb.AIInsight
+	(*AIRecommendation)(nil),                          // 53: pb.AIRecommendation
+	(*AnomalyDetection)(nil),                          // 54: pb.AnomalyDetection
+	(*GetAIBudgetingRecommendationsRequest)(nil),      // 55: pb.GetAIBudgetingRecommendationsRequest
+	(*GetAIBudgetingRecommendationsResponse)(nil),     // 56: pb.GetAIBudgetingRecommendationsResponse
+	(*BudgetRecommendation)(nil),                      // 57: pb.BudgetRecommendation
+	(*AutoCategorizeExpenseRequest)(nil),              // 58: pb.AutoCategorizeExpenseRequest
+	(*AutoCategorizeExpenseResponse)(nil),             // 59: pb.AutoCategorizeExpenseResponse
+	(*CategorySuggestion)(nil),                        // 60: pb.CategorySuggestion
+	(*GetAIFinancialAdviceRequest)(nil),               // 61: pb.GetAIFinancialAdviceRequest
+	(*GetAIFinancialAdviceResponse)(nil),              // 62: pb.GetAIFinancialAdviceResponse
+	(*ActionStep)(nil),                                // 63: pb.ActionStep
+	(*IncomeSource)(nil),                              // 64: pb.IncomeSource
+	(*IncomeBreakdown)(nil),                           // 65: pb.IncomeBreakdown
+	(*IncomeCategoryData)(nil),                        // 66: pb.IncomeCategoryData
+	(*Investment)(nil),                                // 67: pb.Investment
+	(*InvestmentPortfolio)(nil),                       // 68: pb.InvestmentPortfolio
+	(*InvestmentTypeData)(nil),                        // 69: pb.InvestmentTypeData
+	(*FinancialGoal)(nil),                             // 70: pb.FinancialGoal
+	(*FinancialGoalsList)(nil),                        // 71: pb.FinancialGoalsList
+	(*SavingsGoal)(nil),                               // 72: pb.SavingsGoal
+	(*RecurringBill)(nil),                             // 73: pb.RecurringBill
+	(*UpcomingBillsList)(nil),                         // 74: pb.UpcomingBillsList
+	(*CreateIncomeSourceRequest)(nil),                 // 75: pb.CreateIncomeSourceRequest
+	(*CreateIncomeSourceResponse)(nil),                // 76: pb.CreateIncomeSourceResponse
+	(*GetIncomeSourcesRequest)(nil),                   // 77: pb.GetIncomeSourcesRequest
+	(*GetIncomeSourcesResponse)(nil),                  // 78: pb.GetIncomeSourcesResponse
+	(*GetIncomeBreakdownRequest)(nil),                 // 79: pb.GetIncomeBreakdownRequest
+	(*GetIncomeBreakdownResponse)(nil),                // 80: pb.GetIncomeBreakdownResponse
+	(*GetInvestmentPortfolioRequest)(nil),             // 81: pb.GetInvestmentPortfolioRequest
+	(*GetInvestmentPortfolioResponse)(nil),            // 82: pb.GetInvestmentPortfolioResponse
+	(*CreateInvestmentRequest)(nil),                   // 83: pb.CreateInvestmentRequest
+	(*CreateInvestmentResponse)(nil),                  // 84: pb.CreateInvestmentResponse
+	(*CreateFinancialGoalRequest)(nil),                // 85: pb.CreateFinancialGoalRequest
+	(*CreateFinancialGoalResponse)(nil),               // 86: pb.CreateFinancialGoalResponse
+	(*GetFinancialGoalsRequest)(nil),                  // 87: pb.GetFinancialGoalsRequest
+	(*GetFinancialGoalsResponse)(nil),                 // 88: pb.GetFinancialGoalsResponse
+	(*UpdateFinancialGoalProgressRequest)(nil),        // 89: pb.UpdateFinancialGoalProgressRequest
+	(*UpdateFinancialGoalProgressResponse)(nil),       // 90: pb.UpdateFinancialGoalProgressResponse
+	(*GetSavingsGoalRequest)(nil),                     // 91: pb.GetSavingsGoalRequest
+	(*GetSavingsGoalResponse)(nil),                    // 92: pb.GetSavingsGoalResponse
+	(*CreateOrUpdateSavingsGoalRequest)(nil),          // 93: pb.CreateOrUpdateSavingsGoalRequest
+	(*CreateOrUpdateSavingsGoalResponse)(nil),         // 94: pb.CreateOrUpdateSavingsGoalResponse
+	(*CreateRecurringBillRequest)(nil),                // 95: pb.CreateRecurringBillRequest
+	(*CreateRecurringBillResponse)(nil),               // 96: pb.CreateRecurringBillResponse
+	(*GetUpcomingBillsRequest)(nil),                   // 97: pb.GetUpcomingBillsRequest
+	(*GetUpcomingBillsResponse)(nil),                  // 98: pb.GetUpcomingBillsResponse
+	(*TrackedIncomeTransaction)(nil),                  // 99: pb.TrackedIncomeTransaction
+	(*TrackedExpenditureTransaction)(nil),             // 100: pb.TrackedExpenditureTransaction
+	(*GetTrackedIncomeRequest)(nil),                   // 101: pb.GetTrackedIncomeRequest
+	(*GetTrackedIncomeResponse)(nil),                  // 102: pb.GetTrackedIncomeResponse
+	(*GetTrackedExpenditureRequest)(nil),              // 103: pb.GetTrackedExpenditureRequest
+	(*GetTrackedExpenditureResponse)(nil),             // 104: pb.GetTrackedExpenditureResponse
+	(*GetTrackedIncomeBreakdownRequest)(nil),          // 105: pb.GetTrackedIncomeBreakdownRequest
+	(*GetTrackedIncomeBreakdownResponse)(nil),         // 106: pb.GetTrackedIncomeBreakdownResponse
+	(*GetTrackedExpenditureBreakdownRequest)(nil),     // 107: pb.GetTrackedExpenditureBreakdownRequest
+	(*GetTrackedExpenditureBreakdownResponse)(nil),    // 108: pb.GetTrackedExpenditureBreakdownResponse
+	(*GetTrackedIncomeTransactionsRequest)(nil),       // 109: pb.GetTrackedIncomeTransactionsRequest
+	(*GetTrackedIncomeTransactionsResponse)(nil),      // 110: pb.GetTrackedIncomeTransactionsResponse
+	(*GetTrackedExpenditureTransactionsRequest)(nil),  // 111: pb.GetTrackedExpenditureTransactionsRequest
+	(*GetTrackedExpenditureTransactionsResponse)(nil), // 112: pb.GetTrackedExpenditureTransactionsResponse
+	(*GetComprehensiveFinancialSummaryRequest)(nil),   // 113: pb.GetComprehensiveFinancialSummaryRequest
+	(*GetComprehensiveFinancialSummaryResponse)(nil),  // 114: pb.GetComprehensiveFinancialSummaryResponse
+	(*ComprehensiveFinancialSummary)(nil),             // 115: pb.ComprehensiveFinancialSummary
+	(*ComprehensivePeriod)(nil),                       // 116: pb.ComprehensivePeriod
+	(*ComprehensiveIncomeData)(nil),                   // 117: pb.ComprehensiveIncomeData
+	(*ComprehensiveExpenditureData)(nil),              // 118: pb.ComprehensiveExpenditureData
+	nil,                                               // 119: pb.GetTrackedIncomeBreakdownResponse.BreakdownBySourceEntry
+	nil,                                               // 120: pb.GetTrackedExpenditureBreakdownResponse.BreakdownByTypeEntry
+	nil,                                               // 121: pb.ComprehensiveIncomeData.IncomeBreakdownEntry
+	nil,                                               // 122: pb.ComprehensiveExpenditureData.ExpenditureBreakdownEntry
+	(*timestamppb.Timestamp)(nil),                     // 123: google.protobuf.Timestamp
 }
 var file_statistics_proto_depIdxs = []int32{
 	0,   // 0: pb.ExpenseMessage.category:type_name -> pb.ExpenseCategory
-	99,  // 1: pb.ExpenseMessage.transaction_date:type_name -> google.protobuf.Timestamp
-	99,  // 2: pb.ExpenseMessage.created_at:type_name -> google.protobuf.Timestamp
-	99,  // 3: pb.ExpenseMessage.updated_at:type_name -> google.protobuf.Timestamp
+	123, // 1: pb.ExpenseMessage.transaction_date:type_name -> google.protobuf.Timestamp
+	123, // 2: pb.ExpenseMessage.created_at:type_name -> google.protobuf.Timestamp
+	123, // 3: pb.ExpenseMessage.updated_at:type_name -> google.protobuf.Timestamp
 	0,   // 4: pb.BudgetMessage.category:type_name -> pb.ExpenseCategory
 	1,   // 5: pb.BudgetMessage.period:type_name -> pb.BudgetPeriod
-	99,  // 6: pb.BudgetMessage.start_date:type_name -> google.protobuf.Timestamp
-	99,  // 7: pb.BudgetMessage.end_date:type_name -> google.protobuf.Timestamp
+	123, // 6: pb.BudgetMessage.start_date:type_name -> google.protobuf.Timestamp
+	123, // 7: pb.BudgetMessage.end_date:type_name -> google.protobuf.Timestamp
 	2,   // 8: pb.BudgetMessage.status:type_name -> pb.BudgetStatus
-	99,  // 9: pb.BudgetMessage.created_at:type_name -> google.protobuf.Timestamp
-	99,  // 10: pb.BudgetMessage.updated_at:type_name -> google.protobuf.Timestamp
+	123, // 9: pb.BudgetMessage.created_at:type_name -> google.protobuf.Timestamp
+	123, // 10: pb.BudgetMessage.updated_at:type_name -> google.protobuf.Timestamp
 	3,   // 11: pb.BudgetAlertMessage.alert_type:type_name -> pb.AlertType
-	99,  // 12: pb.BudgetAlertMessage.created_at:type_name -> google.protobuf.Timestamp
+	123, // 12: pb.BudgetAlertMessage.created_at:type_name -> google.protobuf.Timestamp
 	13,  // 13: pb.SpendingAnalytics.category_breakdown:type_name -> pb.CategorySpending
 	14,  // 14: pb.SpendingAnalytics.daily_trend:type_name -> pb.DailySpending
 	0,   // 15: pb.CategorySpending.category:type_name -> pb.ExpenseCategory
-	99,  // 16: pb.DailySpending.date:type_name -> google.protobuf.Timestamp
+	123, // 16: pb.DailySpending.date:type_name -> google.protobuf.Timestamp
 	0,   // 17: pb.BudgetProgressItem.category:type_name -> pb.ExpenseCategory
 	2,   // 18: pb.BudgetProgressItem.status:type_name -> pb.BudgetStatus
-	99,  // 19: pb.SpendingTrend.period_start:type_name -> google.protobuf.Timestamp
-	99,  // 20: pb.SpendingTrend.period_end:type_name -> google.protobuf.Timestamp
+	123, // 19: pb.SpendingTrend.period_start:type_name -> google.protobuf.Timestamp
+	123, // 20: pb.SpendingTrend.period_end:type_name -> google.protobuf.Timestamp
 	13,  // 21: pb.SpendingTrend.categories:type_name -> pb.CategorySpending
 	0,   // 22: pb.CreateExpenseRequest.category:type_name -> pb.ExpenseCategory
-	99,  // 23: pb.CreateExpenseRequest.transaction_date:type_name -> google.protobuf.Timestamp
+	123, // 23: pb.CreateExpenseRequest.transaction_date:type_name -> google.protobuf.Timestamp
 	9,   // 24: pb.CreateExpenseResponse.expense:type_name -> pb.ExpenseMessage
-	99,  // 25: pb.GetExpensesRequest.start_date:type_name -> google.protobuf.Timestamp
-	99,  // 26: pb.GetExpensesRequest.end_date:type_name -> google.protobuf.Timestamp
+	123, // 25: pb.GetExpensesRequest.start_date:type_name -> google.protobuf.Timestamp
+	123, // 26: pb.GetExpensesRequest.end_date:type_name -> google.protobuf.Timestamp
 	0,   // 27: pb.GetExpensesRequest.category:type_name -> pb.ExpenseCategory
 	9,   // 28: pb.GetExpensesResponse.expenses:type_name -> pb.ExpenseMessage
 	49,  // 29: pb.GetExpensesResponse.pagination:type_name -> pb.PaginationMetadata
 	9,   // 30: pb.GetExpenseByIdResponse.expense:type_name -> pb.ExpenseMessage
 	0,   // 31: pb.UpdateExpenseRequest.category:type_name -> pb.ExpenseCategory
-	99,  // 32: pb.UpdateExpenseRequest.transaction_date:type_name -> google.protobuf.Timestamp
+	123, // 32: pb.UpdateExpenseRequest.transaction_date:type_name -> google.protobuf.Timestamp
 	9,   // 33: pb.UpdateExpenseResponse.expense:type_name -> pb.ExpenseMessage
 	0,   // 34: pb.CreateBudgetRequest.category:type_name -> pb.ExpenseCategory
 	1,   // 35: pb.CreateBudgetRequest.period:type_name -> pb.BudgetPeriod
-	99,  // 36: pb.CreateBudgetRequest.start_date:type_name -> google.protobuf.Timestamp
-	99,  // 37: pb.CreateBudgetRequest.end_date:type_name -> google.protobuf.Timestamp
+	123, // 36: pb.CreateBudgetRequest.start_date:type_name -> google.protobuf.Timestamp
+	123, // 37: pb.CreateBudgetRequest.end_date:type_name -> google.protobuf.Timestamp
 	10,  // 38: pb.CreateBudgetResponse.budget:type_name -> pb.BudgetMessage
 	2,   // 39: pb.GetBudgetsRequest.status:type_name -> pb.BudgetStatus
 	0,   // 40: pb.GetBudgetsRequest.category:type_name -> pb.ExpenseCategory
@@ -8247,28 +9758,28 @@ var file_statistics_proto_depIdxs = []int32{
 	10,  // 43: pb.GetBudgetByIdResponse.budget:type_name -> pb.BudgetMessage
 	9,   // 44: pb.GetBudgetByIdResponse.recent_expenses:type_name -> pb.ExpenseMessage
 	1,   // 45: pb.UpdateBudgetRequest.period:type_name -> pb.BudgetPeriod
-	99,  // 46: pb.UpdateBudgetRequest.start_date:type_name -> google.protobuf.Timestamp
-	99,  // 47: pb.UpdateBudgetRequest.end_date:type_name -> google.protobuf.Timestamp
+	123, // 46: pb.UpdateBudgetRequest.start_date:type_name -> google.protobuf.Timestamp
+	123, // 47: pb.UpdateBudgetRequest.end_date:type_name -> google.protobuf.Timestamp
 	10,  // 48: pb.UpdateBudgetResponse.budget:type_name -> pb.BudgetMessage
-	99,  // 49: pb.GetSpendingAnalyticsRequest.start_date:type_name -> google.protobuf.Timestamp
-	99,  // 50: pb.GetSpendingAnalyticsRequest.end_date:type_name -> google.protobuf.Timestamp
+	123, // 49: pb.GetSpendingAnalyticsRequest.start_date:type_name -> google.protobuf.Timestamp
+	123, // 50: pb.GetSpendingAnalyticsRequest.end_date:type_name -> google.protobuf.Timestamp
 	0,   // 51: pb.GetSpendingAnalyticsRequest.category:type_name -> pb.ExpenseCategory
 	12,  // 52: pb.GetSpendingAnalyticsResponse.analytics:type_name -> pb.SpendingAnalytics
-	99,  // 53: pb.GetCategoryBreakdownRequest.start_date:type_name -> google.protobuf.Timestamp
-	99,  // 54: pb.GetCategoryBreakdownRequest.end_date:type_name -> google.protobuf.Timestamp
+	123, // 53: pb.GetCategoryBreakdownRequest.start_date:type_name -> google.protobuf.Timestamp
+	123, // 54: pb.GetCategoryBreakdownRequest.end_date:type_name -> google.protobuf.Timestamp
 	13,  // 55: pb.GetCategoryBreakdownResponse.categories:type_name -> pb.CategorySpending
 	1,   // 56: pb.GetBudgetProgressRequest.period:type_name -> pb.BudgetPeriod
 	15,  // 57: pb.GetBudgetProgressResponse.budgets:type_name -> pb.BudgetProgressItem
-	99,  // 58: pb.GetSpendingTrendsRequest.end_date:type_name -> google.protobuf.Timestamp
+	123, // 58: pb.GetSpendingTrendsRequest.end_date:type_name -> google.protobuf.Timestamp
 	16,  // 59: pb.GetSpendingTrendsResponse.trends:type_name -> pb.SpendingTrend
 	11,  // 60: pb.GetBudgetAlertsResponse.alerts:type_name -> pb.BudgetAlertMessage
-	99,  // 61: pb.GetAISpendingInsightsRequest.start_date:type_name -> google.protobuf.Timestamp
-	99,  // 62: pb.GetAISpendingInsightsRequest.end_date:type_name -> google.protobuf.Timestamp
+	123, // 61: pb.GetAISpendingInsightsRequest.start_date:type_name -> google.protobuf.Timestamp
+	123, // 62: pb.GetAISpendingInsightsRequest.end_date:type_name -> google.protobuf.Timestamp
 	52,  // 63: pb.GetAISpendingInsightsResponse.insights:type_name -> pb.AIInsight
 	53,  // 64: pb.GetAISpendingInsightsResponse.recommendations:type_name -> pb.AIRecommendation
 	54,  // 65: pb.GetAISpendingInsightsResponse.anomalies:type_name -> pb.AnomalyDetection
 	0,   // 66: pb.AIRecommendation.affected_category:type_name -> pb.ExpenseCategory
-	99,  // 67: pb.AnomalyDetection.detected_date:type_name -> google.protobuf.Timestamp
+	123, // 67: pb.AnomalyDetection.detected_date:type_name -> google.protobuf.Timestamp
 	0,   // 68: pb.AnomalyDetection.category:type_name -> pb.ExpenseCategory
 	57,  // 69: pb.GetAIBudgetingRecommendationsResponse.budget_recommendations:type_name -> pb.BudgetRecommendation
 	0,   // 70: pb.BudgetRecommendation.category:type_name -> pb.ExpenseCategory
@@ -8278,128 +9789,172 @@ var file_statistics_proto_depIdxs = []int32{
 	0,   // 74: pb.CategorySuggestion.category:type_name -> pb.ExpenseCategory
 	63,  // 75: pb.GetAIFinancialAdviceResponse.action_steps:type_name -> pb.ActionStep
 	4,   // 76: pb.IncomeSource.category:type_name -> pb.IncomeCategory
-	99,  // 77: pb.IncomeSource.last_received:type_name -> google.protobuf.Timestamp
-	99,  // 78: pb.IncomeSource.next_expected:type_name -> google.protobuf.Timestamp
-	99,  // 79: pb.IncomeSource.created_at:type_name -> google.protobuf.Timestamp
-	99,  // 80: pb.IncomeSource.updated_at:type_name -> google.protobuf.Timestamp
+	123, // 77: pb.IncomeSource.last_received:type_name -> google.protobuf.Timestamp
+	123, // 78: pb.IncomeSource.next_expected:type_name -> google.protobuf.Timestamp
+	123, // 79: pb.IncomeSource.created_at:type_name -> google.protobuf.Timestamp
+	123, // 80: pb.IncomeSource.updated_at:type_name -> google.protobuf.Timestamp
 	66,  // 81: pb.IncomeBreakdown.categories:type_name -> pb.IncomeCategoryData
 	4,   // 82: pb.IncomeCategoryData.category:type_name -> pb.IncomeCategory
 	5,   // 83: pb.Investment.investment_type:type_name -> pb.InvestmentType
-	99,  // 84: pb.Investment.purchase_date:type_name -> google.protobuf.Timestamp
-	99,  // 85: pb.Investment.last_updated:type_name -> google.protobuf.Timestamp
+	123, // 84: pb.Investment.purchase_date:type_name -> google.protobuf.Timestamp
+	123, // 85: pb.Investment.last_updated:type_name -> google.protobuf.Timestamp
 	69,  // 86: pb.InvestmentPortfolio.investments:type_name -> pb.InvestmentTypeData
 	5,   // 87: pb.InvestmentTypeData.investment_type:type_name -> pb.InvestmentType
 	7,   // 88: pb.FinancialGoal.goal_type:type_name -> pb.GoalType
-	99,  // 89: pb.FinancialGoal.target_date:type_name -> google.protobuf.Timestamp
+	123, // 89: pb.FinancialGoal.target_date:type_name -> google.protobuf.Timestamp
 	6,   // 90: pb.FinancialGoal.status:type_name -> pb.GoalStatus
-	99,  // 91: pb.FinancialGoal.created_at:type_name -> google.protobuf.Timestamp
-	99,  // 92: pb.FinancialGoal.updated_at:type_name -> google.protobuf.Timestamp
+	123, // 91: pb.FinancialGoal.created_at:type_name -> google.protobuf.Timestamp
+	123, // 92: pb.FinancialGoal.updated_at:type_name -> google.protobuf.Timestamp
 	70,  // 93: pb.FinancialGoalsList.goals:type_name -> pb.FinancialGoal
-	99,  // 94: pb.SavingsGoal.target_date:type_name -> google.protobuf.Timestamp
-	99,  // 95: pb.SavingsGoal.created_at:type_name -> google.protobuf.Timestamp
-	99,  // 96: pb.SavingsGoal.updated_at:type_name -> google.protobuf.Timestamp
+	123, // 94: pb.SavingsGoal.target_date:type_name -> google.protobuf.Timestamp
+	123, // 95: pb.SavingsGoal.created_at:type_name -> google.protobuf.Timestamp
+	123, // 96: pb.SavingsGoal.updated_at:type_name -> google.protobuf.Timestamp
 	0,   // 97: pb.RecurringBill.category:type_name -> pb.ExpenseCategory
-	99,  // 98: pb.RecurringBill.next_due_date:type_name -> google.protobuf.Timestamp
-	99,  // 99: pb.RecurringBill.last_paid_date:type_name -> google.protobuf.Timestamp
+	123, // 98: pb.RecurringBill.next_due_date:type_name -> google.protobuf.Timestamp
+	123, // 99: pb.RecurringBill.last_paid_date:type_name -> google.protobuf.Timestamp
 	8,   // 100: pb.RecurringBill.status:type_name -> pb.BillStatus
-	99,  // 101: pb.RecurringBill.created_at:type_name -> google.protobuf.Timestamp
-	99,  // 102: pb.RecurringBill.updated_at:type_name -> google.protobuf.Timestamp
+	123, // 101: pb.RecurringBill.created_at:type_name -> google.protobuf.Timestamp
+	123, // 102: pb.RecurringBill.updated_at:type_name -> google.protobuf.Timestamp
 	73,  // 103: pb.UpcomingBillsList.bills:type_name -> pb.RecurringBill
 	4,   // 104: pb.CreateIncomeSourceRequest.category:type_name -> pb.IncomeCategory
-	99,  // 105: pb.CreateIncomeSourceRequest.last_received:type_name -> google.protobuf.Timestamp
-	99,  // 106: pb.CreateIncomeSourceRequest.next_expected:type_name -> google.protobuf.Timestamp
+	123, // 105: pb.CreateIncomeSourceRequest.last_received:type_name -> google.protobuf.Timestamp
+	123, // 106: pb.CreateIncomeSourceRequest.next_expected:type_name -> google.protobuf.Timestamp
 	64,  // 107: pb.CreateIncomeSourceResponse.income_source:type_name -> pb.IncomeSource
 	64,  // 108: pb.GetIncomeSourcesResponse.income_sources:type_name -> pb.IncomeSource
-	99,  // 109: pb.GetIncomeBreakdownRequest.start_date:type_name -> google.protobuf.Timestamp
-	99,  // 110: pb.GetIncomeBreakdownRequest.end_date:type_name -> google.protobuf.Timestamp
+	123, // 109: pb.GetIncomeBreakdownRequest.start_date:type_name -> google.protobuf.Timestamp
+	123, // 110: pb.GetIncomeBreakdownRequest.end_date:type_name -> google.protobuf.Timestamp
 	65,  // 111: pb.GetIncomeBreakdownResponse.breakdown:type_name -> pb.IncomeBreakdown
 	68,  // 112: pb.GetInvestmentPortfolioResponse.portfolio:type_name -> pb.InvestmentPortfolio
 	67,  // 113: pb.GetInvestmentPortfolioResponse.individual_investments:type_name -> pb.Investment
 	5,   // 114: pb.CreateInvestmentRequest.investment_type:type_name -> pb.InvestmentType
-	99,  // 115: pb.CreateInvestmentRequest.purchase_date:type_name -> google.protobuf.Timestamp
+	123, // 115: pb.CreateInvestmentRequest.purchase_date:type_name -> google.protobuf.Timestamp
 	67,  // 116: pb.CreateInvestmentResponse.investment:type_name -> pb.Investment
 	7,   // 117: pb.CreateFinancialGoalRequest.goal_type:type_name -> pb.GoalType
-	99,  // 118: pb.CreateFinancialGoalRequest.target_date:type_name -> google.protobuf.Timestamp
+	123, // 118: pb.CreateFinancialGoalRequest.target_date:type_name -> google.protobuf.Timestamp
 	70,  // 119: pb.CreateFinancialGoalResponse.goal:type_name -> pb.FinancialGoal
 	6,   // 120: pb.GetFinancialGoalsRequest.status:type_name -> pb.GoalStatus
 	71,  // 121: pb.GetFinancialGoalsResponse.goals_list:type_name -> pb.FinancialGoalsList
 	70,  // 122: pb.UpdateFinancialGoalProgressResponse.goal:type_name -> pb.FinancialGoal
 	72,  // 123: pb.GetSavingsGoalResponse.savings_goal:type_name -> pb.SavingsGoal
-	99,  // 124: pb.CreateOrUpdateSavingsGoalRequest.target_date:type_name -> google.protobuf.Timestamp
+	123, // 124: pb.CreateOrUpdateSavingsGoalRequest.target_date:type_name -> google.protobuf.Timestamp
 	72,  // 125: pb.CreateOrUpdateSavingsGoalResponse.savings_goal:type_name -> pb.SavingsGoal
 	0,   // 126: pb.CreateRecurringBillRequest.category:type_name -> pb.ExpenseCategory
-	99,  // 127: pb.CreateRecurringBillRequest.next_due_date:type_name -> google.protobuf.Timestamp
+	123, // 127: pb.CreateRecurringBillRequest.next_due_date:type_name -> google.protobuf.Timestamp
 	73,  // 128: pb.CreateRecurringBillResponse.bill:type_name -> pb.RecurringBill
 	74,  // 129: pb.GetUpcomingBillsResponse.bills_list:type_name -> pb.UpcomingBillsList
-	17,  // 130: pb.StatisticsService.CreateExpense:input_type -> pb.CreateExpenseRequest
-	19,  // 131: pb.StatisticsService.GetExpenses:input_type -> pb.GetExpensesRequest
-	21,  // 132: pb.StatisticsService.GetExpenseById:input_type -> pb.GetExpenseByIdRequest
-	23,  // 133: pb.StatisticsService.UpdateExpense:input_type -> pb.UpdateExpenseRequest
-	25,  // 134: pb.StatisticsService.DeleteExpense:input_type -> pb.DeleteExpenseRequest
-	27,  // 135: pb.StatisticsService.CreateBudget:input_type -> pb.CreateBudgetRequest
-	29,  // 136: pb.StatisticsService.GetBudgets:input_type -> pb.GetBudgetsRequest
-	31,  // 137: pb.StatisticsService.GetBudgetById:input_type -> pb.GetBudgetByIdRequest
-	33,  // 138: pb.StatisticsService.UpdateBudget:input_type -> pb.UpdateBudgetRequest
-	35,  // 139: pb.StatisticsService.DeleteBudget:input_type -> pb.DeleteBudgetRequest
-	37,  // 140: pb.StatisticsService.GetSpendingAnalytics:input_type -> pb.GetSpendingAnalyticsRequest
-	39,  // 141: pb.StatisticsService.GetCategoryBreakdown:input_type -> pb.GetCategoryBreakdownRequest
-	41,  // 142: pb.StatisticsService.GetBudgetProgress:input_type -> pb.GetBudgetProgressRequest
-	43,  // 143: pb.StatisticsService.GetSpendingTrends:input_type -> pb.GetSpendingTrendsRequest
-	45,  // 144: pb.StatisticsService.GetBudgetAlerts:input_type -> pb.GetBudgetAlertsRequest
-	47,  // 145: pb.StatisticsService.MarkAlertAsRead:input_type -> pb.MarkAlertAsReadRequest
-	50,  // 146: pb.StatisticsService.GetAISpendingInsights:input_type -> pb.GetAISpendingInsightsRequest
-	55,  // 147: pb.StatisticsService.GetAIBudgetingRecommendations:input_type -> pb.GetAIBudgetingRecommendationsRequest
-	58,  // 148: pb.StatisticsService.AutoCategorizeExpense:input_type -> pb.AutoCategorizeExpenseRequest
-	61,  // 149: pb.StatisticsService.GetAIFinancialAdvice:input_type -> pb.GetAIFinancialAdviceRequest
-	77,  // 150: pb.StatisticsService.GetIncomeSources:input_type -> pb.GetIncomeSourcesRequest
-	79,  // 151: pb.StatisticsService.GetIncomeBreakdown:input_type -> pb.GetIncomeBreakdownRequest
-	75,  // 152: pb.StatisticsService.CreateIncomeSource:input_type -> pb.CreateIncomeSourceRequest
-	81,  // 153: pb.StatisticsService.GetInvestmentPortfolio:input_type -> pb.GetInvestmentPortfolioRequest
-	83,  // 154: pb.StatisticsService.CreateInvestment:input_type -> pb.CreateInvestmentRequest
-	87,  // 155: pb.StatisticsService.GetFinancialGoals:input_type -> pb.GetFinancialGoalsRequest
-	85,  // 156: pb.StatisticsService.CreateFinancialGoal:input_type -> pb.CreateFinancialGoalRequest
-	89,  // 157: pb.StatisticsService.UpdateFinancialGoalProgress:input_type -> pb.UpdateFinancialGoalProgressRequest
-	91,  // 158: pb.StatisticsService.GetSavingsGoal:input_type -> pb.GetSavingsGoalRequest
-	93,  // 159: pb.StatisticsService.CreateOrUpdateSavingsGoal:input_type -> pb.CreateOrUpdateSavingsGoalRequest
-	97,  // 160: pb.StatisticsService.GetUpcomingBills:input_type -> pb.GetUpcomingBillsRequest
-	95,  // 161: pb.StatisticsService.CreateRecurringBill:input_type -> pb.CreateRecurringBillRequest
-	18,  // 162: pb.StatisticsService.CreateExpense:output_type -> pb.CreateExpenseResponse
-	20,  // 163: pb.StatisticsService.GetExpenses:output_type -> pb.GetExpensesResponse
-	22,  // 164: pb.StatisticsService.GetExpenseById:output_type -> pb.GetExpenseByIdResponse
-	24,  // 165: pb.StatisticsService.UpdateExpense:output_type -> pb.UpdateExpenseResponse
-	26,  // 166: pb.StatisticsService.DeleteExpense:output_type -> pb.DeleteExpenseResponse
-	28,  // 167: pb.StatisticsService.CreateBudget:output_type -> pb.CreateBudgetResponse
-	30,  // 168: pb.StatisticsService.GetBudgets:output_type -> pb.GetBudgetsResponse
-	32,  // 169: pb.StatisticsService.GetBudgetById:output_type -> pb.GetBudgetByIdResponse
-	34,  // 170: pb.StatisticsService.UpdateBudget:output_type -> pb.UpdateBudgetResponse
-	36,  // 171: pb.StatisticsService.DeleteBudget:output_type -> pb.DeleteBudgetResponse
-	38,  // 172: pb.StatisticsService.GetSpendingAnalytics:output_type -> pb.GetSpendingAnalyticsResponse
-	40,  // 173: pb.StatisticsService.GetCategoryBreakdown:output_type -> pb.GetCategoryBreakdownResponse
-	42,  // 174: pb.StatisticsService.GetBudgetProgress:output_type -> pb.GetBudgetProgressResponse
-	44,  // 175: pb.StatisticsService.GetSpendingTrends:output_type -> pb.GetSpendingTrendsResponse
-	46,  // 176: pb.StatisticsService.GetBudgetAlerts:output_type -> pb.GetBudgetAlertsResponse
-	48,  // 177: pb.StatisticsService.MarkAlertAsRead:output_type -> pb.MarkAlertAsReadResponse
-	51,  // 178: pb.StatisticsService.GetAISpendingInsights:output_type -> pb.GetAISpendingInsightsResponse
-	56,  // 179: pb.StatisticsService.GetAIBudgetingRecommendations:output_type -> pb.GetAIBudgetingRecommendationsResponse
-	59,  // 180: pb.StatisticsService.AutoCategorizeExpense:output_type -> pb.AutoCategorizeExpenseResponse
-	62,  // 181: pb.StatisticsService.GetAIFinancialAdvice:output_type -> pb.GetAIFinancialAdviceResponse
-	78,  // 182: pb.StatisticsService.GetIncomeSources:output_type -> pb.GetIncomeSourcesResponse
-	80,  // 183: pb.StatisticsService.GetIncomeBreakdown:output_type -> pb.GetIncomeBreakdownResponse
-	76,  // 184: pb.StatisticsService.CreateIncomeSource:output_type -> pb.CreateIncomeSourceResponse
-	82,  // 185: pb.StatisticsService.GetInvestmentPortfolio:output_type -> pb.GetInvestmentPortfolioResponse
-	84,  // 186: pb.StatisticsService.CreateInvestment:output_type -> pb.CreateInvestmentResponse
-	88,  // 187: pb.StatisticsService.GetFinancialGoals:output_type -> pb.GetFinancialGoalsResponse
-	86,  // 188: pb.StatisticsService.CreateFinancialGoal:output_type -> pb.CreateFinancialGoalResponse
-	90,  // 189: pb.StatisticsService.UpdateFinancialGoalProgress:output_type -> pb.UpdateFinancialGoalProgressResponse
-	92,  // 190: pb.StatisticsService.GetSavingsGoal:output_type -> pb.GetSavingsGoalResponse
-	94,  // 191: pb.StatisticsService.CreateOrUpdateSavingsGoal:output_type -> pb.CreateOrUpdateSavingsGoalResponse
-	98,  // 192: pb.StatisticsService.GetUpcomingBills:output_type -> pb.GetUpcomingBillsResponse
-	96,  // 193: pb.StatisticsService.CreateRecurringBill:output_type -> pb.CreateRecurringBillResponse
-	162, // [162:194] is the sub-list for method output_type
-	130, // [130:162] is the sub-list for method input_type
-	130, // [130:130] is the sub-list for extension type_name
-	130, // [130:130] is the sub-list for extension extendee
-	0,   // [0:130] is the sub-list for field type_name
+	123, // 130: pb.TrackedIncomeTransaction.transaction_date:type_name -> google.protobuf.Timestamp
+	123, // 131: pb.TrackedIncomeTransaction.created_at:type_name -> google.protobuf.Timestamp
+	123, // 132: pb.TrackedExpenditureTransaction.transaction_date:type_name -> google.protobuf.Timestamp
+	123, // 133: pb.TrackedExpenditureTransaction.created_at:type_name -> google.protobuf.Timestamp
+	123, // 134: pb.GetTrackedIncomeRequest.start_date:type_name -> google.protobuf.Timestamp
+	123, // 135: pb.GetTrackedIncomeRequest.end_date:type_name -> google.protobuf.Timestamp
+	123, // 136: pb.GetTrackedExpenditureRequest.start_date:type_name -> google.protobuf.Timestamp
+	123, // 137: pb.GetTrackedExpenditureRequest.end_date:type_name -> google.protobuf.Timestamp
+	123, // 138: pb.GetTrackedIncomeBreakdownRequest.start_date:type_name -> google.protobuf.Timestamp
+	123, // 139: pb.GetTrackedIncomeBreakdownRequest.end_date:type_name -> google.protobuf.Timestamp
+	119, // 140: pb.GetTrackedIncomeBreakdownResponse.breakdown_by_source:type_name -> pb.GetTrackedIncomeBreakdownResponse.BreakdownBySourceEntry
+	123, // 141: pb.GetTrackedExpenditureBreakdownRequest.start_date:type_name -> google.protobuf.Timestamp
+	123, // 142: pb.GetTrackedExpenditureBreakdownRequest.end_date:type_name -> google.protobuf.Timestamp
+	120, // 143: pb.GetTrackedExpenditureBreakdownResponse.breakdown_by_type:type_name -> pb.GetTrackedExpenditureBreakdownResponse.BreakdownByTypeEntry
+	123, // 144: pb.GetTrackedIncomeTransactionsRequest.start_date:type_name -> google.protobuf.Timestamp
+	123, // 145: pb.GetTrackedIncomeTransactionsRequest.end_date:type_name -> google.protobuf.Timestamp
+	99,  // 146: pb.GetTrackedIncomeTransactionsResponse.transactions:type_name -> pb.TrackedIncomeTransaction
+	123, // 147: pb.GetTrackedExpenditureTransactionsRequest.start_date:type_name -> google.protobuf.Timestamp
+	123, // 148: pb.GetTrackedExpenditureTransactionsRequest.end_date:type_name -> google.protobuf.Timestamp
+	100, // 149: pb.GetTrackedExpenditureTransactionsResponse.transactions:type_name -> pb.TrackedExpenditureTransaction
+	123, // 150: pb.GetComprehensiveFinancialSummaryRequest.start_date:type_name -> google.protobuf.Timestamp
+	123, // 151: pb.GetComprehensiveFinancialSummaryRequest.end_date:type_name -> google.protobuf.Timestamp
+	115, // 152: pb.GetComprehensiveFinancialSummaryResponse.summary:type_name -> pb.ComprehensiveFinancialSummary
+	116, // 153: pb.ComprehensiveFinancialSummary.period:type_name -> pb.ComprehensivePeriod
+	117, // 154: pb.ComprehensiveFinancialSummary.income:type_name -> pb.ComprehensiveIncomeData
+	118, // 155: pb.ComprehensiveFinancialSummary.expenditure:type_name -> pb.ComprehensiveExpenditureData
+	123, // 156: pb.ComprehensivePeriod.start_date:type_name -> google.protobuf.Timestamp
+	123, // 157: pb.ComprehensivePeriod.end_date:type_name -> google.protobuf.Timestamp
+	121, // 158: pb.ComprehensiveIncomeData.income_breakdown:type_name -> pb.ComprehensiveIncomeData.IncomeBreakdownEntry
+	122, // 159: pb.ComprehensiveExpenditureData.expenditure_breakdown:type_name -> pb.ComprehensiveExpenditureData.ExpenditureBreakdownEntry
+	17,  // 160: pb.StatisticsService.CreateExpense:input_type -> pb.CreateExpenseRequest
+	19,  // 161: pb.StatisticsService.GetExpenses:input_type -> pb.GetExpensesRequest
+	21,  // 162: pb.StatisticsService.GetExpenseById:input_type -> pb.GetExpenseByIdRequest
+	23,  // 163: pb.StatisticsService.UpdateExpense:input_type -> pb.UpdateExpenseRequest
+	25,  // 164: pb.StatisticsService.DeleteExpense:input_type -> pb.DeleteExpenseRequest
+	27,  // 165: pb.StatisticsService.CreateBudget:input_type -> pb.CreateBudgetRequest
+	29,  // 166: pb.StatisticsService.GetBudgets:input_type -> pb.GetBudgetsRequest
+	31,  // 167: pb.StatisticsService.GetBudgetById:input_type -> pb.GetBudgetByIdRequest
+	33,  // 168: pb.StatisticsService.UpdateBudget:input_type -> pb.UpdateBudgetRequest
+	35,  // 169: pb.StatisticsService.DeleteBudget:input_type -> pb.DeleteBudgetRequest
+	37,  // 170: pb.StatisticsService.GetSpendingAnalytics:input_type -> pb.GetSpendingAnalyticsRequest
+	39,  // 171: pb.StatisticsService.GetCategoryBreakdown:input_type -> pb.GetCategoryBreakdownRequest
+	41,  // 172: pb.StatisticsService.GetBudgetProgress:input_type -> pb.GetBudgetProgressRequest
+	43,  // 173: pb.StatisticsService.GetSpendingTrends:input_type -> pb.GetSpendingTrendsRequest
+	45,  // 174: pb.StatisticsService.GetBudgetAlerts:input_type -> pb.GetBudgetAlertsRequest
+	47,  // 175: pb.StatisticsService.MarkAlertAsRead:input_type -> pb.MarkAlertAsReadRequest
+	50,  // 176: pb.StatisticsService.GetAISpendingInsights:input_type -> pb.GetAISpendingInsightsRequest
+	55,  // 177: pb.StatisticsService.GetAIBudgetingRecommendations:input_type -> pb.GetAIBudgetingRecommendationsRequest
+	58,  // 178: pb.StatisticsService.AutoCategorizeExpense:input_type -> pb.AutoCategorizeExpenseRequest
+	61,  // 179: pb.StatisticsService.GetAIFinancialAdvice:input_type -> pb.GetAIFinancialAdviceRequest
+	77,  // 180: pb.StatisticsService.GetIncomeSources:input_type -> pb.GetIncomeSourcesRequest
+	79,  // 181: pb.StatisticsService.GetIncomeBreakdown:input_type -> pb.GetIncomeBreakdownRequest
+	75,  // 182: pb.StatisticsService.CreateIncomeSource:input_type -> pb.CreateIncomeSourceRequest
+	81,  // 183: pb.StatisticsService.GetInvestmentPortfolio:input_type -> pb.GetInvestmentPortfolioRequest
+	83,  // 184: pb.StatisticsService.CreateInvestment:input_type -> pb.CreateInvestmentRequest
+	87,  // 185: pb.StatisticsService.GetFinancialGoals:input_type -> pb.GetFinancialGoalsRequest
+	85,  // 186: pb.StatisticsService.CreateFinancialGoal:input_type -> pb.CreateFinancialGoalRequest
+	89,  // 187: pb.StatisticsService.UpdateFinancialGoalProgress:input_type -> pb.UpdateFinancialGoalProgressRequest
+	91,  // 188: pb.StatisticsService.GetSavingsGoal:input_type -> pb.GetSavingsGoalRequest
+	93,  // 189: pb.StatisticsService.CreateOrUpdateSavingsGoal:input_type -> pb.CreateOrUpdateSavingsGoalRequest
+	97,  // 190: pb.StatisticsService.GetUpcomingBills:input_type -> pb.GetUpcomingBillsRequest
+	95,  // 191: pb.StatisticsService.CreateRecurringBill:input_type -> pb.CreateRecurringBillRequest
+	101, // 192: pb.StatisticsService.GetTrackedIncome:input_type -> pb.GetTrackedIncomeRequest
+	103, // 193: pb.StatisticsService.GetTrackedExpenditure:input_type -> pb.GetTrackedExpenditureRequest
+	105, // 194: pb.StatisticsService.GetTrackedIncomeBreakdown:input_type -> pb.GetTrackedIncomeBreakdownRequest
+	107, // 195: pb.StatisticsService.GetTrackedExpenditureBreakdown:input_type -> pb.GetTrackedExpenditureBreakdownRequest
+	109, // 196: pb.StatisticsService.GetTrackedIncomeTransactions:input_type -> pb.GetTrackedIncomeTransactionsRequest
+	111, // 197: pb.StatisticsService.GetTrackedExpenditureTransactions:input_type -> pb.GetTrackedExpenditureTransactionsRequest
+	113, // 198: pb.StatisticsService.GetComprehensiveFinancialSummary:input_type -> pb.GetComprehensiveFinancialSummaryRequest
+	18,  // 199: pb.StatisticsService.CreateExpense:output_type -> pb.CreateExpenseResponse
+	20,  // 200: pb.StatisticsService.GetExpenses:output_type -> pb.GetExpensesResponse
+	22,  // 201: pb.StatisticsService.GetExpenseById:output_type -> pb.GetExpenseByIdResponse
+	24,  // 202: pb.StatisticsService.UpdateExpense:output_type -> pb.UpdateExpenseResponse
+	26,  // 203: pb.StatisticsService.DeleteExpense:output_type -> pb.DeleteExpenseResponse
+	28,  // 204: pb.StatisticsService.CreateBudget:output_type -> pb.CreateBudgetResponse
+	30,  // 205: pb.StatisticsService.GetBudgets:output_type -> pb.GetBudgetsResponse
+	32,  // 206: pb.StatisticsService.GetBudgetById:output_type -> pb.GetBudgetByIdResponse
+	34,  // 207: pb.StatisticsService.UpdateBudget:output_type -> pb.UpdateBudgetResponse
+	36,  // 208: pb.StatisticsService.DeleteBudget:output_type -> pb.DeleteBudgetResponse
+	38,  // 209: pb.StatisticsService.GetSpendingAnalytics:output_type -> pb.GetSpendingAnalyticsResponse
+	40,  // 210: pb.StatisticsService.GetCategoryBreakdown:output_type -> pb.GetCategoryBreakdownResponse
+	42,  // 211: pb.StatisticsService.GetBudgetProgress:output_type -> pb.GetBudgetProgressResponse
+	44,  // 212: pb.StatisticsService.GetSpendingTrends:output_type -> pb.GetSpendingTrendsResponse
+	46,  // 213: pb.StatisticsService.GetBudgetAlerts:output_type -> pb.GetBudgetAlertsResponse
+	48,  // 214: pb.StatisticsService.MarkAlertAsRead:output_type -> pb.MarkAlertAsReadResponse
+	51,  // 215: pb.StatisticsService.GetAISpendingInsights:output_type -> pb.GetAISpendingInsightsResponse
+	56,  // 216: pb.StatisticsService.GetAIBudgetingRecommendations:output_type -> pb.GetAIBudgetingRecommendationsResponse
+	59,  // 217: pb.StatisticsService.AutoCategorizeExpense:output_type -> pb.AutoCategorizeExpenseResponse
+	62,  // 218: pb.StatisticsService.GetAIFinancialAdvice:output_type -> pb.GetAIFinancialAdviceResponse
+	78,  // 219: pb.StatisticsService.GetIncomeSources:output_type -> pb.GetIncomeSourcesResponse
+	80,  // 220: pb.StatisticsService.GetIncomeBreakdown:output_type -> pb.GetIncomeBreakdownResponse
+	76,  // 221: pb.StatisticsService.CreateIncomeSource:output_type -> pb.CreateIncomeSourceResponse
+	82,  // 222: pb.StatisticsService.GetInvestmentPortfolio:output_type -> pb.GetInvestmentPortfolioResponse
+	84,  // 223: pb.StatisticsService.CreateInvestment:output_type -> pb.CreateInvestmentResponse
+	88,  // 224: pb.StatisticsService.GetFinancialGoals:output_type -> pb.GetFinancialGoalsResponse
+	86,  // 225: pb.StatisticsService.CreateFinancialGoal:output_type -> pb.CreateFinancialGoalResponse
+	90,  // 226: pb.StatisticsService.UpdateFinancialGoalProgress:output_type -> pb.UpdateFinancialGoalProgressResponse
+	92,  // 227: pb.StatisticsService.GetSavingsGoal:output_type -> pb.GetSavingsGoalResponse
+	94,  // 228: pb.StatisticsService.CreateOrUpdateSavingsGoal:output_type -> pb.CreateOrUpdateSavingsGoalResponse
+	98,  // 229: pb.StatisticsService.GetUpcomingBills:output_type -> pb.GetUpcomingBillsResponse
+	96,  // 230: pb.StatisticsService.CreateRecurringBill:output_type -> pb.CreateRecurringBillResponse
+	102, // 231: pb.StatisticsService.GetTrackedIncome:output_type -> pb.GetTrackedIncomeResponse
+	104, // 232: pb.StatisticsService.GetTrackedExpenditure:output_type -> pb.GetTrackedExpenditureResponse
+	106, // 233: pb.StatisticsService.GetTrackedIncomeBreakdown:output_type -> pb.GetTrackedIncomeBreakdownResponse
+	108, // 234: pb.StatisticsService.GetTrackedExpenditureBreakdown:output_type -> pb.GetTrackedExpenditureBreakdownResponse
+	110, // 235: pb.StatisticsService.GetTrackedIncomeTransactions:output_type -> pb.GetTrackedIncomeTransactionsResponse
+	112, // 236: pb.StatisticsService.GetTrackedExpenditureTransactions:output_type -> pb.GetTrackedExpenditureTransactionsResponse
+	114, // 237: pb.StatisticsService.GetComprehensiveFinancialSummary:output_type -> pb.GetComprehensiveFinancialSummaryResponse
+	199, // [199:238] is the sub-list for method output_type
+	160, // [160:199] is the sub-list for method input_type
+	160, // [160:160] is the sub-list for extension type_name
+	160, // [160:160] is the sub-list for extension extendee
+	0,   // [0:160] is the sub-list for field type_name
 }
 
 func init() { file_statistics_proto_init() }
@@ -8413,7 +9968,7 @@ func file_statistics_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_statistics_proto_rawDesc), len(file_statistics_proto_rawDesc)),
 			NumEnums:      9,
-			NumMessages:   90,
+			NumMessages:   114,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

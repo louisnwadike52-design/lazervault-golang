@@ -151,6 +151,50 @@ func (c *AuthController) RegisterPasscode(ctx context.Context, req *pb.RegisterP
 	}, nil
 }
 
+func (c *AuthController) ChangePasscode(ctx context.Context, req *pb.ChangePasscodeRequest) (*pb.ChangePasscodeResponse, error) {
+	// 1. Get user details from context (set by auth middleware)
+	authPayload, ok := ctx.Value(middleware.AuthorizationPayloadKey).(*token.Payload)
+	if !ok || authPayload == nil {
+		return nil, status.Errorf(codes.Unauthenticated, "missing or invalid authorization payload")
+	}
+
+	// 2. Validate old passcode
+	oldPasscode := strings.TrimSpace(req.GetOldPasscode())
+	if oldPasscode == "" {
+		return nil, status.Errorf(codes.InvalidArgument, "old passcode is required")
+	}
+
+	// 3. Validate new passcode
+	newPasscode := strings.TrimSpace(req.GetNewPasscode())
+	if newPasscode == "" {
+		return nil, status.Errorf(codes.InvalidArgument, "new passcode is required")
+	}
+	if len(newPasscode) < 4 || len(newPasscode) > 6 {
+		return nil, status.Errorf(codes.InvalidArgument, "new passcode must be between 4 and 6 digits")
+	}
+
+	// 4. Check that old and new passcodes are different
+	if oldPasscode == newPasscode {
+		return nil, status.Errorf(codes.InvalidArgument, "new passcode must be different from old passcode")
+	}
+
+	// 5. Call service to change passcode
+	err := c.authService.ChangePasscode(ctx, authPayload.Email, oldPasscode, newPasscode)
+	if err != nil {
+		// Check if error is due to incorrect old passcode
+		if strings.Contains(err.Error(), "incorrect old passcode") {
+			return nil, status.Errorf(codes.InvalidArgument, "incorrect old passcode")
+		}
+		return nil, status.Errorf(codes.Internal, "failed to change passcode: %v", err)
+	}
+
+	// 6. Return success
+	return &pb.ChangePasscodeResponse{
+		Success: true,
+		Msg:     "Passcode changed successfully",
+	}, nil
+}
+
 func (c *AuthController) RefreshToken(ctx context.Context, req *pb.RefreshTokenRequest) (*pb.RefreshTokenResponse, error) {
 	refreshReq := &services.RefreshTokenRequest{
 		RefreshToken: req.RefreshToken,

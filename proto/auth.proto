@@ -39,6 +39,16 @@ message RegisterPasscodeResponse {
   string msg = 2;
 }
 
+message ChangePasscodeRequest {
+  string old_passcode = 1; // Current 6-digit passcode
+  string new_passcode = 2; // New 6-digit passcode
+}
+
+message ChangePasscodeResponse {
+  bool success = 1;
+  string msg = 2;
+}
+
 message LoginResponse {
   Data data = 1;
   bool success = 2;
@@ -284,6 +294,23 @@ service AuthService {
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "Register Passcode"
       description: "Registers a login passcode for the authenticated user."
+      tags: ["Auth"]
+      security: {
+        security_requirement: {
+          key: "bearer" value: {}
+        }
+      }
+    };
+  }
+
+  rpc ChangePasscode(ChangePasscodeRequest) returns (ChangePasscodeResponse) {
+    option (google.api.http) = {
+      post: "/v1/auth/change-passcode"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Change Passcode"
+      description: "Changes the login passcode for the authenticated user."
       tags: ["Auth"]
       security: {
         security_requirement: {

@@ -58,6 +58,22 @@ func NewRedisWorker(
 		}
 	}
 
+	// Start scheduled auto-recharge checks
+	if ok && redisProcessor.scheduledAutoRechargeProcessor != nil {
+		ctx := context.Background()
+		if err := redisProcessor.scheduledAutoRechargeProcessor.StartAutoRechargeScheduler(ctx); err != nil {
+			log.Error().Err(err).Msg("failed to start scheduled auto-recharge checks")
+		}
+	}
+
+	// Start scheduled reminder checks
+	if ok && redisProcessor.scheduledReminderProcessor != nil {
+		ctx := context.Background()
+		if err := redisProcessor.scheduledReminderProcessor.StartReminderScheduler(ctx); err != nil {
+			log.Error().Err(err).Msg("failed to start scheduled reminder checks")
+		}
+	}
+
 	return &RedisWorker{
 		distributor: distributor,
 		processor:   processor,

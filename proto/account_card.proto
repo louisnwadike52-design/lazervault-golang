@@ -4,10 +4,10 @@ package pb;
 
 option go_package = "lazervaultGolang/pb";
 
-import "google/api/annotations.proto"; // This import will likely cause issues
-import "protoc-gen-openapiv2/options/annotations.proto"; // This import will likely cause issues
+import "google/api/annotations.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
 import "google/protobuf/timestamp.proto";
-import "google/protobuf/empty.proto"; // Needed for Delete response
+import "google/protobuf/empty.proto";
 
 option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
     info: {
@@ -21,119 +21,329 @@ option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
     produces: "application/json";
 };
 
-
 // Represents a specific card linked to an account
 message AccountCard {
     uint64 id = 1;
-    uint64 account_id = 2;
-    string card_holder_name = 3;
-    string brand = 4; // e.g., Visa, Mastercard
-    string last4 = 5; // Last 4 digits for display
-    string card_expiry = 6; // MM/YY
-    bool is_active = 7;
-    bool is_default = 8;
-    google.protobuf.Timestamp created_at = 9;
-    google.protobuf.Timestamp updated_at = 10;
+    string uuid = 2;
+    uint64 account_id = 3;
+    uint64 user_id = 4;
+    string card_holder_name = 5;
+    string brand = 6; // e.g., Visa, Mastercard
+    string last4 = 7; // Last 4 digits for display
+    string card_expiry = 8; // MM/YY
+    bool is_active = 9;
+    bool is_default = 10;
     string card_type = 11; // "Virtual", "Disposable", "Permanent"
+    string card_nickname = 12;
+    double spending_limit = 13; // For disposable cards
+    double remaining_limit = 14; // Remaining spending limit
+    google.protobuf.Timestamp expires_at = 15; // For disposable cards
+    int32 usage_count = 16;
+    int32 max_usage_count = 17; // Max usage (0 = unlimited)
+    string currency = 18;
+    string billing_address = 19;
+    string status = 20; // active, frozen, cancelled, expired
+    string frozen_reason = 21;
+    google.protobuf.Timestamp last_used_at = 22;
+    google.protobuf.Timestamp created_at = 23;
+    google.protobuf.Timestamp updated_at = 24;
+    string card_number = 25; // Full number (only for creation response, encrypted)
+    string cvv = 26; // CVV (only for creation response, encrypted)
 }
 
-// Request to add a new card to an account
-message AddAccountCardRequest {
-    uint64 account_id = 1;       // Required: ID of the account to link the card to
-    string card_holder_name = 2; // Required
-    string card_number = 3;      // Required: Full card number (will be handled securely on backend)
-    string card_expiry = 4;      // Required: MM/YY format
-    string card_type = 5;        // Required: "Virtual", "Disposable", "Permanent"
-    bool make_default = 6;     // Optional: Set this new card as the default for the account
-    // string cvv = 7;           // Optional & Highly Sensitive: Consider security implications
+// Card transaction message
+message CardTransaction {
+    uint64 id = 1;
+    string uuid = 2;
+    uint64 card_id = 3;
+    uint64 user_id = 4;
+    uint64 account_id = 5;
+    double amount = 6;
+    string currency = 7;
+    string merchant_name = 8;
+    string merchant_category = 9;
+    string transaction_type = 10; // purchase, refund, reversal
+    string status = 11; // pending, completed, failed, declined
+    string decline_reason = 12;
+    string authorization_code = 13;
+    string description = 14;
+    google.protobuf.Timestamp transaction_date = 15;
+    google.protobuf.Timestamp settled_at = 16;
+    google.protobuf.Timestamp created_at = 17;
 }
 
-// Response after adding a card
-message AddAccountCardResponse {
-    AccountCard card = 1; // Return the newly added card (with sensitive data masked)
+// Create virtual card request
+message CreateVirtualCardRequest {
+    uint64 account_id = 1;
+    string card_nickname = 2; // Optional nickname
+    string currency = 3; // Default to account currency
+    string billing_address = 4;
 }
 
-// Request to get all cards for a specific account
-message GetAccountCardsRequest {
-    uint64 account_id = 1; // Required: ID of the account whose cards to fetch
-    // Optional filter by card_type could be added later
-    // string card_type_filter = 2;
+// Create virtual card response
+message CreateVirtualCardResponse {
+    AccountCard card = 1; // Includes full card details including CVV
 }
 
-// Response containing the list of cards for an account
-message GetAccountCardsResponse {
+// Create disposable card request
+message CreateDisposableCardRequest {
+    uint64 account_id = 1;
+    string card_nickname = 2; // Optional nickname
+    double spending_limit = 3; // Required for disposable
+    string currency = 4;
+    int32 max_usage_count = 5; // Optional, 0 = unlimited
+    int32 expires_in_hours = 6; // Optional, how many hours until expiry
+    string billing_address = 7;
+}
+
+// Create disposable card response
+message CreateDisposableCardResponse {
+    AccountCard card = 1; // Includes full card details including CVV
+}
+
+// Get all cards for user
+message GetUserCardsRequest {
+    string card_type_filter = 1; // Optional: "Virtual", "Disposable", "Permanent"
+    string status_filter = 2; // Optional: "active", "frozen", "cancelled", "expired"
+}
+
+// Get all cards response
+message GetUserCardsResponse {
     repeated AccountCard cards = 1;
+    CardStatistics statistics = 2;
 }
 
-// --- Update Default Status --- 
-message UpdateAccountCardDefaultStatusRequest {
-    uint64 account_id = 1; // Required for context/URL binding
-    uint64 card_id = 2;    // Required: ID of the card to set as default
+// Card statistics
+message CardStatistics {
+    int32 total_cards = 1;
+    int32 active_cards = 2;
+    int32 virtual_cards = 3;
+    int32 disposable_cards = 4;
+    int32 frozen_cards = 5;
+    double total_spending_limit = 6;
+    double total_remaining_limit = 7;
 }
 
-message UpdateAccountCardDefaultStatusResponse {
-    AccountCard card = 1; // Return the updated card
+// Get card details request
+message GetCardDetailsRequest {
+    string card_uuid = 1;
+    bool include_full_details = 2; // Include full card number and CVV
 }
 
-// --- Delete Card --- 
-message DeleteAccountCardRequest {
-    uint64 account_id = 1; // Required for context/URL binding
-    uint64 card_id = 2;    // Required: ID of the card to delete
+// Get card details response
+message GetCardDetailsResponse {
+    AccountCard card = 1;
+    repeated CardTransaction recent_transactions = 2; // Last 10 transactions
 }
 
-// Using Empty for Delete response as no data needs to be returned on success
-// message DeleteAccountCardResponse {} 
+// Freeze card request
+message FreezeCardRequest {
+    string card_uuid = 1;
+    string reason = 2; // Optional reason for freezing
+}
 
-// --- AccountCard Service Definition ---
+// Freeze card response
+message FreezeCardResponse {
+    AccountCard card = 1;
+}
 
+// Unfreeze card request
+message UnfreezeCardRequest {
+    string card_uuid = 1;
+}
+
+// Unfreeze card response
+message UnfreezeCardResponse {
+    AccountCard card = 1;
+}
+
+// Cancel card request
+message CancelCardRequest {
+    string card_uuid = 1;
+    string reason = 2; // Optional reason for cancellation
+}
+
+// Cancel card response
+message CancelCardResponse {
+    bool success = 1;
+    string message = 2;
+}
+
+// Update card nickname request
+message UpdateCardNicknameRequest {
+    string card_uuid = 1;
+    string nickname = 2;
+}
+
+// Update card nickname response
+message UpdateCardNicknameResponse {
+    AccountCard card = 1;
+}
+
+// Update card spending limit request (for disposable cards)
+message UpdateCardSpendingLimitRequest {
+    string card_uuid = 1;
+    double new_limit = 2;
+}
+
+// Update card spending limit response
+message UpdateCardSpendingLimitResponse {
+    AccountCard card = 1;
+}
+
+// Get card transactions request
+message GetCardTransactionsRequest {
+    string card_uuid = 1;
+    int32 page = 2;
+    int32 limit = 3;
+}
+
+// Get card transactions response
+message GetCardTransactionsResponse {
+    repeated CardTransaction transactions = 1;
+    int32 total_count = 2;
+    int32 current_page = 3;
+    int32 total_pages = 4;
+}
+
+// Set default card request
+message SetDefaultCardRequest {
+    string card_uuid = 1;
+}
+
+// Set default card response
+message SetDefaultCardResponse {
+    AccountCard card = 1;
+}
+
+// AccountCard Service Definition
 service AccountCardService {
-    // Adds a new card to a specific account owned by the authenticated user
-    rpc AddAccountCard(AddAccountCardRequest) returns (AddAccountCardResponse) {
+    // Create a new virtual card
+    rpc CreateVirtualCard(CreateVirtualCardRequest) returns (CreateVirtualCardResponse) {
         option (google.api.http) = {
-            post: "/v1/accounts/{account_id}/cards"; // Nested under accounts
+            post: "/v1/cards/virtual";
             body: "*";
         };
-        // Add OpenAPI options
         option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-            summary: "Add Account Card";
-            description: "Adds a new debit/credit card (Virtual, Disposable, Permanent) to a specified account owned by the authenticated user.";
+            summary: "Create Virtual Card";
+            description: "Creates a new virtual debit card for online transactions.";
         };
     }
 
-    // Gets all cards linked to a specific account owned by the authenticated user
-    rpc GetAccountCards(GetAccountCardsRequest) returns (GetAccountCardsResponse) {
+    // Create a new disposable card
+    rpc CreateDisposableCard(CreateDisposableCardRequest) returns (CreateDisposableCardResponse) {
         option (google.api.http) = {
-            get: "/v1/accounts/{account_id}/cards"; // Nested under accounts
+            post: "/v1/cards/disposable";
+            body: "*";
         };
-        // Add OpenAPI options
         option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-            summary: "Get Account Cards";
-            description: "Retrieves all cards associated with a specific account owned by the authenticated user.";
+            summary: "Create Disposable Card";
+            description: "Creates a new disposable card with spending limits and expiration.";
         };
     }
 
-    // Sets a specific card as the default for an account
-    rpc UpdateAccountCardDefaultStatus(UpdateAccountCardDefaultStatusRequest) returns (UpdateAccountCardDefaultStatusResponse) {
-        // Use PUT or PATCH. PUT implies replacing the default status resource.
+    // Get all cards for the authenticated user
+    rpc GetUserCards(GetUserCardsRequest) returns (GetUserCardsResponse) {
         option (google.api.http) = {
-             put: "/v1/accounts/{account_id}/cards/{card_id}/default"; // No body needed, action is implicit
-        };
-         option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-             summary: "Set Default Account Card";
-             description: "Marks a specific card as the default payment method for the associated account.";
-         };
-    }
-
-    // Deletes a specific card from an account
-    rpc DeleteAccountCard(DeleteAccountCardRequest) returns (google.protobuf.Empty) { // Return Empty
-        option (google.api.http) = {
-            delete: "/v1/accounts/{account_id}/cards/{card_id}";
+            get: "/v1/cards";
         };
         option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-            summary: "Delete Account Card";
-            description: "Removes a specific card associated with an account.";
+            summary: "Get User Cards";
+            description: "Retrieves all cards for the authenticated user with optional filters.";
+        };
+    }
+
+    // Get detailed information about a specific card
+    rpc GetCardDetails(GetCardDetailsRequest) returns (GetCardDetailsResponse) {
+        option (google.api.http) = {
+            get: "/v1/cards/{card_uuid}";
+        };
+        option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            summary: "Get Card Details";
+            description: "Retrieves detailed information about a specific card.";
+        };
+    }
+
+    // Freeze a card
+    rpc FreezeCard(FreezeCardRequest) returns (FreezeCardResponse) {
+        option (google.api.http) = {
+            post: "/v1/cards/{card_uuid}/freeze";
+            body: "*";
+        };
+        option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            summary: "Freeze Card";
+            description: "Temporarily freezes a card to prevent transactions.";
+        };
+    }
+
+    // Unfreeze a card
+    rpc UnfreezeCard(UnfreezeCardRequest) returns (UnfreezeCardResponse) {
+        option (google.api.http) = {
+            post: "/v1/cards/{card_uuid}/unfreeze";
+            body: "*";
+        };
+        option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            summary: "Unfreeze Card";
+            description: "Unfreezes a previously frozen card.";
+        };
+    }
+
+    // Cancel a card permanently
+    rpc CancelCard(CancelCardRequest) returns (CancelCardResponse) {
+        option (google.api.http) = {
+            post: "/v1/cards/{card_uuid}/cancel";
+            body: "*";
+        };
+        option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            summary: "Cancel Card";
+            description: "Permanently cancels a card.";
+        };
+    }
+
+    // Update card nickname
+    rpc UpdateCardNickname(UpdateCardNicknameRequest) returns (UpdateCardNicknameResponse) {
+        option (google.api.http) = {
+            put: "/v1/cards/{card_uuid}/nickname";
+            body: "*";
+        };
+        option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            summary: "Update Card Nickname";
+            description: "Updates the nickname of a card.";
+        };
+    }
+
+    // Update spending limit for disposable cards
+    rpc UpdateCardSpendingLimit(UpdateCardSpendingLimitRequest) returns (UpdateCardSpendingLimitResponse) {
+        option (google.api.http) = {
+            put: "/v1/cards/{card_uuid}/spending-limit";
+            body: "*";
+        };
+        option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            summary: "Update Card Spending Limit";
+            description: "Updates the spending limit for a disposable card.";
+        };
+    }
+
+    // Get card transactions
+    rpc GetCardTransactions(GetCardTransactionsRequest) returns (GetCardTransactionsResponse) {
+        option (google.api.http) = {
+            get: "/v1/cards/{card_uuid}/transactions";
+        };
+        option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            summary: "Get Card Transactions";
+            description: "Retrieves transaction history for a specific card.";
+        };
+    }
+
+    // Set default card
+    rpc SetDefaultCard(SetDefaultCardRequest) returns (SetDefaultCardResponse) {
+        option (google.api.http) = {
+            put: "/v1/cards/{card_uuid}/default";
+            body: "*";
+        };
+        option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            summary: "Set Default Card";
+            description: "Sets a card as the default payment method.";
         };
     }
 }
-
-// No changes needed to service definition itself 

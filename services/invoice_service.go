@@ -60,15 +60,17 @@ type TagUsersToInvoiceResponse struct {
 
 // InvoiceService implements IInvoiceService
 type InvoiceService struct {
-	db          *gorm.DB
-	distributor tasks.TaskDistributor
+	db                  *gorm.DB
+	distributor         tasks.TaskDistributor
+	notificationService *NotificationService
 }
 
 // NewInvoiceService creates a new InvoiceService
-func NewInvoiceService(db *gorm.DB, distributor tasks.TaskDistributor) IInvoiceService {
+func NewInvoiceService(db *gorm.DB, distributor tasks.TaskDistributor, notificationService *NotificationService) IInvoiceService {
 	return &InvoiceService{
-		db:          db,
-		distributor: distributor,
+		db:                  db,
+		distributor:         distributor,
+		notificationService: notificationService,
 	}
 }
 
@@ -430,7 +432,7 @@ func (s *InvoiceService) TagUsersToInvoice(ctx context.Context, req *TagUsersToI
 		err := s.db.WithContext(ctx).Where("email = ?", email).First(&user).Error
 		if err == nil {
 			// User exists, tag them
-			userIDStr := fmt.Sprintf("%d", user.ID)
+			userIDStr := user.UUID
 			taggedInvoice := &models.TaggedInvoice{
 				InvoiceID:     req.InvoiceID,
 				UserID:        userIDStr,
@@ -460,7 +462,7 @@ func (s *InvoiceService) TagUsersToInvoice(ctx context.Context, req *TagUsersToI
 		err := s.db.WithContext(ctx).Where("phone_number = ?", phone).First(&user).Error
 		if err == nil {
 			// User exists, tag them
-			userIDStr := fmt.Sprintf("%d", user.ID)
+			userIDStr := user.UUID
 			taggedInvoice := &models.TaggedInvoice{
 				InvoiceID:     req.InvoiceID,
 				UserID:        userIDStr,
@@ -496,6 +498,25 @@ func (s *InvoiceService) TagUsersToInvoice(ctx context.Context, req *TagUsersToI
 	} else {
 		response.Message = "No users were tagged"
 		response.Success = false
+	}
+
+	// Send notifications to all tagged users
+	if totalTagged > 0 && s.notificationService != nil {
+		// Get the tagger (invoice creator) information
+		var tagger models.User
+		if err := s.db.WithContext(ctx).Where("id = ?", invoice.UserID).First(&tagger).Error; err == nil {
+			taggerName := tagger.FirstName + " " + tagger.LastName
+			if taggerName == " " {
+				taggerName = tagger.Email
+			}
+
+			// Send notification to each tagged user (async to avoid blocking)
+			go func() {
+				for _, taggedUserID := range response.TaggedUserIDs {
+					_ = s.notificationService.SendInvoiceTaggedNotification(context.Background(), &invoice, taggedUserID, taggerName)
+				}
+			}()
+		}
 	}
 
 	return response, nil

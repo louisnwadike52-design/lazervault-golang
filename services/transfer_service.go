@@ -40,6 +40,7 @@ type TransferService struct {
 	redisWorker      tasks.TaskDistributor
 	recipientService IRecipientService
 	accountService   IAccountService
+	txTracker        *TransactionTracker // Tracks income/expenditure for statistics
 }
 
 type TransferRequest struct {
@@ -176,6 +177,7 @@ func NewTransferService(db *gorm.DB, config *configs.Config, redisWorker tasks.T
 		redisWorker:      redisWorker,
 		recipientService: recipientService,
 		accountService:   accountService,
+		txTracker:        NewTransactionTracker(db), // Initialize transaction tracker
 	}
 }
 
@@ -513,6 +515,59 @@ func (s *TransferService) InitiateTransfer(ctx context.Context, fromUserID uint,
 	// --- Commit Transaction ---
 	if err := tx.Commit().Error; err != nil {
 		return nil, fmt.Errorf("failed to commit transfer initiation: %w", err)
+	}
+
+	// --- Track Transaction for Statistics (Non-blocking) ---
+	// Determine recipient name
+	var recipientName string
+	if isExternal && transfer.Recipient != nil {
+		recipientName = transfer.Recipient.Name
+	} else if transfer.ToUser != nil {
+		recipientName = fmt.Sprintf("%s %s", transfer.ToUser.FirstName, transfer.ToUser.LastName)
+	} else {
+		recipientName = "Unknown Recipient"
+	}
+
+	// Track expenditure for sender
+	s.txTracker.TrackExpenditureAsync(ctx, ExpenditureTrackingParams{
+		UserID:          fromUserID,
+		Amount:          float64(transfer.TotalAmount) / 100.0, // Convert from minor units to major units
+		Currency:        fromCurrency,
+		ExpenseType:     "transfer_sent",
+		ExpenseID:       fmt.Sprint(transfer.ID),
+		Category:        "EXPENSE_CATEGORY_OTHER",
+		RecipientID:     toUserID_ptr,
+		RecipientName:   recipientName,
+		Description:     fmt.Sprintf("Transfer to %s", recipientName),
+		TransactionDate: &transfer.CreatedAt,
+		Metadata: map[string]interface{}{
+			"transfer_id":   transfer.ID,
+			"is_external":   isExternal,
+			"from_currency": fromCurrency,
+			"to_currency":   toCurrency,
+			"reference":     req.Reference,
+		},
+	})
+
+	// Track income for recipient (only for internal transfers)
+	if !isExternal && toUserID_ptr != nil {
+		s.txTracker.TrackIncomeAsync(ctx, IncomeTrackingParams{
+			UserID:          *toUserID_ptr,
+			Amount:          float64(transfer.Amount) / 100.0, // Convert from minor units
+			Currency:        toCurrency,
+			SourceType:      "transfer_received",
+			SourceID:        fmt.Sprint(transfer.ID),
+			Category:        "INCOME_CATEGORY_OTHER",
+			Description:     fmt.Sprintf("Transfer from user %d", fromUserID),
+			SenderID:        &fromUserID,
+			TransactionDate: &transfer.CreatedAt,
+			Metadata: map[string]interface{}{
+				"transfer_id":   transfer.ID,
+				"from_currency": fromCurrency,
+				"to_currency":   toCurrency,
+				"reference":     req.Reference,
+			},
+		})
 	}
 
 	// --- Return Response ---

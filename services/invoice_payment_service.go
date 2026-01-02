@@ -85,10 +85,10 @@ type InvoicePaymentService struct {
 }
 
 // NewInvoicePaymentService creates a new InvoicePaymentService
-func NewInvoicePaymentService(db *gorm.DB) IInvoicePaymentService {
+func NewInvoicePaymentService(db *gorm.DB, notificationService *NotificationService) IInvoicePaymentService {
 	return &InvoicePaymentService{
 		db:        db,
-		processor: NewPaymentProcessor(db),
+		processor: NewPaymentProcessor(db, notificationService),
 	}
 }
 
@@ -99,13 +99,14 @@ func (s *InvoicePaymentService) getUserIDFromContext(ctx context.Context) (strin
 		return "", status.Errorf(codes.Unauthenticated, "authentication required")
 	}
 
-	// Get user by email to get the actual user ID
+	// Get user by email to get the actual user UUID
 	user, err := database.FindUserByEmail(s.db, authPayload.Email)
 	if err != nil {
 		return "", status.Errorf(codes.NotFound, "user not found")
 	}
 
-	return strconv.FormatUint(uint64(user.ID), 10), nil
+	// Return the UUID field instead of converting integer ID to string
+	return user.UUID, nil
 }
 
 // ProcessInvoicePayment processes a full invoice payment

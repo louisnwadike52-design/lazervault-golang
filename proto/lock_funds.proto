@@ -1,0 +1,256 @@
+syntax = "proto3";
+
+package pb;
+
+option go_package = "lazervaultGo/pb";
+
+import "google/protobuf/timestamp.proto";
+import "google/api/annotations.proto";
+
+// Lock type enumeration
+enum LockType {
+  LOCK_TYPE_UNSPECIFIED = 0;
+  LOCK_TYPE_SAVINGS = 1;
+  LOCK_TYPE_INVESTMENT = 2;
+  LOCK_TYPE_EMERGENCY_FUND = 3;
+  LOCK_TYPE_GOAL_BASED = 4;
+}
+
+// Lock status enumeration
+enum LockStatus {
+  LOCK_STATUS_UNSPECIFIED = 0;
+  LOCK_STATUS_ACTIVE = 1;
+  LOCK_STATUS_MATURED = 2;
+  LOCK_STATUS_UNLOCKED = 3;
+  LOCK_STATUS_CANCELLED = 4;
+}
+
+// Lock fund message
+message LockFund {
+  string id = 1;
+  uint64 user_id = 2;
+  LockType lock_type = 3;
+  double amount = 4;
+  string currency = 5;
+  int32 lock_duration_days = 6;
+  double interest_rate = 7;
+  google.protobuf.Timestamp locked_at = 8;
+  google.protobuf.Timestamp unlock_at = 9;
+  LockStatus status = 10;
+  bool auto_renew = 11;
+  string goal_name = 12;
+  string goal_description = 13;
+  double early_unlock_penalty_percent = 14;
+  double accrued_interest = 15;
+  string payment_method = 16;
+  string transaction_id = 17;
+  google.protobuf.Timestamp created_at = 18;
+  google.protobuf.Timestamp updated_at = 19;
+
+  // Computed fields
+  int32 days_remaining = 20;
+  double progress_percent = 21;
+  double total_value = 22; // amount + accrued_interest
+  bool can_unlock_early = 23;
+}
+
+// Lock transaction message
+message LockTransaction {
+  string id = 1;
+  string lock_fund_id = 2;
+  uint64 user_id = 3;
+  string transaction_type = 4; // LOCK, UNLOCK, INTEREST_ACCRUAL
+  double amount = 5;
+  string currency = 6;
+  string payment_method = 7;
+  string status = 8;
+  google.protobuf.Timestamp transaction_date = 9;
+  string description = 10;
+}
+
+// Create lock fund request
+message CreateLockFundRequest {
+  LockType lock_type = 1;
+  double amount = 2;
+  string currency = 3;
+  int32 lock_duration_days = 4;
+  bool auto_renew = 5;
+  string goal_name = 6;
+  string goal_description = 7;
+  string payment_method = 8;
+}
+
+// Create lock fund response
+message CreateLockFundResponse {
+  bool success = 1;
+  string message = 2;
+  LockFund lock_fund = 3;
+  string payment_url = 4;
+}
+
+// Get lock funds request
+message GetLockFundsRequest {
+  LockStatus status = 1; // Optional filter
+  int32 page = 2;
+  int32 per_page = 3;
+}
+
+// Get lock funds response
+message GetLockFundsResponse {
+  repeated LockFund lock_funds = 1;
+  int32 total_count = 2;
+  int32 page = 3;
+  int32 total_pages = 4;
+
+  // Summary statistics
+  double total_locked_amount = 5;
+  double total_accrued_interest = 6;
+  int32 active_locks_count = 7;
+}
+
+// Get lock fund by ID request
+message GetLockFundRequest {
+  string lock_fund_id = 1;
+}
+
+// Get lock fund by ID response
+message GetLockFundResponse {
+  bool success = 1;
+  LockFund lock_fund = 2;
+}
+
+// Unlock fund request
+message UnlockFundRequest {
+  string lock_fund_id = 1;
+  bool force_early_unlock = 2;
+}
+
+// Unlock fund response
+message UnlockFundResponse {
+  bool success = 1;
+  string message = 2;
+  double amount_returned = 3;
+  double penalty_amount = 4;
+  double interest_earned = 5;
+  LockFund updated_lock_fund = 6;
+}
+
+// Get lock transactions request
+message GetLockTransactionsRequest {
+  string lock_fund_id = 1; // Optional filter
+  int32 page = 2;
+  int32 per_page = 3;
+}
+
+// Get lock transactions response
+message GetLockTransactionsResponse {
+  repeated LockTransaction transactions = 1;
+  int32 total_count = 2;
+  int32 page = 3;
+  int32 total_pages = 4;
+}
+
+// Calculate interest request
+message CalculateInterestRequest {
+  LockType lock_type = 1;
+  double amount = 2;
+  int32 lock_duration_days = 3;
+}
+
+// Calculate interest response
+message CalculateInterestResponse {
+  double interest_rate = 1;
+  double estimated_interest = 2;
+  double total_return = 3;
+  double apy = 4; // Annual Percentage Yield
+}
+
+// Renew lock fund request
+message RenewLockFundRequest {
+  string lock_fund_id = 1;
+  int32 new_duration_days = 2;
+}
+
+// Renew lock fund response
+message RenewLockFundResponse {
+  bool success = 1;
+  string message = 2;
+  LockFund renewed_lock_fund = 3;
+}
+
+// Cancel lock fund request
+message CancelLockFundRequest {
+  string lock_fund_id = 1;
+  string reason = 2;
+}
+
+// Cancel lock fund response
+message CancelLockFundResponse {
+  bool success = 1;
+  string message = 2;
+  double refund_amount = 3;
+}
+
+// Lock funds service
+service LockFundsService {
+  // Create a new lock fund
+  rpc CreateLockFund(CreateLockFundRequest) returns (CreateLockFundResponse) {
+    option (google.api.http) = {
+      post: "/v1/lock-funds"
+      body: "*"
+    };
+  }
+
+  // Get all lock funds for the user
+  rpc GetLockFunds(GetLockFundsRequest) returns (GetLockFundsResponse) {
+    option (google.api.http) = {
+      get: "/v1/lock-funds"
+    };
+  }
+
+  // Get lock fund by ID
+  rpc GetLockFund(GetLockFundRequest) returns (GetLockFundResponse) {
+    option (google.api.http) = {
+      get: "/v1/lock-funds/{lock_fund_id}"
+    };
+  }
+
+  // Unlock a fund
+  rpc UnlockFund(UnlockFundRequest) returns (UnlockFundResponse) {
+    option (google.api.http) = {
+      post: "/v1/lock-funds/{lock_fund_id}/unlock"
+      body: "*"
+    };
+  }
+
+  // Get lock transactions
+  rpc GetLockTransactions(GetLockTransactionsRequest) returns (GetLockTransactionsResponse) {
+    option (google.api.http) = {
+      get: "/v1/lock-funds/transactions"
+    };
+  }
+
+  // Calculate potential interest
+  rpc CalculateInterest(CalculateInterestRequest) returns (CalculateInterestResponse) {
+    option (google.api.http) = {
+      post: "/v1/lock-funds/calculate-interest"
+      body: "*"
+    };
+  }
+
+  // Renew a matured lock fund
+  rpc RenewLockFund(RenewLockFundRequest) returns (RenewLockFundResponse) {
+    option (google.api.http) = {
+      post: "/v1/lock-funds/{lock_fund_id}/renew"
+      body: "*"
+    };
+  }
+
+  // Cancel a lock fund
+  rpc CancelLockFund(CancelLockFundRequest) returns (CancelLockFundResponse) {
+    option (google.api.http) = {
+      post: "/v1/lock-funds/{lock_fund_id}/cancel"
+      body: "*"
+    };
+  }
+}

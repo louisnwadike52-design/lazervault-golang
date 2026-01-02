@@ -68,11 +68,13 @@ func NewServer(
 	accountService := services.NewAccountService(db, distributor)
 	recipientService := services.NewRecipientService(db)
 	transferService := services.NewTransferService(db, config, distributor, recipientService, accountService)
-	accountCardService := services.NewAccountCardService(db, config)
+	// accountCardService := services.NewAccountCardService(db, config)
+	cardService := services.NewCardService(db)
 	chatService := services.NewChatService(db)
 	userService := services.NewUserService(db, config, tokenMaker)
 	exchangeService := services.NewExchangeService(db, distributor)
-	invoiceService := services.NewInvoiceService(db, distributor)
+	notificationService := services.NewNotificationService(db)
+	invoiceService := services.NewInvoiceService(db, distributor, notificationService)
 	depositService := services.NewDepositService(db, distributor, accountService)
 	withdrawalService := services.NewWithdrawalService(db, distributor)
 	generateTxDataService := services.NewGenerateTxDataService(db, *config)
@@ -91,6 +93,12 @@ func NewServer(
 
 	// Initialize Group Account Controller
 	groupAccountController := NewGroupAccountController(groupAccountService, userService)
+
+	// Initialize Crowdfund Service
+	crowdfundService := services.NewCrowdfundService(db)
+
+	// Initialize Crowdfund Controller
+	crowdfundController := NewCrowdfundController(crowdfundService, userService)
 
 	// Initialize Crypto Service
 	cryptoService := services.NewCryptoService()
@@ -115,6 +123,12 @@ func NewServer(
 
 	// Initialize AI Statistics Service
 	aiStatisticsService := services.NewAIStatisticsService(db, config, statisticsService, aiChatService)
+
+	// Initialize Portfolio Service
+	portfolioService := services.NewPortfolioService(db)
+
+	// Initialize Portfolio Controller
+	portfolioController := NewPortfolioController(portfolioService)
 
 	// Initialize Tag Pay Service
 	tagPayService := services.NewTagPayService(db)
@@ -143,11 +157,17 @@ func NewServer(
 	// Initialize Facial Recognition Service
 	facialRecognitionService := services.NewFacialRecognitionService(config.AiServiceURL)
 
+	// Initialize Referral Service
+	referralService := services.NewReferralService(db)
+
+	// Initialize Referral Controller
+	referralController := NewReferralController(referralService, userService, db)
+
 	// Initialize Facial Recognition Controller
 	facialRecognitionController := NewFacialRecognitionController(facialRecognitionService)
 
 	// Initialize Invoice Payment Service
-	invoicePaymentService := services.NewInvoicePaymentService(db)
+	invoicePaymentService := services.NewInvoicePaymentService(db, notificationService)
 
 	// Initialize Invoice Payment Controller
 	invoicePaymentController := NewInvoicePaymentController(invoicePaymentService, userService, db)
@@ -170,6 +190,12 @@ func NewServer(
 	// Initialize Insurance Controller
 	insuranceController := NewInsuranceController(insuranceService)
 
+	// Initialize Lock Funds Service
+	lockFundsService := services.NewLockFundsService(db)
+
+	// Initialize Lock Funds Controller
+	lockFundsController := NewLockFundsController(lockFundsService, userService)
+
 	// Initialize Contact Sync Service
 	contactSyncService := services.NewContactSyncService(db)
 
@@ -188,6 +214,28 @@ func NewServer(
 	// Initialize QR Code Service
 	qrCodeService := services.NewQRCodeService(db, config)
 
+	// Initialize Bill Payment Providers
+	flutterwaveConfig := services.FlutterwaveConfig{
+		SecretKey: config.FlutterwaveSecretKey,
+		PublicKey: config.FlutterwavePublicKey,
+		BaseURL:   config.FlutterwaveBaseURL,
+		Enabled:   config.FlutterwaveEnabled,
+	}
+	flutterwaveClient := services.NewFlutterwaveBillClient(flutterwaveConfig)
+
+	paystackConfig := services.PaystackConfig{
+		SecretKey: config.PaystackSecretKey,
+		PublicKey: config.PaystackPublicKey,
+		BaseURL:   config.PaystackBaseURL,
+		Enabled:   config.PaystackEnabled,
+	}
+	paystackClient := services.NewPaystackBillClient(paystackConfig)
+
+	billProviderFactory := services.NewBillPaymentProviderFactory(flutterwaveClient, paystackClient)
+
+	// Initialize Electricity Bill Service
+	electricityBillService := services.NewElectricityBillService(db, billProviderFactory, distributor)
+
 	// Store controllers and services in server for HTTP handlers
 	server.voiceSessionController = voiceSessionController
 	server.userService = userService
@@ -202,7 +250,7 @@ func NewServer(
 	pb.RegisterUserServiceServer(grpcServer, NewUserController(server))
 	pb.RegisterTransferServiceServer(grpcServer, NewTransferController(transferService, db))
 	pb.RegisterAccountServiceServer(grpcServer, NewAccountController(accountService, userService))
-	pb.RegisterAccountCardServiceServer(grpcServer, NewAccountCardController(accountCardService, userService))
+	pb.RegisterAccountCardServiceServer(grpcServer, NewAccountCardController(cardService, userService))
 	pb.RegisterRecipientServiceServer(grpcServer, NewRecipientController(recipientService, userService))
 	pb.RegisterChatServiceServer(grpcServer, NewChatController(chatService))
 	pb.RegisterExchangeServiceServer(grpcServer, NewExchangeController(exchangeService, userService))
@@ -217,17 +265,22 @@ func NewServer(
 	pb.RegisterInvoicePaymentServiceServer(grpcServer, invoicePaymentController)
 	pb.RegisterTaggedInvoiceServiceServer(grpcServer, taggedInvoiceController)
 	pb.RegisterInsuranceServiceServer(grpcServer, insuranceController)
+	pb.RegisterLockFundsServiceServer(grpcServer, lockFundsController)
 	pb.RegisterContactSyncServiceServer(grpcServer, contactSyncController)
 	pb.RegisterGroupAccountServiceServer(grpcServer, groupAccountController)
+	pb.RegisterCrowdfundServiceServer(grpcServer, crowdfundController)
 	pb.RegisterCryptoServiceServer(grpcServer, cryptoController)
 	pb.RegisterGiftCardServiceServer(grpcServer, giftCardController)
 	pb.RegisterStockServiceServer(grpcServer, stockController)
 	pb.RegisterStatisticsServiceServer(grpcServer, statisticsController)
+	pb.RegisterPortfolioServiceServer(grpcServer, portfolioController)
 	pb.RegisterAiScanServiceServer(grpcServer, aiScanController)
 	pb.RegisterTagPayServiceServer(grpcServer, tagPayService)
 	pb.RegisterBarcodePaymentServiceServer(grpcServer, barcodePaymentService)
+	pb.RegisterElectricityBillServiceServer(grpcServer, electricityBillService)
 	pb.RegisterSupportServiceServer(grpcServer, supportController)
 	pb.RegisterAutoSaveServiceServer(grpcServer, autoSaveController)
+	pb.RegisterReferralServiceServer(grpcServer, referralController)
 	server.grpcServer = grpcServer
 
 	// Register reflection service on gRPC server.
@@ -339,11 +392,20 @@ func (s *Server) startHTTPServer() error {
 	if err := pb.RegisterStatisticsServiceHandlerFromEndpoint(ctx, gwmux, grpcDialAddr, opts); err != nil {
 		return fmt.Errorf("failed to register statistics gateway: %w", err)
 	}
+	if err := pb.RegisterPortfolioServiceHandlerFromEndpoint(ctx, gwmux, grpcDialAddr, opts); err != nil {
+		return fmt.Errorf("failed to register portfolio gateway: %w", err)
+	}
 	if err := pb.RegisterGroupAccountServiceHandlerFromEndpoint(ctx, gwmux, grpcDialAddr, opts); err != nil {
 		return fmt.Errorf("failed to register group account gateway: %w", err)
 	}
+	if err := pb.RegisterCrowdfundServiceHandlerFromEndpoint(ctx, gwmux, grpcDialAddr, opts); err != nil {
+		return fmt.Errorf("failed to register crowdfund gateway: %w", err)
+	}
 	if err := pb.RegisterAutoSaveServiceHandlerFromEndpoint(ctx, gwmux, grpcDialAddr, opts); err != nil {
 		return fmt.Errorf("failed to register auto-save gateway: %w", err)
+	}
+	if err := pb.RegisterElectricityBillServiceHandlerFromEndpoint(ctx, gwmux, grpcDialAddr, opts); err != nil {
+		return fmt.Errorf("failed to register electricity bill gateway: %w", err)
 	}
 	// Note: Support service doesn't have HTTP gateway as it uses gRPC only
 

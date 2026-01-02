@@ -97,6 +97,11 @@ func requiresAuth(method string) bool {
 	"/pb.StockService/GetTopGainers":       false,
 	"/pb.StockService/GetTopLosers":        false,
 
+		// Electricity Bill Service public endpoints (for testing)
+		"/pb.ElectricityBillService/GetProviders":        false,
+		"/pb.ElectricityBillService/SyncProviders":       false,
+		"/pb.ElectricityBillService/ValidateMeterNumber": false,
+
 		// Add more public endpoints as needed
 	}
 

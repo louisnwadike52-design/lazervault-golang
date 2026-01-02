@@ -224,6 +224,71 @@ func NewPaymentConfirmationEmailTask(userEmail, userName, invoiceID, invoiceNumb
 	return json.Marshal(payload)
 }
 
+// --- Electricity Bill Payment Tasks ---
+
+// BillPaymentProcessPayload defines payload for bill payment processing
+type BillPaymentProcessPayload struct {
+	PaymentID       string  `json:"payment_id"`
+	ProviderCode    string  `json:"provider_code"`
+	MeterNumber     string  `json:"meter_number"`
+	Amount          float64 `json:"amount"`
+	PaymentGateway  string  `json:"payment_gateway"`
+	ReferenceNumber string  `json:"reference_number"`
+	IsAutoRecharge  bool    `json:"is_auto_recharge"`
+	AutoRechargeID  string  `json:"auto_recharge_id,omitempty"`
+}
+
+func NewBillPaymentProcessTask(paymentID, providerCode, meterNumber string, amount float64, gateway, reference string) ([]byte, error) {
+	payload := BillPaymentProcessPayload{
+		PaymentID:       paymentID,
+		ProviderCode:    providerCode,
+		MeterNumber:     meterNumber,
+		Amount:          amount,
+		PaymentGateway:  gateway,
+		ReferenceNumber: reference,
+		IsAutoRecharge:  false,
+	}
+	return json.Marshal(payload)
+}
+
+// AutoRechargeCheckPayload defines payload for auto-recharge check
+type AutoRechargeCheckPayload struct {
+	CheckTime int64 `json:"check_time"`
+}
+
+func NewAutoRechargeCheckTask(checkTime int64) ([]byte, error) {
+	payload := AutoRechargeCheckPayload{CheckTime: checkTime}
+	return json.Marshal(payload)
+}
+
+// ReminderNotificationPayload defines payload for reminder notification
+type ReminderNotificationPayload struct {
+	ReminderID string `json:"reminder_id"`
+	UserID     string `json:"user_id"`
+}
+
+func NewReminderNotificationTask(reminderID, userID string) ([]byte, error) {
+	payload := ReminderNotificationPayload{
+		ReminderID: reminderID,
+		UserID:     userID,
+	}
+	return json.Marshal(payload)
+}
+
+// ProviderSyncPayload defines payload for provider sync
+type ProviderSyncPayload struct {
+	PaymentGateway string `json:"payment_gateway"`
+	Country        string `json:"country"`
+}
+
+func NewProviderSyncTask(gateway, country string) ([]byte, error) {
+	payload := ProviderSyncPayload{
+		PaymentGateway: gateway,
+		Country:        country,
+	}
+	return json.Marshal(payload)
+}
+
 // Note: Task creation helpers returning *asynq.Task are removed as requested.
 // Calling code will now need to use the `New...Task` helpers above to get
 // the payload bytes and then construct the *asynq.Task manually, e.g.:

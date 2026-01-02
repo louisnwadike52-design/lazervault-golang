@@ -1,0 +1,239 @@
+syntax = "proto3";
+
+package pb;
+
+import "google/protobuf/timestamp.proto";
+import "google/api/annotations.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+
+option go_package = "lazervaultGo/pb";
+
+// OpenAPI v2 documentation options
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+  info: {
+    title: "LazerVault Referral Service";
+    version: "1.0";
+    contact: {
+      name: "LazerVault Support";
+      url: "https://github.com/LazerVault";
+      email: "support@lazervault.example";
+    };
+  };
+  security_definitions: {
+    security: {
+      key: "bearer";
+      value: {
+        type: TYPE_API_KEY;
+        in: IN_HEADER;
+        name: "Authorization";
+        description: "Authentication token, prefixed by Bearer: Bearer <token>";
+      };
+    };
+  };
+  security: {
+    security_requirement: {
+      key: "bearer";
+    };
+  };
+};
+
+// Referral status enum
+enum ReferralStatus {
+  REFERRAL_STATUS_PENDING = 0;
+  REFERRAL_STATUS_COMPLETED = 1;
+  REFERRAL_STATUS_FAILED = 2;
+  REFERRAL_STATUS_CANCELLED = 3;
+}
+
+// ReferralCode message represents a user's referral code
+message ReferralCode {
+  uint64 id = 1;
+  uint64 user_id = 2;
+  string code = 3;
+  bool is_active = 4;
+  google.protobuf.Timestamp created_at = 5;
+  google.protobuf.Timestamp updated_at = 6;
+}
+
+// ReferralTransaction message represents a referral event
+message ReferralTransaction {
+  uint64 id = 1;
+  uint64 referrer_user_id = 2;
+  uint64 referee_user_id = 3;
+  string referral_code_used = 4;
+  ReferralStatus status = 5;
+  int32 referrer_reward_amount = 6;
+  int32 referee_reward_amount = 7;
+  string currency = 8;
+  google.protobuf.Timestamp created_at = 9;
+  google.protobuf.Timestamp completed_at = 10;
+  string failure_reason = 11;
+}
+
+// CountryRewardConfig message represents country-specific reward configuration
+message CountryRewardConfig {
+  uint64 id = 1;
+  string country_code = 2;
+  string currency = 3;
+  int32 referrer_reward = 4;
+  int32 referee_reward = 5;
+  bool is_active = 6;
+  google.protobuf.Timestamp created_at = 7;
+  google.protobuf.Timestamp updated_at = 8;
+}
+
+// ReferralStats message represents aggregated referral statistics
+message ReferralStats {
+  int64 total_referrals = 1;
+  int32 total_rewards_earned = 2;
+  int32 pending_rewards = 3;
+  string currency = 4;
+}
+
+// LeaderboardEntry message represents a top referrer
+message LeaderboardEntry {
+  uint64 user_id = 1;
+  string first_name = 2;
+  string last_name = 3;
+  string username = 4;
+  int64 total_referrals = 5;
+  int32 rank = 6;
+}
+
+// Request/Response messages for ValidateReferralCode
+message ValidateReferralCodeRequest {
+  string code = 1;
+}
+
+message ValidateReferralCodeResponse {
+  bool is_valid = 1;
+  string message = 2;
+}
+
+// Request/Response messages for GetMyReferralCode
+message GetMyReferralCodeRequest {}
+
+message GetMyReferralCodeResponse {
+  ReferralCode referral_code = 1;
+}
+
+// Request/Response messages for GetMyReferralStats
+message GetMyReferralStatsRequest {}
+
+message GetMyReferralStatsResponse {
+  ReferralStats stats = 1;
+}
+
+// Request/Response messages for GetMyReferrals
+message GetMyReferralsRequest {
+  int32 page = 1;
+  int32 page_size = 2;
+}
+
+message GetMyReferralsResponse {
+  repeated ReferralTransaction referrals = 1;
+  int32 page = 2;
+  int32 page_size = 3;
+}
+
+// Request/Response messages for GetReferralLeaderboard
+message GetReferralLeaderboardRequest {
+  int32 limit = 1;
+}
+
+message GetReferralLeaderboardResponse {
+  repeated LeaderboardEntry entries = 1;
+}
+
+// Request/Response messages for GetCountryRewardConfig
+message GetCountryRewardConfigRequest {
+  string country_code = 1;
+}
+
+message GetCountryRewardConfigResponse {
+  CountryRewardConfig config = 1;
+}
+
+// Request/Response messages for RecordReferral
+message RecordReferralRequest {
+  uint64 referee_user_id = 1;
+  string referral_code = 2;
+}
+
+message RecordReferralResponse {
+  bool success = 1;
+  string message = 2;
+  ReferralTransaction transaction = 3;
+}
+
+// Request/Response messages for CreditReferralRewards
+message CreditReferralRewardsRequest {
+  uint64 transaction_id = 1;
+}
+
+message CreditReferralRewardsResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+// ReferralService service definition
+service ReferralService {
+  // Validate if a referral code exists and is active
+  rpc ValidateReferralCode(ValidateReferralCodeRequest) returns (ValidateReferralCodeResponse) {
+    option (google.api.http) = {
+      post: "/v1/referral/validate"
+      body: "*"
+    };
+  }
+
+  // Get the authenticated user's referral code
+  rpc GetMyReferralCode(GetMyReferralCodeRequest) returns (GetMyReferralCodeResponse) {
+    option (google.api.http) = {
+      get: "/v1/referral/my-code"
+    };
+  }
+
+  // Get aggregated referral statistics for the authenticated user
+  rpc GetMyReferralStats(GetMyReferralStatsRequest) returns (GetMyReferralStatsResponse) {
+    option (google.api.http) = {
+      get: "/v1/referral/my-stats"
+    };
+  }
+
+  // Get paginated list of referrals made by the authenticated user
+  rpc GetMyReferrals(GetMyReferralsRequest) returns (GetMyReferralsResponse) {
+    option (google.api.http) = {
+      get: "/v1/referral/my-referrals"
+    };
+  }
+
+  // Get referral leaderboard (top referrers)
+  rpc GetReferralLeaderboard(GetReferralLeaderboardRequest) returns (GetReferralLeaderboardResponse) {
+    option (google.api.http) = {
+      get: "/v1/referral/leaderboard"
+    };
+  }
+
+  // Get reward configuration for a specific country
+  rpc GetCountryRewardConfig(GetCountryRewardConfigRequest) returns (GetCountryRewardConfigResponse) {
+    option (google.api.http) = {
+      get: "/v1/referral/country-config/{country_code}"
+    };
+  }
+
+  // Record a referral transaction (internal use)
+  rpc RecordReferral(RecordReferralRequest) returns (RecordReferralResponse) {
+    option (google.api.http) = {
+      post: "/v1/referral/record"
+      body: "*"
+    };
+  }
+
+  // Credit referral rewards to both referrer and referee (internal use)
+  rpc CreditReferralRewards(CreditReferralRewardsRequest) returns (CreditReferralRewardsResponse) {
+    option (google.api.http) = {
+      post: "/v1/referral/credit-rewards"
+      body: "*"
+    };
+  }
+}

@@ -38,6 +38,8 @@ type RedisTaskProcessor struct {
 	txDataFileProcessor         *GenerateTxDataFileProcessor
 	scheduledTransferProcessor  *ScheduledTransferProcessor
 	scheduledAutoSaveProcessor  *ScheduledAutoSaveProcessor
+	scheduledAutoRechargeProcessor *ScheduledAutoRechargeProcessor
+	scheduledReminderProcessor     *ScheduledReminderProcessor
 }
 
 func NewRedisTaskProcessor(redisOpt asynq.RedisClientOpt, db *gorm.DB, mailer mail.EmailSender, config *configs.Config, distributor tasks.TaskDistributor) TaskProcessor {
@@ -53,6 +55,10 @@ func NewRedisTaskProcessor(redisOpt asynq.RedisClientOpt, db *gorm.DB, mailer ma
 	transferService := services.NewTransferService(db, config, distributor, recipientService, accountService)
 	autoSaveService := services.NewAutoSaveService(db, distributor, accountService, transferService)
 	scheduledAutoSaveProcessor := NewScheduledAutoSaveProcessor(db, autoSaveService, distributor)
+
+	// Initialize electricity bill scheduled processors
+	scheduledAutoRechargeProcessor := NewScheduledAutoRechargeProcessor(db, distributor)
+	scheduledReminderProcessor := NewScheduledReminderProcessor(db, distributor)
 
 	server := asynq.NewServer(
 		redisOpt,
@@ -94,14 +100,16 @@ func NewRedisTaskProcessor(redisOpt asynq.RedisClientOpt, db *gorm.DB, mailer ma
 	)
 
 	return &RedisTaskProcessor{
-		server:                     server,
-		db:                         db,
-		mailer:                     mailer,
-		config:                     config,
-		distributor:                distributor,
-		txDataFileProcessor:        txDataFileProcessor,
-		scheduledTransferProcessor: scheduledTransferProcessor,
-		scheduledAutoSaveProcessor: scheduledAutoSaveProcessor,
+		server:                         server,
+		db:                             db,
+		mailer:                         mailer,
+		config:                         config,
+		distributor:                    distributor,
+		txDataFileProcessor:            txDataFileProcessor,
+		scheduledTransferProcessor:     scheduledTransferProcessor,
+		scheduledAutoSaveProcessor:     scheduledAutoSaveProcessor,
+		scheduledAutoRechargeProcessor: scheduledAutoRechargeProcessor,
+		scheduledReminderProcessor:     scheduledReminderProcessor,
 	}
 }
 
@@ -165,6 +173,30 @@ func (processor *RedisTaskProcessor) Start() error {
 	})
 	mux.HandleFunc(tasks.TypeEmailSendPaymentConfirm, func(ctx context.Context, task *asynq.Task) error {
 		return HandleEmailSendPaymentConfirmationTask(ctx, task, processor.mailer)
+	})
+
+	// Register electricity bill payment handlers
+	mux.HandleFunc(tasks.TaskProcessBillPayment, func(ctx context.Context, task *asynq.Task) error {
+		// Initialize payment provider factory
+		flutterwaveConfig := services.FlutterwaveConfig{
+			SecretKey: processor.config.FlutterwaveSecretKey,
+			PublicKey: processor.config.FlutterwavePublicKey,
+			BaseURL:   processor.config.FlutterwaveBaseURL,
+			Enabled:   processor.config.FlutterwaveEnabled,
+		}
+		flutterwaveClient := services.NewFlutterwaveBillClient(flutterwaveConfig)
+
+		paystackConfig := services.PaystackConfig{
+			SecretKey: processor.config.PaystackSecretKey,
+			PublicKey: processor.config.PaystackPublicKey,
+			BaseURL:   processor.config.PaystackBaseURL,
+			Enabled:   processor.config.PaystackEnabled,
+		}
+		paystackClient := services.NewPaystackBillClient(paystackConfig)
+
+		billProviderFactory := services.NewBillPaymentProviderFactory(flutterwaveClient, paystackClient)
+
+		return HandleBillPaymentProcessTask(ctx, task, processor.db, billProviderFactory, processor.distributor)
 	})
 
 	log.Info().Msg("starting task processor server")

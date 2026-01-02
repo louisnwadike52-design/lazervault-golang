@@ -5,15 +5,30 @@ import (
 	"errors"
 	"lazervaultGo/database"
 	"lazervaultGo/grpcApi/middleware"
+	"lazervaultGo/models"
 	"lazervaultGo/pb"
 	"lazervaultGo/token"
-	"strconv"
+	"time"
 
 	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/timestamppb"
 	"gorm.io/gorm"
 )
+
+// TODO: Performance Optimization - Replace COUNT queries with cached count fields
+// Current implementation uses expensive COUNT(*) queries which can be slow with large datasets.
+// Recommended approach:
+// 1. Add count cache fields to User or separate statistics table:
+//    - incoming_invoices_total
+//    - incoming_invoices_pending
+//    - incoming_invoices_paid
+//    - outgoing_invoices_total
+//    - etc.
+// 2. Create database triggers or background tasks to update counts after INSERT/UPDATE/DELETE
+// 3. Replace all Count() queries with cached field reads
+// 4. Add migration to populate initial counts for existing data
 
 var (
 	ErrInvalidTaggedInvoiceData = errors.New("invalid tagged invoice data")
@@ -65,138 +80,706 @@ func (s *TaggedInvoiceService) getUserIDFromContext(ctx context.Context) (string
 		return "", status.Errorf(codes.Unauthenticated, "authentication required")
 	}
 
-	// Get user by email to get the actual user ID
+	// Get user by email to get the actual user UUID
 	user, err := database.FindUserByEmail(s.db, authPayload.Email)
 	if err != nil {
 		return "", status.Errorf(codes.NotFound, "user not found")
 	}
 
-	return strconv.FormatUint(uint64(user.ID), 10), nil
+	// Return the UUID field instead of converting integer ID to string
+	return user.UUID, nil
+}
+
+// Helper function to convert InvoicePaymentStatus string to protobuf enum
+func statusStringToProto(status models.InvoicePaymentStatus) pb.InvoicePaymentStatus {
+	switch status {
+	case "pending":
+		return pb.InvoicePaymentStatus_INVOICE_PAYMENT_STATUS_PENDING
+	case "processing":
+		return pb.InvoicePaymentStatus_INVOICE_PAYMENT_STATUS_PROCESSING
+	case "completed":
+		return pb.InvoicePaymentStatus_INVOICE_PAYMENT_STATUS_COMPLETED
+	case "failed":
+		return pb.InvoicePaymentStatus_INVOICE_PAYMENT_STATUS_FAILED
+	case "cancelled":
+		return pb.InvoicePaymentStatus_INVOICE_PAYMENT_STATUS_CANCELLED
+	case "partially_paid":
+		return pb.InvoicePaymentStatus_INVOICE_PAYMENT_STATUS_PARTIALLY_PAID
+	case "refunded":
+		return pb.InvoicePaymentStatus_INVOICE_PAYMENT_STATUS_REFUNDED
+	case "disputed":
+		return pb.InvoicePaymentStatus_INVOICE_PAYMENT_STATUS_DISPUTED
+	case "overdue":
+		return pb.InvoicePaymentStatus_INVOICE_PAYMENT_STATUS_OVERDUE
+	default:
+		return pb.InvoicePaymentStatus_INVOICE_PAYMENT_STATUS_PENDING
+	}
+}
+
+// Helper function to convert protobuf enum to status string
+func statusProtoToString(status pb.InvoicePaymentStatus) string {
+	switch status {
+	case pb.InvoicePaymentStatus_INVOICE_PAYMENT_STATUS_PENDING:
+		return "pending"
+	case pb.InvoicePaymentStatus_INVOICE_PAYMENT_STATUS_PROCESSING:
+		return "processing"
+	case pb.InvoicePaymentStatus_INVOICE_PAYMENT_STATUS_COMPLETED:
+		return "completed"
+	case pb.InvoicePaymentStatus_INVOICE_PAYMENT_STATUS_FAILED:
+		return "failed"
+	case pb.InvoicePaymentStatus_INVOICE_PAYMENT_STATUS_CANCELLED:
+		return "cancelled"
+	case pb.InvoicePaymentStatus_INVOICE_PAYMENT_STATUS_PARTIALLY_PAID:
+		return "partially_paid"
+	case pb.InvoicePaymentStatus_INVOICE_PAYMENT_STATUS_REFUNDED:
+		return "refunded"
+	case pb.InvoicePaymentStatus_INVOICE_PAYMENT_STATUS_DISPUTED:
+		return "disputed"
+	case pb.InvoicePaymentStatus_INVOICE_PAYMENT_STATUS_OVERDUE:
+		return "overdue"
+	default:
+		return "pending"
+	}
+}
+
+// Helper function to convert priority string to protobuf enum
+func priorityStringToProto(priority string) pb.InvoicePriority {
+	switch priority {
+	case "low":
+		return pb.InvoicePriority_INVOICE_PRIORITY_LOW
+	case "medium":
+		return pb.InvoicePriority_INVOICE_PRIORITY_MEDIUM
+	case "high":
+		return pb.InvoicePriority_INVOICE_PRIORITY_HIGH
+	case "urgent":
+		return pb.InvoicePriority_INVOICE_PRIORITY_URGENT
+	default:
+		return pb.InvoicePriority_INVOICE_PRIORITY_LOW
+	}
+}
+
+// Helper function to convert protobuf enum to priority string
+func priorityProtoToString(priority pb.InvoicePriority) string {
+	switch priority {
+	case pb.InvoicePriority_INVOICE_PRIORITY_LOW:
+		return "low"
+	case pb.InvoicePriority_INVOICE_PRIORITY_MEDIUM:
+		return "medium"
+	case pb.InvoicePriority_INVOICE_PRIORITY_HIGH:
+		return "high"
+	case pb.InvoicePriority_INVOICE_PRIORITY_URGENT:
+		return "urgent"
+	default:
+		return "low"
+	}
+}
+
+// Helper function to convert TaggedInvoice model to protobuf
+func taggedInvoiceToProto(ti *models.TaggedInvoice, invoice *models.Invoice) *pb.TaggedInvoice {
+	pbInvoice := &pb.TaggedInvoice{
+		Id:            ti.ID.String(),
+		InvoiceId:     ti.InvoiceID,
+		UserId:        ti.UserID,
+		PaymentStatus: statusStringToProto(ti.PaymentStatus),
+		Priority:      priorityStringToProto(ti.Priority),
+		IsViewed:      ti.IsViewed,
+		TaggedAt:      timestamppb.New(ti.TaggedAt),
+	}
+
+	if ti.ViewedAt != nil {
+		pbInvoice.ViewedAt = timestamppb.New(*ti.ViewedAt)
+	}
+
+	if ti.ReminderDate != nil {
+		pbInvoice.ReminderDate = timestamppb.New(*ti.ReminderDate)
+	}
+
+	// Add invoice details if available
+	if invoice != nil {
+		pbInvoice.Amount = invoice.TotalAmount
+		pbInvoice.Currency = invoice.Currency
+		pbInvoice.Notes = invoice.Notes
+		pbInvoice.CreatedAt = timestamppb.New(invoice.CreatedAt)
+		pbInvoice.UpdatedAt = timestamppb.New(invoice.UpdatedAt)
+	}
+
+	return pbInvoice
 }
 
 // GetTaggedInvoices retrieves tagged invoices for a user
 func (s *TaggedInvoiceService) GetTaggedInvoices(ctx context.Context, req *pb.GetTaggedInvoicesRequest) (*pb.GetTaggedInvoicesResponse, error) {
 	// Extract user ID from JWT token via email database lookup
-	_, err := s.getUserIDFromContext(ctx)
+	userID, err := s.getUserIDFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	// TODO: Implement actual tagged invoice retrieval from database
+	// Build query with filters
+	query := s.db.Where("user_id = ?", userID)
+
+	// Apply status filter if provided
+	if req.StatusFilter != pb.InvoicePaymentStatus_INVOICE_PAYMENT_STATUS_PENDING || req.StatusFilter != 0 {
+		statusStr := statusProtoToString(req.StatusFilter)
+		query = query.Where("payment_status = ?", statusStr)
+	}
+
+	// Apply priority filter if provided
+	if req.PriorityFilter != pb.InvoicePriority_INVOICE_PRIORITY_LOW || req.PriorityFilter != 0 {
+		priorityStr := priorityProtoToString(req.PriorityFilter)
+		query = query.Where("priority = ?", priorityStr)
+	}
+
+	// Get total count
+	var totalCount int64
+	if err := query.Model(&models.TaggedInvoice{}).Count(&totalCount).Error; err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to count tagged invoices: %v", err)
+	}
+
+	// Apply pagination
+	pageSize := req.PageSize
+	if pageSize == 0 {
+		pageSize = 20 // Default page size
+	}
+	query = query.Limit(int(pageSize))
+
+	// Fetch tagged invoices
+	var taggedInvoices []models.TaggedInvoice
+	if err := query.Order("tagged_at DESC").Find(&taggedInvoices).Error; err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to fetch tagged invoices: %v", err)
+	}
+
+	// Fetch associated invoices
+	invoiceIDs := make([]string, len(taggedInvoices))
+	for i, ti := range taggedInvoices {
+		invoiceIDs[i] = ti.InvoiceID
+	}
+
+	var invoices []models.Invoice
+	invoiceMap := make(map[string]*models.Invoice)
+	if len(invoiceIDs) > 0 {
+		if err := s.db.Where("id IN ?", invoiceIDs).Find(&invoices).Error; err != nil {
+			return nil, status.Errorf(codes.Internal, "failed to fetch invoices: %v", err)
+		}
+		for i := range invoices {
+			invoiceMap[invoices[i].ID] = &invoices[i]
+		}
+	}
+
+	// Convert to protobuf
+	pbInvoices := make([]*pb.TaggedInvoice, len(taggedInvoices))
+	for i, ti := range taggedInvoices {
+		invoice := invoiceMap[ti.InvoiceID]
+		pbInvoices[i] = taggedInvoiceToProto(&ti, invoice)
+	}
+
+	// Calculate summary statistics
+	summary := s.calculateSummary(userID)
+
 	return &pb.GetTaggedInvoicesResponse{
-		Invoices:   []*pb.TaggedInvoice{},
-		TotalCount: 0,
-		Summary: &pb.TaggedInvoicesSummary{
-			TotalInvoices:   0,
-			PendingInvoices: 0,
-			OverdueInvoices: 0,
-			PaidInvoices:    0,
-		},
+		Invoices:   pbInvoices,
+		TotalCount: uint64(totalCount),
+		Summary:    summary,
 	}, nil
+}
+
+// calculateSummary calculates summary statistics for tagged invoices
+func (s *TaggedInvoiceService) calculateSummary(userID string) *pb.TaggedInvoicesSummary {
+	var totalCount, pendingCount, overdueCount, paidCount int64
+	var totalAmount, pendingAmount, overdueAmount float64
+
+	// Total count
+	s.db.Model(&models.TaggedInvoice{}).Where("user_id = ?", userID).Count(&totalCount)
+
+	// Pending count and amount
+	var pendingInvoices []models.TaggedInvoice
+	s.db.Where("user_id = ? AND payment_status = ?", userID, "pending").Find(&pendingInvoices)
+	pendingCount = int64(len(pendingInvoices))
+	for _, ti := range pendingInvoices {
+		var invoice models.Invoice
+		if err := s.db.Where("id = ?", ti.InvoiceID).First(&invoice).Error; err == nil {
+			pendingAmount += invoice.TotalAmount
+			totalAmount += invoice.TotalAmount
+		}
+	}
+
+	// Overdue count and amount
+	var overdueInvoices []models.TaggedInvoice
+	s.db.Where("user_id = ? AND payment_status = ?", userID, "overdue").Find(&overdueInvoices)
+	overdueCount = int64(len(overdueInvoices))
+	for _, ti := range overdueInvoices {
+		var invoice models.Invoice
+		if err := s.db.Where("id = ?", ti.InvoiceID).First(&invoice).Error; err == nil {
+			overdueAmount += invoice.TotalAmount
+		}
+	}
+
+	// Paid count
+	s.db.Model(&models.TaggedInvoice{}).Where("user_id = ? AND payment_status = ?", userID, "completed").Count(&paidCount)
+
+	return &pb.TaggedInvoicesSummary{
+		TotalInvoices:   uint64(totalCount),
+		PendingInvoices: uint64(pendingCount),
+		OverdueInvoices: uint64(overdueCount),
+		PaidInvoices:    uint64(paidCount),
+		TotalAmount:     totalAmount,
+		PendingAmount:   pendingAmount,
+		OverdueAmount:   overdueAmount,
+	}
 }
 
 // GetTaggedInvoicesByStatus retrieves tagged invoices by status
 func (s *TaggedInvoiceService) GetTaggedInvoicesByStatus(ctx context.Context, req *pb.GetTaggedInvoicesByStatusRequest) (*pb.GetTaggedInvoicesByStatusResponse, error) {
 	// Extract user ID from JWT token via email database lookup
-	_, err := s.getUserIDFromContext(ctx)
+	userID, err := s.getUserIDFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	// TODO: Implement actual tagged invoice retrieval by status
+	// Convert status to string
+	statusStr := statusProtoToString(req.Status)
+
+	// Build query
+	query := s.db.Where("user_id = ? AND payment_status = ?", userID, statusStr)
+
+	// Get total count
+	var totalCount int64
+	if err := query.Model(&models.TaggedInvoice{}).Count(&totalCount).Error; err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to count tagged invoices: %v", err)
+	}
+
+	// Apply pagination
+	pageSize := req.PageSize
+	if pageSize == 0 {
+		pageSize = 20
+	}
+	query = query.Limit(int(pageSize))
+
+	// Fetch tagged invoices
+	var taggedInvoices []models.TaggedInvoice
+	if err := query.Order("tagged_at DESC").Find(&taggedInvoices).Error; err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to fetch tagged invoices: %v", err)
+	}
+
+	// Fetch associated invoices
+	invoiceIDs := make([]string, len(taggedInvoices))
+	for i, ti := range taggedInvoices {
+		invoiceIDs[i] = ti.InvoiceID
+	}
+
+	var invoices []models.Invoice
+	invoiceMap := make(map[string]*models.Invoice)
+	if len(invoiceIDs) > 0 {
+		if err := s.db.Where("id IN ?", invoiceIDs).Find(&invoices).Error; err != nil {
+			return nil, status.Errorf(codes.Internal, "failed to fetch invoices: %v", err)
+		}
+		for i := range invoices {
+			invoiceMap[invoices[i].ID] = &invoices[i]
+		}
+	}
+
+	// Convert to protobuf
+	pbInvoices := make([]*pb.TaggedInvoice, len(taggedInvoices))
+	for i, ti := range taggedInvoices {
+		invoice := invoiceMap[ti.InvoiceID]
+		pbInvoices[i] = taggedInvoiceToProto(&ti, invoice)
+	}
+
 	return &pb.GetTaggedInvoicesByStatusResponse{
-		Invoices:   []*pb.TaggedInvoice{},
-		TotalCount: 0,
+		Invoices:   pbInvoices,
+		TotalCount: uint64(totalCount),
 	}, nil
 }
 
 // GetTaggedInvoiceById retrieves a specific tagged invoice
 func (s *TaggedInvoiceService) GetTaggedInvoiceById(ctx context.Context, req *pb.GetTaggedInvoiceByIdRequest) (*pb.GetTaggedInvoiceByIdResponse, error) {
 	// Extract user ID from JWT token via email database lookup
-	_, err := s.getUserIDFromContext(ctx)
+	userID, err := s.getUserIDFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	// TODO: Implement actual tagged invoice retrieval by ID
+	// Fetch tagged invoice
+	var taggedInvoice models.TaggedInvoice
+	if err := s.db.Where("invoice_id = ? AND user_id = ?", req.InvoiceId, userID).First(&taggedInvoice).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, status.Errorf(codes.NotFound, "tagged invoice not found")
+		}
+		return nil, status.Errorf(codes.Internal, "failed to fetch tagged invoice: %v", err)
+	}
+
+	// Fetch associated invoice
+	var invoice models.Invoice
+	if err := s.db.Where("id = ?", taggedInvoice.InvoiceID).First(&invoice).Error; err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, status.Errorf(codes.Internal, "failed to fetch invoice: %v", err)
+		}
+	}
+
 	return &pb.GetTaggedInvoiceByIdResponse{
-		Invoice: &pb.TaggedInvoice{},
+		Invoice: taggedInvoiceToProto(&taggedInvoice, &invoice),
 	}, nil
 }
 
 // GetOverdueTaggedInvoices retrieves overdue tagged invoices
 func (s *TaggedInvoiceService) GetOverdueTaggedInvoices(ctx context.Context, req *pb.GetOverdueTaggedInvoicesRequest) (*pb.GetOverdueTaggedInvoicesResponse, error) {
 	// Extract user ID from JWT token via email database lookup
-	_, err := s.getUserIDFromContext(ctx)
+	userID, err := s.getUserIDFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	// TODO: Implement actual overdue tagged invoice retrieval
+	// Build query for overdue invoices
+	query := s.db.Where("user_id = ? AND payment_status = ?", userID, "overdue")
+
+	// Get total count
+	var totalCount int64
+	if err := query.Model(&models.TaggedInvoice{}).Count(&totalCount).Error; err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to count overdue invoices: %v", err)
+	}
+
+	// Apply pagination
+	pageSize := req.PageSize
+	if pageSize == 0 {
+		pageSize = 20
+	}
+	query = query.Limit(int(pageSize))
+
+	// Fetch tagged invoices
+	var taggedInvoices []models.TaggedInvoice
+	if err := query.Order("tagged_at DESC").Find(&taggedInvoices).Error; err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to fetch overdue invoices: %v", err)
+	}
+
+	// Fetch associated invoices and calculate total amount
+	invoiceIDs := make([]string, len(taggedInvoices))
+	for i, ti := range taggedInvoices {
+		invoiceIDs[i] = ti.InvoiceID
+	}
+
+	var invoices []models.Invoice
+	invoiceMap := make(map[string]*models.Invoice)
+	totalOverdueAmount := 0.0
+
+	if len(invoiceIDs) > 0 {
+		if err := s.db.Where("id IN ?", invoiceIDs).Find(&invoices).Error; err != nil {
+			return nil, status.Errorf(codes.Internal, "failed to fetch invoices: %v", err)
+		}
+		for i := range invoices {
+			invoiceMap[invoices[i].ID] = &invoices[i]
+			totalOverdueAmount += invoices[i].TotalAmount
+		}
+	}
+
+	// Convert to protobuf
+	pbInvoices := make([]*pb.TaggedInvoice, len(taggedInvoices))
+	for i, ti := range taggedInvoices {
+		invoice := invoiceMap[ti.InvoiceID]
+		pbInvoices[i] = taggedInvoiceToProto(&ti, invoice)
+	}
+
 	return &pb.GetOverdueTaggedInvoicesResponse{
-		Invoices:           []*pb.TaggedInvoice{},
-		TotalCount:         0,
-		TotalOverdueAmount: 0.0,
+		Invoices:           pbInvoices,
+		TotalCount:         uint64(totalCount),
+		TotalOverdueAmount: totalOverdueAmount,
 	}, nil
 }
 
 // GetUpcomingTaggedInvoices retrieves upcoming tagged invoices
 func (s *TaggedInvoiceService) GetUpcomingTaggedInvoices(ctx context.Context, req *pb.GetUpcomingTaggedInvoicesRequest) (*pb.GetUpcomingTaggedInvoicesResponse, error) {
 	// Extract user ID from JWT token via email database lookup
-	_, err := s.getUserIDFromContext(ctx)
+	userID, err := s.getUserIDFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	// TODO: Implement actual upcoming tagged invoice retrieval
+	// Calculate date range for upcoming invoices
+	now := time.Now()
+	daysAhead := req.DaysAhead
+	if daysAhead == 0 {
+		daysAhead = 30 // Default to 30 days
+	}
+	futureDate := now.AddDate(0, 0, int(daysAhead))
+
+	// Query for upcoming invoices with reminder dates
+	query := s.db.Where("user_id = ? AND reminder_date IS NOT NULL AND reminder_date BETWEEN ? AND ?", userID, now, futureDate)
+
+	// Get total count
+	var totalCount int64
+	if err := query.Model(&models.TaggedInvoice{}).Count(&totalCount).Error; err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to count upcoming invoices: %v", err)
+	}
+
+	// Apply pagination
+	pageSize := req.PageSize
+	if pageSize == 0 {
+		pageSize = 20
+	}
+	query = query.Limit(int(pageSize))
+
+	// Fetch tagged invoices
+	var taggedInvoices []models.TaggedInvoice
+	if err := query.Order("reminder_date ASC").Find(&taggedInvoices).Error; err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to fetch upcoming invoices: %v", err)
+	}
+
+	// Fetch associated invoices
+	invoiceIDs := make([]string, len(taggedInvoices))
+	for i, ti := range taggedInvoices {
+		invoiceIDs[i] = ti.InvoiceID
+	}
+
+	var invoices []models.Invoice
+	invoiceMap := make(map[string]*models.Invoice)
+	if len(invoiceIDs) > 0 {
+		if err := s.db.Where("id IN ?", invoiceIDs).Find(&invoices).Error; err != nil {
+			return nil, status.Errorf(codes.Internal, "failed to fetch invoices: %v", err)
+		}
+		for i := range invoices {
+			invoiceMap[invoices[i].ID] = &invoices[i]
+		}
+	}
+
+	// Convert to protobuf
+	pbInvoices := make([]*pb.TaggedInvoice, len(taggedInvoices))
+	for i, ti := range taggedInvoices {
+		invoice := invoiceMap[ti.InvoiceID]
+		pbInvoices[i] = taggedInvoiceToProto(&ti, invoice)
+	}
+
 	return &pb.GetUpcomingTaggedInvoicesResponse{
-		Invoices:   []*pb.TaggedInvoice{},
-		TotalCount: 0,
+		Invoices:   pbInvoices,
+		TotalCount: uint64(totalCount),
 	}, nil
 }
 
 // SearchTaggedInvoices searches for tagged invoices
 func (s *TaggedInvoiceService) SearchTaggedInvoices(ctx context.Context, req *pb.SearchTaggedInvoicesRequest) (*pb.SearchTaggedInvoicesResponse, error) {
 	// Extract user ID from JWT token via email database lookup
-	_, err := s.getUserIDFromContext(ctx)
+	userID, err := s.getUserIDFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	// TODO: Implement actual search functionality
+	// Start with base query
+	query := s.db.Where("user_id = ?", userID)
+
+	// Apply status filters
+	if len(req.Statuses) > 0 {
+		statuses := make([]string, len(req.Statuses))
+		for i, st := range req.Statuses {
+			statuses[i] = statusProtoToString(st)
+		}
+		query = query.Where("payment_status IN ?", statuses)
+	}
+
+	// Apply priority filters
+	if len(req.Priorities) > 0 {
+		priorities := make([]string, len(req.Priorities))
+		for i, pr := range req.Priorities {
+			priorities[i] = priorityProtoToString(pr)
+		}
+		query = query.Where("priority IN ?", priorities)
+	}
+
+	// Apply date range filters
+	if req.StartDate != nil {
+		query = query.Where("tagged_at >= ?", req.StartDate.AsTime())
+	}
+	if req.EndDate != nil {
+		query = query.Where("tagged_at <= ?", req.EndDate.AsTime())
+	}
+
+	// Get total count before applying text search
+	var totalCount int64
+	if err := query.Model(&models.TaggedInvoice{}).Count(&totalCount).Error; err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to count invoices: %v", err)
+	}
+
+	// Apply pagination
+	pageSize := req.PageSize
+	if pageSize == 0 {
+		pageSize = 20
+	}
+	query = query.Limit(int(pageSize))
+
+	// Fetch tagged invoices
+	var taggedInvoices []models.TaggedInvoice
+	if err := query.Order("tagged_at DESC").Find(&taggedInvoices).Error; err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to search invoices: %v", err)
+	}
+
+	// If there's a search query, filter by invoice details
+	if req.Query != "" {
+		// Fetch all invoices and filter in application layer (or use full-text search in DB)
+		invoiceIDs := make([]string, len(taggedInvoices))
+		for i, ti := range taggedInvoices {
+			invoiceIDs[i] = ti.InvoiceID
+		}
+
+		if len(invoiceIDs) > 0 {
+			var invoices []models.Invoice
+			// Search in invoice title, description, or notes
+			s.db.Where("id IN ? AND (title ILIKE ? OR description ILIKE ? OR notes ILIKE ?)",
+				invoiceIDs, "%"+req.Query+"%", "%"+req.Query+"%", "%"+req.Query+"%").Find(&invoices)
+
+			// Filter taggedInvoices to only include matches
+			matchedIDs := make(map[string]bool)
+			for _, inv := range invoices {
+				matchedIDs[inv.ID] = true
+			}
+
+			filtered := []models.TaggedInvoice{}
+			for _, ti := range taggedInvoices {
+				if matchedIDs[ti.InvoiceID] {
+					filtered = append(filtered, ti)
+				}
+			}
+			taggedInvoices = filtered
+			totalCount = int64(len(filtered))
+		}
+	}
+
+	// Fetch associated invoices
+	invoiceIDs := make([]string, len(taggedInvoices))
+	for i, ti := range taggedInvoices {
+		invoiceIDs[i] = ti.InvoiceID
+	}
+
+	var invoices []models.Invoice
+	invoiceMap := make(map[string]*models.Invoice)
+	if len(invoiceIDs) > 0 {
+		if err := s.db.Where("id IN ?", invoiceIDs).Find(&invoices).Error; err != nil {
+			return nil, status.Errorf(codes.Internal, "failed to fetch invoices: %v", err)
+		}
+		for i := range invoices {
+			invoiceMap[invoices[i].ID] = &invoices[i]
+		}
+	}
+
+	// Convert to protobuf
+	pbInvoices := make([]*pb.TaggedInvoice, len(taggedInvoices))
+	for i, ti := range taggedInvoices {
+		invoice := invoiceMap[ti.InvoiceID]
+		pbInvoices[i] = taggedInvoiceToProto(&ti, invoice)
+	}
+
 	return &pb.SearchTaggedInvoicesResponse{
-		Invoices:   []*pb.TaggedInvoice{},
-		TotalCount: 0,
+		Invoices:   pbInvoices,
+		TotalCount: uint64(totalCount),
 	}, nil
 }
 
 // FilterTaggedInvoicesByPriority filters tagged invoices by priority
 func (s *TaggedInvoiceService) FilterTaggedInvoicesByPriority(ctx context.Context, req *pb.FilterTaggedInvoicesByPriorityRequest) (*pb.FilterTaggedInvoicesByPriorityResponse, error) {
-	// Extract user ID from JWT token via email database lookup
-	_, err := s.getUserIDFromContext(ctx)
+	userID, err := s.getUserIDFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	// TODO: Implement priority filtering
+	priorityStr := priorityProtoToString(req.Priority)
+	query := s.db.Where("user_id = ? AND priority = ?", userID, priorityStr)
+
+	var totalCount int64
+	if err := query.Model(&models.TaggedInvoice{}).Count(&totalCount).Error; err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to count invoices: %v", err)
+	}
+
+	pageSize := req.PageSize
+	if pageSize == 0 {
+		pageSize = 20
+	}
+	query = query.Limit(int(pageSize))
+
+	var taggedInvoices []models.TaggedInvoice
+	if err := query.Order("tagged_at DESC").Find(&taggedInvoices).Error; err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to filter invoices: %v", err)
+	}
+
+	invoiceIDs := make([]string, len(taggedInvoices))
+	for i, ti := range taggedInvoices {
+		invoiceIDs[i] = ti.InvoiceID
+	}
+
+	var invoices []models.Invoice
+	invoiceMap := make(map[string]*models.Invoice)
+	if len(invoiceIDs) > 0 {
+		if err := s.db.Where("id IN ?", invoiceIDs).Find(&invoices).Error; err != nil {
+			return nil, status.Errorf(codes.Internal, "failed to fetch invoices: %v", err)
+		}
+		for i := range invoices {
+			invoiceMap[invoices[i].ID] = &invoices[i]
+		}
+	}
+
+	pbInvoices := make([]*pb.TaggedInvoice, len(taggedInvoices))
+	for i, ti := range taggedInvoices {
+		invoice := invoiceMap[ti.InvoiceID]
+		pbInvoices[i] = taggedInvoiceToProto(&ti, invoice)
+	}
+
 	return &pb.FilterTaggedInvoicesByPriorityResponse{
-		Invoices:   []*pb.TaggedInvoice{},
-		TotalCount: 0,
+		Invoices:   pbInvoices,
+		TotalCount: uint64(totalCount),
 	}, nil
 }
 
 // FilterTaggedInvoicesByDateRange filters tagged invoices by date range
 func (s *TaggedInvoiceService) FilterTaggedInvoicesByDateRange(ctx context.Context, req *pb.FilterTaggedInvoicesByDateRangeRequest) (*pb.FilterTaggedInvoicesByDateRangeResponse, error) {
-	// Extract user ID from JWT token via email database lookup
-	_, err := s.getUserIDFromContext(ctx)
+	userID, err := s.getUserIDFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	// TODO: Implement date range filtering
+	query := s.db.Where("user_id = ?", userID)
+
+	if req.StartDate != nil {
+		query = query.Where("tagged_at >= ?", req.StartDate.AsTime())
+	}
+	if req.EndDate != nil {
+		query = query.Where("tagged_at <= ?", req.EndDate.AsTime())
+	}
+
+	var totalCount int64
+	if err := query.Model(&models.TaggedInvoice{}).Count(&totalCount).Error; err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to count invoices: %v", err)
+	}
+
+	pageSize := req.PageSize
+	if pageSize == 0 {
+		pageSize = 20
+	}
+	query = query.Limit(int(pageSize))
+
+	var taggedInvoices []models.TaggedInvoice
+	if err := query.Order("tagged_at DESC").Find(&taggedInvoices).Error; err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to filter invoices: %v", err)
+	}
+
+	invoiceIDs := make([]string, len(taggedInvoices))
+	for i, ti := range taggedInvoices {
+		invoiceIDs[i] = ti.InvoiceID
+	}
+
+	var invoices []models.Invoice
+	invoiceMap := make(map[string]*models.Invoice)
+	if len(invoiceIDs) > 0 {
+		if err := s.db.Where("id IN ?", invoiceIDs).Find(&invoices).Error; err != nil {
+			return nil, status.Errorf(codes.Internal, "failed to fetch invoices: %v", err)
+		}
+		for i := range invoices {
+			invoiceMap[invoices[i].ID] = &invoices[i]
+		}
+	}
+
+	pbInvoices := make([]*pb.TaggedInvoice, len(taggedInvoices))
+	for i, ti := range taggedInvoices {
+		invoice := invoiceMap[ti.InvoiceID]
+		pbInvoices[i] = taggedInvoiceToProto(&ti, invoice)
+	}
+
 	return &pb.FilterTaggedInvoicesByDateRangeResponse{
-		Invoices:   []*pb.TaggedInvoice{},
-		TotalCount: 0,
+		Invoices:   pbInvoices,
+		TotalCount: uint64(totalCount),
 	}, nil
 }
 
@@ -217,15 +800,37 @@ func (s *TaggedInvoiceService) FilterTaggedInvoicesByAmount(ctx context.Context,
 
 // MarkTaggedInvoiceAsViewed marks a tagged invoice as viewed
 func (s *TaggedInvoiceService) MarkTaggedInvoiceAsViewed(ctx context.Context, req *pb.MarkTaggedInvoiceAsViewedRequest) (*pb.MarkTaggedInvoiceAsViewedResponse, error) {
-	// Extract user ID from JWT token via email database lookup
-	_, err := s.getUserIDFromContext(ctx)
+	userID, err := s.getUserIDFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	// TODO: Implement mark as viewed functionality
+	now := time.Now()
+	result := s.db.Model(&models.TaggedInvoice{}).
+		Where("invoice_id = ? AND user_id = ?", req.InvoiceId, userID).
+		Updates(map[string]interface{}{
+			"is_viewed": true,
+			"viewed_at": now,
+		})
+
+	if result.Error != nil {
+		return nil, status.Errorf(codes.Internal, "failed to mark invoice as viewed: %v", result.Error)
+	}
+
+	if result.RowsAffected == 0 {
+		return nil, status.Errorf(codes.NotFound, "tagged invoice not found")
+	}
+
+	var taggedInvoice models.TaggedInvoice
+	if err := s.db.Where("invoice_id = ? AND user_id = ?", req.InvoiceId, userID).First(&taggedInvoice).Error; err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to fetch updated invoice: %v", err)
+	}
+
+	var invoice models.Invoice
+	s.db.Where("id = ?", taggedInvoice.InvoiceID).First(&invoice)
+
 	return &pb.MarkTaggedInvoiceAsViewedResponse{
-		Invoice: &pb.TaggedInvoice{},
+		Invoice: taggedInvoiceToProto(&taggedInvoice, &invoice),
 		Success: true,
 		Message: "Invoice marked as viewed successfully",
 	}, nil
@@ -233,13 +838,24 @@ func (s *TaggedInvoiceService) MarkTaggedInvoiceAsViewed(ctx context.Context, re
 
 // SetInvoicePaymentReminder sets a payment reminder for a tagged invoice
 func (s *TaggedInvoiceService) SetInvoicePaymentReminder(ctx context.Context, req *pb.SetInvoicePaymentReminderRequest) (*pb.SetInvoicePaymentReminderResponse, error) {
-	// Extract user ID from JWT token via email database lookup
 	userID, err := s.getUserIDFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	// TODO: Implement payment reminder functionality
+	reminderDate := req.ReminderDate.AsTime()
+	result := s.db.Model(&models.TaggedInvoice{}).
+		Where("invoice_id = ? AND user_id = ?", req.InvoiceId, userID).
+		Update("reminder_date", reminderDate)
+
+	if result.Error != nil {
+		return nil, status.Errorf(codes.Internal, "failed to set reminder: %v", result.Error)
+	}
+
+	if result.RowsAffected == 0 {
+		return nil, status.Errorf(codes.NotFound, "tagged invoice not found")
+	}
+
 	return &pb.SetInvoicePaymentReminderResponse{
 		Reminder: &pb.PaymentReminder{
 			InvoiceId:    req.InvoiceId,
@@ -286,15 +902,34 @@ func (s *TaggedInvoiceService) GetInvoicePaymentNotifications(ctx context.Contex
 
 // UpdateTaggedInvoiceStatus updates the status of a tagged invoice
 func (s *TaggedInvoiceService) UpdateTaggedInvoiceStatus(ctx context.Context, req *pb.UpdateTaggedInvoiceStatusRequest) (*pb.UpdateTaggedInvoiceStatusResponse, error) {
-	// Extract user ID from JWT token via email database lookup
-	_, err := s.getUserIDFromContext(ctx)
+	userID, err := s.getUserIDFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	// TODO: Implement status update functionality
+	statusStr := statusProtoToString(req.NewStatus)
+	result := s.db.Model(&models.TaggedInvoice{}).
+		Where("invoice_id = ? AND user_id = ?", req.InvoiceId, userID).
+		Update("payment_status", statusStr)
+
+	if result.Error != nil {
+		return nil, status.Errorf(codes.Internal, "failed to update status: %v", result.Error)
+	}
+
+	if result.RowsAffected == 0 {
+		return nil, status.Errorf(codes.NotFound, "tagged invoice not found")
+	}
+
+	var taggedInvoice models.TaggedInvoice
+	if err := s.db.Where("invoice_id = ? AND user_id = ?", req.InvoiceId, userID).First(&taggedInvoice).Error; err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to fetch updated invoice: %v", err)
+	}
+
+	var invoice models.Invoice
+	s.db.Where("id = ?", taggedInvoice.InvoiceID).First(&invoice)
+
 	return &pb.UpdateTaggedInvoiceStatusResponse{
-		Invoice: &pb.TaggedInvoice{},
+		Invoice: taggedInvoiceToProto(&taggedInvoice, &invoice),
 		Success: true,
 		Message: "Invoice status updated successfully",
 	}, nil
@@ -349,24 +984,69 @@ func (s *TaggedInvoiceService) BulkSetPaymentReminders(ctx context.Context, req 
 
 // GetTaggedInvoiceStatistics retrieves statistics for tagged invoices
 func (s *TaggedInvoiceService) GetTaggedInvoiceStatistics(ctx context.Context, req *pb.GetTaggedInvoiceStatisticsRequest) (*pb.GetTaggedInvoiceStatisticsResponse, error) {
-	// Extract user ID from JWT token via email database lookup
-	_, err := s.getUserIDFromContext(ctx)
+	userID, err := s.getUserIDFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	// TODO: Implement statistics calculation
+	var totalCount, pendingCount, overdueCount, completedCount int64
+	var totalAmount, pendingAmount, overdueAmount, completedAmount float64
+
+	// Total count
+	s.db.Model(&models.TaggedInvoice{}).Where("user_id = ?", userID).Count(&totalCount)
+
+	// Pending
+	var pendingInvoices []models.TaggedInvoice
+	s.db.Where("user_id = ? AND payment_status = ?", userID, "pending").Find(&pendingInvoices)
+	pendingCount = int64(len(pendingInvoices))
+	for _, ti := range pendingInvoices {
+		var invoice models.Invoice
+		if err := s.db.Where("id = ?", ti.InvoiceID).First(&invoice).Error; err == nil {
+			pendingAmount += invoice.TotalAmount
+			totalAmount += invoice.TotalAmount
+		}
+	}
+
+	// Overdue
+	var overdueInvoices []models.TaggedInvoice
+	s.db.Where("user_id = ? AND payment_status = ?", userID, "overdue").Find(&overdueInvoices)
+	overdueCount = int64(len(overdueInvoices))
+	for _, ti := range overdueInvoices {
+		var invoice models.Invoice
+		if err := s.db.Where("id = ?", ti.InvoiceID).First(&invoice).Error; err == nil {
+			overdueAmount += invoice.TotalAmount
+			totalAmount += invoice.TotalAmount
+		}
+	}
+
+	// Completed
+	var completedInvoices []models.TaggedInvoice
+	s.db.Where("user_id = ? AND payment_status = ?", userID, "completed").Find(&completedInvoices)
+	completedCount = int64(len(completedInvoices))
+	for _, ti := range completedInvoices {
+		var invoice models.Invoice
+		if err := s.db.Where("id = ?", ti.InvoiceID).First(&invoice).Error; err == nil {
+			completedAmount += invoice.TotalAmount
+			totalAmount += invoice.TotalAmount
+		}
+	}
+
+	averageAmount := 0.0
+	if totalCount > 0 {
+		averageAmount = totalAmount / float64(totalCount)
+	}
+
 	return &pb.GetTaggedInvoiceStatisticsResponse{
 		Statistics: &pb.TaggedInvoiceStatistics{
-			TotalInvoices:     0,
-			PendingInvoices:   0,
-			OverdueInvoices:   0,
-			CompletedInvoices: 0,
-			TotalAmount:       0.0,
-			PendingAmount:     0.0,
-			OverdueAmount:     0.0,
-			CompletedAmount:   0.0,
-			AverageAmount:     0.0,
+			TotalInvoices:     uint64(totalCount),
+			PendingInvoices:   uint64(pendingCount),
+			OverdueInvoices:   uint64(overdueCount),
+			CompletedInvoices: uint64(completedCount),
+			TotalAmount:       totalAmount,
+			PendingAmount:     pendingAmount,
+			OverdueAmount:     overdueAmount,
+			CompletedAmount:   completedAmount,
+			AverageAmount:     averageAmount,
 		},
 	}, nil
 }

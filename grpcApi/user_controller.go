@@ -3,6 +3,7 @@ package grpcApi
 import (
 	"context"
 	"fmt"
+	"lazervaultGo/database"
 	"lazervaultGo/models"
 	"lazervaultGo/pb"
 	"lazervaultGo/services"
@@ -211,6 +212,60 @@ func (c *UserController) CreateUser(ctx context.Context, req *pb.CreateUserReque
 		Uint("user_id", user.ID).
 		Int("accounts_created", accountsCreated).
 		Msg("Default accounts creation completed for new user")
+
+	// Generate referral code for the new user
+	referralService := services.NewReferralService(c.server.db)
+	username := ""
+	if user.Username != nil {
+		username = *user.Username
+	}
+	if username == "" {
+		username = user.FirstName
+	}
+
+	referralCode, err := database.GenerateUniqueReferralCode(c.server.db, username)
+	if err != nil {
+		log.Warn().Err(err).Uint("user_id", user.ID).Msg("Failed to generate referral code")
+	} else {
+		newReferralCode := &models.ReferralCode{
+			UserID:   user.ID,
+			Code:     referralCode,
+			IsActive: true,
+		}
+		if err := database.CreateReferralCode(c.server.db, newReferralCode); err != nil {
+			log.Warn().Err(err).Uint("user_id", user.ID).Msg("Failed to create referral code")
+		} else {
+			log.Info().Uint("user_id", user.ID).Str("code", referralCode).Msg("Referral code created successfully")
+		}
+	}
+
+	// Process referral if a code was provided during signup
+	if req.ReferralCode != "" {
+		// Get user's primary account currency for reward processing
+		var primaryAccount models.Account
+		err := c.server.db.Where("owner_user_id = ? AND account_type = ?", user.ID, models.AccountTypePersonal).
+			First(&primaryAccount).Error
+
+		currency := "GBP" // Default
+		if err == nil {
+			currency = primaryAccount.Currency
+		}
+
+		// Process the referral
+		if err := referralService.ProcessReferral(ctx, user.ID, req.ReferralCode, currency); err != nil {
+			log.Warn().
+				Err(err).
+				Uint("user_id", user.ID).
+				Str("referral_code", req.ReferralCode).
+				Msg("Failed to process referral - user created but referral reward not credited")
+			// Don't fail signup if referral processing fails
+		} else {
+			log.Info().
+				Uint("user_id", user.ID).
+				Str("referral_code", req.ReferralCode).
+				Msg("Referral processed successfully")
+		}
+	}
 
 	// Log success
 	log.Info().Uint("user_id", user.ID).Str("email", user.Email).Str("session_id", session.ID).Msg("User created successfully with session")

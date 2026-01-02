@@ -41,13 +41,18 @@ type IWithdrawalService interface {
 type WithdrawalService struct {
 	db          *gorm.DB
 	distributor tasks.TaskDistributor
+	txTracker   *TransactionTracker // Tracks income/expenditure for statistics
 }
 
 // --- Withdraw Service Constructor ---
 
 // NewWithdrawalService creates a new WithdrawalService.
 func NewWithdrawalService(db *gorm.DB, distributor tasks.TaskDistributor) IWithdrawalService {
-	return &WithdrawalService{db: db, distributor: distributor}
+	return &WithdrawalService{
+		db:          db,
+		distributor: distributor,
+		txTracker:   NewTransactionTracker(db), // Initialize transaction tracker
+	}
 }
 
 // --- Withdraw Service Types ---
@@ -142,6 +147,25 @@ func (s *WithdrawalService) InitiateWithdrawal(ctx context.Context, userID uint,
 		// Return generic failure for other transaction errors
 		return nil, fmt.Errorf("withdrawal initiation transaction failed: %w", txErr)
 	}
+
+	// Track expenditure for withdrawal (Non-blocking)
+	s.txTracker.TrackExpenditureAsync(ctx, ExpenditureTrackingParams{
+		UserID:          userID,
+		Amount:          float64(withdrawal.Amount) / 100.0, // Convert from minor units
+		Currency:        withdrawal.Currency,
+		ExpenseType:     "withdrawal",
+		ExpenseID:       withdrawal.ID,
+		Category:        "EXPENSE_CATEGORY_OTHER",
+		Merchant:        withdrawal.TargetBankName,
+		Description:     fmt.Sprintf("Withdrawal to %s", withdrawal.TargetBankName),
+		TransactionDate: &withdrawal.CreatedAt,
+		Metadata: map[string]interface{}{
+			"withdrawal_id":         withdrawal.ID,
+			"target_bank_name":      withdrawal.TargetBankName,
+			"target_account_number": withdrawal.TargetAccountNumber,
+			"target_sort_code":      withdrawal.TargetSortCode,
+		},
+	})
 
 	// 3. Return Acknowledgement Response
 	resp := &pb.InitiateWithdrawalResponse{

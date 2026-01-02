@@ -369,15 +369,6 @@ func (s *UserController) SetPasscode(ctx context.Context, req *pb.SetPasscodeReq
 		}, nil
 	}
 
-	// Verify password for security
-	valid, err := user.ComparePassword(req.Password)
-	if err != nil || !valid {
-		return &pb.SetPasscodeResponse{
-			Success: false,
-			Message: "Invalid password",
-		}, nil
-	}
-
 	// Set passcode
 	if err := user.SetLoginPasscode(req.Passcode); err != nil {
 		return &pb.SetPasscodeResponse{
@@ -444,15 +435,6 @@ func (s *UserController) RemovePasscode(ctx context.Context, req *pb.RemovePassc
 		return &pb.RemovePasscodeResponse{
 			Success: false,
 			Message: "User not found",
-		}, nil
-	}
-
-	// Verify password for security
-	valid, err := user.ComparePassword(req.Password)
-	if err != nil || !valid {
-		return &pb.RemovePasscodeResponse{
-			Success: false,
-			Message: "Invalid password",
 		}, nil
 	}
 

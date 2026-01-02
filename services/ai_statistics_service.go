@@ -324,7 +324,7 @@ func (s *AIStatisticsService) callAIService(ctx context.Context, userID uint, ac
 	payload := map[string]interface{}{
 		"query":         query,
 		"context":       contextData,
-		"user_id":       userID,
+		"user_id":       fmt.Sprintf("%d", userID), // Convert uint to string for AI microservice
 		"model":         "gpt-4",
 		"max_tokens":    1500,
 		"temperature":   0.7,

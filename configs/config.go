@@ -84,6 +84,18 @@ type Config struct {
 	StripeWebhookSecret  string `mapstructure:"STRIPE_WEBHOOK_SECRET"`
 	StripeBaseURL        string `mapstructure:"STRIPE_BASE_URL"`  // https://api.stripe.com
 	StripeEnabled        bool   `mapstructure:"STRIPE_ENABLED"`
+
+	// Flutterwave Bill Payment API Config
+	FlutterwaveSecretKey string `mapstructure:"FLUTTERWAVE_SECRET_KEY"`
+	FlutterwavePublicKey string `mapstructure:"FLUTTERWAVE_PUBLIC_KEY"`
+	FlutterwaveBaseURL   string `mapstructure:"FLUTTERWAVE_BASE_URL"` // https://api.flutterwave.com
+	FlutterwaveEnabled   bool   `mapstructure:"FLUTTERWAVE_ENABLED"`
+
+	// Paystack Bill Payment API Config
+	PaystackSecretKey string `mapstructure:"PAYSTACK_SECRET_KEY"`
+	PaystackPublicKey string `mapstructure:"PAYSTACK_PUBLIC_KEY"`
+	PaystackBaseURL   string `mapstructure:"PAYSTACK_BASE_URL"` // https://api.paystack.co
+	PaystackEnabled   bool   `mapstructure:"PAYSTACK_ENABLED"`
 }
 
 func LoadConfig(path string) (config Config, err error) {

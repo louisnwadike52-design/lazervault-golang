@@ -3,7 +3,8 @@ package grpcApi
 import (
 	"context"
 	"errors"
-	"fmt"
+	"math"
+
 	"lazervaultGo/grpcApi/middleware"
 	"lazervaultGo/models"
 	"lazervaultGo/pb"
@@ -12,262 +13,395 @@ import (
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
-	// Keep gorm import if needed for other methods or future use
 )
 
-// AccountCardController handles gRPC requests related to account cards.
+// AccountCardController handles gRPC requests for cards
 type AccountCardController struct {
-	pb.UnimplementedAccountCardServiceServer // Embed for forward compatibility
-	cardService                              services.IAccountCardService
-	userService                              services.IUserService // Add userService dependency
-	// db                                       *gorm.DB // Keep db if needed, or remove if service handles all
+	pb.UnimplementedAccountCardServiceServer
+	cardService *services.CardService
+	userService services.IUserService
 }
 
-// NewAccountCardController creates a new AccountCardController.
-// Note: Removed db from parameters as it's not used directly in the added methods.
-// Add it back if other controller methods need direct db access.
-func NewAccountCardController(cardService services.IAccountCardService, userService services.IUserService) *AccountCardController {
+// NewAccountCardController creates a new controller
+func NewAccountCardController(cardService *services.CardService, userService services.IUserService) *AccountCardController {
 	return &AccountCardController{
 		cardService: cardService,
 		userService: userService,
-		// db:          db, // Uncomment if db is needed
 	}
 }
 
-// convertAccountCard converts a models.AccountCard to a pb.AccountCard.
-func convertAccountCard(card *models.AccountCard) *pb.AccountCard {
+// convertToProto converts model to protobuf message
+func convertToProto(card *models.AccountCard, includeSecureData bool) *pb.AccountCard {
 	if card == nil {
 		return nil
 	}
-	return &pb.AccountCard{
+
+	pbCard := &pb.AccountCard{
 		Id:             uint64(card.ID),
+		Uuid:           card.UUID,
 		AccountId:      uint64(card.AccountID),
+		UserId:         uint64(card.UserID),
 		CardHolderName: card.CardHolderName,
 		Brand:          card.Brand,
 		Last4:          card.Last4,
 		CardExpiry:     card.CardExpiry,
 		IsActive:       card.IsActive,
 		IsDefault:      card.IsDefault,
+		CardType:       card.CardType,
+		CardNickname:   card.CardNickname,
+		SpendingLimit:  card.SpendingLimit,
+		RemainingLimit: card.RemainingLimit,
+		UsageCount:     int32(card.UsageCount),
+		MaxUsageCount:  int32(card.MaxUsageCount),
+		Currency:       card.Currency,
+		BillingAddress: card.BillingAddress,
+		Status:         card.Status,
+		FrozenReason:   card.FrozenReason,
 		CreatedAt:      timestamppb.New(card.CreatedAt),
 		UpdatedAt:      timestamppb.New(card.UpdatedAt),
-		CardType:       card.CardType, // Add CardType mapping
 	}
+
+	if card.ExpiresAt != nil {
+		pbCard.ExpiresAt = timestamppb.New(*card.ExpiresAt)
+	}
+	if card.LastUsedAt != nil {
+		pbCard.LastUsedAt = timestamppb.New(*card.LastUsedAt)
+	}
+
+	// Only include sensitive data if explicitly requested
+	if includeSecureData {
+		pbCard.CardNumber = card.CardNumber
+		pbCard.Cvv = card.CVV
+	}
+
+	return pbCard
 }
 
-// AddAccountCard handles the RPC for adding a new card to an account.
-func (c *AccountCardController) AddAccountCard(ctx context.Context, req *pb.AddAccountCardRequest) (*pb.AddAccountCardResponse, error) {
-	// 1. Get Payload & User ID
+// getUserIDFromContext extracts user ID from context
+func (c *AccountCardController) getUserIDFromContext(ctx context.Context) (uint, error) {
+	// Get auth payload from context
 	authPayload, ok := ctx.Value(middleware.AuthorizationPayloadKey).(*token.Payload)
-	if !ok {
-		return nil, status.Errorf(codes.Unauthenticated, "missing authorization payload")
+	if !ok || authPayload == nil {
+		return 0, status.Error(codes.Unauthenticated, "missing authentication payload")
 	}
+
+	// Get user by email from token
 	user, err := c.userService.GetUserByEmail(ctx, authPayload.Email)
 	if err != nil {
 		if errors.Is(err, services.ErrUserNotFound) {
-			return nil, status.Errorf(codes.Unauthenticated, "user associated with token not found")
+			return 0, status.Errorf(codes.Unauthenticated, "user from token not found: %v", err)
 		}
-		return nil, status.Errorf(codes.Internal, "failed to retrieve user details: %v", err)
-	}
-	ownerUserID := user.ID // Use the ID from the fetched user model
-
-	// 2. Validate Request
-	if req.GetAccountId() == 0 {
-		return nil, status.Errorf(codes.InvalidArgument, "account_id is required")
-	}
-	if req.GetCardHolderName() == "" {
-		return nil, status.Errorf(codes.InvalidArgument, "card_holder_name is required")
-	}
-	if req.GetCardNumber() == "" { // TODO: Add Luhn check validation in service
-		return nil, status.Errorf(codes.InvalidArgument, "card_number is required")
-	}
-	if req.GetCardExpiry() == "" { // TODO: Add MM/YY format validation in service
-		return nil, status.Errorf(codes.InvalidArgument, "card_expiry is required")
-	}
-	// Validate Card Type (Basic check here, more robust in service)
-	if req.GetCardType() == "" {
-		return nil, status.Errorf(codes.InvalidArgument, "card_type is required")
-	}
-	switch req.GetCardType() {
-	case models.CardTypeVirtual,
-		models.CardTypeDisposable,
-		models.CardTypePermanent:
-		// Valid type
-	default:
-		return nil, status.Errorf(codes.InvalidArgument, "invalid card_type specified: %s", req.GetCardType())
+		return 0, status.Errorf(codes.Internal, "failed to retrieve user: %v", err)
 	}
 
-	// 3. Prepare Service Request
-	serviceReq := services.AddAccountCardRequest{
-		OwnerUserID:    ownerUserID,
-		AccountID:      uint(req.GetAccountId()),
-		CardHolderName: req.GetCardHolderName(),
-		CardNumber:     req.GetCardNumber(),
-		CardExpiry:     req.GetCardExpiry(),
-		CardType:       req.GetCardType(),
-		MakeDefault:    req.GetMakeDefault(),
-	}
-
-	// 4. Call Service
-	newCard, err := c.cardService.AddAccountCard(ctx, serviceReq)
-	if err != nil {
-		if err.Error() == "account not found or user mismatch" {
-			return nil, status.Errorf(codes.NotFound, "target account not found or permission denied")
-		}
-		if errors.Is(err, services.ErrInvalidCardNumber) || errors.Is(err, services.ErrInvalidExpiryFormat) || errors.Is(err, services.ErrExpiryDateInPast) || errors.Is(err, services.ErrInvalidCardType) {
-			return nil, status.Errorf(codes.InvalidArgument, "invalid card details: %v", err)
-		}
-		if errors.Is(err, services.ErrEncryptionFailed) {
-			fmt.Printf("CRITICAL: Card encryption failed during AddAccountCard: %v\n", err)
-			return nil, status.Error(codes.Internal, "failed to process card")
-		}
-		return nil, status.Errorf(codes.Internal, "failed to add card: %v", err)
-	}
-
-	// 5. Convert and Return Response
-	resp := &pb.AddAccountCardResponse{
-		Card: convertAccountCard(newCard),
-	}
-	return resp, nil
+	return user.ID, nil
 }
 
-// GetAccountCards handles the RPC for retrieving cards associated with an account.
-func (c *AccountCardController) GetAccountCards(ctx context.Context, req *pb.GetAccountCardsRequest) (*pb.GetAccountCardsResponse, error) {
-	// 1. Get Payload & User ID
-	authPayload, ok := ctx.Value(middleware.AuthorizationPayloadKey).(*token.Payload)
-	if !ok {
-		return nil, status.Errorf(codes.Unauthenticated, "missing authorization payload")
-	}
-	user, err := c.userService.GetUserByEmail(ctx, authPayload.Email)
+// CreateVirtualCard creates a new virtual card
+func (c *AccountCardController) CreateVirtualCard(ctx context.Context, req *pb.CreateVirtualCardRequest) (*pb.CreateVirtualCardResponse, error) {
+	userID, err := c.getUserIDFromContext(ctx)
 	if err != nil {
-		if errors.Is(err, services.ErrUserNotFound) {
-			return nil, status.Errorf(codes.Unauthenticated, "user associated with token not found")
-		}
-		return nil, status.Errorf(codes.Internal, "failed to retrieve user details: %v", err)
-	}
-	ownerUserID := user.ID
-
-	// 2. Validate Request
-	if req.GetAccountId() == 0 {
-		return nil, status.Errorf(codes.InvalidArgument, "account_id is required")
+		return nil, err
 	}
 
-	// 3. Prepare Service Request
-	serviceReq := services.GetAccountCardsRequest{
-		OwnerUserID: ownerUserID,
-		AccountID:   uint(req.GetAccountId()),
+	// Set defaults
+	currency := req.Currency
+	if currency == "" {
+		currency = "USD"
 	}
 
-	// 4. Call Service
-	cards, err := c.cardService.GetAccountCards(ctx, serviceReq)
+	card, err := c.cardService.CreateVirtualCard(
+		userID,
+		uint(req.AccountId),
+		"Card Holder", // TODO: Get from user profile
+		currency,
+		req.BillingAddress,
+		req.CardNickname,
+	)
 	if err != nil {
-		// Handle potential errors like account not found or permission denied
-		if err.Error() == "account not found or user mismatch" { // Example error check
-			return nil, status.Errorf(codes.NotFound, "account not found or permission denied")
-		}
-		return nil, status.Errorf(codes.Internal, "failed to retrieve cards: %v", err)
+		return nil, status.Errorf(codes.Internal, "failed to create virtual card: %v", err)
 	}
 
-	// 5. Convert and Return Response
+	return &pb.CreateVirtualCardResponse{
+		Card: convertToProto(card, true), // Include full details for creation
+	}, nil
+}
+
+// CreateDisposableCard creates a new disposable card
+func (c *AccountCardController) CreateDisposableCard(ctx context.Context, req *pb.CreateDisposableCardRequest) (*pb.CreateDisposableCardResponse, error) {
+	userID, err := c.getUserIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	currency := req.Currency
+	if currency == "" {
+		currency = "USD"
+	}
+
+	card, err := c.cardService.CreateDisposableCard(
+		userID,
+		uint(req.AccountId),
+		"Card Holder",
+		currency,
+		req.BillingAddress,
+		req.CardNickname,
+		req.SpendingLimit,
+		int(req.MaxUsageCount),
+		int(req.ExpiresInHours),
+	)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to create disposable card: %v", err)
+	}
+
+	return &pb.CreateDisposableCardResponse{
+		Card: convertToProto(card, true),
+	}, nil
+}
+
+// GetUserCards retrieves all cards for a user
+func (c *AccountCardController) GetUserCards(ctx context.Context, req *pb.GetUserCardsRequest) (*pb.GetUserCardsResponse, error) {
+	userID, err := c.getUserIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	cards, err := c.cardService.GetUserCards(userID, req.CardTypeFilter, req.StatusFilter)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to get cards: %v", err)
+	}
+
+	// Get statistics
+	stats, err := c.cardService.GetCardStatistics(userID)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to get statistics: %v", err)
+	}
+
+	// Convert cards
 	pbCards := make([]*pb.AccountCard, len(cards))
 	for i, card := range cards {
-		pbCards[i] = convertAccountCard(&card)
+		pbCards[i] = convertToProto(&card, false) // Don't include sensitive data in list
 	}
 
-	resp := &pb.GetAccountCardsResponse{
+	return &pb.GetUserCardsResponse{
 		Cards: pbCards,
-	}
-	return resp, nil
+		Statistics: &pb.CardStatistics{
+			TotalCards:            int32(stats["total_cards"].(int64)),
+			ActiveCards:           int32(stats["active_cards"].(int64)),
+			VirtualCards:          int32(stats["virtual_cards"].(int64)),
+			DisposableCards:       int32(stats["disposable_cards"].(int64)),
+			FrozenCards:           int32(stats["frozen_cards"].(int64)),
+			TotalSpendingLimit:    stats["total_spending_limit"].(float64),
+			TotalRemainingLimit:   stats["total_remaining_limit"].(float64),
+		},
+	}, nil
 }
 
-// UpdateAccountCardDefaultStatus handles setting a card as default.
-func (c *AccountCardController) UpdateAccountCardDefaultStatus(ctx context.Context, req *pb.UpdateAccountCardDefaultStatusRequest) (*pb.UpdateAccountCardDefaultStatusResponse, error) {
-	// 1. Get Payload & User ID
-	authPayload, ok := ctx.Value(middleware.AuthorizationPayloadKey).(*token.Payload)
-	if !ok {
-		return nil, status.Errorf(codes.Unauthenticated, "missing authorization payload")
-	}
-	user, err := c.userService.GetUserByEmail(ctx, authPayload.Email)
+// GetCardDetails retrieves detailed card information
+func (c *AccountCardController) GetCardDetails(ctx context.Context, req *pb.GetCardDetailsRequest) (*pb.GetCardDetailsResponse, error) {
+	userID, err := c.getUserIDFromContext(ctx)
 	if err != nil {
-		if errors.Is(err, services.ErrUserNotFound) {
-			return nil, status.Errorf(codes.Unauthenticated, "user associated with token not found")
-		}
-		return nil, status.Errorf(codes.Internal, "failed to retrieve user details: %v", err)
-	}
-	ownerUserID := user.ID
-
-	// 2. Validate Request
-	if req.GetAccountId() == 0 {
-		return nil, status.Errorf(codes.InvalidArgument, "account_id is required")
-	}
-	if req.GetCardId() == 0 {
-		return nil, status.Errorf(codes.InvalidArgument, "card_id is required")
+		return nil, err
 	}
 
-	// 3. Prepare Service Request
-	serviceReq := services.UpdateAccountCardDefaultStatusRequest{
-		OwnerUserID: ownerUserID,
-		AccountID:   uint(req.GetAccountId()),
-		CardID:      uint(req.GetCardId()),
-	}
-
-	// 4. Call Service
-	updatedCard, err := c.cardService.UpdateAccountCardDefaultStatus(ctx, serviceReq)
+	card, err := c.cardService.GetCardByUUID(userID, req.CardUuid)
 	if err != nil {
-		if errors.Is(err, services.ErrCardNotFound) {
-			return nil, status.Errorf(codes.NotFound, "card or account not found, or permission denied")
-		}
-		return nil, status.Errorf(codes.Internal, "failed to update default card status: %v", err)
+		return nil, status.Errorf(codes.NotFound, "card not found: %v", err)
 	}
 
-	// 5. Convert and Return Response
-	resp := &pb.UpdateAccountCardDefaultStatusResponse{
-		Card: convertAccountCard(updatedCard),
+	// Get recent transactions
+	transactions, _, err := c.cardService.GetCardTransactions(userID, req.CardUuid, 1, 10)
+	if err != nil {
+		// Don't fail if transactions can't be fetched
+		transactions = []models.CardTransaction{}
 	}
-	return resp, nil
+
+	pbTransactions := make([]*pb.CardTransaction, len(transactions))
+	for i, tx := range transactions {
+		pbTransactions[i] = &pb.CardTransaction{
+			Id:              uint64(tx.ID),
+			Uuid:            tx.UUID,
+			CardId:          uint64(tx.CardID),
+			UserId:          uint64(tx.UserID),
+			AccountId:       uint64(tx.AccountID),
+			Amount:          tx.Amount,
+			Currency:        tx.Currency,
+			MerchantName:    tx.MerchantName,
+			MerchantCategory: tx.MerchantCategory,
+			TransactionType: tx.TransactionType,
+			Status:          tx.Status,
+			DeclineReason:   tx.DeclineReason,
+			AuthorizationCode: tx.AuthorizationCode,
+			Description:     tx.Description,
+			TransactionDate: timestamppb.New(tx.TransactionDate),
+			CreatedAt:       timestamppb.New(tx.CreatedAt),
+		}
+		if tx.SettledAt != nil {
+			pbTransactions[i].SettledAt = timestamppb.New(*tx.SettledAt)
+		}
+	}
+
+	return &pb.GetCardDetailsResponse{
+		Card:              convertToProto(card, req.IncludeFullDetails),
+		RecentTransactions: pbTransactions,
+	}, nil
 }
 
-// DeleteAccountCard handles removing a card.
-func (c *AccountCardController) DeleteAccountCard(ctx context.Context, req *pb.DeleteAccountCardRequest) (*emptypb.Empty, error) {
-	// 1. Get Payload & User ID
-	authPayload, ok := ctx.Value(middleware.AuthorizationPayloadKey).(*token.Payload)
-	if !ok {
-		return nil, status.Errorf(codes.Unauthenticated, "missing authorization payload")
-	}
-	user, err := c.userService.GetUserByEmail(ctx, authPayload.Email)
+// FreezeCard freezes a card
+func (c *AccountCardController) FreezeCard(ctx context.Context, req *pb.FreezeCardRequest) (*pb.FreezeCardResponse, error) {
+	userID, err := c.getUserIDFromContext(ctx)
 	if err != nil {
-		if errors.Is(err, services.ErrUserNotFound) {
-			return nil, status.Errorf(codes.Unauthenticated, "user associated with token not found")
-		}
-		return nil, status.Errorf(codes.Internal, "failed to retrieve user details: %v", err)
-	}
-	ownerUserID := user.ID
-
-	// 2. Validate Request
-	if req.GetAccountId() == 0 {
-		return nil, status.Errorf(codes.InvalidArgument, "account_id is required")
-	}
-	if req.GetCardId() == 0 {
-		return nil, status.Errorf(codes.InvalidArgument, "card_id is required")
+		return nil, err
 	}
 
-	// 3. Prepare Service Request
-	serviceReq := services.DeleteAccountCardRequest{
-		OwnerUserID: ownerUserID,
-		AccountID:   uint(req.GetAccountId()),
-		CardID:      uint(req.GetCardId()),
-	}
-
-	// 4. Call Service
-	err = c.cardService.DeleteAccountCard(ctx, serviceReq)
+	card, err := c.cardService.FreezeCard(userID, req.CardUuid, req.Reason)
 	if err != nil {
-		if errors.Is(err, services.ErrCardNotFound) {
-			return nil, status.Errorf(codes.NotFound, "card or account not found, or permission denied")
-		}
-		return nil, status.Errorf(codes.Internal, "failed to delete card: %v", err)
+		return nil, status.Errorf(codes.Internal, "failed to freeze card: %v", err)
 	}
 
-	// 5. Return Empty response on success
-	return &emptypb.Empty{}, nil
+	return &pb.FreezeCardResponse{
+		Card: convertToProto(card, false),
+	}, nil
+}
+
+// UnfreezeCard unfreezes a card
+func (c *AccountCardController) UnfreezeCard(ctx context.Context, req *pb.UnfreezeCardRequest) (*pb.UnfreezeCardResponse, error) {
+	userID, err := c.getUserIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	card, err := c.cardService.UnfreezeCard(userID, req.CardUuid)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to unfreeze card: %v", err)
+	}
+
+	return &pb.UnfreezeCardResponse{
+		Card: convertToProto(card, false),
+	}, nil
+}
+
+// CancelCard cancels a card
+func (c *AccountCardController) CancelCard(ctx context.Context, req *pb.CancelCardRequest) (*pb.CancelCardResponse, error) {
+	userID, err := c.getUserIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := c.cardService.CancelCard(userID, req.CardUuid, req.Reason); err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to cancel card: %v", err)
+	}
+
+	return &pb.CancelCardResponse{
+		Success: true,
+		Message: "Card cancelled successfully",
+	}, nil
+}
+
+// UpdateCardNickname updates card nickname
+func (c *AccountCardController) UpdateCardNickname(ctx context.Context, req *pb.UpdateCardNicknameRequest) (*pb.UpdateCardNicknameResponse, error) {
+	userID, err := c.getUserIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	card, err := c.cardService.UpdateCardNickname(userID, req.CardUuid, req.Nickname)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to update nickname: %v", err)
+	}
+
+	return &pb.UpdateCardNicknameResponse{
+		Card: convertToProto(card, false),
+	}, nil
+}
+
+// UpdateCardSpendingLimit updates spending limit
+func (c *AccountCardController) UpdateCardSpendingLimit(ctx context.Context, req *pb.UpdateCardSpendingLimitRequest) (*pb.UpdateCardSpendingLimitResponse, error) {
+	userID, err := c.getUserIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	card, err := c.cardService.UpdateCardSpendingLimit(userID, req.CardUuid, req.NewLimit)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to update limit: %v", err)
+	}
+
+	return &pb.UpdateCardSpendingLimitResponse{
+		Card: convertToProto(card, false),
+	}, nil
+}
+
+// GetCardTransactions retrieves card transactions
+func (c *AccountCardController) GetCardTransactions(ctx context.Context, req *pb.GetCardTransactionsRequest) (*pb.GetCardTransactionsResponse, error) {
+	userID, err := c.getUserIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	page := int(req.Page)
+	limit := int(req.Limit)
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 {
+		limit = 10
+	}
+
+	transactions, total, err := c.cardService.GetCardTransactions(userID, req.CardUuid, page, limit)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to get transactions: %v", err)
+	}
+
+	pbTransactions := make([]*pb.CardTransaction, len(transactions))
+	for i, tx := range transactions {
+		pbTransactions[i] = &pb.CardTransaction{
+			Id:              uint64(tx.ID),
+			Uuid:            tx.UUID,
+			CardId:          uint64(tx.CardID),
+			UserId:          uint64(tx.UserID),
+			AccountId:       uint64(tx.AccountID),
+			Amount:          tx.Amount,
+			Currency:        tx.Currency,
+			MerchantName:    tx.MerchantName,
+			MerchantCategory: tx.MerchantCategory,
+			TransactionType: tx.TransactionType,
+			Status:          tx.Status,
+			DeclineReason:   tx.DeclineReason,
+			AuthorizationCode: tx.AuthorizationCode,
+			Description:     tx.Description,
+			TransactionDate: timestamppb.New(tx.TransactionDate),
+			CreatedAt:       timestamppb.New(tx.CreatedAt),
+		}
+		if tx.SettledAt != nil {
+			pbTransactions[i].SettledAt = timestamppb.New(*tx.SettledAt)
+		}
+	}
+
+	totalPages := int32(math.Ceil(float64(total) / float64(limit)))
+
+	return &pb.GetCardTransactionsResponse{
+		Transactions: pbTransactions,
+		TotalCount:   int32(total),
+		CurrentPage:  int32(page),
+		TotalPages:   totalPages,
+	}, nil
+}
+
+// SetDefaultCard sets a card as default
+func (c *AccountCardController) SetDefaultCard(ctx context.Context, req *pb.SetDefaultCardRequest) (*pb.SetDefaultCardResponse, error) {
+	userID, err := c.getUserIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	card, err := c.cardService.SetDefaultCard(userID, req.CardUuid)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to set default card: %v", err)
+	}
+
+	return &pb.SetDefaultCardResponse{
+		Card: convertToProto(card, false),
+	}, nil
 }

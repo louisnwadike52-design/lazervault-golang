@@ -41,8 +41,17 @@ type AddressDetails struct {
 	Iban          string                 `protobuf:"bytes,13,opt,name=iban,proto3" json:"iban,omitempty"`
 	RoutingNumber string                 `protobuf:"bytes,14,opt,name=routing_number,json=routingNumber,proto3" json:"routing_number,omitempty"`
 	TaxId         string                 `protobuf:"bytes,15,opt,name=tax_id,json=taxId,proto3" json:"tax_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	// Additional bank details for comprehensive payment support
+	BankName              string `protobuf:"bytes,16,opt,name=bank_name,json=bankName,proto3" json:"bank_name,omitempty"`
+	AccountType           string `protobuf:"bytes,17,opt,name=account_type,json=accountType,proto3" json:"account_type,omitempty"`                                 // e.g., "checking", "savings"
+	SwiftCode             string `protobuf:"bytes,18,opt,name=swift_code,json=swiftCode,proto3" json:"swift_code,omitempty"`                                       // SWIFT/BIC code for international transfers
+	SortCode              string `protobuf:"bytes,19,opt,name=sort_code,json=sortCode,proto3" json:"sort_code,omitempty"`                                          // For UK payments
+	BankAddress           string `protobuf:"bytes,20,opt,name=bank_address,json=bankAddress,proto3" json:"bank_address,omitempty"`                                 // Bank's physical address
+	IntermediaryBankName  string `protobuf:"bytes,21,opt,name=intermediary_bank_name,json=intermediaryBankName,proto3" json:"intermediary_bank_name,omitempty"`    // For international transfers
+	IntermediaryBankSwift string `protobuf:"bytes,22,opt,name=intermediary_bank_swift,json=intermediaryBankSwift,proto3" json:"intermediary_bank_swift,omitempty"` // Intermediary bank's SWIFT code
+	AccountHolderName     string `protobuf:"bytes,23,opt,name=account_holder_name,json=accountHolderName,proto3" json:"account_holder_name,omitempty"`             // Name on the bank account
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
 }
 
 func (x *AddressDetails) Reset() {
@@ -176,6 +185,62 @@ func (x *AddressDetails) GetRoutingNumber() string {
 func (x *AddressDetails) GetTaxId() string {
 	if x != nil {
 		return x.TaxId
+	}
+	return ""
+}
+
+func (x *AddressDetails) GetBankName() string {
+	if x != nil {
+		return x.BankName
+	}
+	return ""
+}
+
+func (x *AddressDetails) GetAccountType() string {
+	if x != nil {
+		return x.AccountType
+	}
+	return ""
+}
+
+func (x *AddressDetails) GetSwiftCode() string {
+	if x != nil {
+		return x.SwiftCode
+	}
+	return ""
+}
+
+func (x *AddressDetails) GetSortCode() string {
+	if x != nil {
+		return x.SortCode
+	}
+	return ""
+}
+
+func (x *AddressDetails) GetBankAddress() string {
+	if x != nil {
+		return x.BankAddress
+	}
+	return ""
+}
+
+func (x *AddressDetails) GetIntermediaryBankName() string {
+	if x != nil {
+		return x.IntermediaryBankName
+	}
+	return ""
+}
+
+func (x *AddressDetails) GetIntermediaryBankSwift() string {
+	if x != nil {
+		return x.IntermediaryBankSwift
+	}
+	return ""
+}
+
+func (x *AddressDetails) GetAccountHolderName() string {
+	if x != nil {
+		return x.AccountHolderName
 	}
 	return ""
 }
@@ -1827,7 +1892,7 @@ var File_invoice_proto protoreflect.FileDescriptor
 
 const file_invoice_proto_rawDesc = "" +
 	"\n" +
-	"\rinvoice.proto\x12\x02pb\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x15invoice_payment.proto\"\xc0\x03\n" +
+	"\rinvoice.proto\x12\x02pb\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x15invoice_payment.proto\"\xfd\x05\n" +
 	"\x0eAddressDetails\x12!\n" +
 	"\fcompany_name\x18\x01 \x01(\tR\vcompanyName\x12!\n" +
 	"\fcontact_name\x18\x02 \x01(\tR\vcontactName\x12\x14\n" +
@@ -1845,7 +1910,16 @@ const file_invoice_proto_rawDesc = "" +
 	"bic_number\x18\f \x01(\tR\tbicNumber\x12\x12\n" +
 	"\x04iban\x18\r \x01(\tR\x04iban\x12%\n" +
 	"\x0erouting_number\x18\x0e \x01(\tR\rroutingNumber\x12\x15\n" +
-	"\x06tax_id\x18\x0f \x01(\tR\x05taxId\"\xcb\x01\n" +
+	"\x06tax_id\x18\x0f \x01(\tR\x05taxId\x12\x1b\n" +
+	"\tbank_name\x18\x10 \x01(\tR\bbankName\x12!\n" +
+	"\faccount_type\x18\x11 \x01(\tR\vaccountType\x12\x1d\n" +
+	"\n" +
+	"swift_code\x18\x12 \x01(\tR\tswiftCode\x12\x1b\n" +
+	"\tsort_code\x18\x13 \x01(\tR\bsortCode\x12!\n" +
+	"\fbank_address\x18\x14 \x01(\tR\vbankAddress\x124\n" +
+	"\x16intermediary_bank_name\x18\x15 \x01(\tR\x14intermediaryBankName\x126\n" +
+	"\x17intermediary_bank_swift\x18\x16 \x01(\tR\x15intermediaryBankSwift\x12.\n" +
+	"\x13account_holder_name\x18\x17 \x01(\tR\x11accountHolderName\"\xcb\x01\n" +
 	"\vInvoiceItem\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12 \n" +

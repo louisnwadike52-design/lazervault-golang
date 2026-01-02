@@ -15,11 +15,15 @@ import (
 )
 
 type StatisticsService struct {
-	db *gorm.DB
+	db        *gorm.DB
+	txTracker *TransactionTracker // Tracks income/expenditure for statistics
 }
 
 func NewStatisticsService(db *gorm.DB) *StatisticsService {
-	return &StatisticsService{db: db}
+	return &StatisticsService{
+		db:        db,
+		txTracker: NewTransactionTracker(db), // Initialize transaction tracker
+	}
 }
 
 // ========================================
@@ -372,7 +376,15 @@ func (s *StatisticsService) GetBudgets(ctx context.Context, userID uint, req *pb
 		TotalBudget float64
 		TotalSpent  float64
 	}
-	if err := query.Select("COALESCE(SUM(amount), 0) as total_budget, COALESCE(SUM(spent_amount), 0) as total_spent").
+	// Create a new query for the sum to avoid query pollution
+	sumQuery := s.db.Model(&models.Budget{}).Where("user_id = ?", userID)
+	if req.Status != pb.BudgetStatus_BUDGET_STATUS_UNSPECIFIED {
+		sumQuery = sumQuery.Where("status = ?", req.Status.String())
+	}
+	if req.Category != pb.ExpenseCategory_EXPENSE_CATEGORY_UNSPECIFIED {
+		sumQuery = sumQuery.Where("category = ?", req.Category.String())
+	}
+	if err := sumQuery.Select("COALESCE(SUM(amount), 0) as total_budget, COALESCE(SUM(spent_amount), 0) as total_spent").
 		Scan(&result).Error; err != nil {
 		return nil, nil, 0, 0, fmt.Errorf("failed to sum budgets: %w", err)
 	}
@@ -391,9 +403,16 @@ func (s *StatisticsService) GetBudgets(ctx context.Context, userID uint, req *pb
 	offset := (page - 1) * perPage
 	totalPages := int32((totalCount + int64(perPage) - 1) / int64(perPage))
 
-	// Fetch budgets
+	// Fetch budgets - create fresh query to avoid SELECT clause pollution from sum query
+	fetchQuery := s.db.Model(&models.Budget{}).Where("user_id = ?", userID)
+	if req.Status != pb.BudgetStatus_BUDGET_STATUS_UNSPECIFIED {
+		fetchQuery = fetchQuery.Where("status = ?", req.Status.String())
+	}
+	if req.Category != pb.ExpenseCategory_EXPENSE_CATEGORY_UNSPECIFIED {
+		fetchQuery = fetchQuery.Where("category = ?", req.Category.String())
+	}
 	var budgets []models.Budget
-	if err := query.Order("start_date DESC").
+	if err := fetchQuery.Order("start_date DESC").
 		Limit(int(perPage)).
 		Offset(int(offset)).
 		Find(&budgets).Error; err != nil {
@@ -1598,6 +1617,152 @@ func (s *StatisticsService) CreateRecurringBill(ctx context.Context, userID uint
 		Success: true,
 		Message: "Recurring bill created successfully",
 	}, nil
+}
+
+// ========================================
+// TRACKED TRANSACTION METHODS
+// ========================================
+
+// GetTrackedIncome retrieves total tracked income for a period
+func (s *StatisticsService) GetTrackedIncome(ctx context.Context, userID uint, startDate, endDate time.Time) (float64, error) {
+	return s.txTracker.GetTotalIncome(ctx, userID, startDate, endDate)
+}
+
+// GetTrackedExpenditure retrieves total tracked expenditure for a period
+func (s *StatisticsService) GetTrackedExpenditure(ctx context.Context, userID uint, startDate, endDate time.Time) (float64, error) {
+	return s.txTracker.GetTotalExpenditure(ctx, userID, startDate, endDate)
+}
+
+// GetTrackedIncomeBreakdown retrieves income breakdown by source type
+func (s *StatisticsService) GetTrackedIncomeBreakdown(ctx context.Context, userID uint, startDate, endDate time.Time) (map[string]float64, error) {
+	return s.txTracker.GetIncomeBreakdownBySource(ctx, userID, startDate, endDate)
+}
+
+// GetTrackedExpenditureBreakdown retrieves expenditure breakdown by expense type
+func (s *StatisticsService) GetTrackedExpenditureBreakdown(ctx context.Context, userID uint, startDate, endDate time.Time) (map[string]float64, error) {
+	return s.txTracker.GetExpenditureBreakdownByType(ctx, userID, startDate, endDate)
+}
+
+// GetTrackedIncomeTransactions retrieves tracked income transactions for a period
+func (s *StatisticsService) GetTrackedIncomeTransactions(ctx context.Context, userID uint, startDate, endDate time.Time, limit int) ([]models.IncomeTransaction, error) {
+	return s.txTracker.GetIncomeTransactions(ctx, userID, startDate, endDate, limit)
+}
+
+// GetTrackedExpenditureTransactions retrieves tracked expenditure transactions for a period
+func (s *StatisticsService) GetTrackedExpenditureTransactions(ctx context.Context, userID uint, startDate, endDate time.Time, limit int) ([]models.ExpenditureTransaction, error) {
+	return s.txTracker.GetExpenditureTransactions(ctx, userID, startDate, endDate, limit)
+}
+
+// GetComprehensiveFinancialSummary combines manual and tracked data for comprehensive view
+func (s *StatisticsService) GetComprehensiveFinancialSummary(ctx context.Context, userID uint, startDate, endDate time.Time) (*ComprehensiveFinancialSummary, error) {
+	// Get manual expenses total
+	var manualExpenses float64
+	var expenseResult struct {
+		Total float64
+	}
+	if err := s.db.Model(&models.Expense{}).
+		Where("user_id = ? AND transaction_date >= ? AND transaction_date <= ?", userID, startDate, endDate).
+		Select("COALESCE(SUM(amount), 0) as total").
+		Scan(&expenseResult).Error; err != nil {
+		return nil, fmt.Errorf("failed to calculate manual expenses: %w", err)
+	}
+	manualExpenses = expenseResult.Total
+
+	// Get manual income total
+	var manualIncome float64
+	var incomeResult struct {
+		Total float64
+	}
+	if err := s.db.Model(&models.IncomeSource{}).
+		Where("user_id = ? AND is_active = ? AND created_at >= ? AND created_at <= ?", userID, true, startDate, endDate).
+		Select("COALESCE(SUM(amount), 0) as total").
+		Scan(&incomeResult).Error; err != nil {
+		return nil, fmt.Errorf("failed to calculate manual income: %w", err)
+	}
+	manualIncome = incomeResult.Total
+
+	// Get tracked income and expenditure
+	trackedIncome, err := s.txTracker.GetTotalIncome(ctx, userID, startDate, endDate)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get tracked income: %w", err)
+	}
+
+	trackedExpenditure, err := s.txTracker.GetTotalExpenditure(ctx, userID, startDate, endDate)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get tracked expenditure: %w", err)
+	}
+
+	// Get breakdowns
+	incomeBreakdown, err := s.txTracker.GetIncomeBreakdownBySource(ctx, userID, startDate, endDate)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get income breakdown: %w", err)
+	}
+
+	expenditureBreakdown, err := s.txTracker.GetExpenditureBreakdownByType(ctx, userID, startDate, endDate)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get expenditure breakdown: %w", err)
+	}
+
+	// Calculate totals
+	totalIncome := manualIncome + trackedIncome
+	totalExpenditure := manualExpenses + trackedExpenditure
+	netIncome := totalIncome - totalExpenditure
+
+	summary := &ComprehensiveFinancialSummary{
+		Period: ComprehensivePeriod{
+			StartDate: startDate,
+			EndDate:   endDate,
+		},
+		Income: ComprehensiveIncomeData{
+			ManualIncome:     manualIncome,
+			TrackedIncome:    trackedIncome,
+			TotalIncome:      totalIncome,
+			IncomeBreakdown:  incomeBreakdown,
+		},
+		Expenditure: ComprehensiveExpenditureData{
+			ManualExpenses:        manualExpenses,
+			TrackedExpenditure:    trackedExpenditure,
+			TotalExpenditure:      totalExpenditure,
+			ExpenditureBreakdown:  expenditureBreakdown,
+		},
+		NetIncome:       netIncome,
+		SavingsRate:     0,
+	}
+
+	// Calculate savings rate
+	if totalIncome > 0 {
+		summary.SavingsRate = (netIncome / totalIncome) * 100
+	}
+
+	return summary, nil
+}
+
+// ComprehensiveFinancialSummary combines manual and tracked financial data
+type ComprehensiveFinancialSummary struct {
+	Period      ComprehensivePeriod
+	Income      ComprehensiveIncomeData
+	Expenditure ComprehensiveExpenditureData
+	NetIncome   float64
+	SavingsRate float64
+}
+
+type ComprehensivePeriod struct {
+	StartDate time.Time
+	EndDate   time.Time
+}
+
+type ComprehensiveIncomeData struct {
+	ManualIncome    float64
+	TrackedIncome   float64
+	TotalIncome     float64
+	IncomeBreakdown map[string]float64 // breakdown by source type
+}
+
+type ComprehensiveExpenditureData struct {
+	ManualExpenses       float64
+	TrackedExpenditure   float64
+	TotalExpenditure     float64
+	ExpenditureBreakdown map[string]float64 // breakdown by expense type
 }
 
 // ========================================

@@ -22,6 +22,7 @@ const (
 	AuthService_Login_FullMethodName                    = "/pb.AuthService/Login"
 	AuthService_LoginWithPasscode_FullMethodName        = "/pb.AuthService/LoginWithPasscode"
 	AuthService_RegisterPasscode_FullMethodName         = "/pb.AuthService/RegisterPasscode"
+	AuthService_ChangePasscode_FullMethodName           = "/pb.AuthService/ChangePasscode"
 	AuthService_RefreshToken_FullMethodName             = "/pb.AuthService/RefreshToken"
 	AuthService_Logout_FullMethodName                   = "/pb.AuthService/Logout"
 	AuthService_RequestEmailVerification_FullMethodName = "/pb.AuthService/RequestEmailVerification"
@@ -46,6 +47,7 @@ type AuthServiceClient interface {
 	Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*LoginResponse, error)
 	LoginWithPasscode(ctx context.Context, in *LoginWithPasscodeRequest, opts ...grpc.CallOption) (*LoginResponse, error)
 	RegisterPasscode(ctx context.Context, in *RegisterPasscodeRequest, opts ...grpc.CallOption) (*RegisterPasscodeResponse, error)
+	ChangePasscode(ctx context.Context, in *ChangePasscodeRequest, opts ...grpc.CallOption) (*ChangePasscodeResponse, error)
 	RefreshToken(ctx context.Context, in *RefreshTokenRequest, opts ...grpc.CallOption) (*RefreshTokenResponse, error)
 	Logout(ctx context.Context, in *LogoutRequest, opts ...grpc.CallOption) (*LogoutResponse, error)
 	// Request sending a verification email to the authenticated user.
@@ -103,6 +105,16 @@ func (c *authServiceClient) RegisterPasscode(ctx context.Context, in *RegisterPa
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(RegisterPasscodeResponse)
 	err := c.cc.Invoke(ctx, AuthService_RegisterPasscode_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authServiceClient) ChangePasscode(ctx context.Context, in *ChangePasscodeRequest, opts ...grpc.CallOption) (*ChangePasscodeResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ChangePasscodeResponse)
+	err := c.cc.Invoke(ctx, AuthService_ChangePasscode_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -248,6 +260,7 @@ type AuthServiceServer interface {
 	Login(context.Context, *LoginRequest) (*LoginResponse, error)
 	LoginWithPasscode(context.Context, *LoginWithPasscodeRequest) (*LoginResponse, error)
 	RegisterPasscode(context.Context, *RegisterPasscodeRequest) (*RegisterPasscodeResponse, error)
+	ChangePasscode(context.Context, *ChangePasscodeRequest) (*ChangePasscodeResponse, error)
 	RefreshToken(context.Context, *RefreshTokenRequest) (*RefreshTokenResponse, error)
 	Logout(context.Context, *LogoutRequest) (*LogoutResponse, error)
 	// Request sending a verification email to the authenticated user.
@@ -289,6 +302,9 @@ func (UnimplementedAuthServiceServer) LoginWithPasscode(context.Context, *LoginW
 }
 func (UnimplementedAuthServiceServer) RegisterPasscode(context.Context, *RegisterPasscodeRequest) (*RegisterPasscodeResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RegisterPasscode not implemented")
+}
+func (UnimplementedAuthServiceServer) ChangePasscode(context.Context, *ChangePasscodeRequest) (*ChangePasscodeResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ChangePasscode not implemented")
 }
 func (UnimplementedAuthServiceServer) RefreshToken(context.Context, *RefreshTokenRequest) (*RefreshTokenResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RefreshToken not implemented")
@@ -400,6 +416,24 @@ func _AuthService_RegisterPasscode_Handler(srv interface{}, ctx context.Context,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(AuthServiceServer).RegisterPasscode(ctx, req.(*RegisterPasscodeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthService_ChangePasscode_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ChangePasscodeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).ChangePasscode(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_ChangePasscode_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).ChangePasscode(ctx, req.(*ChangePasscodeRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -656,6 +690,10 @@ var AuthService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RegisterPasscode",
 			Handler:    _AuthService_RegisterPasscode_Handler,
+		},
+		{
+			MethodName: "ChangePasscode",
+			Handler:    _AuthService_ChangePasscode_Handler,
 		},
 		{
 			MethodName: "RefreshToken",

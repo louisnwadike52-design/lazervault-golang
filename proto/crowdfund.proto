@@ -1,0 +1,387 @@
+syntax = "proto3";
+
+package pb;
+
+option go_package = "lazervaultGo/pb";
+
+import "google/api/annotations.proto";
+import "google/protobuf/timestamp.proto";
+
+// ============================================================================
+// ENUMS
+// ============================================================================
+
+enum CrowdfundStatus {
+  CROWDFUND_STATUS_UNSPECIFIED = 0;
+  CROWDFUND_STATUS_ACTIVE = 1;
+  CROWDFUND_STATUS_PAUSED = 2;
+  CROWDFUND_STATUS_COMPLETED = 3;
+  CROWDFUND_STATUS_CANCELLED = 4;
+}
+
+enum CrowdfundVisibility {
+  CROWDFUND_VISIBILITY_UNSPECIFIED = 0;
+  CROWDFUND_VISIBILITY_PUBLIC = 1;
+  CROWDFUND_VISIBILITY_PRIVATE = 2;
+  CROWDFUND_VISIBILITY_UNLISTED = 3;
+}
+
+enum DonationStatus {
+  DONATION_STATUS_UNSPECIFIED = 0;
+  DONATION_STATUS_PENDING = 1;
+  DONATION_STATUS_PROCESSING = 2;
+  DONATION_STATUS_COMPLETED = 3;
+  DONATION_STATUS_FAILED = 4;
+  DONATION_STATUS_REFUNDED = 5;
+}
+
+// ============================================================================
+// MESSAGES
+// ============================================================================
+
+message CrowdfundCreatorMessage {
+  uint64 user_id = 1;
+  string username = 2;
+  string first_name = 3;
+  string last_name = 4;
+  string profile_picture = 5;
+  bool verified = 6;
+  google.protobuf.Timestamp verified_at = 7;
+  bool facial_recognition_enabled = 8;
+}
+
+message CrowdfundMessage {
+  string id = 1;
+  uint64 creator_user_id = 2;
+  CrowdfundCreatorMessage creator = 3;
+  string title = 4;
+  string description = 5;
+  string story = 6;
+  string crowdfund_code = 7;
+  uint64 target_amount = 8;
+  uint64 current_amount = 9;
+  string currency = 10;
+  google.protobuf.Timestamp deadline = 11;
+  string category = 12;
+  CrowdfundStatus status = 13;
+  string image_url = 14;
+  CrowdfundVisibility visibility = 15;
+  string metadata = 16; // JSON string
+  int32 donor_count = 17;
+  double progress_percentage = 18;
+  google.protobuf.Timestamp created_at = 19;
+  google.protobuf.Timestamp updated_at = 20;
+  repeated CrowdfundDonationMessage recent_donations = 21; // Top 5
+}
+
+message CrowdfundDonorMessage {
+  uint64 user_id = 1;
+  string display_name = 2; // Abstracted or full based on context
+  string profile_picture = 3;
+  bool is_anonymous = 4;
+  bool is_creator = 5; // True if viewing as crowdfund creator
+}
+
+message CrowdfundDonationMessage {
+  string id = 1;
+  string crowdfund_id = 2;
+  uint64 donor_user_id = 3;
+  CrowdfundDonorMessage donor = 4;
+  uint64 amount = 5;
+  string currency = 6;
+  google.protobuf.Timestamp donation_date = 7;
+  DonationStatus status = 8;
+  string transaction_id = 9;
+  string receipt_id = 10;
+  string message = 11;
+  bool is_anonymous = 12;
+  string payment_method = 13;
+  string metadata = 14; // JSON string
+}
+
+message CrowdfundReceiptMessage {
+  string id = 1;
+  string donation_id = 2;
+  string crowdfund_id = 3;
+  string crowdfund_title = 4;
+  uint64 donor_user_id = 5;
+  string donor_name = 6;
+  uint64 amount = 7;
+  string currency = 8;
+  google.protobuf.Timestamp donation_date = 9;
+  google.protobuf.Timestamp generated_at = 10;
+  string receipt_number = 11;
+  string receipt_data = 12; // JSON string
+}
+
+// ============================================================================
+// REQUEST/RESPONSE MESSAGES
+// ============================================================================
+
+// Create Crowdfund
+message CreateCrowdfundRequest {
+  string title = 1;
+  string description = 2;
+  string story = 3;
+  uint64 target_amount = 4;
+  string currency = 5;
+  google.protobuf.Timestamp deadline = 6;
+  string category = 7;
+  string image_url = 8;
+  CrowdfundVisibility visibility = 9;
+  string metadata = 10;
+}
+
+message CreateCrowdfundResponse {
+  CrowdfundMessage crowdfund = 1;
+}
+
+// Get Crowdfund
+message GetCrowdfundRequest {
+  string crowdfund_id = 1;
+}
+
+message GetCrowdfundResponse {
+  CrowdfundMessage crowdfund = 1;
+}
+
+// List Crowdfunds
+message ListCrowdfundsRequest {
+  int32 page = 1;
+  int32 page_size = 2;
+  string status = 3; // Optional filter
+  string category = 4; // Optional filter
+  bool my_crowdfunds_only = 5; // Filter to user's own crowdfunds
+}
+
+message ListCrowdfundsResponse {
+  repeated CrowdfundMessage crowdfunds = 1;
+  CrowdfundPaginationInfo pagination = 2;
+}
+
+// Search Crowdfunds
+message SearchCrowdfundsRequest {
+  string query = 1; // Search by username or crowdfund code
+  int32 limit = 2;
+}
+
+message SearchCrowdfundsResponse {
+  repeated CrowdfundMessage crowdfunds = 1;
+}
+
+// Update Crowdfund
+message UpdateCrowdfundRequest {
+  string crowdfund_id = 1;
+  string title = 2;
+  string description = 3;
+  string story = 4;
+  google.protobuf.Timestamp deadline = 5;
+  CrowdfundStatus status = 6;
+  string image_url = 7;
+  string metadata = 8;
+}
+
+message UpdateCrowdfundResponse {
+  CrowdfundMessage crowdfund = 1;
+}
+
+// Delete Crowdfund
+message DeleteCrowdfundRequest {
+  string crowdfund_id = 1;
+}
+
+message DeleteCrowdfundResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+// Make Donation
+message MakeDonationRequest {
+  string crowdfund_id = 1;
+  uint64 amount = 2;
+  string message = 3;
+  bool is_anonymous = 4;
+  uint64 source_account_id = 5;
+}
+
+message MakeDonationResponse {
+  CrowdfundDonationMessage donation = 1;
+}
+
+// Get Crowdfund Donations
+message GetCrowdfundDonationsRequest {
+  string crowdfund_id = 1;
+  int32 page = 2;
+  int32 page_size = 3;
+}
+
+message GetCrowdfundDonationsResponse {
+  repeated CrowdfundDonationMessage donations = 1;
+  DonationPaginationInfo pagination = 2;
+}
+
+// Get User Donations
+message GetUserDonationsRequest {
+  int32 page = 1;
+  int32 page_size = 2;
+}
+
+message GetUserDonationsResponse {
+  repeated CrowdfundDonationMessage donations = 1;
+  DonationPaginationInfo pagination = 2;
+}
+
+// Generate Receipt
+message GenerateDonationReceiptRequest {
+  string donation_id = 1;
+}
+
+message GenerateDonationReceiptResponse {
+  CrowdfundReceiptMessage receipt = 1;
+}
+
+// Get User Receipts
+message GetUserCrowdfundReceiptsRequest {
+  int32 page = 1;
+  int32 page_size = 2;
+}
+
+message GetUserCrowdfundReceiptsResponse {
+  repeated CrowdfundReceiptMessage receipts = 1;
+  CrowdfundReceiptPaginationInfo pagination = 2;
+}
+
+// Get Crowdfund Statistics
+message GetCrowdfundStatisticsRequest {
+  string crowdfund_id = 1;
+}
+
+message GetCrowdfundStatisticsResponse {
+  string crowdfund_id = 1;
+  uint64 total_raised = 2;
+  uint64 target_amount = 3;
+  double progress_percentage = 4;
+  int32 donor_count = 5;
+  uint64 average_donation = 6;
+  uint64 largest_donation = 7;
+  int32 days_remaining = 8;
+  bool is_completed = 9;
+  google.protobuf.Timestamp created_at = 10;
+}
+
+// ============================================================================
+// PAGINATION INFO
+// ============================================================================
+
+message CrowdfundPaginationInfo {
+  int32 current_page = 1;
+  int32 total_pages = 2;
+  int32 total_items = 3;
+  int32 items_per_page = 4;
+  bool has_next = 5;
+  bool has_prev = 6;
+}
+
+message DonationPaginationInfo {
+  int32 current_page = 1;
+  int32 total_pages = 2;
+  int32 total_items = 3;
+  int32 items_per_page = 4;
+  bool has_next = 5;
+  bool has_prev = 6;
+}
+
+message CrowdfundReceiptPaginationInfo {
+  int32 current_page = 1;
+  int32 total_pages = 2;
+  int32 total_items = 3;
+  int32 items_per_page = 4;
+  bool has_next = 5;
+  bool has_prev = 6;
+}
+
+// ============================================================================
+// SERVICE DEFINITION
+// ============================================================================
+
+service CrowdfundService {
+  // Crowdfund Management
+  rpc CreateCrowdfund(CreateCrowdfundRequest) returns (CreateCrowdfundResponse) {
+    option (google.api.http) = {
+      post: "/v1/crowdfunds"
+      body: "*"
+    };
+  }
+
+  rpc GetCrowdfund(GetCrowdfundRequest) returns (GetCrowdfundResponse) {
+    option (google.api.http) = {
+      get: "/v1/crowdfunds/{crowdfund_id}"
+    };
+  }
+
+  rpc ListCrowdfunds(ListCrowdfundsRequest) returns (ListCrowdfundsResponse) {
+    option (google.api.http) = {
+      get: "/v1/crowdfunds"
+    };
+  }
+
+  rpc SearchCrowdfunds(SearchCrowdfundsRequest) returns (SearchCrowdfundsResponse) {
+    option (google.api.http) = {
+      get: "/v1/crowdfunds/search"
+    };
+  }
+
+  rpc UpdateCrowdfund(UpdateCrowdfundRequest) returns (UpdateCrowdfundResponse) {
+    option (google.api.http) = {
+      put: "/v1/crowdfunds/{crowdfund_id}"
+      body: "*"
+    };
+  }
+
+  rpc DeleteCrowdfund(DeleteCrowdfundRequest) returns (DeleteCrowdfundResponse) {
+    option (google.api.http) = {
+      delete: "/v1/crowdfunds/{crowdfund_id}"
+    };
+  }
+
+  // Donation Operations
+  rpc MakeDonation(MakeDonationRequest) returns (MakeDonationResponse) {
+    option (google.api.http) = {
+      post: "/v1/crowdfunds/{crowdfund_id}/donations"
+      body: "*"
+    };
+  }
+
+  rpc GetCrowdfundDonations(GetCrowdfundDonationsRequest) returns (GetCrowdfundDonationsResponse) {
+    option (google.api.http) = {
+      get: "/v1/crowdfunds/{crowdfund_id}/donations"
+    };
+  }
+
+  rpc GetUserDonations(GetUserDonationsRequest) returns (GetUserDonationsResponse) {
+    option (google.api.http) = {
+      get: "/v1/donations"
+    };
+  }
+
+  // Receipt Operations
+  rpc GenerateDonationReceipt(GenerateDonationReceiptRequest) returns (GenerateDonationReceiptResponse) {
+    option (google.api.http) = {
+      post: "/v1/donations/{donation_id}/receipt"
+      body: "*"
+    };
+  }
+
+  rpc GetUserCrowdfundReceipts(GetUserCrowdfundReceiptsRequest) returns (GetUserCrowdfundReceiptsResponse) {
+    option (google.api.http) = {
+      get: "/v1/crowdfund-receipts"
+    };
+  }
+
+  // Statistics
+  rpc GetCrowdfundStatistics(GetCrowdfundStatisticsRequest) returns (GetCrowdfundStatisticsResponse) {
+    option (google.api.http) = {
+      get: "/v1/crowdfunds/{crowdfund_id}/statistics"
+    };
+  }
+}

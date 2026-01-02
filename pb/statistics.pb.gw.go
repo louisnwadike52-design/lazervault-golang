@@ -1011,6 +1011,237 @@ func local_request_StatisticsService_CreateRecurringBill_0(ctx context.Context, 
 	return msg, metadata, err
 }
 
+var filter_StatisticsService_GetTrackedIncome_0 = &utilities.DoubleArray{Encoding: map[string]int{}, Base: []int(nil), Check: []int(nil)}
+
+func request_StatisticsService_GetTrackedIncome_0(ctx context.Context, marshaler runtime.Marshaler, client StatisticsServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+	var (
+		protoReq GetTrackedIncomeRequest
+		metadata runtime.ServerMetadata
+	)
+	io.Copy(io.Discard, req.Body)
+	if err := req.ParseForm(); err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+	if err := runtime.PopulateQueryParameters(&protoReq, req.Form, filter_StatisticsService_GetTrackedIncome_0); err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+	msg, err := client.GetTrackedIncome(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
+	return msg, metadata, err
+}
+
+func local_request_StatisticsService_GetTrackedIncome_0(ctx context.Context, marshaler runtime.Marshaler, server StatisticsServiceServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+	var (
+		protoReq GetTrackedIncomeRequest
+		metadata runtime.ServerMetadata
+	)
+	if err := req.ParseForm(); err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+	if err := runtime.PopulateQueryParameters(&protoReq, req.Form, filter_StatisticsService_GetTrackedIncome_0); err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+	msg, err := server.GetTrackedIncome(ctx, &protoReq)
+	return msg, metadata, err
+}
+
+var filter_StatisticsService_GetTrackedExpenditure_0 = &utilities.DoubleArray{Encoding: map[string]int{}, Base: []int(nil), Check: []int(nil)}
+
+func request_StatisticsService_GetTrackedExpenditure_0(ctx context.Context, marshaler runtime.Marshaler, client StatisticsServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+	var (
+		protoReq GetTrackedExpenditureRequest
+		metadata runtime.ServerMetadata
+	)
+	io.Copy(io.Discard, req.Body)
+	if err := req.ParseForm(); err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+	if err := runtime.PopulateQueryParameters(&protoReq, req.Form, filter_StatisticsService_GetTrackedExpenditure_0); err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+	msg, err := client.GetTrackedExpenditure(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
+	return msg, metadata, err
+}
+
+func local_request_StatisticsService_GetTrackedExpenditure_0(ctx context.Context, marshaler runtime.Marshaler, server StatisticsServiceServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+	var (
+		protoReq GetTrackedExpenditureRequest
+		metadata runtime.ServerMetadata
+	)
+	if err := req.ParseForm(); err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+	if err := runtime.PopulateQueryParameters(&protoReq, req.Form, filter_StatisticsService_GetTrackedExpenditure_0); err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+	msg, err := server.GetTrackedExpenditure(ctx, &protoReq)
+	return msg, metadata, err
+}
+
+var filter_StatisticsService_GetTrackedIncomeBreakdown_0 = &utilities.DoubleArray{Encoding: map[string]int{}, Base: []int(nil), Check: []int(nil)}
+
+func request_StatisticsService_GetTrackedIncomeBreakdown_0(ctx context.Context, marshaler runtime.Marshaler, client StatisticsServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+	var (
+		protoReq GetTrackedIncomeBreakdownRequest
+		metadata runtime.ServerMetadata
+	)
+	io.Copy(io.Discard, req.Body)
+	if err := req.ParseForm(); err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+	if err := runtime.PopulateQueryParameters(&protoReq, req.Form, filter_StatisticsService_GetTrackedIncomeBreakdown_0); err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+	msg, err := client.GetTrackedIncomeBreakdown(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
+	return msg, metadata, err
+}
+
+func local_request_StatisticsService_GetTrackedIncomeBreakdown_0(ctx context.Context, marshaler runtime.Marshaler, server StatisticsServiceServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+	var (
+		protoReq GetTrackedIncomeBreakdownRequest
+		metadata runtime.ServerMetadata
+	)
+	if err := req.ParseForm(); err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+	if err := runtime.PopulateQueryParameters(&protoReq, req.Form, filter_StatisticsService_GetTrackedIncomeBreakdown_0); err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+	msg, err := server.GetTrackedIncomeBreakdown(ctx, &protoReq)
+	return msg, metadata, err
+}
+
+var filter_StatisticsService_GetTrackedExpenditureBreakdown_0 = &utilities.DoubleArray{Encoding: map[string]int{}, Base: []int(nil), Check: []int(nil)}
+
+func request_StatisticsService_GetTrackedExpenditureBreakdown_0(ctx context.Context, marshaler runtime.Marshaler, client StatisticsServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+	var (
+		protoReq GetTrackedExpenditureBreakdownRequest
+		metadata runtime.ServerMetadata
+	)
+	io.Copy(io.Discard, req.Body)
+	if err := req.ParseForm(); err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+	if err := runtime.PopulateQueryParameters(&protoReq, req.Form, filter_StatisticsService_GetTrackedExpenditureBreakdown_0); err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+	msg, err := client.GetTrackedExpenditureBreakdown(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
+	return msg, metadata, err
+}
+
+func local_request_StatisticsService_GetTrackedExpenditureBreakdown_0(ctx context.Context, marshaler runtime.Marshaler, server StatisticsServiceServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+	var (
+		protoReq GetTrackedExpenditureBreakdownRequest
+		metadata runtime.ServerMetadata
+	)
+	if err := req.ParseForm(); err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+	if err := runtime.PopulateQueryParameters(&protoReq, req.Form, filter_StatisticsService_GetTrackedExpenditureBreakdown_0); err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+	msg, err := server.GetTrackedExpenditureBreakdown(ctx, &protoReq)
+	return msg, metadata, err
+}
+
+var filter_StatisticsService_GetTrackedIncomeTransactions_0 = &utilities.DoubleArray{Encoding: map[string]int{}, Base: []int(nil), Check: []int(nil)}
+
+func request_StatisticsService_GetTrackedIncomeTransactions_0(ctx context.Context, marshaler runtime.Marshaler, client StatisticsServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+	var (
+		protoReq GetTrackedIncomeTransactionsRequest
+		metadata runtime.ServerMetadata
+	)
+	io.Copy(io.Discard, req.Body)
+	if err := req.ParseForm(); err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+	if err := runtime.PopulateQueryParameters(&protoReq, req.Form, filter_StatisticsService_GetTrackedIncomeTransactions_0); err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+	msg, err := client.GetTrackedIncomeTransactions(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
+	return msg, metadata, err
+}
+
+func local_request_StatisticsService_GetTrackedIncomeTransactions_0(ctx context.Context, marshaler runtime.Marshaler, server StatisticsServiceServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+	var (
+		protoReq GetTrackedIncomeTransactionsRequest
+		metadata runtime.ServerMetadata
+	)
+	if err := req.ParseForm(); err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+	if err := runtime.PopulateQueryParameters(&protoReq, req.Form, filter_StatisticsService_GetTrackedIncomeTransactions_0); err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+	msg, err := server.GetTrackedIncomeTransactions(ctx, &protoReq)
+	return msg, metadata, err
+}
+
+var filter_StatisticsService_GetTrackedExpenditureTransactions_0 = &utilities.DoubleArray{Encoding: map[string]int{}, Base: []int(nil), Check: []int(nil)}
+
+func request_StatisticsService_GetTrackedExpenditureTransactions_0(ctx context.Context, marshaler runtime.Marshaler, client StatisticsServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+	var (
+		protoReq GetTrackedExpenditureTransactionsRequest
+		metadata runtime.ServerMetadata
+	)
+	io.Copy(io.Discard, req.Body)
+	if err := req.ParseForm(); err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+	if err := runtime.PopulateQueryParameters(&protoReq, req.Form, filter_StatisticsService_GetTrackedExpenditureTransactions_0); err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+	msg, err := client.GetTrackedExpenditureTransactions(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
+	return msg, metadata, err
+}
+
+func local_request_StatisticsService_GetTrackedExpenditureTransactions_0(ctx context.Context, marshaler runtime.Marshaler, server StatisticsServiceServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+	var (
+		protoReq GetTrackedExpenditureTransactionsRequest
+		metadata runtime.ServerMetadata
+	)
+	if err := req.ParseForm(); err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+	if err := runtime.PopulateQueryParameters(&protoReq, req.Form, filter_StatisticsService_GetTrackedExpenditureTransactions_0); err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+	msg, err := server.GetTrackedExpenditureTransactions(ctx, &protoReq)
+	return msg, metadata, err
+}
+
+var filter_StatisticsService_GetComprehensiveFinancialSummary_0 = &utilities.DoubleArray{Encoding: map[string]int{}, Base: []int(nil), Check: []int(nil)}
+
+func request_StatisticsService_GetComprehensiveFinancialSummary_0(ctx context.Context, marshaler runtime.Marshaler, client StatisticsServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+	var (
+		protoReq GetComprehensiveFinancialSummaryRequest
+		metadata runtime.ServerMetadata
+	)
+	io.Copy(io.Discard, req.Body)
+	if err := req.ParseForm(); err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+	if err := runtime.PopulateQueryParameters(&protoReq, req.Form, filter_StatisticsService_GetComprehensiveFinancialSummary_0); err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+	msg, err := client.GetComprehensiveFinancialSummary(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
+	return msg, metadata, err
+}
+
+func local_request_StatisticsService_GetComprehensiveFinancialSummary_0(ctx context.Context, marshaler runtime.Marshaler, server StatisticsServiceServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+	var (
+		protoReq GetComprehensiveFinancialSummaryRequest
+		metadata runtime.ServerMetadata
+	)
+	if err := req.ParseForm(); err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+	if err := runtime.PopulateQueryParameters(&protoReq, req.Form, filter_StatisticsService_GetComprehensiveFinancialSummary_0); err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+	msg, err := server.GetComprehensiveFinancialSummary(ctx, &protoReq)
+	return msg, metadata, err
+}
+
 // RegisterStatisticsServiceHandlerServer registers the http handlers for service StatisticsService to "mux".
 // UnaryRPC     :call StatisticsServiceServer directly.
 // StreamingRPC :currently unsupported pending https://github.com/grpc/grpc-go/issues/906.
@@ -1657,6 +1888,146 @@ func RegisterStatisticsServiceHandlerServer(ctx context.Context, mux *runtime.Se
 		}
 		forward_StatisticsService_CreateRecurringBill_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
 	})
+	mux.Handle(http.MethodGet, pattern_StatisticsService_GetTrackedIncome_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+		ctx, cancel := context.WithCancel(req.Context())
+		defer cancel()
+		var stream runtime.ServerTransportStream
+		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
+		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
+		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/pb.StatisticsService/GetTrackedIncome", runtime.WithHTTPPathPattern("/v1/statistics/tracked/income"))
+		if err != nil {
+			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		resp, md, err := local_request_StatisticsService_GetTrackedIncome_0(annotatedContext, inboundMarshaler, server, req, pathParams)
+		md.HeaderMD, md.TrailerMD = metadata.Join(md.HeaderMD, stream.Header()), metadata.Join(md.TrailerMD, stream.Trailer())
+		annotatedContext = runtime.NewServerMetadataContext(annotatedContext, md)
+		if err != nil {
+			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		forward_StatisticsService_GetTrackedIncome_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
+	})
+	mux.Handle(http.MethodGet, pattern_StatisticsService_GetTrackedExpenditure_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+		ctx, cancel := context.WithCancel(req.Context())
+		defer cancel()
+		var stream runtime.ServerTransportStream
+		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
+		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
+		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/pb.StatisticsService/GetTrackedExpenditure", runtime.WithHTTPPathPattern("/v1/statistics/tracked/expenditure"))
+		if err != nil {
+			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		resp, md, err := local_request_StatisticsService_GetTrackedExpenditure_0(annotatedContext, inboundMarshaler, server, req, pathParams)
+		md.HeaderMD, md.TrailerMD = metadata.Join(md.HeaderMD, stream.Header()), metadata.Join(md.TrailerMD, stream.Trailer())
+		annotatedContext = runtime.NewServerMetadataContext(annotatedContext, md)
+		if err != nil {
+			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		forward_StatisticsService_GetTrackedExpenditure_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
+	})
+	mux.Handle(http.MethodGet, pattern_StatisticsService_GetTrackedIncomeBreakdown_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+		ctx, cancel := context.WithCancel(req.Context())
+		defer cancel()
+		var stream runtime.ServerTransportStream
+		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
+		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
+		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/pb.StatisticsService/GetTrackedIncomeBreakdown", runtime.WithHTTPPathPattern("/v1/statistics/tracked/income/breakdown"))
+		if err != nil {
+			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		resp, md, err := local_request_StatisticsService_GetTrackedIncomeBreakdown_0(annotatedContext, inboundMarshaler, server, req, pathParams)
+		md.HeaderMD, md.TrailerMD = metadata.Join(md.HeaderMD, stream.Header()), metadata.Join(md.TrailerMD, stream.Trailer())
+		annotatedContext = runtime.NewServerMetadataContext(annotatedContext, md)
+		if err != nil {
+			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		forward_StatisticsService_GetTrackedIncomeBreakdown_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
+	})
+	mux.Handle(http.MethodGet, pattern_StatisticsService_GetTrackedExpenditureBreakdown_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+		ctx, cancel := context.WithCancel(req.Context())
+		defer cancel()
+		var stream runtime.ServerTransportStream
+		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
+		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
+		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/pb.StatisticsService/GetTrackedExpenditureBreakdown", runtime.WithHTTPPathPattern("/v1/statistics/tracked/expenditure/breakdown"))
+		if err != nil {
+			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		resp, md, err := local_request_StatisticsService_GetTrackedExpenditureBreakdown_0(annotatedContext, inboundMarshaler, server, req, pathParams)
+		md.HeaderMD, md.TrailerMD = metadata.Join(md.HeaderMD, stream.Header()), metadata.Join(md.TrailerMD, stream.Trailer())
+		annotatedContext = runtime.NewServerMetadataContext(annotatedContext, md)
+		if err != nil {
+			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		forward_StatisticsService_GetTrackedExpenditureBreakdown_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
+	})
+	mux.Handle(http.MethodGet, pattern_StatisticsService_GetTrackedIncomeTransactions_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+		ctx, cancel := context.WithCancel(req.Context())
+		defer cancel()
+		var stream runtime.ServerTransportStream
+		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
+		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
+		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/pb.StatisticsService/GetTrackedIncomeTransactions", runtime.WithHTTPPathPattern("/v1/statistics/tracked/income/transactions"))
+		if err != nil {
+			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		resp, md, err := local_request_StatisticsService_GetTrackedIncomeTransactions_0(annotatedContext, inboundMarshaler, server, req, pathParams)
+		md.HeaderMD, md.TrailerMD = metadata.Join(md.HeaderMD, stream.Header()), metadata.Join(md.TrailerMD, stream.Trailer())
+		annotatedContext = runtime.NewServerMetadataContext(annotatedContext, md)
+		if err != nil {
+			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		forward_StatisticsService_GetTrackedIncomeTransactions_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
+	})
+	mux.Handle(http.MethodGet, pattern_StatisticsService_GetTrackedExpenditureTransactions_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+		ctx, cancel := context.WithCancel(req.Context())
+		defer cancel()
+		var stream runtime.ServerTransportStream
+		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
+		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
+		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/pb.StatisticsService/GetTrackedExpenditureTransactions", runtime.WithHTTPPathPattern("/v1/statistics/tracked/expenditure/transactions"))
+		if err != nil {
+			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		resp, md, err := local_request_StatisticsService_GetTrackedExpenditureTransactions_0(annotatedContext, inboundMarshaler, server, req, pathParams)
+		md.HeaderMD, md.TrailerMD = metadata.Join(md.HeaderMD, stream.Header()), metadata.Join(md.TrailerMD, stream.Trailer())
+		annotatedContext = runtime.NewServerMetadataContext(annotatedContext, md)
+		if err != nil {
+			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		forward_StatisticsService_GetTrackedExpenditureTransactions_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
+	})
+	mux.Handle(http.MethodGet, pattern_StatisticsService_GetComprehensiveFinancialSummary_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+		ctx, cancel := context.WithCancel(req.Context())
+		defer cancel()
+		var stream runtime.ServerTransportStream
+		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
+		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
+		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/pb.StatisticsService/GetComprehensiveFinancialSummary", runtime.WithHTTPPathPattern("/v1/statistics/comprehensive/summary"))
+		if err != nil {
+			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		resp, md, err := local_request_StatisticsService_GetComprehensiveFinancialSummary_0(annotatedContext, inboundMarshaler, server, req, pathParams)
+		md.HeaderMD, md.TrailerMD = metadata.Join(md.HeaderMD, stream.Header()), metadata.Join(md.TrailerMD, stream.Trailer())
+		annotatedContext = runtime.NewServerMetadataContext(annotatedContext, md)
+		if err != nil {
+			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		forward_StatisticsService_GetComprehensiveFinancialSummary_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
+	})
 
 	return nil
 }
@@ -2241,75 +2612,208 @@ func RegisterStatisticsServiceHandlerClient(ctx context.Context, mux *runtime.Se
 		}
 		forward_StatisticsService_CreateRecurringBill_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
 	})
+	mux.Handle(http.MethodGet, pattern_StatisticsService_GetTrackedIncome_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+		ctx, cancel := context.WithCancel(req.Context())
+		defer cancel()
+		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/pb.StatisticsService/GetTrackedIncome", runtime.WithHTTPPathPattern("/v1/statistics/tracked/income"))
+		if err != nil {
+			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		resp, md, err := request_StatisticsService_GetTrackedIncome_0(annotatedContext, inboundMarshaler, client, req, pathParams)
+		annotatedContext = runtime.NewServerMetadataContext(annotatedContext, md)
+		if err != nil {
+			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		forward_StatisticsService_GetTrackedIncome_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
+	})
+	mux.Handle(http.MethodGet, pattern_StatisticsService_GetTrackedExpenditure_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+		ctx, cancel := context.WithCancel(req.Context())
+		defer cancel()
+		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/pb.StatisticsService/GetTrackedExpenditure", runtime.WithHTTPPathPattern("/v1/statistics/tracked/expenditure"))
+		if err != nil {
+			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		resp, md, err := request_StatisticsService_GetTrackedExpenditure_0(annotatedContext, inboundMarshaler, client, req, pathParams)
+		annotatedContext = runtime.NewServerMetadataContext(annotatedContext, md)
+		if err != nil {
+			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		forward_StatisticsService_GetTrackedExpenditure_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
+	})
+	mux.Handle(http.MethodGet, pattern_StatisticsService_GetTrackedIncomeBreakdown_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+		ctx, cancel := context.WithCancel(req.Context())
+		defer cancel()
+		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/pb.StatisticsService/GetTrackedIncomeBreakdown", runtime.WithHTTPPathPattern("/v1/statistics/tracked/income/breakdown"))
+		if err != nil {
+			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		resp, md, err := request_StatisticsService_GetTrackedIncomeBreakdown_0(annotatedContext, inboundMarshaler, client, req, pathParams)
+		annotatedContext = runtime.NewServerMetadataContext(annotatedContext, md)
+		if err != nil {
+			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		forward_StatisticsService_GetTrackedIncomeBreakdown_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
+	})
+	mux.Handle(http.MethodGet, pattern_StatisticsService_GetTrackedExpenditureBreakdown_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+		ctx, cancel := context.WithCancel(req.Context())
+		defer cancel()
+		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/pb.StatisticsService/GetTrackedExpenditureBreakdown", runtime.WithHTTPPathPattern("/v1/statistics/tracked/expenditure/breakdown"))
+		if err != nil {
+			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		resp, md, err := request_StatisticsService_GetTrackedExpenditureBreakdown_0(annotatedContext, inboundMarshaler, client, req, pathParams)
+		annotatedContext = runtime.NewServerMetadataContext(annotatedContext, md)
+		if err != nil {
+			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		forward_StatisticsService_GetTrackedExpenditureBreakdown_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
+	})
+	mux.Handle(http.MethodGet, pattern_StatisticsService_GetTrackedIncomeTransactions_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+		ctx, cancel := context.WithCancel(req.Context())
+		defer cancel()
+		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/pb.StatisticsService/GetTrackedIncomeTransactions", runtime.WithHTTPPathPattern("/v1/statistics/tracked/income/transactions"))
+		if err != nil {
+			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		resp, md, err := request_StatisticsService_GetTrackedIncomeTransactions_0(annotatedContext, inboundMarshaler, client, req, pathParams)
+		annotatedContext = runtime.NewServerMetadataContext(annotatedContext, md)
+		if err != nil {
+			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		forward_StatisticsService_GetTrackedIncomeTransactions_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
+	})
+	mux.Handle(http.MethodGet, pattern_StatisticsService_GetTrackedExpenditureTransactions_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+		ctx, cancel := context.WithCancel(req.Context())
+		defer cancel()
+		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/pb.StatisticsService/GetTrackedExpenditureTransactions", runtime.WithHTTPPathPattern("/v1/statistics/tracked/expenditure/transactions"))
+		if err != nil {
+			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		resp, md, err := request_StatisticsService_GetTrackedExpenditureTransactions_0(annotatedContext, inboundMarshaler, client, req, pathParams)
+		annotatedContext = runtime.NewServerMetadataContext(annotatedContext, md)
+		if err != nil {
+			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		forward_StatisticsService_GetTrackedExpenditureTransactions_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
+	})
+	mux.Handle(http.MethodGet, pattern_StatisticsService_GetComprehensiveFinancialSummary_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+		ctx, cancel := context.WithCancel(req.Context())
+		defer cancel()
+		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/pb.StatisticsService/GetComprehensiveFinancialSummary", runtime.WithHTTPPathPattern("/v1/statistics/comprehensive/summary"))
+		if err != nil {
+			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		resp, md, err := request_StatisticsService_GetComprehensiveFinancialSummary_0(annotatedContext, inboundMarshaler, client, req, pathParams)
+		annotatedContext = runtime.NewServerMetadataContext(annotatedContext, md)
+		if err != nil {
+			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		forward_StatisticsService_GetComprehensiveFinancialSummary_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
+	})
 	return nil
 }
 
 var (
-	pattern_StatisticsService_CreateExpense_0                 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "statistics", "expenses"}, ""))
-	pattern_StatisticsService_GetExpenses_0                   = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "statistics", "expenses"}, ""))
-	pattern_StatisticsService_GetExpenseById_0                = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 1, 0, 4, 1, 5, 3}, []string{"v1", "statistics", "expenses", "expense_id"}, ""))
-	pattern_StatisticsService_UpdateExpense_0                 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 1, 0, 4, 1, 5, 3}, []string{"v1", "statistics", "expenses", "expense_id"}, ""))
-	pattern_StatisticsService_DeleteExpense_0                 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 1, 0, 4, 1, 5, 3}, []string{"v1", "statistics", "expenses", "expense_id"}, ""))
-	pattern_StatisticsService_CreateBudget_0                  = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "statistics", "budgets"}, ""))
-	pattern_StatisticsService_GetBudgets_0                    = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "statistics", "budgets"}, ""))
-	pattern_StatisticsService_GetBudgetById_0                 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 1, 0, 4, 1, 5, 3}, []string{"v1", "statistics", "budgets", "budget_id"}, ""))
-	pattern_StatisticsService_UpdateBudget_0                  = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 1, 0, 4, 1, 5, 3}, []string{"v1", "statistics", "budgets", "budget_id"}, ""))
-	pattern_StatisticsService_DeleteBudget_0                  = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 1, 0, 4, 1, 5, 3}, []string{"v1", "statistics", "budgets", "budget_id"}, ""))
-	pattern_StatisticsService_GetSpendingAnalytics_0          = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 2, 3}, []string{"v1", "statistics", "analytics", "spending"}, ""))
-	pattern_StatisticsService_GetCategoryBreakdown_0          = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 2, 3}, []string{"v1", "statistics", "analytics", "categories"}, ""))
-	pattern_StatisticsService_GetBudgetProgress_0             = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 2, 3}, []string{"v1", "statistics", "analytics", "budget-progress"}, ""))
-	pattern_StatisticsService_GetSpendingTrends_0             = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 2, 3}, []string{"v1", "statistics", "analytics", "trends"}, ""))
-	pattern_StatisticsService_GetBudgetAlerts_0               = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "statistics", "alerts"}, ""))
-	pattern_StatisticsService_MarkAlertAsRead_0               = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 1, 0, 4, 1, 5, 3, 2, 4}, []string{"v1", "statistics", "alerts", "alert_id", "read"}, ""))
-	pattern_StatisticsService_GetAISpendingInsights_0         = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 2, 3, 2, 4}, []string{"v1", "statistics", "ai", "insights", "spending"}, ""))
-	pattern_StatisticsService_GetAIBudgetingRecommendations_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 2, 3, 2, 4}, []string{"v1", "statistics", "ai", "recommendations", "budgeting"}, ""))
-	pattern_StatisticsService_AutoCategorizeExpense_0         = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 2, 3}, []string{"v1", "statistics", "ai", "categorize"}, ""))
-	pattern_StatisticsService_GetAIFinancialAdvice_0          = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 2, 3}, []string{"v1", "statistics", "ai", "advice"}, ""))
-	pattern_StatisticsService_GetIncomeSources_0              = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 2, 3}, []string{"v1", "statistics", "income", "sources"}, ""))
-	pattern_StatisticsService_GetIncomeBreakdown_0            = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 2, 3}, []string{"v1", "statistics", "income", "breakdown"}, ""))
-	pattern_StatisticsService_CreateIncomeSource_0            = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 2, 3}, []string{"v1", "statistics", "income", "sources"}, ""))
-	pattern_StatisticsService_GetInvestmentPortfolio_0        = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 2, 3}, []string{"v1", "statistics", "investments", "portfolio"}, ""))
-	pattern_StatisticsService_CreateInvestment_0              = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "statistics", "investments"}, ""))
-	pattern_StatisticsService_GetFinancialGoals_0             = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "statistics", "goals"}, ""))
-	pattern_StatisticsService_CreateFinancialGoal_0           = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "statistics", "goals"}, ""))
-	pattern_StatisticsService_UpdateFinancialGoalProgress_0   = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 1, 0, 4, 1, 5, 3, 2, 4}, []string{"v1", "statistics", "goals", "goal_id", "progress"}, ""))
-	pattern_StatisticsService_GetSavingsGoal_0                = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 2, 3}, []string{"v1", "statistics", "savings", "goal"}, ""))
-	pattern_StatisticsService_CreateOrUpdateSavingsGoal_0     = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 2, 3}, []string{"v1", "statistics", "savings", "goal"}, ""))
-	pattern_StatisticsService_GetUpcomingBills_0              = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 2, 3}, []string{"v1", "statistics", "bills", "upcoming"}, ""))
-	pattern_StatisticsService_CreateRecurringBill_0           = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 2, 3}, []string{"v1", "statistics", "bills", "recurring"}, ""))
+	pattern_StatisticsService_CreateExpense_0                     = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "statistics", "expenses"}, ""))
+	pattern_StatisticsService_GetExpenses_0                       = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "statistics", "expenses"}, ""))
+	pattern_StatisticsService_GetExpenseById_0                    = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 1, 0, 4, 1, 5, 3}, []string{"v1", "statistics", "expenses", "expense_id"}, ""))
+	pattern_StatisticsService_UpdateExpense_0                     = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 1, 0, 4, 1, 5, 3}, []string{"v1", "statistics", "expenses", "expense_id"}, ""))
+	pattern_StatisticsService_DeleteExpense_0                     = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 1, 0, 4, 1, 5, 3}, []string{"v1", "statistics", "expenses", "expense_id"}, ""))
+	pattern_StatisticsService_CreateBudget_0                      = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "statistics", "budgets"}, ""))
+	pattern_StatisticsService_GetBudgets_0                        = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "statistics", "budgets"}, ""))
+	pattern_StatisticsService_GetBudgetById_0                     = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 1, 0, 4, 1, 5, 3}, []string{"v1", "statistics", "budgets", "budget_id"}, ""))
+	pattern_StatisticsService_UpdateBudget_0                      = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 1, 0, 4, 1, 5, 3}, []string{"v1", "statistics", "budgets", "budget_id"}, ""))
+	pattern_StatisticsService_DeleteBudget_0                      = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 1, 0, 4, 1, 5, 3}, []string{"v1", "statistics", "budgets", "budget_id"}, ""))
+	pattern_StatisticsService_GetSpendingAnalytics_0              = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 2, 3}, []string{"v1", "statistics", "analytics", "spending"}, ""))
+	pattern_StatisticsService_GetCategoryBreakdown_0              = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 2, 3}, []string{"v1", "statistics", "analytics", "categories"}, ""))
+	pattern_StatisticsService_GetBudgetProgress_0                 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 2, 3}, []string{"v1", "statistics", "analytics", "budget-progress"}, ""))
+	pattern_StatisticsService_GetSpendingTrends_0                 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 2, 3}, []string{"v1", "statistics", "analytics", "trends"}, ""))
+	pattern_StatisticsService_GetBudgetAlerts_0                   = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "statistics", "alerts"}, ""))
+	pattern_StatisticsService_MarkAlertAsRead_0                   = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 1, 0, 4, 1, 5, 3, 2, 4}, []string{"v1", "statistics", "alerts", "alert_id", "read"}, ""))
+	pattern_StatisticsService_GetAISpendingInsights_0             = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 2, 3, 2, 4}, []string{"v1", "statistics", "ai", "insights", "spending"}, ""))
+	pattern_StatisticsService_GetAIBudgetingRecommendations_0     = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 2, 3, 2, 4}, []string{"v1", "statistics", "ai", "recommendations", "budgeting"}, ""))
+	pattern_StatisticsService_AutoCategorizeExpense_0             = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 2, 3}, []string{"v1", "statistics", "ai", "categorize"}, ""))
+	pattern_StatisticsService_GetAIFinancialAdvice_0              = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 2, 3}, []string{"v1", "statistics", "ai", "advice"}, ""))
+	pattern_StatisticsService_GetIncomeSources_0                  = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 2, 3}, []string{"v1", "statistics", "income", "sources"}, ""))
+	pattern_StatisticsService_GetIncomeBreakdown_0                = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 2, 3}, []string{"v1", "statistics", "income", "breakdown"}, ""))
+	pattern_StatisticsService_CreateIncomeSource_0                = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 2, 3}, []string{"v1", "statistics", "income", "sources"}, ""))
+	pattern_StatisticsService_GetInvestmentPortfolio_0            = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 2, 3}, []string{"v1", "statistics", "investments", "portfolio"}, ""))
+	pattern_StatisticsService_CreateInvestment_0                  = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "statistics", "investments"}, ""))
+	pattern_StatisticsService_GetFinancialGoals_0                 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "statistics", "goals"}, ""))
+	pattern_StatisticsService_CreateFinancialGoal_0               = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "statistics", "goals"}, ""))
+	pattern_StatisticsService_UpdateFinancialGoalProgress_0       = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 1, 0, 4, 1, 5, 3, 2, 4}, []string{"v1", "statistics", "goals", "goal_id", "progress"}, ""))
+	pattern_StatisticsService_GetSavingsGoal_0                    = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 2, 3}, []string{"v1", "statistics", "savings", "goal"}, ""))
+	pattern_StatisticsService_CreateOrUpdateSavingsGoal_0         = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 2, 3}, []string{"v1", "statistics", "savings", "goal"}, ""))
+	pattern_StatisticsService_GetUpcomingBills_0                  = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 2, 3}, []string{"v1", "statistics", "bills", "upcoming"}, ""))
+	pattern_StatisticsService_CreateRecurringBill_0               = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 2, 3}, []string{"v1", "statistics", "bills", "recurring"}, ""))
+	pattern_StatisticsService_GetTrackedIncome_0                  = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 2, 3}, []string{"v1", "statistics", "tracked", "income"}, ""))
+	pattern_StatisticsService_GetTrackedExpenditure_0             = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 2, 3}, []string{"v1", "statistics", "tracked", "expenditure"}, ""))
+	pattern_StatisticsService_GetTrackedIncomeBreakdown_0         = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 2, 3, 2, 4}, []string{"v1", "statistics", "tracked", "income", "breakdown"}, ""))
+	pattern_StatisticsService_GetTrackedExpenditureBreakdown_0    = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 2, 3, 2, 4}, []string{"v1", "statistics", "tracked", "expenditure", "breakdown"}, ""))
+	pattern_StatisticsService_GetTrackedIncomeTransactions_0      = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 2, 3, 2, 4}, []string{"v1", "statistics", "tracked", "income", "transactions"}, ""))
+	pattern_StatisticsService_GetTrackedExpenditureTransactions_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 2, 3, 2, 4}, []string{"v1", "statistics", "tracked", "expenditure", "transactions"}, ""))
+	pattern_StatisticsService_GetComprehensiveFinancialSummary_0  = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 2, 3}, []string{"v1", "statistics", "comprehensive", "summary"}, ""))
 )
 
 var (
-	forward_StatisticsService_CreateExpense_0                 = runtime.ForwardResponseMessage
-	forward_StatisticsService_GetExpenses_0                   = runtime.ForwardResponseMessage
-	forward_StatisticsService_GetExpenseById_0                = runtime.ForwardResponseMessage
-	forward_StatisticsService_UpdateExpense_0                 = runtime.ForwardResponseMessage
-	forward_StatisticsService_DeleteExpense_0                 = runtime.ForwardResponseMessage
-	forward_StatisticsService_CreateBudget_0                  = runtime.ForwardResponseMessage
-	forward_StatisticsService_GetBudgets_0                    = runtime.ForwardResponseMessage
-	forward_StatisticsService_GetBudgetById_0                 = runtime.ForwardResponseMessage
-	forward_StatisticsService_UpdateBudget_0                  = runtime.ForwardResponseMessage
-	forward_StatisticsService_DeleteBudget_0                  = runtime.ForwardResponseMessage
-	forward_StatisticsService_GetSpendingAnalytics_0          = runtime.ForwardResponseMessage
-	forward_StatisticsService_GetCategoryBreakdown_0          = runtime.ForwardResponseMessage
-	forward_StatisticsService_GetBudgetProgress_0             = runtime.ForwardResponseMessage
-	forward_StatisticsService_GetSpendingTrends_0             = runtime.ForwardResponseMessage
-	forward_StatisticsService_GetBudgetAlerts_0               = runtime.ForwardResponseMessage
-	forward_StatisticsService_MarkAlertAsRead_0               = runtime.ForwardResponseMessage
-	forward_StatisticsService_GetAISpendingInsights_0         = runtime.ForwardResponseMessage
-	forward_StatisticsService_GetAIBudgetingRecommendations_0 = runtime.ForwardResponseMessage
-	forward_StatisticsService_AutoCategorizeExpense_0         = runtime.ForwardResponseMessage
-	forward_StatisticsService_GetAIFinancialAdvice_0          = runtime.ForwardResponseMessage
-	forward_StatisticsService_GetIncomeSources_0              = runtime.ForwardResponseMessage
-	forward_StatisticsService_GetIncomeBreakdown_0            = runtime.ForwardResponseMessage
-	forward_StatisticsService_CreateIncomeSource_0            = runtime.ForwardResponseMessage
-	forward_StatisticsService_GetInvestmentPortfolio_0        = runtime.ForwardResponseMessage
-	forward_StatisticsService_CreateInvestment_0              = runtime.ForwardResponseMessage
-	forward_StatisticsService_GetFinancialGoals_0             = runtime.ForwardResponseMessage
-	forward_StatisticsService_CreateFinancialGoal_0           = runtime.ForwardResponseMessage
-	forward_StatisticsService_UpdateFinancialGoalProgress_0   = runtime.ForwardResponseMessage
-	forward_StatisticsService_GetSavingsGoal_0                = runtime.ForwardResponseMessage
-	forward_StatisticsService_CreateOrUpdateSavingsGoal_0     = runtime.ForwardResponseMessage
-	forward_StatisticsService_GetUpcomingBills_0              = runtime.ForwardResponseMessage
-	forward_StatisticsService_CreateRecurringBill_0           = runtime.ForwardResponseMessage
+	forward_StatisticsService_CreateExpense_0                     = runtime.ForwardResponseMessage
+	forward_StatisticsService_GetExpenses_0                       = runtime.ForwardResponseMessage
+	forward_StatisticsService_GetExpenseById_0                    = runtime.ForwardResponseMessage
+	forward_StatisticsService_UpdateExpense_0                     = runtime.ForwardResponseMessage
+	forward_StatisticsService_DeleteExpense_0                     = runtime.ForwardResponseMessage
+	forward_StatisticsService_CreateBudget_0                      = runtime.ForwardResponseMessage
+	forward_StatisticsService_GetBudgets_0                        = runtime.ForwardResponseMessage
+	forward_StatisticsService_GetBudgetById_0                     = runtime.ForwardResponseMessage
+	forward_StatisticsService_UpdateBudget_0                      = runtime.ForwardResponseMessage
+	forward_StatisticsService_DeleteBudget_0                      = runtime.ForwardResponseMessage
+	forward_StatisticsService_GetSpendingAnalytics_0              = runtime.ForwardResponseMessage
+	forward_StatisticsService_GetCategoryBreakdown_0              = runtime.ForwardResponseMessage
+	forward_StatisticsService_GetBudgetProgress_0                 = runtime.ForwardResponseMessage
+	forward_StatisticsService_GetSpendingTrends_0                 = runtime.ForwardResponseMessage
+	forward_StatisticsService_GetBudgetAlerts_0                   = runtime.ForwardResponseMessage
+	forward_StatisticsService_MarkAlertAsRead_0                   = runtime.ForwardResponseMessage
+	forward_StatisticsService_GetAISpendingInsights_0             = runtime.ForwardResponseMessage
+	forward_StatisticsService_GetAIBudgetingRecommendations_0     = runtime.ForwardResponseMessage
+	forward_StatisticsService_AutoCategorizeExpense_0             = runtime.ForwardResponseMessage
+	forward_StatisticsService_GetAIFinancialAdvice_0              = runtime.ForwardResponseMessage
+	forward_StatisticsService_GetIncomeSources_0                  = runtime.ForwardResponseMessage
+	forward_StatisticsService_GetIncomeBreakdown_0                = runtime.ForwardResponseMessage
+	forward_StatisticsService_CreateIncomeSource_0                = runtime.ForwardResponseMessage
+	forward_StatisticsService_GetInvestmentPortfolio_0            = runtime.ForwardResponseMessage
+	forward_StatisticsService_CreateInvestment_0                  = runtime.ForwardResponseMessage
+	forward_StatisticsService_GetFinancialGoals_0                 = runtime.ForwardResponseMessage
+	forward_StatisticsService_CreateFinancialGoal_0               = runtime.ForwardResponseMessage
+	forward_StatisticsService_UpdateFinancialGoalProgress_0       = runtime.ForwardResponseMessage
+	forward_StatisticsService_GetSavingsGoal_0                    = runtime.ForwardResponseMessage
+	forward_StatisticsService_CreateOrUpdateSavingsGoal_0         = runtime.ForwardResponseMessage
+	forward_StatisticsService_GetUpcomingBills_0                  = runtime.ForwardResponseMessage
+	forward_StatisticsService_CreateRecurringBill_0               = runtime.ForwardResponseMessage
+	forward_StatisticsService_GetTrackedIncome_0                  = runtime.ForwardResponseMessage
+	forward_StatisticsService_GetTrackedExpenditure_0             = runtime.ForwardResponseMessage
+	forward_StatisticsService_GetTrackedIncomeBreakdown_0         = runtime.ForwardResponseMessage
+	forward_StatisticsService_GetTrackedExpenditureBreakdown_0    = runtime.ForwardResponseMessage
+	forward_StatisticsService_GetTrackedIncomeTransactions_0      = runtime.ForwardResponseMessage
+	forward_StatisticsService_GetTrackedExpenditureTransactions_0 = runtime.ForwardResponseMessage
+	forward_StatisticsService_GetComprehensiveFinancialSummary_0  = runtime.ForwardResponseMessage
 )

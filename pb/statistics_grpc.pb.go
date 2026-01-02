@@ -19,38 +19,45 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	StatisticsService_CreateExpense_FullMethodName                 = "/pb.StatisticsService/CreateExpense"
-	StatisticsService_GetExpenses_FullMethodName                   = "/pb.StatisticsService/GetExpenses"
-	StatisticsService_GetExpenseById_FullMethodName                = "/pb.StatisticsService/GetExpenseById"
-	StatisticsService_UpdateExpense_FullMethodName                 = "/pb.StatisticsService/UpdateExpense"
-	StatisticsService_DeleteExpense_FullMethodName                 = "/pb.StatisticsService/DeleteExpense"
-	StatisticsService_CreateBudget_FullMethodName                  = "/pb.StatisticsService/CreateBudget"
-	StatisticsService_GetBudgets_FullMethodName                    = "/pb.StatisticsService/GetBudgets"
-	StatisticsService_GetBudgetById_FullMethodName                 = "/pb.StatisticsService/GetBudgetById"
-	StatisticsService_UpdateBudget_FullMethodName                  = "/pb.StatisticsService/UpdateBudget"
-	StatisticsService_DeleteBudget_FullMethodName                  = "/pb.StatisticsService/DeleteBudget"
-	StatisticsService_GetSpendingAnalytics_FullMethodName          = "/pb.StatisticsService/GetSpendingAnalytics"
-	StatisticsService_GetCategoryBreakdown_FullMethodName          = "/pb.StatisticsService/GetCategoryBreakdown"
-	StatisticsService_GetBudgetProgress_FullMethodName             = "/pb.StatisticsService/GetBudgetProgress"
-	StatisticsService_GetSpendingTrends_FullMethodName             = "/pb.StatisticsService/GetSpendingTrends"
-	StatisticsService_GetBudgetAlerts_FullMethodName               = "/pb.StatisticsService/GetBudgetAlerts"
-	StatisticsService_MarkAlertAsRead_FullMethodName               = "/pb.StatisticsService/MarkAlertAsRead"
-	StatisticsService_GetAISpendingInsights_FullMethodName         = "/pb.StatisticsService/GetAISpendingInsights"
-	StatisticsService_GetAIBudgetingRecommendations_FullMethodName = "/pb.StatisticsService/GetAIBudgetingRecommendations"
-	StatisticsService_AutoCategorizeExpense_FullMethodName         = "/pb.StatisticsService/AutoCategorizeExpense"
-	StatisticsService_GetAIFinancialAdvice_FullMethodName          = "/pb.StatisticsService/GetAIFinancialAdvice"
-	StatisticsService_GetIncomeSources_FullMethodName              = "/pb.StatisticsService/GetIncomeSources"
-	StatisticsService_GetIncomeBreakdown_FullMethodName            = "/pb.StatisticsService/GetIncomeBreakdown"
-	StatisticsService_CreateIncomeSource_FullMethodName            = "/pb.StatisticsService/CreateIncomeSource"
-	StatisticsService_GetInvestmentPortfolio_FullMethodName        = "/pb.StatisticsService/GetInvestmentPortfolio"
-	StatisticsService_CreateInvestment_FullMethodName              = "/pb.StatisticsService/CreateInvestment"
-	StatisticsService_GetFinancialGoals_FullMethodName             = "/pb.StatisticsService/GetFinancialGoals"
-	StatisticsService_CreateFinancialGoal_FullMethodName           = "/pb.StatisticsService/CreateFinancialGoal"
-	StatisticsService_UpdateFinancialGoalProgress_FullMethodName   = "/pb.StatisticsService/UpdateFinancialGoalProgress"
-	StatisticsService_GetSavingsGoal_FullMethodName                = "/pb.StatisticsService/GetSavingsGoal"
-	StatisticsService_CreateOrUpdateSavingsGoal_FullMethodName     = "/pb.StatisticsService/CreateOrUpdateSavingsGoal"
-	StatisticsService_GetUpcomingBills_FullMethodName              = "/pb.StatisticsService/GetUpcomingBills"
-	StatisticsService_CreateRecurringBill_FullMethodName           = "/pb.StatisticsService/CreateRecurringBill"
+	StatisticsService_CreateExpense_FullMethodName                     = "/pb.StatisticsService/CreateExpense"
+	StatisticsService_GetExpenses_FullMethodName                       = "/pb.StatisticsService/GetExpenses"
+	StatisticsService_GetExpenseById_FullMethodName                    = "/pb.StatisticsService/GetExpenseById"
+	StatisticsService_UpdateExpense_FullMethodName                     = "/pb.StatisticsService/UpdateExpense"
+	StatisticsService_DeleteExpense_FullMethodName                     = "/pb.StatisticsService/DeleteExpense"
+	StatisticsService_CreateBudget_FullMethodName                      = "/pb.StatisticsService/CreateBudget"
+	StatisticsService_GetBudgets_FullMethodName                        = "/pb.StatisticsService/GetBudgets"
+	StatisticsService_GetBudgetById_FullMethodName                     = "/pb.StatisticsService/GetBudgetById"
+	StatisticsService_UpdateBudget_FullMethodName                      = "/pb.StatisticsService/UpdateBudget"
+	StatisticsService_DeleteBudget_FullMethodName                      = "/pb.StatisticsService/DeleteBudget"
+	StatisticsService_GetSpendingAnalytics_FullMethodName              = "/pb.StatisticsService/GetSpendingAnalytics"
+	StatisticsService_GetCategoryBreakdown_FullMethodName              = "/pb.StatisticsService/GetCategoryBreakdown"
+	StatisticsService_GetBudgetProgress_FullMethodName                 = "/pb.StatisticsService/GetBudgetProgress"
+	StatisticsService_GetSpendingTrends_FullMethodName                 = "/pb.StatisticsService/GetSpendingTrends"
+	StatisticsService_GetBudgetAlerts_FullMethodName                   = "/pb.StatisticsService/GetBudgetAlerts"
+	StatisticsService_MarkAlertAsRead_FullMethodName                   = "/pb.StatisticsService/MarkAlertAsRead"
+	StatisticsService_GetAISpendingInsights_FullMethodName             = "/pb.StatisticsService/GetAISpendingInsights"
+	StatisticsService_GetAIBudgetingRecommendations_FullMethodName     = "/pb.StatisticsService/GetAIBudgetingRecommendations"
+	StatisticsService_AutoCategorizeExpense_FullMethodName             = "/pb.StatisticsService/AutoCategorizeExpense"
+	StatisticsService_GetAIFinancialAdvice_FullMethodName              = "/pb.StatisticsService/GetAIFinancialAdvice"
+	StatisticsService_GetIncomeSources_FullMethodName                  = "/pb.StatisticsService/GetIncomeSources"
+	StatisticsService_GetIncomeBreakdown_FullMethodName                = "/pb.StatisticsService/GetIncomeBreakdown"
+	StatisticsService_CreateIncomeSource_FullMethodName                = "/pb.StatisticsService/CreateIncomeSource"
+	StatisticsService_GetInvestmentPortfolio_FullMethodName            = "/pb.StatisticsService/GetInvestmentPortfolio"
+	StatisticsService_CreateInvestment_FullMethodName                  = "/pb.StatisticsService/CreateInvestment"
+	StatisticsService_GetFinancialGoals_FullMethodName                 = "/pb.StatisticsService/GetFinancialGoals"
+	StatisticsService_CreateFinancialGoal_FullMethodName               = "/pb.StatisticsService/CreateFinancialGoal"
+	StatisticsService_UpdateFinancialGoalProgress_FullMethodName       = "/pb.StatisticsService/UpdateFinancialGoalProgress"
+	StatisticsService_GetSavingsGoal_FullMethodName                    = "/pb.StatisticsService/GetSavingsGoal"
+	StatisticsService_CreateOrUpdateSavingsGoal_FullMethodName         = "/pb.StatisticsService/CreateOrUpdateSavingsGoal"
+	StatisticsService_GetUpcomingBills_FullMethodName                  = "/pb.StatisticsService/GetUpcomingBills"
+	StatisticsService_CreateRecurringBill_FullMethodName               = "/pb.StatisticsService/CreateRecurringBill"
+	StatisticsService_GetTrackedIncome_FullMethodName                  = "/pb.StatisticsService/GetTrackedIncome"
+	StatisticsService_GetTrackedExpenditure_FullMethodName             = "/pb.StatisticsService/GetTrackedExpenditure"
+	StatisticsService_GetTrackedIncomeBreakdown_FullMethodName         = "/pb.StatisticsService/GetTrackedIncomeBreakdown"
+	StatisticsService_GetTrackedExpenditureBreakdown_FullMethodName    = "/pb.StatisticsService/GetTrackedExpenditureBreakdown"
+	StatisticsService_GetTrackedIncomeTransactions_FullMethodName      = "/pb.StatisticsService/GetTrackedIncomeTransactions"
+	StatisticsService_GetTrackedExpenditureTransactions_FullMethodName = "/pb.StatisticsService/GetTrackedExpenditureTransactions"
+	StatisticsService_GetComprehensiveFinancialSummary_FullMethodName  = "/pb.StatisticsService/GetComprehensiveFinancialSummary"
 )
 
 // StatisticsServiceClient is the client API for StatisticsService service.
@@ -99,6 +106,14 @@ type StatisticsServiceClient interface {
 	// Recurring Bills Management
 	GetUpcomingBills(ctx context.Context, in *GetUpcomingBillsRequest, opts ...grpc.CallOption) (*GetUpcomingBillsResponse, error)
 	CreateRecurringBill(ctx context.Context, in *CreateRecurringBillRequest, opts ...grpc.CallOption) (*CreateRecurringBillResponse, error)
+	// Tracked Transaction Methods
+	GetTrackedIncome(ctx context.Context, in *GetTrackedIncomeRequest, opts ...grpc.CallOption) (*GetTrackedIncomeResponse, error)
+	GetTrackedExpenditure(ctx context.Context, in *GetTrackedExpenditureRequest, opts ...grpc.CallOption) (*GetTrackedExpenditureResponse, error)
+	GetTrackedIncomeBreakdown(ctx context.Context, in *GetTrackedIncomeBreakdownRequest, opts ...grpc.CallOption) (*GetTrackedIncomeBreakdownResponse, error)
+	GetTrackedExpenditureBreakdown(ctx context.Context, in *GetTrackedExpenditureBreakdownRequest, opts ...grpc.CallOption) (*GetTrackedExpenditureBreakdownResponse, error)
+	GetTrackedIncomeTransactions(ctx context.Context, in *GetTrackedIncomeTransactionsRequest, opts ...grpc.CallOption) (*GetTrackedIncomeTransactionsResponse, error)
+	GetTrackedExpenditureTransactions(ctx context.Context, in *GetTrackedExpenditureTransactionsRequest, opts ...grpc.CallOption) (*GetTrackedExpenditureTransactionsResponse, error)
+	GetComprehensiveFinancialSummary(ctx context.Context, in *GetComprehensiveFinancialSummaryRequest, opts ...grpc.CallOption) (*GetComprehensiveFinancialSummaryResponse, error)
 }
 
 type statisticsServiceClient struct {
@@ -429,6 +444,76 @@ func (c *statisticsServiceClient) CreateRecurringBill(ctx context.Context, in *C
 	return out, nil
 }
 
+func (c *statisticsServiceClient) GetTrackedIncome(ctx context.Context, in *GetTrackedIncomeRequest, opts ...grpc.CallOption) (*GetTrackedIncomeResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetTrackedIncomeResponse)
+	err := c.cc.Invoke(ctx, StatisticsService_GetTrackedIncome_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *statisticsServiceClient) GetTrackedExpenditure(ctx context.Context, in *GetTrackedExpenditureRequest, opts ...grpc.CallOption) (*GetTrackedExpenditureResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetTrackedExpenditureResponse)
+	err := c.cc.Invoke(ctx, StatisticsService_GetTrackedExpenditure_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *statisticsServiceClient) GetTrackedIncomeBreakdown(ctx context.Context, in *GetTrackedIncomeBreakdownRequest, opts ...grpc.CallOption) (*GetTrackedIncomeBreakdownResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetTrackedIncomeBreakdownResponse)
+	err := c.cc.Invoke(ctx, StatisticsService_GetTrackedIncomeBreakdown_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *statisticsServiceClient) GetTrackedExpenditureBreakdown(ctx context.Context, in *GetTrackedExpenditureBreakdownRequest, opts ...grpc.CallOption) (*GetTrackedExpenditureBreakdownResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetTrackedExpenditureBreakdownResponse)
+	err := c.cc.Invoke(ctx, StatisticsService_GetTrackedExpenditureBreakdown_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *statisticsServiceClient) GetTrackedIncomeTransactions(ctx context.Context, in *GetTrackedIncomeTransactionsRequest, opts ...grpc.CallOption) (*GetTrackedIncomeTransactionsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetTrackedIncomeTransactionsResponse)
+	err := c.cc.Invoke(ctx, StatisticsService_GetTrackedIncomeTransactions_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *statisticsServiceClient) GetTrackedExpenditureTransactions(ctx context.Context, in *GetTrackedExpenditureTransactionsRequest, opts ...grpc.CallOption) (*GetTrackedExpenditureTransactionsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetTrackedExpenditureTransactionsResponse)
+	err := c.cc.Invoke(ctx, StatisticsService_GetTrackedExpenditureTransactions_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *statisticsServiceClient) GetComprehensiveFinancialSummary(ctx context.Context, in *GetComprehensiveFinancialSummaryRequest, opts ...grpc.CallOption) (*GetComprehensiveFinancialSummaryResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetComprehensiveFinancialSummaryResponse)
+	err := c.cc.Invoke(ctx, StatisticsService_GetComprehensiveFinancialSummary_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // StatisticsServiceServer is the server API for StatisticsService service.
 // All implementations must embed UnimplementedStatisticsServiceServer
 // for forward compatibility.
@@ -475,6 +560,14 @@ type StatisticsServiceServer interface {
 	// Recurring Bills Management
 	GetUpcomingBills(context.Context, *GetUpcomingBillsRequest) (*GetUpcomingBillsResponse, error)
 	CreateRecurringBill(context.Context, *CreateRecurringBillRequest) (*CreateRecurringBillResponse, error)
+	// Tracked Transaction Methods
+	GetTrackedIncome(context.Context, *GetTrackedIncomeRequest) (*GetTrackedIncomeResponse, error)
+	GetTrackedExpenditure(context.Context, *GetTrackedExpenditureRequest) (*GetTrackedExpenditureResponse, error)
+	GetTrackedIncomeBreakdown(context.Context, *GetTrackedIncomeBreakdownRequest) (*GetTrackedIncomeBreakdownResponse, error)
+	GetTrackedExpenditureBreakdown(context.Context, *GetTrackedExpenditureBreakdownRequest) (*GetTrackedExpenditureBreakdownResponse, error)
+	GetTrackedIncomeTransactions(context.Context, *GetTrackedIncomeTransactionsRequest) (*GetTrackedIncomeTransactionsResponse, error)
+	GetTrackedExpenditureTransactions(context.Context, *GetTrackedExpenditureTransactionsRequest) (*GetTrackedExpenditureTransactionsResponse, error)
+	GetComprehensiveFinancialSummary(context.Context, *GetComprehensiveFinancialSummaryRequest) (*GetComprehensiveFinancialSummaryResponse, error)
 	mustEmbedUnimplementedStatisticsServiceServer()
 }
 
@@ -580,6 +673,27 @@ func (UnimplementedStatisticsServiceServer) GetUpcomingBills(context.Context, *G
 }
 func (UnimplementedStatisticsServiceServer) CreateRecurringBill(context.Context, *CreateRecurringBillRequest) (*CreateRecurringBillResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateRecurringBill not implemented")
+}
+func (UnimplementedStatisticsServiceServer) GetTrackedIncome(context.Context, *GetTrackedIncomeRequest) (*GetTrackedIncomeResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetTrackedIncome not implemented")
+}
+func (UnimplementedStatisticsServiceServer) GetTrackedExpenditure(context.Context, *GetTrackedExpenditureRequest) (*GetTrackedExpenditureResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetTrackedExpenditure not implemented")
+}
+func (UnimplementedStatisticsServiceServer) GetTrackedIncomeBreakdown(context.Context, *GetTrackedIncomeBreakdownRequest) (*GetTrackedIncomeBreakdownResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetTrackedIncomeBreakdown not implemented")
+}
+func (UnimplementedStatisticsServiceServer) GetTrackedExpenditureBreakdown(context.Context, *GetTrackedExpenditureBreakdownRequest) (*GetTrackedExpenditureBreakdownResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetTrackedExpenditureBreakdown not implemented")
+}
+func (UnimplementedStatisticsServiceServer) GetTrackedIncomeTransactions(context.Context, *GetTrackedIncomeTransactionsRequest) (*GetTrackedIncomeTransactionsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetTrackedIncomeTransactions not implemented")
+}
+func (UnimplementedStatisticsServiceServer) GetTrackedExpenditureTransactions(context.Context, *GetTrackedExpenditureTransactionsRequest) (*GetTrackedExpenditureTransactionsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetTrackedExpenditureTransactions not implemented")
+}
+func (UnimplementedStatisticsServiceServer) GetComprehensiveFinancialSummary(context.Context, *GetComprehensiveFinancialSummaryRequest) (*GetComprehensiveFinancialSummaryResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetComprehensiveFinancialSummary not implemented")
 }
 func (UnimplementedStatisticsServiceServer) mustEmbedUnimplementedStatisticsServiceServer() {}
 func (UnimplementedStatisticsServiceServer) testEmbeddedByValue()                           {}
@@ -1178,6 +1292,132 @@ func _StatisticsService_CreateRecurringBill_Handler(srv interface{}, ctx context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _StatisticsService_GetTrackedIncome_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetTrackedIncomeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StatisticsServiceServer).GetTrackedIncome(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StatisticsService_GetTrackedIncome_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StatisticsServiceServer).GetTrackedIncome(ctx, req.(*GetTrackedIncomeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StatisticsService_GetTrackedExpenditure_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetTrackedExpenditureRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StatisticsServiceServer).GetTrackedExpenditure(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StatisticsService_GetTrackedExpenditure_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StatisticsServiceServer).GetTrackedExpenditure(ctx, req.(*GetTrackedExpenditureRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StatisticsService_GetTrackedIncomeBreakdown_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetTrackedIncomeBreakdownRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StatisticsServiceServer).GetTrackedIncomeBreakdown(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StatisticsService_GetTrackedIncomeBreakdown_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StatisticsServiceServer).GetTrackedIncomeBreakdown(ctx, req.(*GetTrackedIncomeBreakdownRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StatisticsService_GetTrackedExpenditureBreakdown_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetTrackedExpenditureBreakdownRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StatisticsServiceServer).GetTrackedExpenditureBreakdown(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StatisticsService_GetTrackedExpenditureBreakdown_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StatisticsServiceServer).GetTrackedExpenditureBreakdown(ctx, req.(*GetTrackedExpenditureBreakdownRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StatisticsService_GetTrackedIncomeTransactions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetTrackedIncomeTransactionsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StatisticsServiceServer).GetTrackedIncomeTransactions(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StatisticsService_GetTrackedIncomeTransactions_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StatisticsServiceServer).GetTrackedIncomeTransactions(ctx, req.(*GetTrackedIncomeTransactionsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StatisticsService_GetTrackedExpenditureTransactions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetTrackedExpenditureTransactionsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StatisticsServiceServer).GetTrackedExpenditureTransactions(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StatisticsService_GetTrackedExpenditureTransactions_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StatisticsServiceServer).GetTrackedExpenditureTransactions(ctx, req.(*GetTrackedExpenditureTransactionsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StatisticsService_GetComprehensiveFinancialSummary_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetComprehensiveFinancialSummaryRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StatisticsServiceServer).GetComprehensiveFinancialSummary(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StatisticsService_GetComprehensiveFinancialSummary_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StatisticsServiceServer).GetComprehensiveFinancialSummary(ctx, req.(*GetComprehensiveFinancialSummaryRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // StatisticsService_ServiceDesc is the grpc.ServiceDesc for StatisticsService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -1312,6 +1552,34 @@ var StatisticsService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CreateRecurringBill",
 			Handler:    _StatisticsService_CreateRecurringBill_Handler,
+		},
+		{
+			MethodName: "GetTrackedIncome",
+			Handler:    _StatisticsService_GetTrackedIncome_Handler,
+		},
+		{
+			MethodName: "GetTrackedExpenditure",
+			Handler:    _StatisticsService_GetTrackedExpenditure_Handler,
+		},
+		{
+			MethodName: "GetTrackedIncomeBreakdown",
+			Handler:    _StatisticsService_GetTrackedIncomeBreakdown_Handler,
+		},
+		{
+			MethodName: "GetTrackedExpenditureBreakdown",
+			Handler:    _StatisticsService_GetTrackedExpenditureBreakdown_Handler,
+		},
+		{
+			MethodName: "GetTrackedIncomeTransactions",
+			Handler:    _StatisticsService_GetTrackedIncomeTransactions_Handler,
+		},
+		{
+			MethodName: "GetTrackedExpenditureTransactions",
+			Handler:    _StatisticsService_GetTrackedExpenditureTransactions_Handler,
+		},
+		{
+			MethodName: "GetComprehensiveFinancialSummary",
+			Handler:    _StatisticsService_GetComprehensiveFinancialSummary_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

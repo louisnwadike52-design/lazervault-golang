@@ -1,0 +1,123 @@
+syntax = "proto3";
+
+package pb;
+
+option go_package = "lazervaultGo/pb";
+
+import "google/protobuf/timestamp.proto";
+import "google/api/annotations.proto";
+
+// Portfolio Service
+service PortfolioService {
+  // Get complete user portfolio with all assets
+  rpc GetCompletePortfolio(GetCompletePortfolioRequest) returns (GetCompletePortfolioResponse) {
+    option (google.api.http) = {
+      post: "/v1/portfolio/complete"
+      body: "*"
+    };
+  }
+
+  // Get portfolio filtered by asset type
+  rpc GetPortfolioByAssetType(GetPortfolioByAssetTypeRequest) returns (GetPortfolioByAssetTypeResponse) {
+    option (google.api.http) = {
+      post: "/v1/portfolio/by-type"
+      body: "*"
+    };
+  }
+
+  // Get portfolio value history
+  rpc GetPortfolioHistory(GetPortfolioHistoryRequest) returns (GetPortfolioHistoryResponse) {
+    option (google.api.http) = {
+      post: "/v1/portfolio/history"
+      body: "*"
+    };
+  }
+
+  // Get portfolio summary only (without asset details)
+  rpc GetPortfolioSummary(GetPortfolioSummaryRequest) returns (GetPortfolioSummaryResponse) {
+    option (google.api.http) = {
+      post: "/v1/portfolio/summary"
+      body: "*"
+    };
+  }
+}
+
+// Messages
+
+message PortfolioAsset {
+  string id = 1;
+  string asset_type = 2;  // "crypto", "stock", "investment", "account", "savings", "financial_goal"
+  string name = 3;
+  string symbol = 4;
+  double current_value = 5;
+  double quantity = 6;
+  double current_price = 7;
+  double initial_value = 8;
+  double gain_loss = 9;
+  double gain_loss_percent = 10;
+  string currency = 11;
+  google.protobuf.Timestamp last_updated = 12;
+  string icon_url = 13;
+}
+
+message PortfolioSummary {
+  double total_value = 1;
+  double total_gain_loss = 2;
+  double total_gain_loss_percent = 3;
+  double total_invested = 4;
+  string currency = 5;
+  map<string, double> assets_by_type = 6;
+  int32 asset_count = 7;
+  google.protobuf.Timestamp last_updated = 8;
+}
+
+// Get Complete Portfolio Request/Response
+message GetCompletePortfolioRequest {
+  // user_id is extracted from JWT token
+}
+
+message GetCompletePortfolioResponse {
+  bool success = 1;
+  string message = 2;
+  PortfolioSummary summary = 3;
+  repeated PortfolioAsset assets = 4;
+}
+
+// Get Portfolio By Asset Type Request/Response
+message GetPortfolioByAssetTypeRequest {
+  string asset_type = 1;  // "crypto", "stock", "investment", "account", "savings"
+}
+
+message GetPortfolioByAssetTypeResponse {
+  bool success = 1;
+  string message = 2;
+  repeated PortfolioAsset assets = 3;
+  double total_value = 4;
+}
+
+// Get Portfolio History Request/Response
+message GetPortfolioHistoryRequest {
+  string period = 1;  // "1D", "1W", "1M", "3M", "1Y", "ALL"
+}
+
+message PortfolioHistoryPoint {
+  google.protobuf.Timestamp date = 1;
+  double value = 2;
+}
+
+message GetPortfolioHistoryResponse {
+  bool success = 1;
+  string message = 2;
+  repeated PortfolioHistoryPoint history = 3;
+}
+
+// Get Portfolio Summary Request/Response
+message GetPortfolioSummaryRequest {
+  // user_id is extracted from JWT token
+}
+
+message GetPortfolioSummaryResponse {
+  bool success = 1;
+  string message = 2;
+  PortfolioSummary summary = 3;
+}

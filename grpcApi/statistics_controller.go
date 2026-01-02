@@ -7,6 +7,7 @@ import (
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/timestamppb"
 	"gorm.io/gorm"
 )
 
@@ -565,4 +566,232 @@ func (c *StatisticsController) CreateRecurringBill(ctx context.Context, req *pb.
 	}
 
 	return response, nil
+}
+
+// ========================================
+// TRACKED TRANSACTIONS (AUTOMATIC)
+// ========================================
+
+func (c *StatisticsController) GetTrackedIncome(ctx context.Context, req *pb.GetTrackedIncomeRequest) (*pb.GetTrackedIncomeResponse, error) {
+	user, err := getUserFromContext(ctx, c.userService)
+	if err != nil {
+		return nil, err
+	}
+
+	startDate := req.StartDate.AsTime()
+	endDate := req.EndDate.AsTime()
+
+	totalIncome, err := c.service.GetTrackedIncome(ctx, user.ID, startDate, endDate)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	return &pb.GetTrackedIncomeResponse{
+		TotalIncome: totalIncome,
+		Success:     true,
+	}, nil
+}
+
+func (c *StatisticsController) GetTrackedExpenditure(ctx context.Context, req *pb.GetTrackedExpenditureRequest) (*pb.GetTrackedExpenditureResponse, error) {
+	user, err := getUserFromContext(ctx, c.userService)
+	if err != nil {
+		return nil, err
+	}
+
+	startDate := req.StartDate.AsTime()
+	endDate := req.EndDate.AsTime()
+
+	totalExpenditure, err := c.service.GetTrackedExpenditure(ctx, user.ID, startDate, endDate)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	return &pb.GetTrackedExpenditureResponse{
+		TotalExpenditure: totalExpenditure,
+		Success:          true,
+	}, nil
+}
+
+func (c *StatisticsController) GetTrackedIncomeBreakdown(ctx context.Context, req *pb.GetTrackedIncomeBreakdownRequest) (*pb.GetTrackedIncomeBreakdownResponse, error) {
+	user, err := getUserFromContext(ctx, c.userService)
+	if err != nil {
+		return nil, err
+	}
+
+	startDate := req.StartDate.AsTime()
+	endDate := req.EndDate.AsTime()
+
+	breakdown, err := c.service.GetTrackedIncomeBreakdown(ctx, user.ID, startDate, endDate)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	// Calculate total
+	var total float64
+	for _, amount := range breakdown {
+		total += amount
+	}
+
+	return &pb.GetTrackedIncomeBreakdownResponse{
+		BreakdownBySource: breakdown,
+		TotalIncome:       total,
+		Success:           true,
+	}, nil
+}
+
+func (c *StatisticsController) GetTrackedExpenditureBreakdown(ctx context.Context, req *pb.GetTrackedExpenditureBreakdownRequest) (*pb.GetTrackedExpenditureBreakdownResponse, error) {
+	user, err := getUserFromContext(ctx, c.userService)
+	if err != nil {
+		return nil, err
+	}
+
+	startDate := req.StartDate.AsTime()
+	endDate := req.EndDate.AsTime()
+
+	breakdown, err := c.service.GetTrackedExpenditureBreakdown(ctx, user.ID, startDate, endDate)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	// Calculate total
+	var total float64
+	for _, amount := range breakdown {
+		total += amount
+	}
+
+	return &pb.GetTrackedExpenditureBreakdownResponse{
+		BreakdownByType:  breakdown,
+		TotalExpenditure: total,
+		Success:          true,
+	}, nil
+}
+
+func (c *StatisticsController) GetTrackedIncomeTransactions(ctx context.Context, req *pb.GetTrackedIncomeTransactionsRequest) (*pb.GetTrackedIncomeTransactionsResponse, error) {
+	user, err := getUserFromContext(ctx, c.userService)
+	if err != nil {
+		return nil, err
+	}
+
+	startDate := req.StartDate.AsTime()
+	endDate := req.EndDate.AsTime()
+	limit := int(req.Limit)
+	if limit <= 0 {
+		limit = 100 // default limit
+	}
+
+	transactions, err := c.service.GetTrackedIncomeTransactions(ctx, user.ID, startDate, endDate, limit)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	// Convert to proto messages
+	var pbTransactions []*pb.TrackedIncomeTransaction
+	for _, tx := range transactions {
+		var senderID uint64
+		if tx.SenderID != nil {
+			senderID = uint64(*tx.SenderID)
+		}
+		pbTransactions = append(pbTransactions, &pb.TrackedIncomeTransaction{
+			Id:              tx.ID.String(),
+			UserId:          uint64(tx.UserID),
+			Amount:          tx.Amount,
+			Currency:        tx.Currency,
+			SourceType:      tx.SourceType,
+			SourceId:        tx.SourceID,
+			SourceReference: tx.SourceReference,
+			Category:        tx.Category,
+			Description:     tx.Description,
+			SenderId:        senderID,
+			SenderName:      tx.SenderName,
+			TransactionDate: timestamppb.New(tx.TransactionDate),
+		})
+	}
+
+	return &pb.GetTrackedIncomeTransactionsResponse{
+		Transactions: pbTransactions,
+	}, nil
+}
+
+func (c *StatisticsController) GetTrackedExpenditureTransactions(ctx context.Context, req *pb.GetTrackedExpenditureTransactionsRequest) (*pb.GetTrackedExpenditureTransactionsResponse, error) {
+	user, err := getUserFromContext(ctx, c.userService)
+	if err != nil {
+		return nil, err
+	}
+
+	startDate := req.StartDate.AsTime()
+	endDate := req.EndDate.AsTime()
+	limit := int(req.Limit)
+	if limit <= 0 {
+		limit = 100 // default limit
+	}
+
+	transactions, err := c.service.GetTrackedExpenditureTransactions(ctx, user.ID, startDate, endDate, limit)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	// Convert to proto messages
+	var pbTransactions []*pb.TrackedExpenditureTransaction
+	for _, tx := range transactions {
+		var recipientID uint64
+		if tx.RecipientID != nil {
+			recipientID = uint64(*tx.RecipientID)
+		}
+		pbTransactions = append(pbTransactions, &pb.TrackedExpenditureTransaction{
+			Id:               tx.ID.String(),
+			UserId:           uint64(tx.UserID),
+			Amount:           tx.Amount,
+			Currency:         tx.Currency,
+			ExpenseType:      tx.ExpenseType,
+			ExpenseId:        tx.ExpenseID,
+			ExpenseReference: tx.ExpenseReference,
+			Category:         tx.Category,
+			RecipientId:      recipientID,
+			RecipientName:    tx.RecipientName,
+			Merchant:         tx.Merchant,
+			Description:      tx.Description,
+			TransactionDate:  timestamppb.New(tx.TransactionDate),
+		})
+	}
+
+	return &pb.GetTrackedExpenditureTransactionsResponse{
+		Transactions: pbTransactions,
+	}, nil
+}
+
+func (c *StatisticsController) GetComprehensiveFinancialSummary(ctx context.Context, req *pb.GetComprehensiveFinancialSummaryRequest) (*pb.GetComprehensiveFinancialSummaryResponse, error) {
+	user, err := getUserFromContext(ctx, c.userService)
+	if err != nil {
+		return nil, err
+	}
+
+	startDate := req.StartDate.AsTime()
+	endDate := req.EndDate.AsTime()
+
+	summary, err := c.service.GetComprehensiveFinancialSummary(ctx, user.ID, startDate, endDate)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	return &pb.GetComprehensiveFinancialSummaryResponse{
+		Summary: &pb.ComprehensiveFinancialSummary{
+			Period: &pb.ComprehensivePeriod{
+				StartDate: timestamppb.New(summary.Period.StartDate),
+				EndDate:   timestamppb.New(summary.Period.EndDate),
+			},
+			Income: &pb.ComprehensiveIncomeData{
+				ManualIncome:  summary.Income.ManualIncome,
+				TrackedIncome: summary.Income.TrackedIncome,
+				TotalIncome:   summary.Income.TotalIncome,
+			},
+			Expenditure: &pb.ComprehensiveExpenditureData{
+				ManualExpenses:      summary.Expenditure.ManualExpenses,
+				TrackedExpenditure:  summary.Expenditure.TrackedExpenditure,
+				TotalExpenditure:    summary.Expenditure.TotalExpenditure,
+				ExpenditureBreakdown: summary.Expenditure.ExpenditureBreakdown,
+			},
+			NetIncome:   summary.NetIncome,
+			SavingsRate: summary.SavingsRate,
+		},
+	}, nil
 }

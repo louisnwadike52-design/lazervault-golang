@@ -227,6 +227,49 @@ service StatisticsService {
       body: "*"
     };
   }
+
+  // Tracked Transaction Methods
+  rpc GetTrackedIncome(GetTrackedIncomeRequest) returns (GetTrackedIncomeResponse) {
+    option (google.api.http) = {
+      get: "/v1/statistics/tracked/income"
+    };
+  }
+
+  rpc GetTrackedExpenditure(GetTrackedExpenditureRequest) returns (GetTrackedExpenditureResponse) {
+    option (google.api.http) = {
+      get: "/v1/statistics/tracked/expenditure"
+    };
+  }
+
+  rpc GetTrackedIncomeBreakdown(GetTrackedIncomeBreakdownRequest) returns (GetTrackedIncomeBreakdownResponse) {
+    option (google.api.http) = {
+      get: "/v1/statistics/tracked/income/breakdown"
+    };
+  }
+
+  rpc GetTrackedExpenditureBreakdown(GetTrackedExpenditureBreakdownRequest) returns (GetTrackedExpenditureBreakdownResponse) {
+    option (google.api.http) = {
+      get: "/v1/statistics/tracked/expenditure/breakdown"
+    };
+  }
+
+  rpc GetTrackedIncomeTransactions(GetTrackedIncomeTransactionsRequest) returns (GetTrackedIncomeTransactionsResponse) {
+    option (google.api.http) = {
+      get: "/v1/statistics/tracked/income/transactions"
+    };
+  }
+
+  rpc GetTrackedExpenditureTransactions(GetTrackedExpenditureTransactionsRequest) returns (GetTrackedExpenditureTransactionsResponse) {
+    option (google.api.http) = {
+      get: "/v1/statistics/tracked/expenditure/transactions"
+    };
+  }
+
+  rpc GetComprehensiveFinancialSummary(GetComprehensiveFinancialSummaryRequest) returns (GetComprehensiveFinancialSummaryResponse) {
+    option (google.api.http) = {
+      get: "/v1/statistics/comprehensive/summary"
+    };
+  }
 }
 
 // ========================================
@@ -1087,4 +1130,154 @@ message GetUpcomingBillsRequest {
 
 message GetUpcomingBillsResponse {
   UpcomingBillsList bills_list = 1;
+}
+
+// ========================================
+// TRACKED TRANSACTIONS MESSAGES
+// ========================================
+
+// Tracked Transaction Models
+message TrackedIncomeTransaction {
+  string id = 1;
+  uint64 user_id = 2;
+  double amount = 3;
+  string currency = 4;
+  string source_type = 5; // deposit, transfer_received, invoice_payment_received, etc.
+  string source_id = 6;
+  string source_reference = 7;
+  string category = 8;
+  string description = 9;
+  uint64 sender_id = 10;
+  string sender_name = 11;
+  google.protobuf.Timestamp transaction_date = 12;
+  string metadata = 13; // JSON string
+  google.protobuf.Timestamp created_at = 14;
+}
+
+message TrackedExpenditureTransaction {
+  string id = 1;
+  uint64 user_id = 2;
+  double amount = 3;
+  string currency = 4;
+  string expense_type = 5; // withdrawal, transfer_sent, invoice_payment_made, bill_payment, exchange, etc.
+  string expense_id = 6;
+  string expense_reference = 7;
+  string category = 8;
+  uint64 recipient_id = 9;
+  string recipient_name = 10;
+  string merchant = 11;
+  string description = 12;
+  google.protobuf.Timestamp transaction_date = 13;
+  string metadata = 14; // JSON string
+  google.protobuf.Timestamp created_at = 15;
+}
+
+// Tracked Income Request/Response
+message GetTrackedIncomeRequest {
+  google.protobuf.Timestamp start_date = 1;
+  google.protobuf.Timestamp end_date = 2;
+}
+
+message GetTrackedIncomeResponse {
+  double total_income = 1;
+  bool success = 2;
+}
+
+// Tracked Expenditure Request/Response
+message GetTrackedExpenditureRequest {
+  google.protobuf.Timestamp start_date = 1;
+  google.protobuf.Timestamp end_date = 2;
+}
+
+message GetTrackedExpenditureResponse {
+  double total_expenditure = 1;
+  bool success = 2;
+}
+
+// Tracked Income Breakdown Request/Response
+message GetTrackedIncomeBreakdownRequest {
+  google.protobuf.Timestamp start_date = 1;
+  google.protobuf.Timestamp end_date = 2;
+}
+
+message GetTrackedIncomeBreakdownResponse {
+  map<string, double> breakdown_by_source = 1; // source_type -> amount
+  double total_income = 2;
+  bool success = 3;
+}
+
+// Tracked Expenditure Breakdown Request/Response
+message GetTrackedExpenditureBreakdownRequest {
+  google.protobuf.Timestamp start_date = 1;
+  google.protobuf.Timestamp end_date = 2;
+}
+
+message GetTrackedExpenditureBreakdownResponse {
+  map<string, double> breakdown_by_type = 1; // expense_type -> amount
+  double total_expenditure = 2;
+  bool success = 3;
+}
+
+// Tracked Income Transactions Request/Response
+message GetTrackedIncomeTransactionsRequest {
+  google.protobuf.Timestamp start_date = 1;
+  google.protobuf.Timestamp end_date = 2;
+  int32 limit = 3; // max number of transactions to return
+}
+
+message GetTrackedIncomeTransactionsResponse {
+  repeated TrackedIncomeTransaction transactions = 1;
+  int32 total_count = 2;
+  bool success = 3;
+}
+
+// Tracked Expenditure Transactions Request/Response
+message GetTrackedExpenditureTransactionsRequest {
+  google.protobuf.Timestamp start_date = 1;
+  google.protobuf.Timestamp end_date = 2;
+  int32 limit = 3; // max number of transactions to return
+}
+
+message GetTrackedExpenditureTransactionsResponse {
+  repeated TrackedExpenditureTransaction transactions = 1;
+  int32 total_count = 2;
+  bool success = 3;
+}
+
+// Comprehensive Financial Summary Request/Response
+message GetComprehensiveFinancialSummaryRequest {
+  google.protobuf.Timestamp start_date = 1;
+  google.protobuf.Timestamp end_date = 2;
+}
+
+message GetComprehensiveFinancialSummaryResponse {
+  ComprehensiveFinancialSummary summary = 1;
+  bool success = 2;
+}
+
+message ComprehensiveFinancialSummary {
+  ComprehensivePeriod period = 1;
+  ComprehensiveIncomeData income = 2;
+  ComprehensiveExpenditureData expenditure = 3;
+  double net_income = 4;
+  double savings_rate = 5; // percentage
+}
+
+message ComprehensivePeriod {
+  google.protobuf.Timestamp start_date = 1;
+  google.protobuf.Timestamp end_date = 2;
+}
+
+message ComprehensiveIncomeData {
+  double manual_income = 1; // from income_sources table
+  double tracked_income = 2; // from income_transactions table (automatic tracking)
+  double total_income = 3;
+  map<string, double> income_breakdown = 4; // breakdown by source type
+}
+
+message ComprehensiveExpenditureData {
+  double manual_expenses = 1; // from expenses table
+  double tracked_expenditure = 2; // from expenditure_transactions table (automatic tracking)
+  double total_expenditure = 3;
+  map<string, double> expenditure_breakdown = 4; // breakdown by expense type
 }

@@ -48,12 +48,18 @@ type DepositService struct {
 	db             *gorm.DB
 	distributor    tasks.TaskDistributor // Task distributor
 	accountService IAccountService
+	txTracker      *TransactionTracker // Tracks income/expenditure for statistics
 }
 
 // --- Deposit Service Constructor ---
 
 func NewDepositService(db *gorm.DB, distributor tasks.TaskDistributor, accountService IAccountService) IDepositService {
-	return &DepositService{db: db, distributor: distributor, accountService: accountService}
+	return &DepositService{
+		db:             db,
+		distributor:    distributor,
+		accountService: accountService,
+		txTracker:      NewTransactionTracker(db), // Initialize transaction tracker
+	}
 }
 
 // --- Deposit Service Methods ---
@@ -121,6 +127,24 @@ func (s *DepositService) InitiateDeposit(ctx context.Context, userID uint, req *
 	if txErr != nil {
 		return nil, txErr
 	}
+
+	// Track income for deposit (Non-blocking)
+	s.txTracker.TrackIncomeAsync(ctx, IncomeTrackingParams{
+		UserID:          userID,
+		Amount:          float64(deposit.Amount) / 100.0, // Convert from minor units
+		Currency:        deposit.Currency,
+		SourceType:      "deposit",
+		SourceID:        deposit.ID,
+		SourceReference: deposit.SourceBankName,
+		Category:        "INCOME_CATEGORY_OTHER",
+		Description:     fmt.Sprintf("Deposit from %s", deposit.SourceBankName),
+		TransactionDate: &deposit.CreatedAt,
+		Metadata: map[string]interface{}{
+			"deposit_id":       deposit.ID,
+			"source_bank_name": deposit.SourceBankName,
+			"target_account_id": deposit.TargetAccountID,
+		},
+	})
 
 	// 4. Construct and Return Acknowledgement Response
 	resp := &pb.InitiateDepositResponse{

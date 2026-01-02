@@ -1,0 +1,585 @@
+syntax = "proto3";
+
+package pb;
+
+import "google/protobuf/timestamp.proto";
+import "google/api/annotations.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+
+option go_package = "lazervaultGo/pb";
+
+// OpenAPI v2 documentation options
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+  info: {
+    title: "LazerVault Electricity Bill Payment Service";
+    version: "1.0";
+    contact: {
+      name: "LazerVault Support";
+      url: "https://github.com/LazerVault";
+      email: "support@lazervault.example";
+    };
+  };
+  security_definitions: {
+    security: {
+      key: "bearer";
+      value: {
+        type: TYPE_API_KEY;
+        in: IN_HEADER;
+        name: "Authorization";
+        description: "Authentication token, prefixed by Bearer: Bearer <token>";
+      };
+    };
+  };
+  security: {
+    security_requirement: {
+      key: "bearer";
+    };
+  };
+};
+
+service ElectricityBillService {
+  // Provider Management
+  rpc GetProviders(GetProvidersRequest) returns (GetProvidersResponse) {
+    option (google.api.http) = {
+      get: "/v1/electricity/providers"
+    };
+  }
+
+  rpc SyncProviders(SyncProvidersRequest) returns (SyncProvidersResponse) {
+    option (google.api.http) = {
+      post: "/v1/electricity/providers/sync"
+      body: "*"
+    };
+  }
+
+  // Meter Validation & Bill Lookup
+  rpc ValidateMeterNumber(ValidateMeterRequest) returns (ValidateMeterResponse) {
+    option (google.api.http) = {
+      post: "/v1/electricity/validate-meter"
+      body: "*"
+    };
+  }
+
+  rpc GetBillDetails(GetBillDetailsRequest) returns (GetBillDetailsResponse) {
+    option (google.api.http) = {
+      post: "/v1/electricity/bill-details"
+      body: "*"
+    };
+  }
+
+  // Payment Processing
+  rpc InitiatePayment(InitiatePaymentRequest) returns (InitiatePaymentResponse) {
+    option (google.api.http) = {
+      post: "/v1/electricity/pay"
+      body: "*"
+    };
+  }
+
+  rpc VerifyPayment(VerifyPaymentRequest) returns (VerifyPaymentResponse) {
+    option (google.api.http) = {
+      get: "/v1/electricity/payments/{payment_id}/verify"
+    };
+  }
+
+  // Payment History
+  rpc GetPaymentHistory(GetPaymentHistoryRequest) returns (GetPaymentHistoryResponse) {
+    option (google.api.http) = {
+      get: "/v1/electricity/payments"
+    };
+  }
+
+  rpc GetPaymentReceipt(GetPaymentReceiptRequest) returns (GetPaymentReceiptResponse) {
+    option (google.api.http) = {
+      get: "/v1/electricity/payments/{payment_id}/receipt"
+    };
+  }
+
+  // Beneficiary Management
+  rpc SaveBeneficiary(SaveBeneficiaryRequest) returns (SaveBeneficiaryResponse) {
+    option (google.api.http) = {
+      post: "/v1/electricity/beneficiaries"
+      body: "*"
+    };
+  }
+
+  rpc GetBeneficiaries(GetBeneficiariesRequest) returns (GetBeneficiariesResponse) {
+    option (google.api.http) = {
+      get: "/v1/electricity/beneficiaries"
+    };
+  }
+
+  rpc UpdateBeneficiary(UpdateBeneficiaryRequest) returns (UpdateBeneficiaryResponse) {
+    option (google.api.http) = {
+      put: "/v1/electricity/beneficiaries/{beneficiary_id}"
+      body: "*"
+    };
+  }
+
+  rpc DeleteBeneficiary(DeleteBeneficiaryRequest) returns (DeleteBeneficiaryResponse) {
+    option (google.api.http) = {
+      delete: "/v1/electricity/beneficiaries/{beneficiary_id}"
+    };
+  }
+
+  // Auto-Recharge
+  rpc CreateAutoRecharge(CreateAutoRechargeRequest) returns (CreateAutoRechargeResponse) {
+    option (google.api.http) = {
+      post: "/v1/electricity/auto-recharge"
+      body: "*"
+    };
+  }
+
+  rpc GetAutoRecharges(GetAutoRechargesRequest) returns (GetAutoRechargesResponse) {
+    option (google.api.http) = {
+      get: "/v1/electricity/auto-recharge"
+    };
+  }
+
+  rpc UpdateAutoRecharge(UpdateAutoRechargeRequest) returns (UpdateAutoRechargeResponse) {
+    option (google.api.http) = {
+      put: "/v1/electricity/auto-recharge/{auto_recharge_id}"
+      body: "*"
+    };
+  }
+
+  rpc DeleteAutoRecharge(DeleteAutoRechargeRequest) returns (DeleteAutoRechargeResponse) {
+    option (google.api.http) = {
+      delete: "/v1/electricity/auto-recharge/{auto_recharge_id}"
+    };
+  }
+
+  rpc PauseAutoRecharge(PauseAutoRechargeRequest) returns (PauseAutoRechargeResponse) {
+    option (google.api.http) = {
+      post: "/v1/electricity/auto-recharge/{auto_recharge_id}/pause"
+      body: "*"
+    };
+  }
+
+  rpc ResumeAutoRecharge(ResumeAutoRechargeRequest) returns (ResumeAutoRechargeResponse) {
+    option (google.api.http) = {
+      post: "/v1/electricity/auto-recharge/{auto_recharge_id}/resume"
+      body: "*"
+    };
+  }
+
+  // Reminders
+  rpc CreateReminder(CreateReminderRequest) returns (CreateReminderResponse) {
+    option (google.api.http) = {
+      post: "/v1/electricity/reminders"
+      body: "*"
+    };
+  }
+
+  rpc GetReminders(GetRemindersRequest) returns (GetRemindersResponse) {
+    option (google.api.http) = {
+      get: "/v1/electricity/reminders"
+    };
+  }
+
+  rpc UpdateReminder(UpdateReminderRequest) returns (UpdateReminderResponse) {
+    option (google.api.http) = {
+      put: "/v1/electricity/reminders/{reminder_id}"
+      body: "*"
+    };
+  }
+
+  rpc DeleteReminder(DeleteReminderRequest) returns (DeleteReminderResponse) {
+    option (google.api.http) = {
+      delete: "/v1/electricity/reminders/{reminder_id}"
+    };
+  }
+
+  rpc MarkReminderComplete(MarkReminderCompleteRequest) returns (MarkReminderCompleteResponse) {
+    option (google.api.http) = {
+      post: "/v1/electricity/reminders/{reminder_id}/complete"
+      body: "*"
+    };
+  }
+}
+
+// ============ Entity Models ============
+
+message ElectricityProvider {
+  string id = 1;
+  string provider_code = 2;
+  string provider_name = 3;
+  string country = 4;
+  string logo_url = 5;
+  bool is_active = 6;
+  string payment_gateway = 7;
+  double min_amount = 8;
+  double max_amount = 9;
+  double service_fee = 10;
+  string fee_type = 11;
+  google.protobuf.Timestamp created_at = 12;
+}
+
+message BillPayment {
+  string id = 1;
+  string user_id = 2;
+  string provider_code = 3;
+  string provider_name = 4;
+  string meter_number = 5;
+  string customer_name = 6;
+  string customer_address = 7;
+  double amount = 8;
+  double service_fee = 9;
+  double total_amount = 10;
+  string currency = 11;
+  string status = 12;
+  string payment_gateway = 13;
+  string gateway_reference = 14;
+  string reference_number = 15;
+  string token = 16;
+  double units = 17;
+  string meter_type = 18;
+  string failure_reason = 19;
+  google.protobuf.Timestamp created_at = 20;
+  google.protobuf.Timestamp completed_at = 21;
+  string provider_id = 22;
+  google.protobuf.Timestamp updated_at = 23;
+  string error_message = 24;
+  google.protobuf.Timestamp failed_at = 25;
+}
+
+message BillBeneficiary {
+  string id = 1;
+  string user_id = 2;
+  string provider_code = 3;
+  string provider_name = 4;
+  string meter_number = 5;
+  string customer_name = 6;
+  string nickname = 7;
+  string meter_type = 8;
+  bool is_default = 9;
+  google.protobuf.Timestamp created_at = 10;
+  google.protobuf.Timestamp last_used_at = 11;
+  string provider_id = 12;
+  string customer_address = 13;
+  google.protobuf.Timestamp updated_at = 14;
+}
+
+message AutoRecharge {
+  string id = 1;
+  string user_id = 2;
+  string beneficiary_id = 3;
+  string meter_number = 4;
+  double amount = 5;
+  string currency = 6;
+  string frequency = 7;
+  int32 day_of_week = 8;
+  int32 day_of_month = 9;
+  google.protobuf.Timestamp next_run_date = 10;
+  google.protobuf.Timestamp last_run_date = 11;
+  string status = 12;
+  int32 failure_count = 13;
+  google.protobuf.Timestamp created_at = 14;
+  BillBeneficiary beneficiary = 15;
+  string provider_id = 16;
+  string provider_code = 17;
+  string provider_name = 18;
+  string customer_name = 19;
+  string meter_type = 20;
+  int32 max_retries = 21;
+  google.protobuf.Timestamp updated_at = 22;
+}
+
+message BillPaymentReminder {
+  string id = 1;
+  string user_id = 2;
+  string beneficiary_id = 3;
+  string title = 4;
+  string description = 5;
+  google.protobuf.Timestamp reminder_date = 6;
+  double amount = 7;
+  bool is_recurring = 8;
+  string recurrence_type = 9;
+  string status = 10;
+  google.protobuf.Timestamp notified_at = 11;
+  google.protobuf.Timestamp created_at = 12;
+  string currency = 13;
+  google.protobuf.Timestamp updated_at = 14;
+}
+
+message ReceiptData {
+  string receipt_number = 1;
+  string customer_name = 2;
+  string meter_number = 3;
+  string provider_name = 4;
+  double amount_paid = 5;
+  double service_fee = 6;
+  double total_amount = 7;
+  string token = 8;
+  double units = 9;
+  string payment_date = 10;
+  string reference_number = 11;
+}
+
+// ============ Request/Response Messages ============
+
+// Provider Messages
+message GetProvidersRequest {
+  string country = 1;
+  string payment_gateway = 2;
+}
+
+message GetProvidersResponse {
+  repeated ElectricityProvider providers = 1;
+}
+
+message SyncProvidersRequest {
+  string payment_gateway = 1;
+}
+
+message SyncProvidersResponse {
+  int32 synced_count = 1;
+  string message = 2;
+}
+
+// Validation Messages
+message ValidateMeterRequest {
+  string provider_code = 1;
+  string meter_number = 2;
+  string meter_type = 3;
+}
+
+message ValidateMeterResponse {
+  bool is_valid = 1;
+  string customer_name = 2;
+  string customer_address = 3;
+  string meter_type = 4;
+  double outstanding_balance = 5;
+  string message = 6;
+  string meter_number = 7;
+}
+
+message GetBillDetailsRequest {
+  string provider_code = 1;
+  string meter_number = 2;
+}
+
+message GetBillDetailsResponse {
+  string customer_name = 1;
+  string customer_address = 2;
+  double outstanding_amount = 3;
+  string due_date = 4;
+  string meter_type = 5;
+}
+
+// Payment Messages
+message InitiatePaymentRequest {
+  string provider_code = 1;
+  string meter_number = 2;
+  double amount = 3;
+  string currency = 4;
+  string meter_type = 5;
+  string payment_gateway = 6;
+  string source_account_id = 7;
+  string beneficiary_id = 8;
+}
+
+message InitiatePaymentResponse {
+  string payment_id = 1;
+  string reference_number = 2;
+  string status = 3;
+  double total_amount = 4;
+  double service_fee = 5;
+  string message = 6;
+}
+
+message VerifyPaymentRequest {
+  string payment_id = 1;
+  string reference_number = 2;
+}
+
+message VerifyPaymentResponse {
+  BillPayment payment = 1;
+  string message = 2;
+}
+
+// History Messages
+message GetPaymentHistoryRequest {
+  int32 limit = 1;
+  int32 offset = 2;
+  string provider_code = 3;
+  string status = 4;
+}
+
+message GetPaymentHistoryResponse {
+  repeated BillPayment payments = 1;
+  int32 total = 2;
+}
+
+message GetPaymentReceiptRequest {
+  string payment_id = 1;
+}
+
+message GetPaymentReceiptResponse {
+  BillPayment payment = 1;
+  ReceiptData receipt_data = 2;
+}
+
+// Beneficiary Messages
+message SaveBeneficiaryRequest {
+  string provider_code = 1;
+  string meter_number = 2;
+  string customer_name = 3;
+  string nickname = 4;
+  string meter_type = 5;
+  bool is_default = 6;
+  string provider_id = 7;
+  string provider_name = 8;
+  string customer_address = 9;
+}
+
+message SaveBeneficiaryResponse {
+  BillBeneficiary beneficiary = 1;
+  string message = 2;
+}
+
+message GetBeneficiariesRequest {
+  string provider_code = 1;
+}
+
+message GetBeneficiariesResponse {
+  repeated BillBeneficiary beneficiaries = 1;
+}
+
+message UpdateBeneficiaryRequest {
+  string beneficiary_id = 1;
+  string nickname = 2;
+  bool is_default = 3;
+}
+
+message UpdateBeneficiaryResponse {
+  BillBeneficiary beneficiary = 1;
+  string message = 2;
+}
+
+message DeleteBeneficiaryRequest {
+  string beneficiary_id = 1;
+}
+
+message DeleteBeneficiaryResponse {
+  string message = 1;
+}
+
+// Auto-Recharge Messages
+message CreateAutoRechargeRequest {
+  string beneficiary_id = 1;
+  double amount = 2;
+  string currency = 3;
+  string frequency = 4;
+  int32 day_of_week = 5;
+  int32 day_of_month = 6;
+  int32 max_retries = 7;
+}
+
+message CreateAutoRechargeResponse {
+  AutoRecharge auto_recharge = 1;
+  string message = 2;
+}
+
+message GetAutoRechargesRequest {
+  string status = 1;
+}
+
+message GetAutoRechargesResponse {
+  repeated AutoRecharge auto_recharges = 1;
+}
+
+message UpdateAutoRechargeRequest {
+  string auto_recharge_id = 1;
+  double amount = 2;
+  string frequency = 3;
+  int32 day_of_week = 4;
+  int32 day_of_month = 5;
+  int32 max_retries = 6;
+}
+
+message UpdateAutoRechargeResponse {
+  AutoRecharge auto_recharge = 1;
+  string message = 2;
+}
+
+message DeleteAutoRechargeRequest {
+  string auto_recharge_id = 1;
+}
+
+message DeleteAutoRechargeResponse {
+  string message = 1;
+}
+
+message PauseAutoRechargeRequest {
+  string auto_recharge_id = 1;
+}
+
+message PauseAutoRechargeResponse {
+  string message = 1;
+}
+
+message ResumeAutoRechargeRequest {
+  string auto_recharge_id = 1;
+}
+
+message ResumeAutoRechargeResponse {
+  string message = 1;
+}
+
+// Reminder Messages
+message CreateReminderRequest {
+  string beneficiary_id = 1;
+  string title = 2;
+  string description = 3;
+  google.protobuf.Timestamp reminder_date = 4;
+  double amount = 5;
+  bool is_recurring = 6;
+  string recurrence_type = 7;
+  string currency = 8;
+}
+
+message CreateReminderResponse {
+  BillPaymentReminder reminder = 1;
+  string message = 2;
+}
+
+message GetRemindersRequest {
+  string status = 1;
+  bool include_past = 2;
+}
+
+message GetRemindersResponse {
+  repeated BillPaymentReminder reminders = 1;
+}
+
+message UpdateReminderRequest {
+  string reminder_id = 1;
+  string title = 2;
+  string description = 3;
+  google.protobuf.Timestamp reminder_date = 4;
+  double amount = 5;
+  string currency = 6;
+  bool is_recurring = 7;
+  string recurrence_type = 8;
+}
+
+message UpdateReminderResponse {
+  BillPaymentReminder reminder = 1;
+  string message = 2;
+}
+
+message DeleteReminderRequest {
+  string reminder_id = 1;
+}
+
+message DeleteReminderResponse {
+  string message = 1;
+}
+
+message MarkReminderCompleteRequest {
+  string reminder_id = 1;
+}
+
+message MarkReminderCompleteResponse {
+  string message = 1;
+}

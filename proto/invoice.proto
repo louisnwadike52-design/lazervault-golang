@@ -25,6 +25,15 @@ message AddressDetails {
 	string iban = 13;
 	string routing_number = 14;
 	string tax_id = 15;
+	// Additional bank details for comprehensive payment support
+	string bank_name = 16;
+	string account_type = 17; // e.g., "checking", "savings"
+	string swift_code = 18; // SWIFT/BIC code for international transfers
+	string sort_code = 19; // For UK payments
+	string bank_address = 20; // Bank's physical address
+	string intermediary_bank_name = 21; // For international transfers
+	string intermediary_bank_swift = 22; // Intermediary bank's SWIFT code
+	string account_holder_name = 23; // Name on the bank account
 }
 
 // InvoiceItem represents a line item in an invoice
