@@ -47,3 +47,5 @@ golang.log
 .env.*
 .env.local
 *.env
+# Generated proto files
+**/pb/
