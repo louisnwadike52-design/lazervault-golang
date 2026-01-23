@@ -19,6 +19,6 @@ func main() {
 
 	// These function calls verify that the proto packages are importable
 	// and that the Register functions exist
-	_ = authpb.RegisterAuthServiceHandlerFromEndpoint(ctx, mux, "localhost:50051", opts)
-	_ = accountspb.RegisterAccountsServiceHandlerFromEndpoint(ctx, mux, "localhost:50052", opts)
+	_ = authpb.RegisterAuthServiceHandlerFromEndpoint(ctx, mux, "127.0.0.1:50051", opts)
+	_ = accountspb.RegisterAccountsServiceHandlerFromEndpoint(ctx, mux, "127.0.0.1:50052", opts)
 }

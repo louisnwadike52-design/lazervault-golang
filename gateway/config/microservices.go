@@ -15,12 +15,12 @@ type MicroserviceConfig struct {
 func LoadMicroserviceConfig() (*MicroserviceConfig, error) {
 	authAddr := os.Getenv("AUTH_SERVICE_ADDR")
 	if authAddr == "" {
-		authAddr = "localhost:50051" // Default auth service address
+		authAddr = "127.0.0.1:50051" // Default auth service address
 	}
 
 	accountsAddr := os.Getenv("ACCOUNTS_SERVICE_ADDR")
 	if accountsAddr == "" {
-		accountsAddr = "localhost:50052" // Default accounts service address
+		accountsAddr = "127.0.0.1:50052" // Default accounts service address
 	}
 
 	config := &MicroserviceConfig{

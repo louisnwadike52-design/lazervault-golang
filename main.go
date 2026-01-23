@@ -30,7 +30,9 @@ import (
 
 	// Import microservice proto packages
 	accountspb "accounts-service/proto"
-	authpb "auth-service/proto"
+
+	// Import gateway proto packages (includes auth service definitions)
+	pb "lazervaultGo/pb"
 
 	// Import internal packages
 	"lazervaultGo/internal/interceptors"
@@ -75,8 +77,8 @@ func main() {
 	log.Info().Msg("🚀 Starting Core Gateway (gRPC-based)")
 
 	// Get microservice addresses from environment
-	authServiceAddr := getEnv("AUTH_SERVICE_GRPC_ADDR", "localhost:50051")
-	accountsServiceAddr := getEnv("ACCOUNTS_SERVICE_GRPC_ADDR", "localhost:50052")
+	authServiceAddr := getEnv("AUTH_SERVICE_GRPC_ADDR", "127.0.0.1:50051")
+	accountsServiceAddr := getEnv("ACCOUNTS_SERVICE_GRPC_ADDR", "127.0.0.1:50052")
 
 	// Get Redis configuration
 	redisURL := getEnv("REDIS_URL", "redis://localhost:6379")
@@ -249,6 +251,13 @@ func main() {
 	log.Info().Msg("🔌 Connecting to recipient-service gRPC...")
 	if err := registerRecipientServiceHandler(ctx, mux, accountsServiceAddr, opts); err != nil {
 		log.Fatal().Err(err).Msg("Failed to register recipient service handler")
+	}
+
+	// Register user service handler (proxies to auth-service)
+	// This will proxy /v1/users/* to auth-service via UserServiceProxy
+	log.Info().Msg("🔌 Registering user-service gRPC-gateway...")
+	if err := registerUserServiceHandler(ctx, mux, authServiceAddr, opts); err != nil {
+		log.Fatal().Err(err).Msg("Failed to register user service handler")
 	}
 
 	// Create Gin router for additional middleware and routing
@@ -469,10 +478,11 @@ func main() {
 	defer accountsConn.Close()
 
 	// Create proxy services
-	authProxy := proxy.NewAuthServiceProxy(authpb.NewAuthServiceClient(authConn))
+	authProxy := proxy.NewAuthServiceProxy(pb.NewAuthServiceClient(authConn))
 	accountsProxy := proxy.NewAccountsServiceProxy(accountspb.NewAccountsServiceClient(accountsConn))
 	familyAccountsProxy := proxy.NewFamilyAccountsServiceProxy(accountspb.NewFamilyAccountsServiceClient(accountsConn))
 	recipientProxy := proxy.NewRecipientServiceProxy(accountspb.NewRecipientServiceClient(accountsConn))
+	userProxy := proxy.NewUserServiceProxy(pb.NewAuthServiceClient(authConn))
 
 	// Create gRPC server with interceptor chain
 	grpcServer := grpc.NewServer(
@@ -488,10 +498,11 @@ func main() {
 	)
 
 	// Register services
-	authpb.RegisterAuthServiceServer(grpcServer, authProxy)
+	pb.RegisterAuthServiceServer(grpcServer, authProxy)
 	accountspb.RegisterAccountsServiceServer(grpcServer, accountsProxy)
 	accountspb.RegisterFamilyAccountsServiceServer(grpcServer, familyAccountsProxy)
 	accountspb.RegisterRecipientServiceServer(grpcServer, recipientProxy)
+	pb.RegisterUserServiceServer(grpcServer, userProxy)
 
 	// Register health check
 	healthServer := health.NewServer()
@@ -588,7 +599,7 @@ func customHeaderMatcher(key string) (string, bool) {
 // registerAuthServiceHandler registers auth service gRPC-gateway handler
 // This connects to auth-microservice on port 50051
 func registerAuthServiceHandler(ctx context.Context, mux *runtime.ServeMux, addr string, opts []grpc.DialOption) error {
-	return authpb.RegisterAuthServiceHandlerFromEndpoint(ctx, mux, addr, opts)
+	return pb.RegisterAuthServiceHandlerFromEndpoint(ctx, mux, addr, opts)
 }
 
 // registerAccountsServiceHandler registers accounts service gRPC-gateway handler
@@ -607,6 +618,12 @@ func registerFamilyAccountsServiceHandler(ctx context.Context, mux *runtime.Serv
 // This connects to accounts-microservice (recipients are part of accounts service)
 func registerRecipientServiceHandler(ctx context.Context, mux *runtime.ServeMux, addr string, opts []grpc.DialOption) error {
 	return accountspb.RegisterRecipientServiceHandlerFromEndpoint(ctx, mux, addr, opts)
+}
+
+// registerUserServiceHandler registers user service gRPC-gateway handler
+// This proxies user profile operations to auth-service via UserServiceProxy
+func registerUserServiceHandler(ctx context.Context, mux *runtime.ServeMux, addr string, opts []grpc.DialOption) error {
+	return pb.RegisterUserServiceHandlerFromEndpoint(ctx, mux, addr, opts)
 }
 
 // getEnv gets environment variable or returns default

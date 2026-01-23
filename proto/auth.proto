@@ -265,12 +265,245 @@ message VerifyPinResponse {
   string msg = 2;   // e.g., "PIN verified successfully."
 }
 
+// --- Signup Messages ---
+message SignupRequest {
+  string email = 1;
+  string password = 2;
+  string first_name = 3;
+  string last_name = 4;
+  string phone = 5;
+  string device_id = 6;
+  string device_name = 7;
+  string username = 9;
+  string referral_code = 10;
+  string date_of_birth = 11;
+  string locale = 12;
+  string bvn = 13;
+  string nin = 14;
+  string country_code = 15;
+  string currency_code = 16;
+}
+
+message SignupResponse {
+  string user_id = 1;
+  string email = 2;
+  string message = 3;
+  bool email_verification_required = 4;
+  string access_token = 5;
+  string refresh_token = 6;
+  int64 expires_in = 7;
+  User user = 8;
+  bool phone_verification_required = 9;
+  string verification_sent_to = 10;
+  string phone_verification_id = 11;
+  int64 phone_verification_expires_in = 12;
+}
+
+// --- Forgot Password Messages ---
+message ForgotPasswordRequest {
+  string email = 1;
+}
+
+message ForgotPasswordResponse {
+  string message = 1;
+}
+
+// --- Change Password Messages ---
+message ChangePasswordRequest {
+  string user_id = 1;
+  string current_password = 2;
+  string new_password = 3;
+}
+
+message ChangePasswordResponse {
+  string message = 1;
+}
+
+// --- Validate Token Messages ---
+message ValidateTokenRequest {
+  string token = 1;
+}
+
+message ValidateTokenResponse {
+  bool valid = 1;
+  string user_id = 2;
+  string email = 3;
+  int64 expires_at = 4;
+}
+
+// --- Resend Verification Email Messages ---
+message ResendVerificationEmailRequest {
+  string email = 1;
+}
+
+message ResendVerificationEmailResponse {
+  bool success = 1;
+  string message = 2;
+  int32 cooldown_seconds = 3;
+}
+
+// --- Request Phone Verification Messages ---
+message RequestPhoneVerificationRequest {
+  string phone = 1;
+  string country_code = 2;
+}
+
+message RequestPhoneVerificationResponse {
+  bool success = 1;
+  string msg = 2;
+  string verification_id = 3;
+  int64 expires_in = 4;
+}
+
+// --- Verify Phone Number Messages ---
+message VerifyPhoneNumberRequest {
+  string phone = 1;
+  string country_code = 2;
+  string code = 3;
+  string verification_id = 4;
+}
+
+message VerifyPhoneNumberResponse {
+  bool success = 1;
+  string msg = 2;
+  bool is_verified = 3;
+}
+
+// --- Identity Verification Messages ---
+enum IdentityType {
+  IDENTITY_TYPE_UNSPECIFIED = 0;
+  IDENTITY_TYPE_BVN = 1;
+  IDENTITY_TYPE_NIN = 2;
+}
+
+message VerifyIdentityRequest {
+  IdentityType identity_type = 1;
+  string identity_number = 2;
+  string date_of_birth = 3;
+}
+
+message VerifiedIdentity {
+  string first_name = 1;
+  string last_name = 2;
+  string middle_name = 3;
+  string phone_number = 4;
+  string date_of_birth = 5;
+  string gender = 6;
+  string photo_url = 7;
+  string address = 8;
+  string state_of_origin = 9;
+  string lga_of_origin = 10;
+}
+
+message VirtualAccountInfo {
+  string account_number = 1;
+  string bank_name = 2;
+  string bank_code = 3;
+  string account_name = 4;
+  string currency = 5;
+  string provider = 6;
+}
+
+message VerifyIdentityResponse {
+  bool success = 1;
+  bool verified = 2;
+  string error_code = 3;
+  string error_message = 4;
+  VerifiedIdentity identity = 5;
+  VirtualAccountInfo virtual_account = 6;
+}
+
+// --- Get Identity Verification Status Messages ---
+message GetIdentityVerificationStatusRequest {
+  // User ID extracted from JWT
+}
+
+message GetIdentityVerificationStatusResponse {
+  bool success = 1;
+  string msg = 2;
+  bool identity_verified = 3;
+  IdentityType identity_type = 4;
+  string identity_verified_at = 5;
+  string masked_identity_number = 6;
+}
+
 // Service Definition
 service AuthService {
+  // --- Signup ---
+  rpc Signup(SignupRequest) returns (SignupResponse) {
+    option (google.api.http) = {
+      post: "/v1/auth/signup"
+      body: "*"
+    };
+  }
+
   rpc Login(LoginRequest) returns (LoginResponse) {
     option (google.api.http) = {
       post: "/v1/auth/login"
       body: "*"
+    };
+  }
+
+  // --- Forgot Password ---
+  rpc ForgotPassword(ForgotPasswordRequest) returns (ForgotPasswordResponse) {
+    option (google.api.http) = {
+      post: "/v1/auth/forgot-password"
+      body: "*"
+    };
+  }
+
+  // --- Change Password ---
+  rpc ChangePassword(ChangePasswordRequest) returns (ChangePasswordResponse) {
+    option (google.api.http) = {
+      post: "/v1/auth/change-password"
+      body: "*"
+    };
+  }
+
+  // --- Validate Token ---
+  rpc ValidateToken(ValidateTokenRequest) returns (ValidateTokenResponse) {
+    option (google.api.http) = {
+      post: "/v1/auth/validate-token"
+      body: "*"
+    };
+  }
+
+  // --- Resend Verification Email ---
+  rpc ResendVerificationEmail(ResendVerificationEmailRequest) returns (ResendVerificationEmailResponse) {
+    option (google.api.http) = {
+      post: "/v1/auth/resend-verification-email"
+      body: "*"
+    };
+  }
+
+  // --- Request Phone Verification ---
+  rpc RequestPhoneVerification(RequestPhoneVerificationRequest) returns (RequestPhoneVerificationResponse) {
+    option (google.api.http) = {
+      post: "/v1/auth/request-phone-verification"
+      body: "*"
+    };
+  }
+
+  // --- Verify Phone Number ---
+  rpc VerifyPhoneNumber(VerifyPhoneNumberRequest) returns (VerifyPhoneNumberResponse) {
+    option (google.api.http) = {
+      post: "/v1/auth/verify-phone-number"
+      body: "*"
+    };
+  }
+
+  // --- Verify Identity ---
+  rpc VerifyIdentity(VerifyIdentityRequest) returns (VerifyIdentityResponse) {
+    option (google.api.http) = {
+      post: "/v1/auth/verify-identity"
+      body: "*"
+    };
+  }
+
+  // --- Get Identity Verification Status ---
+  rpc GetIdentityVerificationStatus(GetIdentityVerificationStatusRequest) returns (GetIdentityVerificationStatusResponse) {
+    option (google.api.http) = {
+      get: "/v1/auth/identity-status"
     };
   }
 
@@ -505,4 +738,137 @@ rpc RefreshToken(RefreshTokenRequest) returns (RefreshTokenResponse) {
       }
     };
   }
+
+  // --- User Profile RPCs ---
+
+  // Get authenticated user's profile
+  rpc GetMe(GetMeRequest) returns (GetMeResponse) {
+    option (google.api.http) = {
+      get: "/v1/auth/me"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Get Current User"
+      description: "Gets the profile of the currently authenticated user."
+      tags: ["User"]
+      security: {
+        security_requirement: {
+          key: "bearer" value: {}
+        }
+      }
+    };
+  }
+
+  // Update authenticated user's profile
+  rpc UpdateProfile(UpdateProfileRequest) returns (UpdateProfileResponse) {
+    option (google.api.http) = {
+      put: "/v1/auth/profile"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Update Profile"
+      description: "Updates the profile of the currently authenticated user."
+      tags: ["User"]
+      security: {
+        security_requirement: {
+          key: "bearer" value: {}
+        }
+      }
+    };
+  }
+
+  // --- User Lookup RPCs ---
+
+  // Lookup user by username (LazerTag)
+  rpc LookupUserByUsername(LookupUserByUsernameRequest) returns (LookupUserByUsernameResponse) {
+    option (google.api.http) = {
+      get: "/v1/users/lookup/username/{username}"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Lookup User by Username"
+      description: "Finds a user by their LazerTag username for transfers."
+      tags: ["User"]
+      security: {
+        security_requirement: {
+          key: "bearer" value: {}
+        }
+      }
+    };
+  }
+
+  // Search users by username prefix
+  rpc SearchUsersByUsername(SearchUsersByUsernameRequest) returns (SearchUsersByUsernameResponse) {
+    option (google.api.http) = {
+      get: "/v1/users/search"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Search Users by Username"
+      description: "Searches for users by username prefix for autocomplete functionality."
+      tags: ["User"]
+      security: {
+        security_requirement: {
+          key: "bearer" value: {}
+        }
+      }
+    };
+  }
+}
+
+// --- User Profile Messages ---
+// Note: Field numbers must match auth-service for wire compatibility
+
+message GetMeRequest {
+  string user_id = 1; // User ID (from JWT context in proxy)
+}
+
+message GetMeResponse {
+  User user = 1;
+}
+
+message UpdateProfileRequest {
+  string user_id = 1;          // User ID (from JWT context)
+  string first_name = 2;       // New first name (optional)
+  string last_name = 3;        // New last name (optional)
+  string username = 4;         // New username/LazerTag (optional)
+  string phone = 5;            // New phone number (optional)
+  string profile_picture = 6;  // New profile picture URL (optional)
+}
+
+message UpdateProfileResponse {
+  bool success = 1;
+  string msg = 2;
+  User user = 3;
+}
+
+// --- User Lookup Messages ---
+
+message LookupUserByUsernameRequest {
+  string username = 1;
+}
+
+// UserLookupResponse - common response for username and phone lookups
+message LookupUserByUsernameResponse {
+  bool success = 1;
+  string msg = 2;
+  bool found = 3;
+  AuthUserLookupResult user = 4;
+}
+
+message SearchUsersByUsernameRequest {
+  string query = 1;
+  int32 limit = 2;
+}
+
+message SearchUsersByUsernameResponse {
+  bool success = 1;
+  string msg = 2;
+  repeated AuthUserLookupResult users = 3;
+}
+
+message AuthUserLookupResult {
+  string user_id = 1;
+  string username = 2;
+  string first_name = 3;
+  string last_name = 4;
+  string profile_picture = 5;
+  bool is_lazervault_user = 6;
 } 

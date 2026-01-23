@@ -61,7 +61,7 @@ message TransferTransaction {
 message InitiateTransferRequest {
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
       json_schema: {
-        required: ["from_account_id", "amount"];
+        required: ["from_account_id", "amount", "transaction_id", "verification_token"];
       };
     };
     uint64 from_account_id = 1 [json_name = "from_account_id"]; // Required
@@ -69,6 +69,10 @@ message InitiateTransferRequest {
     string category = 3;
     string reference = 4;
     optional string scheduled_at = 5; // Optional. If not provided, processed immediately. Format: "2006-01-02T15:04:05Z07:00"
+
+    // --- PIN Verification (Required for security) ---
+    string transaction_id = 6 [json_name = "transaction_id"];         // Required: Unique transaction ID from PIN verification
+    string verification_token = 7 [json_name = "verification_token"]; // Required: Token from PIN verification
 
     // --- Destination (Use ONE of the following) ---
     uint64 to_account_id = 10 [json_name = "to_account_id"]; // Optional: Direct internal account ID

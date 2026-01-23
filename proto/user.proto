@@ -305,10 +305,10 @@ message SearchUserByUsernameRequest {
 message SearchUserByUsernameResponse {
   bool success = 1;
   string message = 2;
-  repeated UserSearchResult users = 3;
+  repeated UserServiceSearchResult users = 3;
 }
 
-message UserSearchResult {
+message UserServiceSearchResult {
   string user_id = 1;
   string username = 2;
   string display_name = 3; // First name + Last name
