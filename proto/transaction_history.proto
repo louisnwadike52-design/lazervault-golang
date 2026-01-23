@@ -1,0 +1,221 @@
+syntax = "proto3";
+
+package pb;
+
+import "google/api/annotations.proto";
+import "google/protobuf/timestamp.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+import "common.proto";
+
+option go_package = "lazervaultGo/pb";
+
+// Transaction Service Types - comprehensive service types enumeration
+enum TransactionServiceType {
+  TRANSACTION_SERVICE_TYPE_UNKNOWN = 0;
+  TRANSACTION_SERVICE_TYPE_AIRTIME = 1;
+  TRANSACTION_SERVICE_TYPE_GIFT_CARD = 2;
+  TRANSACTION_SERVICE_TYPE_ELECTRICITY = 3;
+  TRANSACTION_SERVICE_TYPE_WATER = 4;
+  TRANSACTION_SERVICE_TYPE_TV_SUBSCRIPTION = 5;
+  TRANSACTION_SERVICE_TYPE_TRANSFER = 6;
+  TRANSACTION_SERVICE_TYPE_CRYPTO = 7;
+  TRANSACTION_SERVICE_TYPE_STOCKS = 8;
+  TRANSACTION_SERVICE_TYPE_INSURANCE = 9;
+  TRANSACTION_SERVICE_TYPE_INVOICE = 10;
+  TRANSACTION_SERVICE_TYPE_BARCODE_PAYMENT = 11;
+  TRANSACTION_SERVICE_TYPE_TAG_PAY = 12;
+  TRANSACTION_SERVICE_TYPE_CROWDFUND = 13;
+  TRANSACTION_SERVICE_TYPE_AUTOSAVE = 14;
+  TRANSACTION_SERVICE_TYPE_DEPOSIT = 15;
+  TRANSACTION_SERVICE_TYPE_WITHDRAWAL = 16;
+}
+
+// Transaction Status - comprehensive status tracking
+enum TransactionStatus {
+  TRANSACTION_STATUS_UNKNOWN = 0;
+  TRANSACTION_STATUS_PENDING = 1;
+  TRANSACTION_STATUS_PROCESSING = 2;
+  TRANSACTION_STATUS_COMPLETED = 3;
+  TRANSACTION_STATUS_FAILED = 4;
+  TRANSACTION_STATUS_CANCELLED = 5;
+  TRANSACTION_STATUS_REFUNDED = 6;
+  TRANSACTION_STATUS_EXPIRED = 7;
+}
+
+// Transaction Flow Direction
+enum TransactionFlow {
+  TRANSACTION_FLOW_UNKNOWN = 0;
+  TRANSACTION_FLOW_INCOMING = 1;
+  TRANSACTION_FLOW_OUTGOING = 2;
+  TRANSACTION_FLOW_NEUTRAL = 3;
+}
+
+// Enhanced Transaction message with full history support
+message TransactionHistoryItem {
+  uint64 id = 1;
+  TransactionServiceType service_type = 2;
+  string title = 3;
+  optional string description = 4;
+  double amount = 5;
+  string currency = 6;
+  google.protobuf.Timestamp created_at = 7;
+  TransactionStatus status = 8;
+  TransactionFlow flow = 9;
+  optional string transaction_reference = 10;
+  map<string, string> metadata = 11;
+  google.protobuf.Timestamp updated_at = 12;
+}
+
+// Request message for fetching transaction history
+message GetTransactionHistoryRequest {
+  // User identification
+  string user_id = 1;
+
+  // Service type filter (optional - if not provided, returns all services)
+  optional TransactionServiceType service_type = 2;
+
+  // Status filter
+  repeated TransactionStatus statuses = 3;
+
+  // Date range filter
+  optional google.protobuf.Timestamp start_date = 4;
+  optional google.protobuf.Timestamp end_date = 5;
+
+  // Amount range filter
+  optional double min_amount = 6;
+  optional double max_amount = 7;
+
+  // Pagination
+  int32 page = 8;        // Default: 1
+  int32 limit = 9;       // Default: 20
+  optional string cursor = 10;  // For cursor-based pagination
+
+  // Search query
+  optional string search_query = 11;
+}
+
+// Response message for transaction history
+message GetTransactionHistoryResponse {
+  repeated TransactionHistoryItem transactions = 1;
+  bool has_more = 2;
+  int32 current_page = 3;
+  int32 total_pages = 4;
+  int32 total_items = 5;
+  optional string next_cursor = 6;
+}
+
+// Request for transaction statistics
+message GetTransactionStatisticsRequest {
+  string user_id = 1;
+  optional TransactionServiceType service_type = 2;
+  optional google.protobuf.Timestamp start_date = 3;
+  optional google.protobuf.Timestamp end_date = 4;
+}
+
+// Transaction statistics response
+message GetTransactionStatisticsResponse {
+  double total_incoming = 1;
+  double total_outgoing = 2;
+  double net_balance = 3;
+  int32 total_transactions = 4;
+  map<int32, int32> transaction_counts_by_service = 5;  // service_type enum -> count
+  map<int32, int32> transaction_counts_by_status = 6;   // status enum -> count
+}
+
+// Request for single transaction details
+message GetTransactionDetailsRequest {
+  string user_id = 1;
+  string transaction_id = 2;
+}
+
+// Response for transaction details
+message GetTransactionDetailsResponse {
+  TransactionHistoryItem transaction = 1;
+}
+
+// Request for searching transactions
+message SearchTransactionsRequest {
+  string user_id = 1;
+  string query = 2;
+  optional int32 limit = 3;  // Default: 20
+}
+
+// Response for search
+message SearchTransactionsResponse {
+  repeated TransactionHistoryItem transactions = 1;
+}
+
+// Request to refresh/sync transactions
+message RefreshTransactionsRequest {
+  string user_id = 1;
+}
+
+// Response for refresh
+message RefreshTransactionsResponse {
+  bool success = 1;
+  string message = 2;
+  int32 transactions_synced = 3;
+}
+
+// Transaction History Service
+service TransactionHistoryService {
+  // Get transaction history with filters and pagination
+  rpc GetTransactionHistory(GetTransactionHistoryRequest) returns (GetTransactionHistoryResponse) {
+    option (google.api.http) = {
+      get: "/v1/transactions/history"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Get Transaction History";
+      description: "Retrieves transaction history with support for filtering by service, status, date range, amount, and search query.";
+      tags: ["Transaction History"];
+    };
+  }
+
+  // Get transaction statistics
+  rpc GetTransactionStatistics(GetTransactionStatisticsRequest) returns (GetTransactionStatisticsResponse) {
+    option (google.api.http) = {
+      get: "/v1/transactions/statistics"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Get Transaction Statistics";
+      description: "Retrieves transaction statistics including totals by flow type, counts by service, and counts by status.";
+      tags: ["Transaction History"];
+    };
+  }
+
+  // Get single transaction details
+  rpc GetTransactionDetails(GetTransactionDetailsRequest) returns (GetTransactionDetailsResponse) {
+    option (google.api.http) = {
+      get: "/v1/transactions/{transaction_id}"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Get Transaction Details";
+      description: "Retrieves detailed information for a specific transaction.";
+      tags: ["Transaction History"];
+    };
+  }
+
+  // Search transactions
+  rpc SearchTransactions(SearchTransactionsRequest) returns (SearchTransactionsResponse) {
+    option (google.api.http) = {
+      get: "/v1/transactions/search"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Search Transactions";
+      description: "Searches transactions by title, description, or reference number.";
+      tags: ["Transaction History"];
+    };
+  }
+
+  // Refresh transactions (sync from upstream services)
+  rpc RefreshTransactions(RefreshTransactionsRequest) returns (RefreshTransactionsResponse) {
+    option (google.api.http) = {
+      post: "/v1/transactions/refresh"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Refresh Transactions";
+      description: "Triggers a refresh/sync of transactions from all upstream services.";
+      tags: ["Transaction History"];
+    };
+  }
+}

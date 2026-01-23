@@ -252,9 +252,9 @@ func CacheKey(parts ...string) string {
 
 // Common TTL durations
 const (
-	TTLShort  = 5 * time.Minute  // For frequently changing data
-	TTLMedium = 1 * time.Hour    // For moderately stable data
-	TTLLong   = 24 * time.Hour   // For rarely changing data
+	TTLShort  = 5 * time.Minute // For frequently changing data
+	TTLMedium = 1 * time.Hour   // For moderately stable data
+	TTLLong   = 24 * time.Hour  // For rarely changing data
 	TTLWeek   = 7 * 24 * time.Hour
 )
 

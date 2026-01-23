@@ -1,6 +1,10 @@
 {
-  "name": "lazervault",
+  "name": "core-gateway",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Core API Gateway for LaserVault",
   "scripts": {
+    "start": "go run main.go",
     "dev": "export GOOGLE_APPLICATION_CREDENTIALS=$(pwd)/lazervault-c4d5f9e91078.json && nodemon",
     "setup": "chmod +x scripts/setup.sh && ./scripts/setup.sh && yarn run proto",
     "clean": "rm go.sum && go clean -modcache && go mod tidy && make clean",
@@ -11,7 +15,7 @@
     "start:redis:brew": "brew services start redis",
     "start:redis:background": "brew services start redis",
     "stop:redis": "brew services stop redis",
-    "gcloud:login": "gcloud auth activate-service-account --key-file=lazervault-c4d5f9e91078.json", 
+    "gcloud:login": "gcloud auth activate-service-account --key-file=lazervault-c4d5f9e91078.json",
     "clear:redis": "redis-cli FLUSHALL"
   },
   "devDependencies": {

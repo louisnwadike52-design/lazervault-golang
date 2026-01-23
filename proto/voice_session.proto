@@ -20,15 +20,16 @@ option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
 };
 
 message StartVoiceSessionRequest {
-    // Potentially add a field if Flutter needs to pass any specific parameters
-    // for session setup, though user identity is derived from auth token.
-    // string preferred_agent_language = 1;
+    // Service name to route the voice session to the correct agent
+    string service_name = 1;
 }
 
 message StartVoiceSessionResponse {
     string room_name = 1;         // The unique LiveKit room name for this session.
     string livekit_token = 2;     // The LiveKit access token for the Flutter client.
     string agent_id = 3;          // An identifier for the agent (optional, could be fixed).
+    string agent_url = 4;         // URL of the voice agent
+    int32 agent_port = 5;         // Port number of the voice agent
 }
 
 // Voice note processing request - accepts multipart form data file upload

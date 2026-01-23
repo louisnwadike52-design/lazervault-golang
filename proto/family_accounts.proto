@@ -1,0 +1,453 @@
+syntax = "proto3";
+
+package accounts.v1;
+
+import "google/api/annotations.proto";
+import "accounts.proto";
+
+option go_package = "github.com/lazervault/accounts-service/proto";
+option java_multiple_files = true;
+option java_outer_classname = "FamilyAccountsProto";
+option java_package = "com.lazervault.accounts.v1";
+
+// Family Account Management Service
+// Provides functionality for creating and managing family and friends shared accounts
+service FamilyAccountsService {
+  // Create a new family account
+  // The creator becomes the first admin of the family account
+  rpc CreateFamilyAccount(CreateFamilyAccountRequest) returns (CreateFamilyAccountResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/family-accounts"
+      body: "*"
+    };
+  }
+
+  // Get all family accounts for the authenticated user
+  // Returns both accounts created by user and accounts where user is a member
+  rpc GetFamilyAccounts(GetFamilyAccountsRequest) returns (GetFamilyAccountsResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/family-accounts"
+    };
+  }
+
+  // Get details of a specific family account
+  // User must be a member of the family account
+  rpc GetFamilyAccount(GetFamilyAccountRequest) returns (GetFamilyAccountResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/family-accounts/{family_id}"
+    };
+  }
+
+  // Add a member to a family account
+  // Only admins can add members
+  // Sends invitation via email, SMS, or username lookup
+  rpc AddFamilyMember(AddFamilyMemberRequest) returns (AddFamilyMemberResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/family-accounts/{family_id}/members"
+      body: "*"
+    };
+  }
+
+  // Update member's allocation, spending limits, and role
+  // Only admins can update member settings
+  rpc UpdateFamilyMember(UpdateFamilyMemberRequest) returns (UpdateFamilyMemberResponse) {
+    option (google.api.http) = {
+      put: "/api/v1/family-accounts/{family_id}/members/{member_id}"
+      body: "*"
+    };
+  }
+
+  // Remove a member from the family account
+  // Only admins can remove members
+  // Member's card will be frozen and remaining balance returned to family pool
+  rpc RemoveFamilyMember(RemoveFamilyMemberRequest) returns (RemoveFamilyMemberResponse) {
+    option (google.api.http) = {
+      delete: "/api/v1/family-accounts/{family_id}/members/{member_id}"
+    };
+  }
+
+  // Accept a family invitation
+  // Called by invited users to join a family account
+  rpc AcceptFamilyInvitation(AcceptFamilyInvitationRequest) returns (AcceptFamilyInvitationResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/family-invitations/{invitation_token}/accept"
+      body: "*"
+    };
+  }
+
+  // Decline a family invitation
+  rpc DeclineFamilyInvitation(DeclineFamilyInvitationRequest) returns (DeclineFamilyInvitationResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/family-invitations/{invitation_token}/decline"
+      body: "*"
+    };
+  }
+
+  // Get pending invitations for the authenticated user
+  rpc GetPendingInvitations(GetPendingInvitationsRequest) returns (GetPendingInvitationsResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/family-invitations/pending"
+    };
+  }
+
+  // Get transaction history for a family account
+  // All members can view all transactions (full transparency)
+  rpc GetFamilyTransactions(GetFamilyTransactionsRequest) returns (GetFamilyTransactionsResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/family-accounts/{family_id}/transactions"
+    };
+  }
+
+  // Allocate additional funds to a specific member
+  // Only admins can allocate funds
+  rpc AllocateFunds(AllocateFundsRequest) returns (AllocateFundsResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/family-accounts/{family_id}/allocate"
+      body: "*"
+    };
+  }
+
+  // Generate a virtual card for a family member
+  // Member can request their own card, or admin can generate for them
+  rpc GenerateMemberCard(GenerateMemberCardRequest) returns (GenerateMemberCardResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/family-accounts/{family_id}/members/{member_id}/card"
+    };
+  }
+
+  // Freeze a family account
+  // Only admins can freeze the account
+  // All member cards will be frozen
+  rpc FreezeFamilyAccount(FreezeFamilyAccountRequest) returns (FreezeFamilyAccountResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/family-accounts/{family_id}/freeze"
+      body: "*"
+    };
+  }
+
+  // Unfreeze a family account
+  // Only admins can unfreeze the account
+  rpc UnfreezeFamilyAccount(UnfreezeFamilyAccountRequest) returns (UnfreezeFamilyAccountResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/family-accounts/{family_id}/unfreeze"
+    };
+  }
+
+  // Delete a family account
+  // Only creator can delete
+  // All member cards will be frozen and remaining balance returned to creator
+  rpc DeleteFamilyAccount(DeleteFamilyAccountRequest) returns (DeleteFamilyAccountResponse) {
+    option (google.api.http) = {
+      delete: "/api/v1/family-accounts/{family_id}"
+    };
+  }
+}
+
+// Request/Response Messages
+
+// Create Family Account
+message CreateFamilyAccountRequest {
+  string name = 1; // Required: Family account name (e.g., "Lawrence Family")
+  string description = 2; // Optional: Description of the family account
+  string initial_currency = 3; // Optional: Currency code (default: USD)
+  double initial_funding = 4; // Optional: Initial amount to fund the account with
+  bool allow_member_contributions = 5; // NEW: Allow members to contribute (default: true)
+}
+
+message CreateFamilyAccountResponse {
+  FamilyAccount family_account = 1;
+  string message = 2; // Success message
+}
+
+// Get Family Accounts
+message GetFamilyAccountsRequest {
+  string status = 1; // Optional: Filter by status (active, frozen, closed)
+}
+
+message GetFamilyAccountsResponse {
+  repeated FamilyAccount family_accounts = 1;
+  int32 total_count = 2;
+}
+
+// Get Family Account
+message GetFamilyAccountRequest {
+  string family_id = 1; // Required: Family account ID
+}
+
+message GetFamilyAccountResponse {
+  FamilyAccount family_account = 1;
+  repeated FamilyTransaction recent_transactions = 2; // Last 10 transactions
+  FamilyAccountSummary summary = 3; // Account statistics
+}
+
+// Add Family Member
+message AddFamilyMemberRequest {
+  string family_id = 1; // Required: Family account ID
+  string invitation_method = 2; // Required: Invitation method (email, phone, username)
+  string invitation_destination = 3; // Required: Email address, phone number, or username
+  double initial_allocation = 4; // Optional: Initial amount to allocate to member
+  double daily_limit = 5; // Optional: Daily spending limit (0 = unlimited)
+  double monthly_limit = 6; // Optional: Monthly spending limit (0 = unlimited)
+  double per_transaction_limit = 9; // NEW: Per-transaction spending limit (0 = unlimited)
+  double allocation_percentage_cap = 10; // NEW: Max % of total pool (default: 100)
+  string role = 7; // Optional: Role (member, admin) - default: member
+  string personal_message = 8; // Optional: Personal message to include in invitation
+}
+
+message AddFamilyMemberResponse {
+  FamilyMember member = 1;
+  string invitation_message = 2; // Success message with next steps
+  string invitation_link = 3; // Deep link for invitation (if applicable)
+}
+
+// Update Family Member
+message UpdateFamilyMemberRequest {
+  string family_id = 1; // Required: Family account ID
+  string member_id = 2; // Required: Member ID
+  double allocated_balance = 3; // Optional: New allocation amount
+  double daily_spending_limit = 4; // Optional: New daily spending limit
+  double monthly_spending_limit = 5; // Optional: New monthly spending limit
+  double per_transaction_limit = 7; // NEW: New per-transaction spending limit
+  double allocation_percentage_cap = 8; // NEW: New allocation percentage cap
+  string role = 6; // Optional: New role (member, admin)
+}
+
+message UpdateFamilyMemberResponse {
+  FamilyMember member = 1;
+  string message = 2; // Success message
+}
+
+// Remove Family Member
+message RemoveFamilyMemberRequest {
+  string family_id = 1; // Required: Family account ID
+  string member_id = 2; // Required: Member ID
+  string reason = 3; // Optional: Reason for removal
+  bool return_balance_to_pool = 4; // Optional: Return member's balance to family pool (default: true)
+}
+
+message RemoveFamilyMemberResponse {
+  bool success = 1;
+  string message = 2;
+  double returned_balance = 3; // Amount returned to family pool
+}
+
+// Accept Family Invitation
+message AcceptFamilyInvitationRequest {
+  string invitation_token = 1; // Required: Invitation token
+}
+
+message AcceptFamilyInvitationResponse {
+  FamilyAccount family_account = 1;
+  FamilyMember member = 2;
+  string message = 3; // Welcome message
+}
+
+// Decline Family Invitation
+message DeclineFamilyInvitationRequest {
+  string invitation_token = 1; // Required: Invitation token
+  string reason = 2; // Optional: Reason for declining
+}
+
+message DeclineFamilyInvitationResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+// Get Pending Invitations
+message GetPendingInvitationsRequest {
+  // No parameters required - uses authenticated user
+}
+
+message GetPendingInvitationsResponse {
+  repeated PendingInvitation invitations = 1;
+  int32 total_count = 2;
+}
+
+// Get Family Transactions
+message GetFamilyTransactionsRequest {
+  string family_id = 1; // Required: Family account ID
+  string member_id = 2; // Optional: Filter by specific member
+  string type = 3; // Optional: Filter by transaction type (allocation, spending, refund, adjustment, removal)
+  int32 page = 4; // Optional: Page number (default: 1)
+  int32 page_size = 5; // Optional: Page size (default: 20, max: 100)
+  string start_date = 6; // Optional: Filter transactions from this date
+  string end_date = 7; // Optional: Filter transactions until this date
+}
+
+message GetFamilyTransactionsResponse {
+  repeated FamilyTransaction transactions = 1;
+  int32 total_count = 2;
+  int32 page = 3;
+  int32 page_size = 4;
+  int32 total_pages = 5;
+}
+
+// Allocate Funds
+message AllocateFundsRequest {
+  string family_id = 1; // Required: Family account ID
+  string member_id = 2; // Required: Member ID
+  double amount = 3; // Required: Amount to allocate
+  string description = 4; // Optional: Description of the allocation
+}
+
+message AllocateFundsResponse {
+  FamilyMember member = 1; // Updated member with new allocation
+  FamilyTransaction transaction = 2; // Allocation transaction record
+  double remaining_pool_balance = 3; // Balance remaining in family pool
+  string message = 4;
+}
+
+// Generate Member Card
+message GenerateMemberCardRequest {
+  string family_id = 1; // Required: Family account ID
+  string member_id = 2; // Required: Member ID
+  string card_name = 3; // Optional: Name on card (default: member's name)
+}
+
+message GenerateMemberCardResponse {
+  AccountCard card = 1; // Generated card details
+  FamilyMember member = 2; // Updated member with card info
+  string message = 3; // Success message
+}
+
+// Freeze Family Account
+message FreezeFamilyAccountRequest {
+  string family_id = 1; // Required: Family account ID
+  string reason = 2; // Optional: Reason for freezing
+}
+
+message FreezeFamilyAccountResponse {
+  bool success = 1;
+  string message = 2;
+  FamilyAccount family_account = 3;
+}
+
+// Unfreeze Family Account
+message UnfreezeFamilyAccountRequest {
+  string family_id = 1; // Required: Family account ID
+}
+
+message UnfreezeFamilyAccountResponse {
+  bool success = 1;
+  string message = 2;
+  FamilyAccount family_account = 3;
+}
+
+// Delete Family Account
+message DeleteFamilyAccountRequest {
+  string family_id = 1; // Required: Family account ID
+  string confirmation_code = 2; // Required: Confirmation code (email/SMS to creator)
+}
+
+message DeleteFamilyAccountResponse {
+  bool success = 1;
+  string message = 2;
+  double returned_balance = 3; // Amount returned to creator's main account
+}
+
+// Data Models
+
+// Family Account
+message FamilyAccount {
+  string id = 1;
+  string creator_id = 2;
+  string creator_name = 3; // Denormalized for quick access
+  string name = 4;
+  string description = 5;
+  double total_allocated_balance = 6;
+  double total_pool_balance = 7; // Unallocated balance available
+  string status = 8; // active, frozen, closed
+  string created_at = 9;
+  string updated_at = 10;
+  repeated FamilyMember members = 11;
+  int32 member_count = 12; // Total member count (excluding removed)
+  int32 active_member_count = 13; // Active members only
+  bool allow_member_contributions = 14; // NEW: Allow members to contribute to family pool (hybrid funding)
+  double total_balance = 15; // NEW: Total balance = total_allocated_balance + total_pool_balance
+}
+
+// Family Member
+message FamilyMember {
+  string id = 1;
+  string family_id = 2;
+  string user_id = 3;
+  string full_name = 4; // Member's full name
+  string email = 5; // For email invitations or member's email
+  string phone = 6; // For phone invitations or member's phone
+  string username = 7; // For username invitations or member's username
+  string avatar_url = 8; // Member's avatar URL
+  string role = 9; // admin, member
+  double allocated_balance = 10;
+  double daily_spending_limit = 11;
+  double monthly_spending_limit = 12;
+  double spent_this_month = 13; // Amount spent in current month
+  double spent_today = 14; // Amount spent today
+  string invitation_status = 15; // pending, accepted, declined, removed, expired
+  string invitation_token = 16;
+  string invitation_expires_at = 17;
+  string card_last_four = 18; // Last 4 digits of member's card (if generated)
+  bool has_card = 19; // Whether member has a generated card
+  string joined_at = 20;
+  string created_at = 21;
+  string updated_at = 22;
+  double per_transaction_limit = 23; // NEW: Maximum amount per single transaction (0 = unlimited)
+  double allocation_percentage_cap = 24; // NEW: Maximum % of total pool that can be allocated to this member
+  double remaining_balance = 25; // NEW: Calculated: allocated_balance - spent_today
+}
+
+// Family Transaction
+message FamilyTransaction {
+  string id = 1;
+  string family_id = 2;
+  string member_id = 3;
+  string member_name = 4; // Denormalized for quick access
+  string member_avatar = 5; // Member's avatar at time of transaction
+  string transaction_id = 6; // Reference to main transactions table
+  double amount = 7;
+  string type = 8; // allocation, spending, refund, adjustment, removal
+  string description = 9;
+  string merchant_name = 10; // For spending transactions
+  string merchant_category = 11; // For spending transactions
+  map<string, string> metadata = 12; // Additional metadata
+  string created_at = 13;
+}
+
+// Pending Invitation
+message PendingInvitation {
+  string invitation_token = 1;
+  string family_id = 2;
+  string family_name = 3;
+  string creator_name = 4;
+  string creator_avatar = 5;
+  double initial_allocation = 6;
+  double daily_limit = 7;
+  double monthly_limit = 8;
+  string invited_by = 9; // Creator's name
+  string expires_at = 10;
+  string created_at = 11;
+}
+
+// Family Account Summary
+message FamilyAccountSummary {
+  double total_allocated = 1;
+  double total_spent_this_month = 2;
+  double total_spent_today = 3;
+  int32 transaction_count_this_month = 4;
+  repeated FamilyMemberSpending top_spenders = 5; // Top 5 spenders this month
+}
+
+// Family Member Spending Stats
+message FamilyMemberSpending {
+  string member_id = 1;
+  string member_name = 2;
+  string member_avatar = 3;
+  double amount_spent = 4;
+  int32 transaction_count = 5;
+}
+
+// Import AccountCard from accounts.proto
+// This is a placeholder - the actual definition is in accounts.proto
+message AccountCard {
+  reserved 1 to 52; // Reserve all fields from accounts.proto AccountCard
+  // This message will be replaced with the actual import
+}

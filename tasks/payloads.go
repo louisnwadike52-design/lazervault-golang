@@ -194,17 +194,17 @@ func NewSendInvoiceEmailTask(userID, userEmail, userName, invoiceID, invoiceNumb
 
 // EmailSendPaymentConfirmationPayload defines payload for payment confirmation email
 type EmailSendPaymentConfirmationPayload struct {
-	UserEmail         string  `json:"user_email"`
-	UserName          string  `json:"user_name"`
-	InvoiceID         string  `json:"invoice_id"`
-	InvoiceNumber     string  `json:"invoice_number"`
-	Amount            float64 `json:"amount"`
-	Currency          string  `json:"currency"`
-	TransactionID     string  `json:"transaction_id"`
-	ConfirmationCode  string  `json:"confirmation_code"`
-	ProcessedAt       string  `json:"processed_at"` // ISO 8601 format
-	PaymentMethod     string  `json:"payment_method"`
-	FeeAmount         float64 `json:"fee_amount"`
+	UserEmail        string  `json:"user_email"`
+	UserName         string  `json:"user_name"`
+	InvoiceID        string  `json:"invoice_id"`
+	InvoiceNumber    string  `json:"invoice_number"`
+	Amount           float64 `json:"amount"`
+	Currency         string  `json:"currency"`
+	TransactionID    string  `json:"transaction_id"`
+	ConfirmationCode string  `json:"confirmation_code"`
+	ProcessedAt      string  `json:"processed_at"` // ISO 8601 format
+	PaymentMethod    string  `json:"payment_method"`
+	FeeAmount        float64 `json:"fee_amount"`
 }
 
 func NewPaymentConfirmationEmailTask(userEmail, userName, invoiceID, invoiceNumber string, amount float64, currency, transactionID, confirmationCode, processedAt, paymentMethod string, feeAmount float64) ([]byte, error) {

@@ -228,6 +228,7 @@ message GetFacialDataResponse {
 // Passcode Messages
 message SetPasscodeRequest {
   string passcode = 1; // 4-6 digit passcode
+  string password = 2; // Require password confirmation for security
 }
 
 message SetPasscodeResponse {
@@ -246,7 +247,7 @@ message VerifyPasscodeResponse {
 }
 
 message RemovePasscodeRequest {
-  // No parameters needed - user is authenticated via token
+  string password = 1; // Require password confirmation
 }
 
 message RemovePasscodeResponse {
@@ -294,6 +295,25 @@ message GetDevicePermissionsResponse {
   bool success = 1;
   string message = 2;
   repeated DevicePermission permissions = 3;
+}
+
+// Search Users by Username (LazerTag)
+message SearchUserByUsernameRequest {
+  string username = 1; // Username to search for (with or without @)
+}
+
+message SearchUserByUsernameResponse {
+  bool success = 1;
+  string message = 2;
+  repeated UserSearchResult users = 3;
+}
+
+message UserSearchResult {
+  string user_id = 1;
+  string username = 2;
+  string display_name = 3; // First name + Last name
+  string profile_picture = 4;
+  uint64 primary_account_id = 5; // For internal transfers
 }
 
 service UserService {
@@ -572,6 +592,23 @@ service UserService {
       summary: "Get device permissions"
       description: "Get device permission status"
       tags: "permissions"
+      security: {
+        security_requirement: {
+          key: "bearerAuth";
+        }
+      }
+    };
+  }
+
+  // Search for users by username (LazerTag)
+  rpc SearchUserByUsername(SearchUserByUsernameRequest) returns (SearchUserByUsernameResponse) {
+    option (google.api.http) = {
+      get: "/v1/users/search"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Search users by username"
+      description: "Search for LazerVault users by their username (LazerTag) for internal transfers"
+      tags: "users"
       security: {
         security_requirement: {
           key: "bearerAuth";

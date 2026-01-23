@@ -12189,431 +12189,6 @@
         }
       }
     },
-    "barcode_paymentBarcodePayment": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string"
-        },
-        "userId": {
-          "type": "string"
-        },
-        "username": {
-          "type": "string"
-        },
-        "fullName": {
-          "type": "string"
-        },
-        "barcodeCode": {
-          "type": "string"
-        },
-        "amount": {
-          "type": "number",
-          "format": "double"
-        },
-        "currency": {
-          "type": "string"
-        },
-        "description": {
-          "type": "string"
-        },
-        "status": {
-          "type": "string",
-          "title": "pending, paid, cancelled, expired"
-        },
-        "createdAt": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "expiresAt": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "paidAt": {
-          "type": "string",
-          "format": "date-time"
-        }
-      },
-      "title": "Models"
-    },
-    "barcode_paymentBarcodeTransaction": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string"
-        },
-        "barcodeId": {
-          "type": "string"
-        },
-        "payerId": {
-          "type": "string"
-        },
-        "payerUsername": {
-          "type": "string"
-        },
-        "payerName": {
-          "type": "string"
-        },
-        "recipientId": {
-          "type": "string"
-        },
-        "recipientUsername": {
-          "type": "string"
-        },
-        "recipientName": {
-          "type": "string"
-        },
-        "amount": {
-          "type": "number",
-          "format": "double"
-        },
-        "currency": {
-          "type": "string"
-        },
-        "description": {
-          "type": "string"
-        },
-        "referenceNumber": {
-          "type": "string"
-        },
-        "status": {
-          "type": "string"
-        },
-        "createdAt": {
-          "type": "string",
-          "format": "date-time"
-        }
-      }
-    },
-    "barcode_paymentCancelBarcodeResponse": {
-      "type": "object",
-      "properties": {
-        "message": {
-          "type": "string"
-        }
-      }
-    },
-    "barcode_paymentGenerateBarcodeResponse": {
-      "type": "object",
-      "properties": {
-        "barcodeId": {
-          "type": "string"
-        },
-        "barcodeCode": {
-          "type": "string",
-          "title": "The actual code to encode in QR"
-        },
-        "qrData": {
-          "type": "string",
-          "title": "JSON data for QR code"
-        },
-        "expiresAt": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "message": {
-          "type": "string"
-        }
-      }
-    },
-    "barcode_paymentGetBarcodeDetailsResponse": {
-      "type": "object",
-      "properties": {
-        "barcode": {
-          "$ref": "#/definitions/barcode_paymentBarcodePayment"
-        }
-      }
-    },
-    "barcode_paymentGetMyGeneratedBarcodesResponse": {
-      "type": "object",
-      "properties": {
-        "barcodes": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/barcode_paymentBarcodePayment"
-          }
-        },
-        "total": {
-          "type": "integer",
-          "format": "int32"
-        }
-      }
-    },
-    "barcode_paymentGetMyScannedBarcodesResponse": {
-      "type": "object",
-      "properties": {
-        "transactions": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/barcode_paymentBarcodeTransaction"
-          }
-        },
-        "total": {
-          "type": "integer",
-          "format": "int32"
-        }
-      }
-    },
-    "barcode_paymentProcessBarcodePaymentResponse": {
-      "type": "object",
-      "properties": {
-        "transaction": {
-          "$ref": "#/definitions/barcode_paymentBarcodeTransaction"
-        },
-        "message": {
-          "type": "string"
-        }
-      }
-    },
-    "lazervaultAddTicketReplyResponse": {
-      "type": "object",
-      "properties": {
-        "success": {
-          "type": "boolean"
-        },
-        "message": {
-          "type": "string"
-        },
-        "reply": {
-          "$ref": "#/definitions/lazervaultTicketReply"
-        }
-      }
-    },
-    "lazervaultContactMessage": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string"
-        },
-        "name": {
-          "type": "string"
-        },
-        "email": {
-          "type": "string"
-        },
-        "topic": {
-          "type": "string"
-        },
-        "subject": {
-          "type": "string"
-        },
-        "message": {
-          "type": "string"
-        },
-        "userId": {
-          "type": "integer",
-          "format": "int32",
-          "title": "Optional - if user is logged in"
-        },
-        "createdAt": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "isRead": {
-          "type": "boolean"
-        }
-      }
-    },
-    "lazervaultCreateSupportTicketResponse": {
-      "type": "object",
-      "properties": {
-        "success": {
-          "type": "boolean"
-        },
-        "message": {
-          "type": "string"
-        },
-        "ticket": {
-          "$ref": "#/definitions/lazervaultSupportTicket"
-        }
-      }
-    },
-    "lazervaultGetSupportTicketResponse": {
-      "type": "object",
-      "properties": {
-        "success": {
-          "type": "boolean"
-        },
-        "message": {
-          "type": "string"
-        },
-        "ticket": {
-          "$ref": "#/definitions/lazervaultSupportTicket"
-        }
-      }
-    },
-    "lazervaultGetSupportTicketsResponse": {
-      "type": "object",
-      "properties": {
-        "success": {
-          "type": "boolean"
-        },
-        "message": {
-          "type": "string"
-        },
-        "tickets": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/lazervaultSupportTicket"
-          }
-        },
-        "totalCount": {
-          "type": "integer",
-          "format": "int32"
-        },
-        "page": {
-          "type": "integer",
-          "format": "int32"
-        },
-        "pageSize": {
-          "type": "integer",
-          "format": "int32"
-        }
-      }
-    },
-    "lazervaultSubmitContactFormResponse": {
-      "type": "object",
-      "properties": {
-        "success": {
-          "type": "boolean"
-        },
-        "message": {
-          "type": "string"
-        },
-        "contactMessage": {
-          "$ref": "#/definitions/lazervaultContactMessage"
-        }
-      }
-    },
-    "lazervaultSupportTicket": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string"
-        },
-        "userId": {
-          "type": "integer",
-          "format": "int32"
-        },
-        "ticketNumber": {
-          "type": "string"
-        },
-        "category": {
-          "$ref": "#/definitions/lazervaultTicketCategory"
-        },
-        "subject": {
-          "type": "string"
-        },
-        "description": {
-          "type": "string"
-        },
-        "status": {
-          "$ref": "#/definitions/lazervaultTicketStatus"
-        },
-        "priority": {
-          "$ref": "#/definitions/lazervaultTicketPriority"
-        },
-        "createdAt": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "resolvedAt": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "replies": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/lazervaultTicketReply"
-          }
-        }
-      },
-      "title": "Messages"
-    },
-    "lazervaultTicketCategory": {
-      "type": "string",
-      "enum": [
-        "TICKET_CATEGORY_UNSPECIFIED",
-        "GENERAL_INQUIRY",
-        "TRANSACTION_ISSUE",
-        "ACCOUNT_PROBLEM",
-        "TECHNICAL_SUPPORT",
-        "SECURITY_CONCERN",
-        "OTHER"
-      ],
-      "default": "TICKET_CATEGORY_UNSPECIFIED",
-      "title": "Enums"
-    },
-    "lazervaultTicketPriority": {
-      "type": "string",
-      "enum": [
-        "TICKET_PRIORITY_UNSPECIFIED",
-        "LOW",
-        "MEDIUM",
-        "HIGH",
-        "URGENT"
-      ],
-      "default": "TICKET_PRIORITY_UNSPECIFIED"
-    },
-    "lazervaultTicketReply": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string"
-        },
-        "ticketId": {
-          "type": "string"
-        },
-        "userId": {
-          "type": "integer",
-          "format": "int32"
-        },
-        "message": {
-          "type": "string"
-        },
-        "isStaff": {
-          "type": "boolean"
-        },
-        "createdAt": {
-          "type": "string",
-          "format": "date-time"
-        }
-      }
-    },
-    "lazervaultTicketStatus": {
-      "type": "string",
-      "enum": [
-        "TICKET_STATUS_UNSPECIFIED",
-        "OPEN",
-        "IN_PROGRESS",
-        "WAITING_FOR_CUSTOMER",
-        "RESOLVED",
-        "CLOSED"
-      ],
-      "default": "TICKET_STATUS_UNSPECIFIED"
-    },
-    "lazervaultUpdateTicketStatusResponse": {
-      "type": "object",
-      "properties": {
-        "success": {
-          "type": "boolean"
-        },
-        "message": {
-          "type": "string"
-        },
-        "ticket": {
-          "$ref": "#/definitions/lazervaultSupportTicket"
-        }
-      }
-    },
     "pbAIChatHistoryEntry": {
       "type": "object",
       "properties": {
@@ -12685,20 +12260,6 @@
         }
       },
       "title": "AI Recommendation"
-    },
-    "pbAcceptMoneyRequestResponse": {
-      "type": "object",
-      "properties": {
-        "success": {
-          "type": "boolean"
-        },
-        "message": {
-          "type": "string"
-        },
-        "transaction": {
-          "$ref": "#/definitions/pbTagPayTransaction"
-        }
-      }
     },
     "pbAccountCard": {
       "type": "object",
@@ -12911,17 +12472,6 @@
       },
       "title": "AccountSummary: Used for listing accounts (e.g., in the carousel)"
     },
-    "pbAccountType": {
-      "type": "string",
-      "enum": [
-        "ACCOUNT_TYPE_PERSONAL",
-        "ACCOUNT_TYPE_SAVINGS",
-        "ACCOUNT_TYPE_INVESTMENT",
-        "ACCOUNT_TYPE_BUSINESS"
-      ],
-      "default": "ACCOUNT_TYPE_PERSONAL",
-      "title": "Account Type Enum"
-    },
     "pbActionStep": {
       "type": "object",
       "properties": {
@@ -12943,23 +12493,6 @@
         }
       },
       "title": "Action Step"
-    },
-    "pbAddInvoicePaymentMethodResponse": {
-      "type": "object",
-      "properties": {
-        "paymentMethod": {
-          "$ref": "#/definitions/pbPaymentMethod"
-        },
-        "success": {
-          "type": "boolean"
-        },
-        "message": {
-          "type": "string"
-        },
-        "verificationUrl": {
-          "type": "string"
-        }
-      }
     },
     "pbAddMemberResponse": {
       "type": "object",
@@ -13121,20 +12654,6 @@
         }
       },
       "title": "Anomaly Detection"
-    },
-    "pbApproveInvoicePaymentExtensionResponse": {
-      "type": "object",
-      "properties": {
-        "success": {
-          "type": "boolean"
-        },
-        "message": {
-          "type": "string"
-        },
-        "updatedRequest": {
-          "$ref": "#/definitions/pbPaymentExtensionRequest"
-        }
-      }
     },
     "pbAutoCategorizeExpenseRequest": {
       "type": "object",
@@ -13453,32 +12972,6 @@
         }
       },
       "title": "Auto-save transaction record"
-    },
-    "pbBalanceHistoryEntry": {
-      "type": "object",
-      "properties": {
-        "timestamp": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "balance": {
-          "type": "number",
-          "format": "double"
-        },
-        "changeAmount": {
-          "type": "number",
-          "format": "double"
-        },
-        "transactionType": {
-          "type": "string"
-        },
-        "description": {
-          "type": "string"
-        },
-        "reference": {
-          "type": "string"
-        }
-      }
     },
     "pbBatchRecipient": {
       "type": "object",
@@ -13963,21 +13456,6 @@
       ],
       "default": "BUDGET_STATUS_UNSPECIFIED"
     },
-    "pbBulkSetPaymentRemindersResponse": {
-      "type": "object",
-      "properties": {
-        "success": {
-          "type": "boolean"
-        },
-        "message": {
-          "type": "string"
-        },
-        "updatedCount": {
-          "type": "string",
-          "format": "uint64"
-        }
-      }
-    },
     "pbCalculateInterestRequest": {
       "type": "object",
       "properties": {
@@ -14029,24 +13507,6 @@
         }
       },
       "title": "Cancel card response"
-    },
-    "pbCancelInvoicePaymentResponse": {
-      "type": "object",
-      "properties": {
-        "success": {
-          "type": "boolean"
-        },
-        "message": {
-          "type": "string"
-        },
-        "newStatus": {
-          "$ref": "#/definitions/pbInvoicePaymentStatus"
-        },
-        "refundAmount": {
-          "type": "number",
-          "format": "double"
-        }
-      }
     },
     "pbCancelLockFundResponse": {
       "type": "object",
@@ -14395,23 +13855,6 @@
         },
         "hasPasscode": {
           "type": "boolean"
-        }
-      }
-    },
-    "pbCheckTagPayAvailabilityResponse": {
-      "type": "object",
-      "properties": {
-        "available": {
-          "type": "boolean"
-        },
-        "message": {
-          "type": "string"
-        },
-        "suggestions": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
         }
       }
     },
@@ -15880,34 +15323,6 @@
         }
       }
     },
-    "pbCreateTagPayResponse": {
-      "type": "object",
-      "properties": {
-        "success": {
-          "type": "boolean"
-        },
-        "message": {
-          "type": "string"
-        },
-        "tagPay": {
-          "$ref": "#/definitions/pbTagPay"
-        }
-      }
-    },
-    "pbCreateTagResponse": {
-      "type": "object",
-      "properties": {
-        "success": {
-          "type": "boolean"
-        },
-        "message": {
-          "type": "string"
-        },
-        "tag": {
-          "$ref": "#/definitions/pbUserTag"
-        }
-      }
-    },
     "pbCreateUserRequest": {
       "type": "object",
       "properties": {
@@ -16531,17 +15946,6 @@
         }
       }
     },
-    "pbDeclineMoneyRequestResponse": {
-      "type": "object",
-      "properties": {
-        "success": {
-          "type": "boolean"
-        },
-        "message": {
-          "type": "string"
-        }
-      }
-    },
     "pbDeleteAutoRechargeResponse": {
       "type": "object",
       "properties": {
@@ -16669,17 +16073,6 @@
       },
       "title": "Response to delete synced contacts"
     },
-    "pbDeleteTaggedInvoiceResponse": {
-      "type": "object",
-      "properties": {
-        "success": {
-          "type": "boolean"
-        },
-        "message": {
-          "type": "string"
-        }
-      }
-    },
     "pbDepositPaginationInfo": {
       "type": "object",
       "properties": {
@@ -16735,35 +16128,6 @@
           "format": "date-time"
         }
       }
-    },
-    "pbDisputeInvoicePaymentResponse": {
-      "type": "object",
-      "properties": {
-        "dispute": {
-          "$ref": "#/definitions/pbPaymentDispute"
-        },
-        "success": {
-          "type": "boolean"
-        },
-        "message": {
-          "type": "string"
-        },
-        "disputeId": {
-          "type": "string"
-        }
-      }
-    },
-    "pbDisputeStatus": {
-      "type": "string",
-      "enum": [
-        "DISPUTE_STATUS_PENDING",
-        "DISPUTE_STATUS_INVESTIGATING",
-        "DISPUTE_STATUS_RESOLVED",
-        "DISPUTE_STATUS_REJECTED",
-        "DISPUTE_STATUS_ESCALATED"
-      ],
-      "default": "DISPUTE_STATUS_PENDING",
-      "title": "Dispute Status Enum"
     },
     "pbDocumentType": {
       "type": "string",
@@ -16890,20 +16254,6 @@
         "createdAt": {
           "type": "string",
           "format": "date-time"
-        }
-      }
-    },
-    "pbEmailInvoicePaymentReceiptResponse": {
-      "type": "object",
-      "properties": {
-        "success": {
-          "type": "boolean"
-        },
-        "message": {
-          "type": "string"
-        },
-        "trackingId": {
-          "type": "string"
         }
       }
     },
@@ -17155,63 +16505,6 @@
       "description": "Analysis result for a single file.",
       "title": "File Analysis Result"
     },
-    "pbFilterTaggedInvoicesByAmountResponse": {
-      "type": "object",
-      "properties": {
-        "invoices": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/pbTaggedInvoice"
-          }
-        },
-        "nextPageToken": {
-          "type": "string"
-        },
-        "totalCount": {
-          "type": "string",
-          "format": "uint64"
-        }
-      }
-    },
-    "pbFilterTaggedInvoicesByDateRangeResponse": {
-      "type": "object",
-      "properties": {
-        "invoices": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/pbTaggedInvoice"
-          }
-        },
-        "nextPageToken": {
-          "type": "string"
-        },
-        "totalCount": {
-          "type": "string",
-          "format": "uint64"
-        }
-      }
-    },
-    "pbFilterTaggedInvoicesByPriorityResponse": {
-      "type": "object",
-      "properties": {
-        "invoices": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/pbTaggedInvoice"
-          }
-        },
-        "nextPageToken": {
-          "type": "string"
-        },
-        "totalCount": {
-          "type": "string",
-          "format": "uint64"
-        }
-      }
-    },
     "pbFinancialGoal": {
       "type": "object",
       "properties": {
@@ -17361,24 +16654,6 @@
       "properties": {
         "receipt": {
           "$ref": "#/definitions/pbCrowdfundReceiptMessage"
-        }
-      }
-    },
-    "pbGenerateInvoicePaymentReceiptResponse": {
-      "type": "object",
-      "properties": {
-        "receiptUrl": {
-          "type": "string"
-        },
-        "receiptData": {
-          "type": "string",
-          "format": "byte"
-        },
-        "message": {
-          "type": "string"
-        },
-        "success": {
-          "type": "boolean"
         }
       }
     },
@@ -17596,21 +16871,6 @@
         }
       },
       "title": "AI Spending Insights Response"
-    },
-    "pbGetAccountBalanceHistoryResponse": {
-      "type": "object",
-      "properties": {
-        "entries": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/pbBalanceHistoryEntry"
-          }
-        },
-        "nextPageToken": {
-          "type": "string"
-        }
-      }
     },
     "pbGetAccountDetailsResponse": {
       "type": "object",
@@ -18156,33 +17416,6 @@
         }
       }
     },
-    "pbGetCryptoInvoicePaymentStatusResponse": {
-      "type": "object",
-      "properties": {
-        "status": {
-          "type": "string"
-        },
-        "confirmations": {
-          "type": "integer",
-          "format": "int32"
-        },
-        "requiredConfirmations": {
-          "type": "integer",
-          "format": "int32"
-        },
-        "amount": {
-          "type": "number",
-          "format": "double"
-        },
-        "currency": {
-          "type": "string"
-        },
-        "timestamp": {
-          "type": "string",
-          "format": "date-time"
-        }
-      }
-    },
     "pbGetCryptoPriceHistoryResponse": {
       "type": "object",
       "properties": {
@@ -18197,25 +17430,6 @@
           "type": "string"
         },
         "range": {
-          "type": "string"
-        }
-      }
-    },
-    "pbGetCryptoWalletBalanceResponse": {
-      "type": "object",
-      "properties": {
-        "balance": {
-          "type": "number",
-          "format": "double"
-        },
-        "currency": {
-          "type": "string"
-        },
-        "lastUpdated": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "network": {
           "type": "string"
         }
       }
@@ -18693,122 +17907,6 @@
       },
       "title": "GetInvoiceByIdResponse represents a response containing a single invoice"
     },
-    "pbGetInvoicePaymentHistoryResponse": {
-      "type": "object",
-      "properties": {
-        "transactions": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/pbInvoicePaymentTransaction"
-          }
-        },
-        "nextPageToken": {
-          "type": "string"
-        },
-        "totalCount": {
-          "type": "string",
-          "format": "uint64"
-        }
-      }
-    },
-    "pbGetInvoicePaymentNotificationsResponse": {
-      "type": "object",
-      "properties": {
-        "notifications": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/pbInvoicePaymentNotification"
-          }
-        },
-        "nextPageToken": {
-          "type": "string"
-        },
-        "totalCount": {
-          "type": "string",
-          "format": "uint64"
-        },
-        "unreadCount": {
-          "type": "string",
-          "format": "uint64"
-        }
-      }
-    },
-    "pbGetInvoicePaymentReceiptResponse": {
-      "type": "object",
-      "properties": {
-        "receiptUrl": {
-          "type": "string"
-        },
-        "receiptData": {
-          "type": "string",
-          "format": "byte"
-        },
-        "generatedAt": {
-          "type": "string",
-          "format": "date-time"
-        }
-      }
-    },
-    "pbGetInvoicePaymentStatisticsResponse": {
-      "type": "object",
-      "properties": {
-        "totalPayments": {
-          "type": "string",
-          "format": "uint64"
-        },
-        "successfulPayments": {
-          "type": "string",
-          "format": "uint64"
-        },
-        "failedPayments": {
-          "type": "string",
-          "format": "uint64"
-        },
-        "totalAmount": {
-          "type": "number",
-          "format": "double"
-        },
-        "totalFees": {
-          "type": "number",
-          "format": "double"
-        },
-        "averagePaymentAmount": {
-          "type": "number",
-          "format": "double"
-        },
-        "paymentMethodUsage": {
-          "type": "object",
-          "additionalProperties": {
-            "type": "string",
-            "format": "uint64"
-          }
-        },
-        "successRate": {
-          "type": "number",
-          "format": "double"
-        }
-      }
-    },
-    "pbGetInvoicePaymentStatusResponse": {
-      "type": "object",
-      "properties": {
-        "transaction": {
-          "$ref": "#/definitions/pbInvoicePaymentTransaction"
-        },
-        "currentStatus": {
-          "$ref": "#/definitions/pbInvoicePaymentStatus"
-        },
-        "statusMessage": {
-          "type": "string"
-        },
-        "lastUpdated": {
-          "type": "string",
-          "format": "date-time"
-        }
-      }
-    },
     "pbGetInvoicesByStatusResponse": {
       "type": "object",
       "properties": {
@@ -19007,30 +18105,6 @@
         }
       }
     },
-    "pbGetMyTagsResponse": {
-      "type": "object",
-      "properties": {
-        "tags": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/pbUserTag"
-          }
-        },
-        "total": {
-          "type": "integer",
-          "format": "int32"
-        },
-        "page": {
-          "type": "integer",
-          "format": "int32"
-        },
-        "totalPages": {
-          "type": "integer",
-          "format": "int32"
-        }
-      }
-    },
     "pbGetOverdueContributionsResponse": {
       "type": "object",
       "properties": {
@@ -19058,29 +18132,6 @@
         },
         "msg": {
           "type": "string"
-        }
-      }
-    },
-    "pbGetOverdueTaggedInvoicesResponse": {
-      "type": "object",
-      "properties": {
-        "invoices": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/pbTaggedInvoice"
-          }
-        },
-        "nextPageToken": {
-          "type": "string"
-        },
-        "totalCount": {
-          "type": "string",
-          "format": "uint64"
-        },
-        "totalOverdueAmount": {
-          "type": "number",
-          "format": "double"
         }
       }
     },
@@ -19176,30 +18227,6 @@
             "type": "object",
             "$ref": "#/definitions/pbPayoutScheduleMessage"
           }
-        }
-      }
-    },
-    "pbGetPendingMoneyRequestsResponse": {
-      "type": "object",
-      "properties": {
-        "requests": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/pbMoneyRequest"
-          }
-        },
-        "total": {
-          "type": "integer",
-          "format": "int32"
-        },
-        "page": {
-          "type": "integer",
-          "format": "int32"
-        },
-        "totalPages": {
-          "type": "integer",
-          "format": "int32"
         }
       }
     },
@@ -19322,18 +18349,6 @@
       },
       "description": "List of recent international exchange transactions.",
       "title": "Get Recent Exchanges Response"
-    },
-    "pbGetRecentInvoicePaymentTransactionsResponse": {
-      "type": "object",
-      "properties": {
-        "transactions": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/pbInvoicePaymentTransaction"
-          }
-        }
-      }
     },
     "pbGetRecipientResponse": {
       "type": "object",
@@ -19526,101 +18541,6 @@
         }
       },
       "title": "Response with synced contacts"
-    },
-    "pbGetTagPayResponse": {
-      "type": "object",
-      "properties": {
-        "success": {
-          "type": "boolean"
-        },
-        "message": {
-          "type": "string"
-        },
-        "tagPay": {
-          "$ref": "#/definitions/pbTagPay"
-        }
-      }
-    },
-    "pbGetTagPayTransactionsResponse": {
-      "type": "object",
-      "properties": {
-        "transactions": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/pbTagPayTransaction"
-          }
-        },
-        "total": {
-          "type": "integer",
-          "format": "int32"
-        },
-        "page": {
-          "type": "integer",
-          "format": "int32"
-        },
-        "totalPages": {
-          "type": "integer",
-          "format": "int32"
-        }
-      }
-    },
-    "pbGetTaggedInvoiceByIdResponse": {
-      "type": "object",
-      "properties": {
-        "invoice": {
-          "$ref": "#/definitions/pbTaggedInvoice"
-        }
-      }
-    },
-    "pbGetTaggedInvoiceStatisticsResponse": {
-      "type": "object",
-      "properties": {
-        "statistics": {
-          "$ref": "#/definitions/pbTaggedInvoiceStatistics"
-        }
-      }
-    },
-    "pbGetTaggedInvoicesByStatusResponse": {
-      "type": "object",
-      "properties": {
-        "invoices": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/pbTaggedInvoice"
-          }
-        },
-        "nextPageToken": {
-          "type": "string"
-        },
-        "totalCount": {
-          "type": "string",
-          "format": "uint64"
-        }
-      }
-    },
-    "pbGetTaggedInvoicesResponse": {
-      "type": "object",
-      "properties": {
-        "invoices": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/pbTaggedInvoice"
-          }
-        },
-        "nextPageToken": {
-          "type": "string"
-        },
-        "totalCount": {
-          "type": "string",
-          "format": "uint64"
-        },
-        "summary": {
-          "$ref": "#/definitions/pbTaggedInvoicesSummary"
-        }
-      }
     },
     "pbGetTopCryptosResponse": {
       "type": "object",
@@ -19895,44 +18815,6 @@
         }
       }
     },
-    "pbGetUpcomingTaggedInvoicesResponse": {
-      "type": "object",
-      "properties": {
-        "invoices": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/pbTaggedInvoice"
-          }
-        },
-        "nextPageToken": {
-          "type": "string"
-        },
-        "totalCount": {
-          "type": "string",
-          "format": "uint64"
-        }
-      }
-    },
-    "pbGetUserAccountBalanceResponse": {
-      "type": "object",
-      "properties": {
-        "accounts": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/pbUserAccountBalance"
-          }
-        },
-        "totalBalance": {
-          "type": "number",
-          "format": "double"
-        },
-        "primaryCurrency": {
-          "type": "string"
-        }
-      }
-    },
     "pbGetUserAccountsResponse": {
       "type": "object",
       "properties": {
@@ -20066,21 +18948,6 @@
         },
         "msg": {
           "type": "string"
-        }
-      }
-    },
-    "pbGetUserInvoicePaymentMethodsResponse": {
-      "type": "object",
-      "properties": {
-        "paymentMethods": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/pbPaymentMethod"
-          }
-        },
-        "defaultMethod": {
-          "$ref": "#/definitions/pbPaymentMethod"
         }
       }
     },
@@ -21744,165 +20611,6 @@
       },
       "title": "InvoiceItem represents a line item in an invoice"
     },
-    "pbInvoicePaymentNotification": {
-      "type": "object",
-      "properties": {
-        "notificationId": {
-          "type": "string"
-        },
-        "invoiceId": {
-          "type": "string"
-        },
-        "userId": {
-          "type": "string"
-        },
-        "notificationType": {
-          "type": "string"
-        },
-        "title": {
-          "type": "string"
-        },
-        "message": {
-          "type": "string"
-        },
-        "isRead": {
-          "type": "boolean"
-        },
-        "createdAt": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "readAt": {
-          "type": "string",
-          "format": "date-time"
-        }
-      },
-      "title": "Invoice Payment Notification Message"
-    },
-    "pbInvoicePaymentResult": {
-      "type": "object",
-      "properties": {
-        "success": {
-          "type": "boolean"
-        },
-        "transactionId": {
-          "type": "string"
-        },
-        "paymentReference": {
-          "type": "string"
-        },
-        "errorMessage": {
-          "type": "string"
-        },
-        "status": {
-          "$ref": "#/definitions/pbInvoicePaymentStatus"
-        },
-        "processedAt": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "amountProcessed": {
-          "type": "number",
-          "format": "double"
-        },
-        "feeAmount": {
-          "type": "number",
-          "format": "double"
-        },
-        "receiptUrl": {
-          "type": "string"
-        },
-        "confirmationCode": {
-          "type": "string"
-        }
-      },
-      "title": "Invoice Payment Result Message"
-    },
-    "pbInvoicePaymentStatus": {
-      "type": "string",
-      "enum": [
-        "INVOICE_PAYMENT_STATUS_PENDING",
-        "INVOICE_PAYMENT_STATUS_PROCESSING",
-        "INVOICE_PAYMENT_STATUS_COMPLETED",
-        "INVOICE_PAYMENT_STATUS_FAILED",
-        "INVOICE_PAYMENT_STATUS_CANCELLED",
-        "INVOICE_PAYMENT_STATUS_PARTIALLY_PAID",
-        "INVOICE_PAYMENT_STATUS_REFUNDED",
-        "INVOICE_PAYMENT_STATUS_DISPUTED",
-        "INVOICE_PAYMENT_STATUS_OVERDUE"
-      ],
-      "default": "INVOICE_PAYMENT_STATUS_PENDING",
-      "title": "Invoice Payment Status Enum - comprehensive status for all invoice payment scenarios"
-    },
-    "pbInvoicePaymentTransaction": {
-      "type": "object",
-      "properties": {
-        "transactionId": {
-          "type": "string"
-        },
-        "invoiceId": {
-          "type": "string"
-        },
-        "userId": {
-          "type": "string"
-        },
-        "amount": {
-          "type": "number",
-          "format": "double"
-        },
-        "currency": {
-          "type": "string"
-        },
-        "paymentMethod": {
-          "$ref": "#/definitions/pbPaymentMethodType"
-        },
-        "status": {
-          "$ref": "#/definitions/pbInvoicePaymentStatus"
-        },
-        "createdAt": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "processedAt": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "reference": {
-          "type": "string"
-        },
-        "description": {
-          "type": "string"
-        },
-        "feeAmount": {
-          "type": "number",
-          "format": "double"
-        },
-        "metadata": {
-          "type": "object",
-          "additionalProperties": {
-            "type": "string"
-          }
-        },
-        "paymentProcessorId": {
-          "type": "string"
-        },
-        "receiptUrl": {
-          "type": "string"
-        }
-      },
-      "title": "Invoice Payment Transaction Message"
-    },
-    "pbInvoicePriority": {
-      "type": "string",
-      "enum": [
-        "INVOICE_PRIORITY_LOW",
-        "INVOICE_PRIORITY_MEDIUM",
-        "INVOICE_PRIORITY_HIGH",
-        "INVOICE_PRIORITY_URGENT"
-      ],
-      "default": "INVOICE_PRIORITY_LOW",
-      "title": "Invoice Priority Enum"
-    },
     "pbInvoiceUserResult": {
       "type": "object",
       "properties": {
@@ -22360,38 +21068,9 @@
       },
       "title": "MarkInvoiceAsPaidResponse represents a response containing the updated invoice"
     },
-    "pbMarkMultipleInvoicesAsViewedResponse": {
-      "type": "object",
-      "properties": {
-        "success": {
-          "type": "boolean"
-        },
-        "message": {
-          "type": "string"
-        },
-        "updatedCount": {
-          "type": "string",
-          "format": "uint64"
-        }
-      }
-    },
     "pbMarkReminderCompleteResponse": {
       "type": "object",
       "properties": {
-        "message": {
-          "type": "string"
-        }
-      }
-    },
-    "pbMarkTaggedInvoiceAsViewedResponse": {
-      "type": "object",
-      "properties": {
-        "invoice": {
-          "$ref": "#/definitions/pbTaggedInvoice"
-        },
-        "success": {
-          "type": "boolean"
-        },
         "message": {
           "type": "string"
         }
@@ -22454,69 +21133,6 @@
       "default": "TEXT",
       "description": "- FILE: Add other types if needed, e.g., AUDIO, PAYMENT_REQUEST",
       "title": "Enum for different message types"
-    },
-    "pbMoneyRequest": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string"
-        },
-        "requesterId": {
-          "type": "string"
-        },
-        "requesterTagPay": {
-          "type": "string"
-        },
-        "requesterName": {
-          "type": "string"
-        },
-        "requesteeId": {
-          "type": "string"
-        },
-        "requesteeTagPay": {
-          "type": "string"
-        },
-        "requesteeName": {
-          "type": "string"
-        },
-        "amount": {
-          "type": "number",
-          "format": "double"
-        },
-        "currency": {
-          "type": "string"
-        },
-        "description": {
-          "type": "string"
-        },
-        "status": {
-          "$ref": "#/definitions/pbMoneyRequestStatus"
-        },
-        "createdAt": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "respondedAt": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "expiresAt": {
-          "type": "string",
-          "format": "date-time"
-        }
-      },
-      "title": "Money Request Entity"
-    },
-    "pbMoneyRequestStatus": {
-      "type": "string",
-      "enum": [
-        "MONEY_REQUEST_STATUS_PENDING",
-        "MONEY_REQUEST_STATUS_ACCEPTED",
-        "MONEY_REQUEST_STATUS_DECLINED",
-        "MONEY_REQUEST_STATUS_EXPIRED",
-        "MONEY_REQUEST_STATUS_CANCELLED"
-      ],
-      "default": "MONEY_REQUEST_STATUS_PENDING"
     },
     "pbMonthlyData": {
       "type": "object",
@@ -22632,110 +21248,6 @@
         }
       }
     },
-    "pbPayTagResponse": {
-      "type": "object",
-      "properties": {
-        "success": {
-          "type": "boolean"
-        },
-        "message": {
-          "type": "string"
-        },
-        "transaction": {
-          "$ref": "#/definitions/pbTagPayTransaction"
-        }
-      }
-    },
-    "pbPaymentDispute": {
-      "type": "object",
-      "properties": {
-        "disputeId": {
-          "type": "string"
-        },
-        "transactionId": {
-          "type": "string"
-        },
-        "invoiceId": {
-          "type": "string"
-        },
-        "userId": {
-          "type": "string"
-        },
-        "reason": {
-          "type": "string"
-        },
-        "description": {
-          "type": "string"
-        },
-        "status": {
-          "$ref": "#/definitions/pbDisputeStatus"
-        },
-        "amount": {
-          "type": "number",
-          "format": "double"
-        },
-        "currency": {
-          "type": "string"
-        },
-        "createdAt": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "resolvedAt": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "resolution": {
-          "type": "string"
-        },
-        "evidenceFiles": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        }
-      },
-      "title": "Payment Dispute Message"
-    },
-    "pbPaymentExtensionRequest": {
-      "type": "object",
-      "properties": {
-        "extensionId": {
-          "type": "string"
-        },
-        "invoiceId": {
-          "type": "string"
-        },
-        "userId": {
-          "type": "string"
-        },
-        "newDueDate": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "reason": {
-          "type": "string"
-        },
-        "status": {
-          "type": "string"
-        },
-        "requestedAt": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "approvedAt": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "approvedBy": {
-          "type": "string"
-        },
-        "rejectionReason": {
-          "type": "string"
-        }
-      },
-      "title": "Payment Extension Request Message"
-    },
     "pbPaymentMethod": {
       "type": "object",
       "properties": {
@@ -22826,25 +21338,6 @@
           "type": "boolean"
         }
       }
-    },
-    "pbPaymentReminder": {
-      "type": "object",
-      "properties": {
-        "invoiceId": {
-          "type": "string"
-        },
-        "userId": {
-          "type": "string"
-        },
-        "reminderDate": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "status": {
-          "type": "string"
-        }
-      },
-      "title": "Payment Reminder Message"
     },
     "pbPaymentStatus": {
       "type": "string",
@@ -23298,72 +21791,6 @@
       },
       "description": "Contains the AI chatbot's response along with status.",
       "title": "AI Process Chat Response"
-    },
-    "pbProcessCryptoInvoicePaymentResponse": {
-      "type": "object",
-      "properties": {
-        "success": {
-          "type": "boolean"
-        },
-        "transactionId": {
-          "type": "string"
-        },
-        "confirmationStatus": {
-          "type": "string"
-        },
-        "confirmationsRequired": {
-          "type": "integer",
-          "format": "int32"
-        },
-        "currentConfirmations": {
-          "type": "integer",
-          "format": "int32"
-        },
-        "message": {
-          "type": "string"
-        }
-      }
-    },
-    "pbProcessInvoicePaymentResponse": {
-      "type": "object",
-      "properties": {
-        "result": {
-          "$ref": "#/definitions/pbInvoicePaymentResult"
-        },
-        "message": {
-          "type": "string"
-        },
-        "success": {
-          "type": "boolean"
-        },
-        "nextAction": {
-          "type": "string"
-        },
-        "additionalData": {
-          "type": "object",
-          "additionalProperties": {
-            "type": "string"
-          }
-        }
-      }
-    },
-    "pbProcessPartialInvoicePaymentResponse": {
-      "type": "object",
-      "properties": {
-        "result": {
-          "$ref": "#/definitions/pbInvoicePaymentResult"
-        },
-        "remainingAmount": {
-          "type": "number",
-          "format": "double"
-        },
-        "message": {
-          "type": "string"
-        },
-        "success": {
-          "type": "boolean"
-        }
-      }
     },
     "pbProcessPaymentResponse": {
       "type": "object",
@@ -24001,17 +22428,6 @@
         }
       }
     },
-    "pbRemoveInvoicePaymentMethodResponse": {
-      "type": "object",
-      "properties": {
-        "success": {
-          "type": "boolean"
-        },
-        "message": {
-          "type": "string"
-        }
-      }
-    },
     "pbRemoveMemberResponse": {
       "type": "object",
       "properties": {
@@ -24068,37 +22484,6 @@
       },
       "description": "Response for requesting email verification."
     },
-    "pbRequestInvoicePaymentExtensionResponse": {
-      "type": "object",
-      "properties": {
-        "extensionRequest": {
-          "$ref": "#/definitions/pbPaymentExtensionRequest"
-        },
-        "success": {
-          "type": "boolean"
-        },
-        "message": {
-          "type": "string"
-        },
-        "requestId": {
-          "type": "string"
-        }
-      }
-    },
-    "pbRequestMoneyTagPayResponse": {
-      "type": "object",
-      "properties": {
-        "success": {
-          "type": "boolean"
-        },
-        "message": {
-          "type": "string"
-        },
-        "moneyRequest": {
-          "$ref": "#/definitions/pbMoneyRequest"
-        }
-      }
-    },
     "pbRequestPasswordResetRequest": {
       "type": "object",
       "properties": {
@@ -24128,20 +22513,6 @@
         }
       },
       "description": "Response for requesting password reset."
-    },
-    "pbRequestTaggedInvoiceDetailsResponse": {
-      "type": "object",
-      "properties": {
-        "success": {
-          "type": "boolean"
-        },
-        "message": {
-          "type": "string"
-        },
-        "requestId": {
-          "type": "string"
-        }
-      }
     },
     "pbResetPasswordRequest": {
       "type": "object",
@@ -24178,23 +22549,6 @@
         }
       },
       "description": "Response for resetting password."
-    },
-    "pbResolveInvoicePaymentDisputeResponse": {
-      "type": "object",
-      "properties": {
-        "success": {
-          "type": "boolean"
-        },
-        "message": {
-          "type": "string"
-        },
-        "updatedDispute": {
-          "$ref": "#/definitions/pbPaymentDispute"
-        },
-        "refundTransactionId": {
-          "type": "string"
-        }
-      }
     },
     "pbResumeAutoRechargeResponse": {
       "type": "object",
@@ -24398,53 +22752,6 @@
         }
       }
     },
-    "pbSearchTagPayResponse": {
-      "type": "object",
-      "properties": {
-        "results": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/pbTagPay"
-          }
-        },
-        "total": {
-          "type": "integer",
-          "format": "int32"
-        }
-      }
-    },
-    "pbSearchTaggedInvoicesResponse": {
-      "type": "object",
-      "properties": {
-        "invoices": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/pbTaggedInvoice"
-          }
-        },
-        "nextPageToken": {
-          "type": "string"
-        },
-        "totalCount": {
-          "type": "string",
-          "format": "uint64"
-        }
-      }
-    },
-    "pbSearchUsersForTagResponse": {
-      "type": "object",
-      "properties": {
-        "users": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/pbUserSearchResult"
-          }
-        }
-      }
-    },
     "pbSearchUsersResponse": {
       "type": "object",
       "properties": {
@@ -24525,20 +22832,6 @@
       "description": "Contains the details of the successfully sent message.",
       "title": "Send Message Response"
     },
-    "pbSendMoneyTagPayResponse": {
-      "type": "object",
-      "properties": {
-        "success": {
-          "type": "boolean"
-        },
-        "message": {
-          "type": "string"
-        },
-        "transaction": {
-          "$ref": "#/definitions/pbTagPayTransaction"
-        }
-      }
-    },
     "pbSession": {
       "type": "object",
       "properties": {
@@ -24573,20 +22866,6 @@
         }
       },
       "title": "Set default card response"
-    },
-    "pbSetInvoicePaymentReminderResponse": {
-      "type": "object",
-      "properties": {
-        "reminder": {
-          "$ref": "#/definitions/pbPaymentReminder"
-        },
-        "success": {
-          "type": "boolean"
-        },
-        "message": {
-          "type": "string"
-        }
-      }
     },
     "pbSetPasscodeRequest": {
       "type": "object",
@@ -24750,7 +23029,12 @@
     },
     "pbStartVoiceSessionRequest": {
       "type": "object",
-      "title": "Potentially add a field if Flutter needs to pass any specific parameters\n for session setup, though user identity is derived from auth token.\n string preferred_agent_language = 1;"
+      "properties": {
+        "serviceName": {
+          "type": "string",
+          "title": "Service name to route the voice session to the correct agent"
+        }
+      }
     },
     "pbStartVoiceSessionResponse": {
       "type": "object",
@@ -24766,6 +23050,15 @@
         "agentId": {
           "type": "string",
           "description": "An identifier for the agent (optional, could be fixed)."
+        },
+        "agentUrl": {
+          "type": "string",
+          "title": "URL of the voice agent"
+        },
+        "agentPort": {
+          "type": "integer",
+          "format": "int32",
+          "title": "Port number of the voice agent"
         }
       }
     },
@@ -25172,125 +23465,6 @@
       },
       "title": "SyncedContact represents a contact synced to the backend"
     },
-    "pbTagPay": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string"
-        },
-        "userId": {
-          "type": "string"
-        },
-        "tagPay": {
-          "type": "string",
-          "title": "e.g., \"johndoe\" (username)"
-        },
-        "displayName": {
-          "type": "string"
-        },
-        "avatarUrl": {
-          "type": "string"
-        },
-        "isActive": {
-          "type": "boolean"
-        },
-        "createdAt": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "format": "date-time"
-        }
-      },
-      "title": "Tag Pay Entity"
-    },
-    "pbTagPayTransaction": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string"
-        },
-        "senderId": {
-          "type": "string"
-        },
-        "senderTagPay": {
-          "type": "string"
-        },
-        "senderName": {
-          "type": "string"
-        },
-        "receiverId": {
-          "type": "string"
-        },
-        "receiverTagPay": {
-          "type": "string"
-        },
-        "receiverName": {
-          "type": "string"
-        },
-        "amount": {
-          "type": "number",
-          "format": "double"
-        },
-        "currency": {
-          "type": "string"
-        },
-        "description": {
-          "type": "string"
-        },
-        "status": {
-          "$ref": "#/definitions/pbTagPayTransactionStatus"
-        },
-        "type": {
-          "$ref": "#/definitions/pbTagPayTransactionType"
-        },
-        "referenceNumber": {
-          "type": "string"
-        },
-        "createdAt": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "completedAt": {
-          "type": "string",
-          "format": "date-time"
-        }
-      },
-      "title": "Tag Pay Transaction"
-    },
-    "pbTagPayTransactionStatus": {
-      "type": "string",
-      "enum": [
-        "TAG_PAY_TRANSACTION_STATUS_PENDING",
-        "TAG_PAY_TRANSACTION_STATUS_PROCESSING",
-        "TAG_PAY_TRANSACTION_STATUS_COMPLETED",
-        "TAG_PAY_TRANSACTION_STATUS_FAILED",
-        "TAG_PAY_TRANSACTION_STATUS_CANCELLED",
-        "TAG_PAY_TRANSACTION_STATUS_REFUNDED"
-      ],
-      "default": "TAG_PAY_TRANSACTION_STATUS_PENDING",
-      "title": "Enums"
-    },
-    "pbTagPayTransactionType": {
-      "type": "string",
-      "enum": [
-        "TAG_PAY_TRANSACTION_TYPE_SEND",
-        "TAG_PAY_TRANSACTION_TYPE_RECEIVE",
-        "TAG_PAY_TRANSACTION_TYPE_REQUEST",
-        "TAG_PAY_TRANSACTION_TYPE_REQUEST_FULFILLED"
-      ],
-      "default": "TAG_PAY_TRANSACTION_TYPE_SEND"
-    },
-    "pbTagStatus": {
-      "type": "string",
-      "enum": [
-        "TAG_STATUS_PENDING",
-        "TAG_STATUS_PAID",
-        "TAG_STATUS_CANCELLED"
-      ],
-      "default": "TAG_STATUS_PENDING"
-    },
     "pbTagUsersToInvoiceResponse": {
       "type": "object",
       "properties": {
@@ -25320,140 +23494,6 @@
         }
       },
       "title": "TagUsersToInvoiceResponse represents a response after tagging users"
-    },
-    "pbTaggedInvoice": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string"
-        },
-        "invoiceId": {
-          "type": "string"
-        },
-        "userId": {
-          "type": "string"
-        },
-        "paymentStatus": {
-          "$ref": "#/definitions/pbInvoicePaymentStatus"
-        },
-        "priority": {
-          "$ref": "#/definitions/pbInvoicePriority"
-        },
-        "isViewed": {
-          "type": "boolean"
-        },
-        "taggedAt": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "viewedAt": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "reminderDate": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "reminderSent": {
-          "type": "boolean"
-        },
-        "notes": {
-          "type": "string"
-        },
-        "amount": {
-          "type": "number",
-          "format": "double"
-        },
-        "currency": {
-          "type": "string"
-        },
-        "createdAt": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "format": "date-time"
-        }
-      },
-      "title": "Tagged Invoice Message"
-    },
-    "pbTaggedInvoiceStatistics": {
-      "type": "object",
-      "properties": {
-        "totalInvoices": {
-          "type": "string",
-          "format": "uint64"
-        },
-        "pendingInvoices": {
-          "type": "string",
-          "format": "uint64"
-        },
-        "overdueInvoices": {
-          "type": "string",
-          "format": "uint64"
-        },
-        "completedInvoices": {
-          "type": "string",
-          "format": "uint64"
-        },
-        "totalAmount": {
-          "type": "number",
-          "format": "double"
-        },
-        "pendingAmount": {
-          "type": "number",
-          "format": "double"
-        },
-        "overdueAmount": {
-          "type": "number",
-          "format": "double"
-        },
-        "completedAmount": {
-          "type": "number",
-          "format": "double"
-        },
-        "averageAmount": {
-          "type": "number",
-          "format": "double"
-        },
-        "mostCommonPriority": {
-          "$ref": "#/definitions/pbInvoicePriority"
-        }
-      }
-    },
-    "pbTaggedInvoicesSummary": {
-      "type": "object",
-      "properties": {
-        "totalInvoices": {
-          "type": "string",
-          "format": "uint64"
-        },
-        "pendingInvoices": {
-          "type": "string",
-          "format": "uint64"
-        },
-        "overdueInvoices": {
-          "type": "string",
-          "format": "uint64"
-        },
-        "paidInvoices": {
-          "type": "string",
-          "format": "uint64"
-        },
-        "totalAmount": {
-          "type": "number",
-          "format": "double"
-        },
-        "pendingAmount": {
-          "type": "number",
-          "format": "double"
-        },
-        "overdueAmount": {
-          "type": "number",
-          "format": "double"
-        }
-      }
     },
     "pbTimePeriod": {
       "type": "string",
@@ -25735,24 +23775,6 @@
         },
         "updatedAt": {
           "type": "string"
-        }
-      }
-    },
-    "pbTransferFundsForInvoicePaymentResponse": {
-      "type": "object",
-      "properties": {
-        "success": {
-          "type": "boolean"
-        },
-        "transactionId": {
-          "type": "string"
-        },
-        "message": {
-          "type": "string"
-        },
-        "newBalance": {
-          "type": "number",
-          "format": "double"
         }
       }
     },
@@ -26064,20 +24086,6 @@
         }
       }
     },
-    "pbUpdateInvoicePaymentMethodResponse": {
-      "type": "object",
-      "properties": {
-        "paymentMethod": {
-          "$ref": "#/definitions/pbPaymentMethod"
-        },
-        "success": {
-          "type": "boolean"
-        },
-        "message": {
-          "type": "string"
-        }
-      }
-    },
     "pbUpdateInvoiceResponse": {
       "type": "object",
       "properties": {
@@ -26239,20 +24247,6 @@
       },
       "title": "Response to update sync preferences"
     },
-    "pbUpdateTaggedInvoiceStatusResponse": {
-      "type": "object",
-      "properties": {
-        "invoice": {
-          "$ref": "#/definitions/pbTaggedInvoice"
-        },
-        "success": {
-          "type": "boolean"
-        },
-        "message": {
-          "type": "string"
-        }
-      }
-    },
     "pbUpdateUserProfileRequest": {
       "type": "object",
       "properties": {
@@ -26382,46 +24376,6 @@
       },
       "title": "Base user type"
     },
-    "pbUserAccountBalance": {
-      "type": "object",
-      "properties": {
-        "userId": {
-          "type": "string"
-        },
-        "currency": {
-          "type": "string"
-        },
-        "availableBalance": {
-          "type": "number",
-          "format": "double"
-        },
-        "pendingBalance": {
-          "type": "number",
-          "format": "double"
-        },
-        "totalBalance": {
-          "type": "number",
-          "format": "double"
-        },
-        "accountType": {
-          "$ref": "#/definitions/pbAccountType"
-        },
-        "accountNumber": {
-          "type": "string"
-        },
-        "lastUpdated": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "accountName": {
-          "type": "string"
-        },
-        "isPrimary": {
-          "type": "boolean"
-        }
-      },
-      "title": "User Account Balance Message"
-    },
     "pbUserPreferences": {
       "type": "object",
       "properties": {
@@ -26485,79 +24439,6 @@
         }
       }
     },
-    "pbUserSearchResult": {
-      "type": "object",
-      "properties": {
-        "userId": {
-          "type": "string"
-        },
-        "username": {
-          "type": "string"
-        },
-        "firstName": {
-          "type": "string"
-        },
-        "lastName": {
-          "type": "string"
-        },
-        "email": {
-          "type": "string"
-        },
-        "profilePicture": {
-          "type": "string"
-        }
-      }
-    },
-    "pbUserTag": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string"
-        },
-        "taggerId": {
-          "type": "string",
-          "title": "User who created the tag"
-        },
-        "taggerTagPay": {
-          "type": "string"
-        },
-        "taggerName": {
-          "type": "string"
-        },
-        "taggedUserId": {
-          "type": "string",
-          "title": "User who was tagged"
-        },
-        "taggedUserTagPay": {
-          "type": "string"
-        },
-        "taggedUserName": {
-          "type": "string"
-        },
-        "amount": {
-          "type": "number",
-          "format": "double"
-        },
-        "currency": {
-          "type": "string"
-        },
-        "description": {
-          "type": "string"
-        },
-        "status": {
-          "$ref": "#/definitions/pbTagStatus"
-        },
-        "createdAt": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "paidAt": {
-          "type": "string",
-          "format": "date-time"
-        }
-      },
-      "title": "User Tag Entity - Simple tag system"
-    },
     "pbUserVerifyFaceRequest": {
       "type": "object",
       "properties": {
@@ -26582,63 +24463,6 @@
         "confidence": {
           "type": "number",
           "format": "float"
-        }
-      }
-    },
-    "pbValidateCryptoWalletResponse": {
-      "type": "object",
-      "properties": {
-        "isValid": {
-          "type": "boolean"
-        },
-        "validationMessage": {
-          "type": "string"
-        },
-        "isContract": {
-          "type": "boolean"
-        },
-        "walletType": {
-          "type": "string"
-        }
-      }
-    },
-    "pbValidateInvoicePaymentMethodResponse": {
-      "type": "object",
-      "properties": {
-        "isValid": {
-          "type": "boolean"
-        },
-        "validationMessage": {
-          "type": "string"
-        },
-        "validatedAt": {
-          "type": "string",
-          "format": "date-time"
-        }
-      }
-    },
-    "pbValidateInvoicePaymentResponse": {
-      "type": "object",
-      "properties": {
-        "isValid": {
-          "type": "boolean"
-        },
-        "validationMessage": {
-          "type": "string"
-        },
-        "errors": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "availableBalance": {
-          "type": "number",
-          "format": "double"
-        },
-        "paymentFees": {
-          "type": "number",
-          "format": "double"
         }
       }
     },

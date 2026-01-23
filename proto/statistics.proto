@@ -270,6 +270,14 @@ service StatisticsService {
       get: "/v1/statistics/comprehensive/summary"
     };
   }
+
+  // Financial Wrapped Experience
+  rpc GetFinancialWrapped(GetFinancialWrappedRequest) returns (GetFinancialWrappedResponse) {
+    option (google.api.http) = {
+      post: "/v1/statistics/wrapped"
+      body: "*"
+    };
+  }
 }
 
 // ========================================
@@ -1280,4 +1288,126 @@ message ComprehensiveExpenditureData {
   double tracked_expenditure = 2; // from expenditure_transactions table (automatic tracking)
   double total_expenditure = 3;
   map<string, double> expenditure_breakdown = 4; // breakdown by expense type
+}
+
+// ========================================
+// FINANCIAL WRAPPED MESSAGES
+// ========================================
+
+enum WrappedPeriod {
+  WRAPPED_PERIOD_UNSPECIFIED = 0;
+  WRAPPED_PERIOD_MONTHLY = 1;
+  WRAPPED_PERIOD_YEARLY = 2;
+}
+
+// Financial Wrapped Request
+message GetFinancialWrappedRequest {
+  WrappedPeriod period = 1;
+  int32 year = 2;
+  int32 month = 3; // only used for monthly wrapped
+}
+
+// Financial Wrapped Response
+message GetFinancialWrappedResponse {
+  bool success = 1;
+  FinancialWrapped wrapped = 2;
+  string error = 3;
+}
+
+// Main Financial Wrapped container
+message FinancialWrapped {
+  WrappedPeriod period = 1;
+  int32 year = 2;
+  int32 month = 3;
+  google.protobuf.Timestamp period_start = 4;
+  google.protobuf.Timestamp period_end = 5;
+  WrappedSummary summary = 6;
+  repeated WrappedCategoryRanking top_categories = 7;
+  repeated WrappedMerchantRanking top_merchants = 8;
+  WrappedTrends trends = 9;
+  WrappedAIInsights ai_insights = 10;
+  repeated WrappedFunFact fun_facts = 11;
+  repeated WrappedAchievement achievements = 12;
+}
+
+// Summary stats for the period
+message WrappedSummary {
+  double total_spent = 1;
+  double total_earned = 2;
+  double total_saved = 3;
+  double savings_rate = 4; // percentage
+  int32 transaction_count = 5;
+  double average_transaction = 6;
+  string biggest_spending_day = 7;
+  double biggest_spending_day_amount = 8;
+  string most_active_day_of_week = 9;
+}
+
+// Category ranking for wrapped
+message WrappedCategoryRanking {
+  int32 rank = 1;
+  ExpenseCategory category = 2;
+  string category_name = 3;
+  double amount = 4;
+  double percentage = 5;
+  int32 transaction_count = 6;
+  string trend = 7; // "up", "down", "stable"
+  double trend_percentage = 8;
+  string emoji = 9;
+}
+
+// Merchant ranking for wrapped
+message WrappedMerchantRanking {
+  int32 rank = 1;
+  string merchant_name = 2;
+  double amount = 3;
+  int32 visit_count = 4;
+  double percentage = 5;
+  string category = 6;
+  string emoji = 7;
+}
+
+// Trends over the period
+message WrappedTrends {
+  repeated WrappedMonthlyTrend monthly_trends = 1;
+  repeated string improving_categories = 2;
+  repeated string watch_categories = 3;
+  double spending_trend_percentage = 4; // positive = spending increased
+  string spending_trend_description = 5;
+}
+
+// Monthly trend data point
+message WrappedMonthlyTrend {
+  string month_label = 1;
+  double amount = 2;
+  int32 transaction_count = 3;
+}
+
+// AI-generated insights
+message WrappedAIInsights {
+  string overall_summary = 1;
+  repeated string personality_traits = 2;
+  string financial_persona = 3;
+  string spending_style = 4;
+  repeated string personalized_insights = 5;
+  string encouragement = 6;
+}
+
+// Fun facts and comparisons
+message WrappedFunFact {
+  string emoji = 1;
+  string title = 2;
+  string description = 3;
+  string comparison = 4;
+}
+
+// Achievements/badges earned
+message WrappedAchievement {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  string emoji = 4;
+  string tier = 5; // "bronze", "silver", "gold", "platinum"
+  bool unlocked = 6;
+  double progress = 7; // 0-100
 }

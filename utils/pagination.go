@@ -11,9 +11,9 @@ import (
 
 // PaginationParams holds pagination parameters
 type PaginationParams struct {
-	Page     int `json:"page"`
-	PageSize int `json:"page_size"`
-	SortBy   string `json:"sort_by"`
+	Page      int    `json:"page"`
+	PageSize  int    `json:"page_size"`
+	SortBy    string `json:"sort_by"`
 	SortOrder string `json:"sort_order"`
 }
 
@@ -194,7 +194,7 @@ type CursorPaginatedResponse struct {
 
 // SearchParams holds search and filter parameters
 type SearchParams struct {
-	Query  string            `json:"query"`
+	Query   string                 `json:"query"`
 	Filters map[string]interface{} `json:"filters"`
 	*PaginationParams
 }
@@ -244,7 +244,7 @@ func ApplyFilters(db *gorm.DB, filters map[string]interface{}) *gorm.DB {
 			db = db.Where("user_id = ?", value)
 		case "is_active":
 			db = db.Where("is_active = ?", value)
-		// Add more custom filters as needed
+			// Add more custom filters as needed
 		}
 	}
 

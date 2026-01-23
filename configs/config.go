@@ -31,9 +31,9 @@ type Config struct {
 	EmailSenderAddress       string        `mapstructure:"EMAIL_SENDER_ADDRESS"`
 	EmailSenderPassword      string        `mapstructure:"EMAIL_SENDER_PASSWORD"`
 	// SMTP Config (Mailgun, Gmail, etc.)
-	SMTPHost                 string        `mapstructure:"SMTP_HOST"`               // e.g., smtp.mailgun.org
-	SMTPPort                 string        `mapstructure:"SMTP_PORT"`               // e.g., 587
-	SMTPAuthAddress          string        `mapstructure:"SMTP_AUTH_ADDRESS"`       // For auth, usually same as SMTP_HOST
+	SMTPHost        string `mapstructure:"SMTP_HOST"`         // e.g., smtp.mailgun.org
+	SMTPPort        string `mapstructure:"SMTP_PORT"`         // e.g., 587
+	SMTPAuthAddress string `mapstructure:"SMTP_AUTH_ADDRESS"` // For auth, usually same as SMTP_HOST
 	// Twilio Config
 	TwilioAccountSID         string        `mapstructure:"TWILIO_ACCOUNT_SID"`
 	TwilioAuthToken          string        `mapstructure:"TWILIO_AUTH_TOKEN"`
@@ -49,14 +49,14 @@ type Config struct {
 	GCSCredentialsFile string `mapstructure:"GCS_CREDENTIALS_FILE"`
 
 	// External Services
-	ExchangeRateAPIKey string  `mapstructure:"EXCHANGE_RATE_API_KEY"`
+	ExchangeRateAPIKey  string  `mapstructure:"EXCHANGE_RATE_API_KEY"`
 	AiServiceURL        string  `mapstructure:"AI_SERVICE_URL"`
 	AI_SCAN_SERVICE_URL string  `mapstructure:"AI_SCAN_SERVICE_URL"`
-	OpenAIAPIKey       string  `mapstructure:"OPENAI_API_KEY"`
-	OpenAIBaseURL      string  `mapstructure:"OPENAI_BASE_URL"`
-	OpenAIModel        string  `mapstructure:"OPENAI_MODEL"`
-	OpenAITemperature  float64 `mapstructure:"OPENAI_TEMPERATURE"`
-	OpenAIMaxTokens    int     `mapstructure:"OPENAI_MAX_TOKENS"`
+	OpenAIAPIKey        string  `mapstructure:"OPENAI_API_KEY"`
+	OpenAIBaseURL       string  `mapstructure:"OPENAI_BASE_URL"`
+	OpenAIModel         string  `mapstructure:"OPENAI_MODEL"`
+	OpenAITemperature   float64 `mapstructure:"OPENAI_TEMPERATURE"`
+	OpenAIMaxTokens     int     `mapstructure:"OPENAI_MAX_TOKENS"`
 
 	// LiveKit Config
 	LiveKitHost      string `mapstructure:"LIVEKIT_URL"`
@@ -66,23 +66,23 @@ type Config struct {
 	// Reloadly Gift Cards API Config
 	ReloadlyClientID     string `mapstructure:"RELOADLY_CLIENT_ID"`
 	ReloadlyClientSecret string `mapstructure:"RELOADLY_CLIENT_SECRET"`
-	ReloadlyBaseURL      string `mapstructure:"RELOADLY_BASE_URL"`       // https://giftcards.reloadly.com (production) or https://giftcards-sandbox.reloadly.com (sandbox)
-	ReloadlyAuthURL      string `mapstructure:"RELOADLY_AUTH_URL"`       // https://auth.reloadly.com/oauth/token
+	ReloadlyBaseURL      string `mapstructure:"RELOADLY_BASE_URL"` // https://giftcards.reloadly.com (production) or https://giftcards-sandbox.reloadly.com (sandbox)
+	ReloadlyAuthURL      string `mapstructure:"RELOADLY_AUTH_URL"` // https://auth.reloadly.com/oauth/token
 	ReloadlyEnabled      bool   `mapstructure:"RELOADLY_ENABLED"`
 
 	// Alpaca Stock Trading API Config
 	AlpacaAPIKey    string `mapstructure:"ALPACA_API_KEY"`
 	AlpacaAPISecret string `mapstructure:"ALPACA_API_SECRET"`
-	AlpacaBaseURL   string `mapstructure:"ALPACA_BASE_URL"`  // https://api.alpaca.markets (live) or https://paper-api.alpaca.markets (paper)
-	AlpacaDataURL   string `mapstructure:"ALPACA_DATA_URL"`  // https://data.alpaca.markets
+	AlpacaBaseURL   string `mapstructure:"ALPACA_BASE_URL"` // https://api.alpaca.markets (live) or https://paper-api.alpaca.markets (paper)
+	AlpacaDataURL   string `mapstructure:"ALPACA_DATA_URL"` // https://data.alpaca.markets
 	AlpacaEnabled   bool   `mapstructure:"ALPACA_ENABLED"`
-	AlpacaIsPaper   bool   `mapstructure:"ALPACA_IS_PAPER"`  // true for paper trading, false for live
+	AlpacaIsPaper   bool   `mapstructure:"ALPACA_IS_PAPER"` // true for paper trading, false for live
 
 	// Stripe Payment API Config
 	StripeSecretKey      string `mapstructure:"STRIPE_SECRET_KEY"`
 	StripePublishableKey string `mapstructure:"STRIPE_PUBLISHABLE_KEY"`
 	StripeWebhookSecret  string `mapstructure:"STRIPE_WEBHOOK_SECRET"`
-	StripeBaseURL        string `mapstructure:"STRIPE_BASE_URL"`  // https://api.stripe.com
+	StripeBaseURL        string `mapstructure:"STRIPE_BASE_URL"` // https://api.stripe.com
 	StripeEnabled        bool   `mapstructure:"STRIPE_ENABLED"`
 
 	// Flutterwave Bill Payment API Config

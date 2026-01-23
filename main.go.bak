@@ -1,0 +1,486 @@
+package main
+
+import (
+	"context"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
+	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/gin"
+	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
+	"github.com/redis/go-redis/v9"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+	"go.uber.org/zap"
+
+	"lazervaultGo/grpcApi/middleware"
+	sharederrors "github.com/lazervault/shared/errors"
+	shareddegradation "github.com/lazervault/shared/degradation"
+	tlsutil "lazervaultGo/pkg/tls"
+
+	// Import microservice proto packages
+	authpb "auth-service/proto"
+	accountspb "accounts-service/proto"
+)
+
+// Core Gateway - Routes to auth-service and accounts-service via gRPC
+func main() {
+	// Setup logger
+	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
+	log.Info().Msg("🚀 Starting Core Gateway (gRPC-based)")
+
+	// Get microservice addresses from environment
+	authServiceAddr := getEnv("AUTH_SERVICE_GRPC_ADDR", "localhost:50051")
+	accountsServiceAddr := getEnv("ACCOUNTS_SERVICE_GRPC_ADDR", "localhost:50052")
+
+	// Get Redis configuration
+	redisURL := getEnv("REDIS_URL", "redis://localhost:6379")
+	enableCache := getEnv("ENABLE_CACHE", "true") == "true"
+	cacheTTL := getEnvDuration("CACHE_TTL", 5*time.Minute)
+
+	// Check if mTLS is enabled
+	enableMTLS := getEnv("ENABLE_MTLS", "false") == "true"
+	certDir := getEnv("CERT_DIR", "./certs")
+
+	// Check if CORS should be enabled
+	enableCORS := getEnv("ENABLE_CORS", "true") == "true"
+	corsMode := getEnv("CORS_MODE", "permissive") // permissive or restricted
+
+	log.Info().
+		Str("auth_service", authServiceAddr).
+		Str("accounts_service", accountsServiceAddr).
+		Str("redis_url", redisURL).
+		Bool("cache_enabled", enableCache).
+		Dur("cache_ttl", cacheTTL).
+		Bool("mtls_enabled", enableMTLS).
+		Bool("cors_enabled", enableCORS).
+		Str("cors_mode", corsMode).
+		Msg("📡 Gateway configuration")
+
+	// Initialize Redis client for caching
+	var redisClient *redis.Client
+	if enableCache {
+		opt, err := redis.ParseURL(redisURL)
+		if err != nil {
+			log.Warn().Err(err).Msg("Failed to parse Redis URL, caching disabled")
+			redisClient = nil
+		} else {
+			redisClient = redis.NewClient(opt)
+			// Test connection
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			if err := redisClient.Ping(ctx).Err(); err != nil {
+				log.Warn().Err(err).Msg("Failed to connect to Redis, caching disabled")
+				redisClient = nil
+			} else {
+				log.Info().Msg("✅ Redis connected - caching enabled")
+			}
+		}
+	} else {
+		log.Info().Msg("⚠️  Caching disabled by configuration")
+	}
+
+	// Setup zap logger for JWT verifier and error recovery
+	zapLogger, _ := zap.NewProduction()
+	defer zapLogger.Sync()
+
+	// Initialize error handler (available for future use)
+	_ = sharederrors.NewErrorHandler(zapLogger)
+
+	// Initialize degradation manager
+	degradationManager := shareddegradation.NewManager(shareddegradation.DegradationConfig{
+		CheckInterval: 30 * time.Second,
+		MaxFailures:   3,
+		AutoRecover:   true,
+		Logger:        zapLogger,
+	})
+
+	// Register features for degradation monitoring
+	degradationManager.RegisterFeature(
+		"auth-service",
+		"Authentication service",
+		func() error {
+			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+			defer cancel()
+			conn, err := grpc.DialContext(ctx, authServiceAddr,
+				grpc.WithTransportCredentials(insecure.NewCredentials()),
+				grpc.WithBlock(),
+			)
+			if err != nil {
+				return err
+			}
+			conn.Close()
+			return nil
+		},
+		shareddegradation.WithMaxFailures(3),
+		shareddegradation.WithAutoRecover(),
+	)
+
+	degradationManager.RegisterFeature(
+		"accounts-service",
+		"Accounts and cards service",
+		func() error {
+			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+			defer cancel()
+			conn, err := grpc.DialContext(ctx, accountsServiceAddr,
+				grpc.WithTransportCredentials(insecure.NewCredentials()),
+				grpc.WithBlock(),
+			)
+			if err != nil {
+				return err
+			}
+			conn.Close()
+			return nil
+		},
+		shareddegradation.WithMaxFailures(3),
+		shareddegradation.WithAutoRecover(),
+	)
+
+	// Start degradation monitoring
+	degradationManager.Start()
+	defer degradationManager.Stop()
+
+	log.Info().Msg("✅ Error recovery components initialized")
+
+	// Get JWT configuration from environment
+	jwksURL := getEnv("JWKS_URL", "http://localhost:8081/.well-known/jwks.json")
+	jwtIssuer := getEnv("JWT_ISSUER", "https://auth.lazervault.com")
+	jwtAudience := getEnv("JWT_AUDIENCE", "lazervault-api")
+
+	// Initialize banking-grade JWT verification (NO RPC to auth service)
+	log.Info().Msg("🔐 Initializing banking-grade JWT verification...")
+	if err := middleware.InitJWTVerifier(jwksURL, jwtIssuer, jwtAudience, zapLogger); err != nil {
+		log.Fatal().Err(err).Msg("Failed to initialize JWT verifier")
+	}
+	log.Info().Msg("✅ JWT verifier initialized (JWKS-based, zero network calls)")
+
+	// Create gRPC-Gateway mux
+	ctx := context.Background()
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	mux := runtime.NewServeMux(
+		runtime.WithIncomingHeaderMatcher(customHeaderMatcher),
+		runtime.WithOutgoingHeaderMatcher(customHeaderMatcher),
+	)
+
+	// Setup gRPC dial options with optional mTLS
+	var opts []grpc.DialOption
+	if enableMTLS {
+		tlsCreds, err := tlsutil.LoadClientTLSCredentials(enableMTLS, certDir)
+		if err != nil {
+			log.Fatal().Err(err).Msg("Failed to load mTLS credentials")
+		}
+		opts = []grpc.DialOption{grpc.WithTransportCredentials(tlsCreds)}
+		log.Info().Msg("🔒 mTLS enabled for microservice connections")
+	} else {
+		opts = []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())}
+		log.Warn().Msg("⚠️  mTLS disabled - using insecure connections")
+	}
+
+	// Register auth service handler (from auth-microservice)
+	// This will proxy /api/v1/auth/* to auth-service gRPC
+	log.Info().Msg("🔌 Connecting to auth-service gRPC...")
+	if err := registerAuthServiceHandler(ctx, mux, authServiceAddr, opts); err != nil {
+		log.Fatal().Err(err).Msg("Failed to register auth service handler")
+	}
+
+	// Register accounts service handler (from accounts-microservice)
+	// This will proxy /api/v1/accounts/*, /api/v1/cards/* to accounts-service gRPC
+	log.Info().Msg("🔌 Connecting to accounts-service gRPC...")
+	if err := registerAccountsServiceHandler(ctx, mux, accountsServiceAddr, opts); err != nil {
+		log.Fatal().Err(err).Msg("Failed to register accounts service handler")
+	}
+
+	// Register family accounts service handler (from accounts-microservice)
+	// This will proxy /api/v1/family-accounts/* to accounts-service gRPC
+	// TODO: Re-enable when family accounts proto is available
+	// log.Info().Msg("🔌 Connecting to family-accounts-service gRPC...")
+	// if err := registerFamilyAccountsServiceHandler(ctx, mux, accountsServiceAddr, opts); err != nil {
+	// 	log.Fatal().Err(err).Msg("Failed to register family accounts service handler")
+	// }
+
+	// Create Gin router for additional middleware and routing
+	router := gin.New()
+
+	// Add panic recovery middleware FIRST (highest priority)
+	router.Use(middleware.PanicRecoveryMiddleware(zapLogger))
+
+	// Add request logging middleware
+	router.Use(middleware.RequestLoggingMiddleware(zapLogger))
+
+	// Add request ID middleware
+	router.Use(middleware.RequestID())
+
+	// Add timeout middleware
+	router.Use(middleware.TimeoutMiddleware(30*time.Second))
+
+	// Add error handling middleware
+	router.Use(middleware.ErrorHandlerMiddleware(zapLogger))
+
+	// Add cache middleware for GET requests
+	if redisClient != nil {
+		router.Use(middleware.CacheMiddleware(redisClient, cacheTTL))
+		router.Use(middleware.InvalidateCacheMiddleware(redisClient))
+	}
+
+	// Add rate limiting
+	router.Use(middleware.RateLimitMiddleware(100, 200))
+
+	// Configure CORS middleware (if enabled)
+	if enableCORS {
+		corsConfig := cors.Config{
+			AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+			AllowHeaders:     []string{"Origin", "Content-Type", "Authorization", "Accept", "X-Request-ID"},
+			ExposeHeaders:    []string{"Content-Length", "X-Request-ID"},
+			AllowCredentials: true,
+			MaxAge:           12 * time.Hour,
+		}
+
+		// Configure based on CORS mode
+		if corsMode == "restricted" {
+			// Production mode - restrict to specific origins
+			corsConfig.AllowOrigins = []string{
+				"http://localhost:3000",
+				"http://localhost:7878",
+				"http://10.0.2.2:7878",
+				"capacitor://localhost",
+				"ionic://localhost",
+				"https://lazervault.com",
+				"https://app.lazervault.com",
+			}
+			log.Info().Msg("🔒 CORS enabled in RESTRICTED mode - only approved origins allowed")
+		} else {
+			// Development mode - allow all origins
+			corsConfig.AllowOriginFunc = func(origin string) bool {
+				return true
+			}
+			log.Info().Msg("⚠️  CORS enabled in PERMISSIVE mode - all origins allowed")
+		}
+
+		router.Use(cors.New(corsConfig))
+	} else {
+		log.Warn().Msg("⚠️  CORS disabled - no origin restrictions")
+	}
+
+	// Add security headers
+	router.Use(middleware.SecurityHeaders())
+
+	// Health check endpoint with detailed status
+	router.GET("/health", middleware.HealthCheckMiddleware(map[string]func() error{
+		"auth_service": func() error {
+			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+			defer cancel()
+			conn, err := grpc.DialContext(ctx, authServiceAddr,
+				grpc.WithTransportCredentials(insecure.NewCredentials()),
+				grpc.WithBlock(),
+			)
+			if err != nil {
+				return err
+			}
+			conn.Close()
+			return nil
+		},
+		"accounts_service": func() error {
+			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+			defer cancel()
+			conn, err := grpc.DialContext(ctx, accountsServiceAddr,
+				grpc.WithTransportCredentials(insecure.NewCredentials()),
+				grpc.WithBlock(),
+			)
+			if err != nil {
+				return err
+			}
+			conn.Close()
+			return nil
+		},
+		"redis": func() error {
+			if redisClient == nil {
+				return nil // Redis is optional
+			}
+			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+			defer cancel()
+			return redisClient.Ping(ctx).Err()
+		},
+	}))
+
+	// Readiness check endpoint
+	router.GET("/ready", middleware.ReadinessCheckMiddleware(func() bool {
+		return degradationManager.IsEnabled("auth-service") &&
+			degradationManager.IsEnabled("accounts-service")
+	}))
+
+	// Admin endpoints for degradation management
+	admin := router.Group("/admin")
+	admin.Use(middleware.RateLimitMiddleware(10, 20)) // Stricter rate limiting for admin
+	{
+		// Get degradation status
+		admin.GET("/degradation", func(c *gin.Context) {
+			status := degradationManager.GetStatus()
+			c.JSON(http.StatusOK, gin.H{
+				"status": status,
+				"timestamp": time.Now().UTC(),
+			})
+		})
+
+		// Enable/disable features
+		admin.POST("/degradation/:feature/enable", func(c *gin.Context) {
+			feature := c.Param("feature")
+			if err := degradationManager.EnableFeature(feature); err != nil {
+				c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+				return
+			}
+			c.JSON(http.StatusOK, gin.H{"message": "Feature enabled", "feature": feature})
+		})
+
+		admin.POST("/degradation/:feature/disable", func(c *gin.Context) {
+			feature := c.Param("feature")
+			var req struct {
+				Reason string `json:"reason"`
+			}
+			if err := c.BindJSON(&req); err != nil {
+				req.Reason = "Manual disable"
+			}
+			if err := degradationManager.DisableFeature(feature, req.Reason); err != nil {
+				c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+				return
+			}
+			c.JSON(http.StatusOK, gin.H{"message": "Feature disabled", "feature": feature})
+		})
+
+		admin.POST("/degradation/:feature/readonly", func(c *gin.Context) {
+			feature := c.Param("feature")
+			var req struct {
+				Reason string `json:"reason"`
+			}
+			if err := c.BindJSON(&req); err != nil {
+				req.Reason = "Switched to read-only mode"
+			}
+			if err := degradationManager.SetReadOnlyMode(feature, req.Reason); err != nil {
+				c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+				return
+			}
+			c.JSON(http.StatusOK, gin.H{"message": "Feature set to read-only", "feature": feature})
+		})
+	}
+
+	// Metrics endpoint for Prometheus
+	router.GET("/metrics", func(c *gin.Context) {
+		// Return Prometheus metrics
+		c.Header("Content-Type", "text/plain")
+		c.String(http.StatusOK, "# Metrics endpoint - integrate with Prometheus\n")
+	})
+
+	// All API endpoints - proxied to microservices
+	// Auth is handled by the microservices' gRPC interceptors
+	router.Any("/api/*path", wrapGrpcGateway(mux))
+
+	// Start HTTP server
+	httpPort := getEnv("HTTP_PORT", "7878")
+	if httpPort[0] != ':' {
+		httpPort = ":" + httpPort
+	}
+
+	srv := &http.Server{
+		Addr:         httpPort,
+		Handler:      router,
+		ReadTimeout:  30 * time.Second,
+		WriteTimeout: 30 * time.Second,
+		IdleTimeout:  60 * time.Second,
+	}
+
+	// Start server in goroutine
+	go func() {
+		log.Info().
+			Str("port", httpPort).
+			Msg("✅ Core Gateway HTTP server started")
+
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatal().Err(err).Msg("HTTP server failed")
+		}
+	}()
+
+	// Wait for interrupt signal for graceful shutdown
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+
+	log.Info().Msg("🛑 Shutting down Core Gateway...")
+
+	// Close Redis connection
+	if redisClient != nil {
+		if err := redisClient.Close(); err != nil {
+			log.Warn().Err(err).Msg("Failed to close Redis connection gracefully")
+		} else {
+			log.Info().Msg("✅ Redis connection closed")
+		}
+	}
+
+	ctx, cancel = context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Fatal().Err(err).Msg("Server forced to shutdown")
+	}
+
+	log.Info().Msg("✅ Core Gateway stopped gracefully")
+}
+
+// wrapGrpcGateway wraps grpc-gateway mux as a Gin handler
+func wrapGrpcGateway(mux *runtime.ServeMux) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		mux.ServeHTTP(c.Writer, c.Request)
+	}
+}
+
+// customHeaderMatcher matches custom headers
+func customHeaderMatcher(key string) (string, bool) {
+	switch key {
+	case "Authorization", "X-User-Id", "X-Username":
+		return key, true
+	default:
+		return runtime.DefaultHeaderMatcher(key)
+	}
+}
+
+// registerAuthServiceHandler registers auth service gRPC-gateway handler
+// This connects to auth-microservice on port 50051
+func registerAuthServiceHandler(ctx context.Context, mux *runtime.ServeMux, addr string, opts []grpc.DialOption) error {
+	return authpb.RegisterAuthServiceHandlerFromEndpoint(ctx, mux, addr, opts)
+}
+
+// registerAccountsServiceHandler registers accounts service gRPC-gateway handler
+// This connects to accounts-microservice on port 50052
+func registerAccountsServiceHandler(ctx context.Context, mux *runtime.ServeMux, addr string, opts []grpc.DialOption) error {
+	return accountspb.RegisterAccountsServiceHandlerFromEndpoint(ctx, mux, addr, opts)
+}
+
+// registerFamilyAccountsServiceHandler registers family accounts service gRPC-gateway handler
+// This connects to accounts-microservice (family accounts are part of accounts service)
+// TODO: Re-enable when family accounts proto is available
+// func registerFamilyAccountsServiceHandler(ctx context.Context, mux *runtime.ServeMux, addr string, opts []grpc.DialOption) error {
+// 	return familyaccountspb.RegisterFamilyAccountsServiceHandlerFromEndpoint(ctx, mux, addr, opts)
+// }
+
+// getEnv gets environment variable or returns default
+func getEnv(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
+}
+
+// getEnvDuration gets environment variable as duration or returns default
+func getEnvDuration(key string, defaultValue time.Duration) time.Duration {
+	if value := os.Getenv(key); value != "" {
+		if duration, err := time.ParseDuration(value); err == nil {
+			return duration
+		}
+	}
+	return defaultValue
+}

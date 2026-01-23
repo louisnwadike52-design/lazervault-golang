@@ -43,10 +43,10 @@ const (
 	TypeScheduledAutoSaveCheck = "scheduled:autosave:check"
 
 	// Electricity Bill Payment Tasks
-	TaskProcessBillPayment        = "task:process_bill_payment"
-	TaskCheckAutoRecharges        = "task:check_auto_recharges"
-	TaskSendReminderNotification  = "task:send_reminder_notification"
-	TaskSyncProviders             = "task:sync_providers"
+	TaskProcessBillPayment       = "task:process_bill_payment"
+	TaskCheckAutoRecharges       = "task:check_auto_recharges"
+	TaskSendReminderNotification = "task:send_reminder_notification"
+	TaskSyncProviders            = "task:sync_providers"
 )
 
 // Queue name constants

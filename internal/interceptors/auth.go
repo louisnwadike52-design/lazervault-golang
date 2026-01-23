@@ -1,0 +1,85 @@
+package interceptors
+
+import (
+	"context"
+	"strings"
+
+	authinterceptor "github.com/lazervault/shared/auth-interceptor"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
+)
+
+// JWTAuthInterceptor creates a gRPC interceptor for JWT authentication
+func JWTAuthInterceptor(verifier *authinterceptor.JWTVerifier) grpc.UnaryServerInterceptor {
+	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+		// Check if method requires authentication
+		if isPublicEndpoint(info.FullMethod) {
+			return handler(ctx, req)
+		}
+
+		// Extract authorization metadata
+		md, ok := metadata.FromIncomingContext(ctx)
+		if !ok {
+			return nil, status.Error(codes.Unauthenticated, "metadata not provided")
+		}
+
+		authHeader := md.Get("authorization")
+		if len(authHeader) == 0 {
+			return nil, status.Error(codes.Unauthenticated, "authorization token not provided")
+		}
+
+		// Parse "Bearer <token>"
+		fields := strings.Fields(authHeader[0])
+		if len(fields) < 2 || strings.ToLower(fields[0]) != "bearer" {
+			return nil, status.Error(codes.Unauthenticated, "invalid authorization format")
+		}
+
+		token := fields[1]
+
+		// Verify JWT using JWKS
+		payload, err := verifier.VerifyToken(ctx, token)
+		if err != nil {
+			return nil, status.Errorf(codes.Unauthenticated, "invalid token: %v", err)
+		}
+
+		// Add user info to context
+		ctx = authinterceptor.SetAuthPayload(ctx, payload)
+		ctx = authinterceptor.SetUserID(ctx, payload.UserID)
+
+		return handler(ctx, req)
+	}
+}
+
+// isPublicEndpoint determines if a gRPC method is public (doesn't require authentication)
+func isPublicEndpoint(method string) bool {
+	publicEndpoints := map[string]bool{
+		// Auth Service public endpoints
+		"/auth.AuthService/Login":                   true,
+		"/auth.AuthService/Signup":                  true,
+		"/auth.AuthService/LoginWithPasscode":       true, // Public - login with passcode
+		"/auth.AuthService/RefreshToken":            true,
+		"/auth.AuthService/VerifyEmail":             true,
+		"/auth.AuthService/ForgotPassword":          true,
+		"/auth.AuthService/ResetPassword":           true,
+		"/auth.AuthService/ResendVerificationEmail": true,
+		"/auth.AuthService/CheckEmailAvailability":  true,
+
+		// Crypto Service public endpoints (if needed)
+		"/crypto.CryptoService/GetCryptos":     true,
+		"/crypto.CryptoService/GetCryptoPrice": true,
+
+		// Gift Card Service public endpoints
+		"/giftcard.GiftCardService/GetBrands":     true,
+		"/giftcard.GiftCardService/SearchBrands":  true,
+		"/giftcard.GiftCardService/GetCategories": true,
+
+		// Stock Service public endpoints
+		"/stock.StockService/GetStockData":  true,
+		"/stock.StockService/SearchStocks":  true,
+		"/stock.StockService/GetMarketData": true,
+	}
+
+	return publicEndpoints[method]
+}
