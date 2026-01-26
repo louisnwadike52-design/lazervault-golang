@@ -55,7 +55,7 @@ message InitiateDepositRequest {
     }
   };
 
-  uint64 target_account_id = 1 [json_name = "target_account_id"]; // Account to deposit into
+  string target_account_id = 1 [json_name = "target_account_id"]; // Account UUID to deposit into
   // Amount represented in the smallest currency unit (e.g., cents for GBP/USD)
   uint64 amount = 2;
   string currency = 3;          // Currency code (e.g., GBP) - must match account
@@ -77,7 +77,7 @@ message GetDepositDetailsRequest {
 // Response containing details of a specific deposit transaction
 message GetDepositDetailsResponse {
   string deposit_id = 1 [json_name = "deposit_id"];
-  uint64 target_account_id = 2 [json_name = "target_account_id"];
+  string target_account_id = 2 [json_name = "target_account_id"];
   // Amount represented in the smallest currency unit (e.g., cents)
   uint64 amount = 3;
   string currency = 4;

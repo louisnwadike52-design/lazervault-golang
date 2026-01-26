@@ -36,6 +36,7 @@ import (
 
 	// Import internal packages
 	"lazervaultGo/internal/interceptors"
+	gatewaykafka "lazervaultGo/internal/kafka"
 	"lazervaultGo/internal/proxy"
 )
 
@@ -130,6 +131,33 @@ func main() {
 	// Setup zap logger for JWT verifier and error recovery
 	zapLogger, _ := zap.NewProduction()
 	defer zapLogger.Sync()
+
+	// Initialize Kafka-based balance cache invalidator (if Redis is available)
+	kafkaBrokers := getEnv("KAFKA_BROKERS", "127.0.0.1:9092")
+	balanceChangedTopic := getEnv("KAFKA_BALANCE_CHANGED_TOPIC", "accounts.balance-changed")
+	kafkaGroupID := getEnv("KAFKA_CONSUMER_GROUP_ID", "core-gateway-cache-invalidator")
+
+	var balanceCacheInvalidator *gatewaykafka.BalanceCacheInvalidator
+	if redisClient != nil {
+		var err error
+		balanceCacheInvalidator, err = gatewaykafka.NewBalanceCacheInvalidator(
+			[]string{kafkaBrokers},
+			balanceChangedTopic,
+			kafkaGroupID,
+			redisClient,
+			zapLogger,
+		)
+		if err != nil {
+			log.Warn().Err(err).Msg("Failed to create balance cache invalidator, balance cache will not be auto-invalidated")
+		} else {
+			if err := balanceCacheInvalidator.Start(context.Background()); err != nil {
+				log.Warn().Err(err).Msg("Failed to start balance cache invalidator")
+			} else {
+				log.Info().Msg("✅ Balance cache invalidator started - listening for balance changes")
+				defer balanceCacheInvalidator.Stop()
+			}
+		}
+	}
 
 	// Initialize error handler (available for future use)
 	_ = sharederrors.NewErrorHandler(zapLogger)

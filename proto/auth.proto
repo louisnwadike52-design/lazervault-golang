@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package pb;
+package auth;
 option go_package = "lazervaultGo/pb";
 
 import "google/api/annotations.proto";
@@ -50,7 +50,7 @@ message ChangePasscodeResponse {
 }
 
 message LoginResponse {
-  Data data = 1;
+  pb.Data data = 1;
   bool success = 2;
   string msg = 3;
 }
@@ -60,7 +60,7 @@ message RefreshTokenRequest {
 }
 
 message RefreshTokenResponse {
-  Data data = 1;
+  pb.Data data = 1;
   bool success = 2;     
   string msg = 3;
 }   
@@ -179,7 +179,7 @@ message LoginWithFaceRequest {
 
 // Response for facial recognition login
 message LoginWithFaceResponse {
-  Data data = 1;
+  pb.Data data = 1;
   bool success = 2;
   string msg = 3;
   double confidence = 4; // Confidence score from facial recognition
@@ -292,7 +292,7 @@ message SignupResponse {
   string access_token = 5;
   string refresh_token = 6;
   int64 expires_in = 7;
-  User user = 8;
+  pb.User user = 8;
   bool phone_verification_required = 9;
   string verification_sent_to = 10;
   string phone_verification_id = 11;
@@ -821,7 +821,7 @@ message GetMeRequest {
 }
 
 message GetMeResponse {
-  User user = 1;
+  pb.User user = 1;
 }
 
 message UpdateProfileRequest {
@@ -836,7 +836,7 @@ message UpdateProfileRequest {
 message UpdateProfileResponse {
   bool success = 1;
   string msg = 2;
-  User user = 3;
+  pb.User user = 3;
 }
 
 // --- User Lookup Messages ---
