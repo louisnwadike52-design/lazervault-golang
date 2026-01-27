@@ -30,6 +30,8 @@ import (
 
 	// Import microservice proto packages
 	accountspb "accounts-service/proto"
+	whatsapppb "whatsapp-service/proto"
+	notificationspb "notifications-service/proto"
 
 	// Import gateway proto packages (includes auth service definitions)
 	pb "lazervaultGo/pb"
@@ -80,6 +82,8 @@ func main() {
 	// Get microservice addresses from environment
 	authServiceAddr := getEnv("AUTH_SERVICE_GRPC_ADDR", "127.0.0.1:50051")
 	accountsServiceAddr := getEnv("ACCOUNTS_SERVICE_GRPC_ADDR", "127.0.0.1:50052")
+	whatsappServiceAddr := getEnv("WHATSAPP_SERVICE_GRPC_ADDR", "127.0.0.1:50062")
+	notificationsServiceAddr := getEnv("NOTIFICATIONS_SERVICE_GRPC_ADDR", "127.0.0.1:50061")
 
 	// Get Redis configuration
 	redisURL := getEnv("REDIS_URL", "redis://localhost:6379")
@@ -97,6 +101,8 @@ func main() {
 	log.Info().
 		Str("auth_service", authServiceAddr).
 		Str("accounts_service", accountsServiceAddr).
+		Str("whatsapp_service", whatsappServiceAddr).
+		Str("notifications_service", notificationsServiceAddr).
 		Str("redis_url", redisURL).
 		Bool("cache_enabled", enableCache).
 		Dur("cache_ttl", cacheTTL).
@@ -286,6 +292,19 @@ func main() {
 	log.Info().Msg("🔌 Registering user-service gRPC-gateway...")
 	if err := registerUserServiceHandler(ctx, mux, authServiceAddr, opts); err != nil {
 		log.Fatal().Err(err).Msg("Failed to register user service handler")
+	}
+
+	// Register WhatsApp service handler (from whatsapp-microservice)
+	// This will proxy /api/v1/whatsapp/* to whatsapp-service gRPC
+	log.Info().Msg("🔌 Connecting to whatsapp-service gRPC...")
+	if err := registerWhatsAppServiceHandler(ctx, mux, whatsappServiceAddr, opts); err != nil {
+		log.Warn().Err(err).Msg("Failed to register whatsapp service handler - WhatsApp banking will be unavailable")
+	}
+
+	// Register notifications service handler (from notifications-microservice)
+	log.Info().Msg("Connecting to notifications-service gRPC...")
+	if err := registerNotificationsServiceHandler(ctx, mux, notificationsServiceAddr, opts); err != nil {
+		log.Warn().Err(err).Msg("Failed to register notifications service handler - notifications will be unavailable")
 	}
 
 	// Create Gin router for additional middleware and routing
@@ -493,6 +512,23 @@ func main() {
 
 	// Create upstream service connections for gRPC proxying
 	log.Info().Msg("🔌 Creating upstream service connections for gRPC server...")
+
+	whatsappConn, err := grpc.Dial(whatsappServiceAddr, opts...)
+	if err != nil {
+		log.Warn().Err(err).Msg("Failed to connect to whatsapp service for gRPC - WhatsApp banking will be unavailable")
+	}
+	if whatsappConn != nil {
+		defer whatsappConn.Close()
+	}
+
+	notificationsConn, err := grpc.Dial(notificationsServiceAddr, opts...)
+	if err != nil {
+		log.Warn().Err(err).Msg("Failed to connect to notifications service for gRPC - notifications will be unavailable")
+	}
+	if notificationsConn != nil {
+		defer notificationsConn.Close()
+	}
+
 	authConn, err := grpc.Dial(authServiceAddr, opts...)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to connect to auth service for gRPC")
@@ -507,6 +543,7 @@ func main() {
 
 	// Create proxy services
 	authProxy := proxy.NewAuthServiceProxy(pb.NewAuthServiceClient(authConn))
+	transactionPinProxy := proxy.NewTransactionPinServiceProxy(pb.NewTransactionPinServiceClient(authConn))
 	accountsProxy := proxy.NewAccountsServiceProxy(accountspb.NewAccountsServiceClient(accountsConn))
 	familyAccountsProxy := proxy.NewFamilyAccountsServiceProxy(accountspb.NewFamilyAccountsServiceClient(accountsConn))
 	recipientProxy := proxy.NewRecipientServiceProxy(accountspb.NewRecipientServiceClient(accountsConn))
@@ -527,10 +564,25 @@ func main() {
 
 	// Register services
 	pb.RegisterAuthServiceServer(grpcServer, authProxy)
+	pb.RegisterTransactionPinServiceServer(grpcServer, transactionPinProxy)
 	accountspb.RegisterAccountsServiceServer(grpcServer, accountsProxy)
 	accountspb.RegisterFamilyAccountsServiceServer(grpcServer, familyAccountsProxy)
 	accountspb.RegisterRecipientServiceServer(grpcServer, recipientProxy)
 	pb.RegisterUserServiceServer(grpcServer, userProxy)
+
+	// Register WhatsApp service proxy (if connection available)
+	if whatsappConn != nil {
+		whatsappProxy := proxy.NewWhatsAppServiceProxy(whatsapppb.NewWhatsAppServiceClient(whatsappConn))
+		whatsapppb.RegisterWhatsAppServiceServer(grpcServer, whatsappProxy)
+		log.Info().Msg("✅ WhatsApp service registered on gRPC server")
+	}
+
+	// Register notifications service proxy (if connection available)
+	if notificationsConn != nil {
+		notificationsProxy := proxy.NewNotificationsServiceProxy(notificationspb.NewNotificationsServiceClient(notificationsConn))
+		notificationspb.RegisterNotificationsServiceServer(grpcServer, notificationsProxy)
+		log.Info().Msg("Notifications service registered on gRPC server")
+	}
 
 	// Register health check
 	healthServer := health.NewServer()
@@ -652,6 +704,18 @@ func registerRecipientServiceHandler(ctx context.Context, mux *runtime.ServeMux,
 // This proxies user profile operations to auth-service via UserServiceProxy
 func registerUserServiceHandler(ctx context.Context, mux *runtime.ServeMux, addr string, opts []grpc.DialOption) error {
 	return pb.RegisterUserServiceHandlerFromEndpoint(ctx, mux, addr, opts)
+}
+
+// registerWhatsAppServiceHandler registers WhatsApp service gRPC-gateway handler
+// This connects to whatsapp-microservice on port 50062
+func registerWhatsAppServiceHandler(ctx context.Context, mux *runtime.ServeMux, addr string, opts []grpc.DialOption) error {
+	return whatsapppb.RegisterWhatsAppServiceHandlerFromEndpoint(ctx, mux, addr, opts)
+}
+
+// registerNotificationsServiceHandler registers notifications service gRPC-gateway handler
+// This connects to notifications-microservice on port 50061
+func registerNotificationsServiceHandler(ctx context.Context, mux *runtime.ServeMux, addr string, opts []grpc.DialOption) error {
+	return notificationspb.RegisterNotificationsServiceHandlerFromEndpoint(ctx, mux, addr, opts)
 }
 
 // getEnv gets environment variable or returns default

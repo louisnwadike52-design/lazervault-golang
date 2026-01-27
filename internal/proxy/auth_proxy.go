@@ -140,3 +140,9 @@ func (p *AuthServiceProxy) VerifyIdentity(ctx context.Context, req *pb.VerifyIde
 func (p *AuthServiceProxy) GetIdentityVerificationStatus(ctx context.Context, req *pb.GetIdentityVerificationStatusRequest) (*pb.GetIdentityVerificationStatusResponse, error) {
 	return p.client.GetIdentityVerificationStatus(forwardContext(ctx), req)
 }
+
+// SearchUsersByUsername searches for users by username
+// This is the decoupled user search endpoint - should be used instead of TagPayService.SearchUsers
+func (p *AuthServiceProxy) SearchUsersByUsername(ctx context.Context, req *pb.SearchUsersByUsernameRequest) (*pb.SearchUsersByUsernameResponse, error) {
+	return p.client.SearchUsersByUsername(forwardContext(ctx), req)
+}

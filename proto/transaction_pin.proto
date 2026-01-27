@@ -1,0 +1,139 @@
+syntax = "proto3";
+
+package auth;
+
+option go_package = "lazervaultGo/pb";
+
+import "google/protobuf/timestamp.proto";
+
+// TransactionPinService handles transaction PIN operations
+// Proxied from core-gateway to auth-service
+service TransactionPinService {
+  // CreateTransactionPin creates a new transaction PIN for a user
+  rpc CreateTransactionPin(CreateTransactionPinRequest) returns (CreateTransactionPinResponse);
+
+  // VerifyTransactionPin verifies a PIN before processing a payment
+  rpc VerifyTransactionPin(VerifyTransactionPinRequest) returns (VerifyTransactionPinResponse);
+
+  // ChangeTransactionPin changes an existing PIN
+  rpc ChangeTransactionPin(ChangeTransactionPinRequest) returns (ChangeTransactionPinResponse);
+
+  // ResetTransactionPin resets a PIN with proper verification
+  rpc ResetTransactionPin(ResetTransactionPinRequest) returns (ResetTransactionPinResponse);
+
+  // CheckUserHasPin checks if a user has a transaction PIN set up
+  rpc CheckUserHasPin(CheckUserHasPinRequest) returns (CheckUserHasPinResponse);
+
+  // ValidateTransactionPinToken validates a token issued after PIN verification
+  rpc ValidateTransactionPinToken(ValidateTransactionPinTokenRequest) returns (ValidateTransactionPinTokenResponse);
+}
+
+// CreateTransactionPinRequest creates a new PIN
+message CreateTransactionPinRequest {
+  string user_id = 1;
+  string pin = 2;
+  string confirm_pin = 3;
+  string device_id = 4;
+  string device_name = 5;
+}
+
+message CreateTransactionPinResponse {
+  bool success = 1;
+  string message = 2;
+  TransactionPinDetails pin_details = 3;
+}
+
+// VerifyTransactionPinRequest verifies a PIN before payment
+message VerifyTransactionPinRequest {
+  string user_id = 1;
+  string pin = 2;
+  string transaction_id = 3;
+  string transaction_type = 4; // transfer, bill_payment, purchase, etc.
+  double amount = 5;
+  string currency = 6;
+  string device_id = 7;
+}
+
+message VerifyTransactionPinResponse {
+  bool success = 1;
+  string message = 2;
+  string verification_token = 3; // Token to use for actual payment execution
+  google.protobuf.Timestamp expires_at = 4;
+  int32 remaining_attempts = 5;
+  bool is_locked = 6;
+}
+
+// ChangeTransactionPinRequest changes an existing PIN
+message ChangeTransactionPinRequest {
+  string user_id = 1;
+  string current_pin = 2;
+  string new_pin = 3;
+  string confirm_new_pin = 4;
+}
+
+message ChangeTransactionPinResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+// ResetTransactionPinRequest resets a forgotten PIN
+message ResetTransactionPinRequest {
+  string user_id = 1;
+  string verification_method = 2; // email, sms, biometric, security_questions
+  string verification_code = 3;
+  string new_pin = 4;
+  string confirm_new_pin = 5;
+}
+
+message ResetTransactionPinResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+// CheckUserHasPinRequest checks if user has PIN setup
+message CheckUserHasPinRequest {
+  string user_id = 1;
+}
+
+message CheckUserHasPinResponse {
+  bool has_pin = 1;
+  bool is_active = 2;
+  google.protobuf.Timestamp created_at = 3;
+  google.protobuf.Timestamp last_changed_at = 4;
+}
+
+// ValidateTransactionPinTokenRequest validates a verification token
+message ValidateTransactionPinTokenRequest {
+  string token = 1;
+  string user_id = 2;
+  string transaction_id = 3;
+}
+
+message ValidateTransactionPinTokenResponse {
+  bool valid = 1;
+  string user_id = 2;
+  string transaction_id = 3;
+  google.protobuf.Timestamp expires_at = 4;
+}
+
+// TransactionPinDetails contains PIN metadata
+message TransactionPinDetails {
+  string id = 1;
+  string user_id = 2;
+  bool is_active = 3;
+  google.protobuf.Timestamp created_at = 4;
+  google.protobuf.Timestamp updated_at = 5;
+  google.protobuf.Timestamp last_used_at = 6;
+  int32 failed_attempts = 7;
+  bool is_locked = 8;
+  google.protobuf.Timestamp locked_until = 9;
+}
+
+// PIN configuration constants
+message PinConfig {
+  int32 min_length = 1;
+  int32 max_length = 2;
+  int32 max_attempts = 3;
+  int32 lockout_duration_minutes = 4;
+  int32 token_expiry_minutes = 5;
+}

@@ -12,6 +12,8 @@ replace (
 	github.com/lazervault/shared/errors => ../../microservices/shared/errors
 	github.com/lazervault/shared/retry => ../../microservices/shared/retry
 	github.com/lazervault/shared/transaction-pin-client => ../../microservices/shared/transaction-pin-client
+	notifications-service => ../../microservices/notifications-service/notifications-microservice
+	whatsapp-service => ../../microservices/whatsapp-service/whatsapp-microservice
 )
 
 require (
@@ -32,6 +34,8 @@ require (
 	golang.org/x/time v0.11.0
 	google.golang.org/genproto/googleapis/api v0.0.0-20251222181119-0a764e51fe1b
 	google.golang.org/protobuf v1.36.11
+	notifications-service v0.0.0
+	whatsapp-service v0.0.0
 )
 
 require (
@@ -69,7 +73,6 @@ require (
 	github.com/quic-go/qpack v0.5.1 // indirect
 	github.com/quic-go/quic-go v0.54.0 // indirect
 	github.com/robfig/cron/v3 v3.0.1 // indirect
-	github.com/rogpeppe/go-internal v1.14.1 // indirect
 	github.com/segmentio/asm v1.2.0 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.3.0 // indirect
@@ -102,5 +105,5 @@ require (
 	golang.org/x/text v0.32.0 // indirect
 	google.golang.org/grpc v1.78.0
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	gorm.io/gorm v1.25.12
+	gorm.io/gorm v1.31.1
 )
