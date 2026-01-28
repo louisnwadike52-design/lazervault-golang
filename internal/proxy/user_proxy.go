@@ -2,12 +2,16 @@ package proxy
 
 import (
 	"context"
+	"log"
+	"strconv"
+	"time"
 
 	authinterceptor "github.com/lazervault/shared/auth-interceptor"
 	pb "lazervaultGo/pb"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // UserServiceProxy proxies UserService gRPC requests to the auth-service
@@ -44,11 +48,13 @@ func (p *UserServiceProxy) GetUserProfile(ctx context.Context, req *pb.GetUserPr
 		return nil, status.Error(codes.NotFound, "user not found")
 	}
 
-	// Map auth.User (from GetMeResponse) to common.User (for GetUserProfileResponse)
+	// Map AuthUser (auth-service format) to common.User (client format)
+	commonUser := authUserToCommonUser(authResp.User)
+
 	return &pb.GetUserProfileResponse{
 		Success: true,
 		Message: "Profile retrieved successfully",
-		User:    authResp.User,
+		User:    commonUser,
 	}, nil
 }
 
@@ -72,15 +78,73 @@ func (p *UserServiceProxy) UpdateUserProfile(ctx context.Context, req *pb.Update
 		return nil, err
 	}
 
+	// Map AuthUser (auth-service format) to common.User (client format)
+	commonUser := authUserToCommonUser(authResp.User)
+
 	return &pb.UpdateUserProfileResponse{
 		Success: authResp.Success,
 		Message: authResp.Msg,
-		User:    authResp.User,
+		User:    commonUser,
 	}, nil
 }
 
-// Note: SearchUserByUsername RPC exists in user.proto but requires proto regeneration
-// The Flutter app should use /api/v1/auth/search/users endpoint directly for now
+// authUserToCommonUser maps auth-service AuthUser fields to common.proto User fields.
+// The auth-service User message has a different field layout than common.proto User.
+func authUserToCommonUser(au *pb.AuthUser) *pb.User {
+	if au == nil {
+		return nil
+	}
+
+	// Parse string ID to uint64
+	var userID uint64
+	if au.Id != "" {
+		parsed, err := strconv.ParseUint(au.Id, 10, 64)
+		if err != nil {
+			log.Printf("[UserProxy] Warning: failed to parse user ID %q: %v", au.Id, err)
+		} else {
+			userID = parsed
+		}
+	}
+
+	return &pb.User{
+		Id:              userID,
+		FirstName:       au.FirstName,
+		LastName:        au.LastName,
+		Email:           au.Email,
+		PhoneNumber:     au.Phone,
+		Username:        au.Username,
+		Verified:        au.EmailVerified,
+		IsEmailVerified: au.EmailVerified,
+		Country:         au.CountryCode,
+		ProfilePicture:  au.ProfilePicture,
+		CreatedAt:       parseISO8601Timestamp(au.CreatedAt),
+		UpdatedAt:       parseISO8601Timestamp(au.UpdatedAt),
+	}
+}
+
+// parseISO8601Timestamp converts an ISO 8601 string to a protobuf Timestamp.
+func parseISO8601Timestamp(s string) *timestamppb.Timestamp {
+	if s == "" {
+		return nil
+	}
+	// Try common ISO 8601 formats
+	for _, layout := range []string{
+		time.RFC3339,
+		time.RFC3339Nano,
+		"2006-01-02T15:04:05Z",
+		"2006-01-02T15:04:05",
+		"2006-01-02 15:04:05",
+	} {
+		t, err := time.Parse(layout, s)
+		if err == nil {
+			return timestamppb.New(t)
+		}
+	}
+	log.Printf("[UserProxy] Warning: failed to parse timestamp %q", s)
+	return nil
+}
+
+// Note: SearchUserByUsername is handled via AuthService gRPC directly from Flutter
 
 // Stub implementations for other UserService methods
 // These redirect to appropriate auth endpoints or return unimplemented

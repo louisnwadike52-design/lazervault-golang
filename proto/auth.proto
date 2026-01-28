@@ -814,14 +814,38 @@ rpc RefreshToken(RefreshTokenRequest) returns (RefreshTokenResponse) {
 }
 
 // --- User Profile Messages ---
-// Note: Field numbers must match auth-service for wire compatibility
+// AuthUser mirrors the auth-service's User message field layout exactly.
+// The auth-service uses different field numbers/types than common.proto User,
+// so we define this separate type for wire compatibility with the auth-service.
+message AuthUser {
+  string id = 1;
+  string email = 2;
+  string first_name = 3;
+  string last_name = 4;
+  string phone = 5;
+  string country_code = 6;
+  bool email_verified = 7;
+  bool phone_verified = 8;
+  bool two_factor_enabled = 9;
+  string two_factor_method = 10;
+  string profile_picture = 11;
+  string created_at = 12;
+  string updated_at = 13;
+  string signup_status = 14;
+  string current_signup_step = 15;
+  string username = 16;
+  bool identity_verified = 17;
+  string identity_type = 18;
+  string identity_verified_at = 19;
+  string date_of_birth = 20;
+}
 
 message GetMeRequest {
   string user_id = 1; // User ID (from JWT context in proxy)
 }
 
 message GetMeResponse {
-  pb.User user = 1;
+  AuthUser user = 1;
 }
 
 message UpdateProfileRequest {
@@ -836,7 +860,7 @@ message UpdateProfileRequest {
 message UpdateProfileResponse {
   bool success = 1;
   string msg = 2;
-  pb.User user = 3;
+  AuthUser user = 3;
 }
 
 // --- User Lookup Messages ---

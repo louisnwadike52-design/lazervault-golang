@@ -26,6 +26,18 @@ service TransactionPinService {
 
   // ValidateTransactionPinToken validates a token issued after PIN verification
   rpc ValidateTransactionPinToken(ValidateTransactionPinTokenRequest) returns (ValidateTransactionPinTokenResponse);
+
+  // InitiatePinOTP sends a 6-digit OTP code via email or SMS for PIN operations
+  rpc InitiatePinOTP(InitiatePinOTPRequest) returns (InitiatePinOTPResponse);
+
+  // VerifyPinOTP verifies the OTP and executes the PIN operation (create/change)
+  rpc VerifyPinOTP(VerifyPinOTPRequest) returns (VerifyPinOTPResponse);
+
+  // GetPinOTPChannels returns available OTP delivery channels for the user
+  rpc GetPinOTPChannels(GetPinOTPChannelsRequest) returns (GetPinOTPChannelsResponse);
+
+  // CompleteForgotPin verifies OTP and resets the PIN (forgot PIN flow)
+  rpc CompleteForgotPin(CompleteForgotPinRequest) returns (CompleteForgotPinResponse);
 }
 
 // CreateTransactionPinRequest creates a new PIN
@@ -127,6 +139,73 @@ message TransactionPinDetails {
   int32 failed_attempts = 7;
   bool is_locked = 8;
   google.protobuf.Timestamp locked_until = 9;
+}
+
+// InitiatePinOTP request - sends OTP for PIN create/change/reset
+message InitiatePinOTPRequest {
+  string user_id = 1;
+  string operation_type = 2; // "create", "change", "reset"
+  string channel = 3; // "email", "sms", or "auto"
+  string device_id = 4;
+}
+
+message InitiatePinOTPResponse {
+  bool success = 1;
+  string message = 2;
+  string channel = 3; // actual channel used
+  string masked_destination = 4; // "jo***@example.com" or "+44***6789"
+  int32 expires_in_seconds = 5;
+  int32 cooldown_seconds = 6;
+}
+
+// VerifyPinOTP request - verifies OTP and executes PIN operation
+message VerifyPinOTPRequest {
+  string user_id = 1;
+  string otp_code = 2;
+  string operation_type = 3; // "create" or "change"
+  string current_pin = 4; // only for "change"
+  string new_pin = 5;
+  string confirm_new_pin = 6;
+  string device_id = 7;
+  string device_name = 8;
+}
+
+message VerifyPinOTPResponse {
+  bool success = 1;
+  string message = 2;
+  int32 remaining_attempts = 3;
+}
+
+// GetPinOTPChannels - returns available OTP channels
+message GetPinOTPChannelsRequest {
+  string user_id = 1;
+}
+
+message GetPinOTPChannelsResponse {
+  repeated OTPChannel channels = 1;
+  string recommended_channel = 2;
+}
+
+message OTPChannel {
+  string type = 1; // "email" or "sms"
+  string masked_destination = 2;
+  bool is_verified = 3;
+  bool is_available = 4;
+}
+
+// CompleteForgotPin - verifies OTP and resets PIN
+message CompleteForgotPinRequest {
+  string user_id = 1;
+  string otp_code = 2;
+  string new_pin = 3;
+  string confirm_new_pin = 4;
+  string device_id = 5;
+}
+
+message CompleteForgotPinResponse {
+  bool success = 1;
+  string message = 2;
+  int32 remaining_attempts = 3;
 }
 
 // PIN configuration constants

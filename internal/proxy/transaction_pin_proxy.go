@@ -48,3 +48,23 @@ func (p *TransactionPinServiceProxy) CheckUserHasPin(ctx context.Context, req *p
 func (p *TransactionPinServiceProxy) ValidateTransactionPinToken(ctx context.Context, req *pb.ValidateTransactionPinTokenRequest) (*pb.ValidateTransactionPinTokenResponse, error) {
 	return p.client.ValidateTransactionPinToken(forwardContext(ctx), req)
 }
+
+// InitiatePinOTP sends a 6-digit OTP code via email or SMS for PIN operations
+func (p *TransactionPinServiceProxy) InitiatePinOTP(ctx context.Context, req *pb.InitiatePinOTPRequest) (*pb.InitiatePinOTPResponse, error) {
+	return p.client.InitiatePinOTP(forwardContext(ctx), req)
+}
+
+// VerifyPinOTP verifies the OTP and executes the PIN operation
+func (p *TransactionPinServiceProxy) VerifyPinOTP(ctx context.Context, req *pb.VerifyPinOTPRequest) (*pb.VerifyPinOTPResponse, error) {
+	return p.client.VerifyPinOTP(forwardContext(ctx), req)
+}
+
+// GetPinOTPChannels returns available OTP delivery channels for the user
+func (p *TransactionPinServiceProxy) GetPinOTPChannels(ctx context.Context, req *pb.GetPinOTPChannelsRequest) (*pb.GetPinOTPChannelsResponse, error) {
+	return p.client.GetPinOTPChannels(forwardContext(ctx), req)
+}
+
+// CompleteForgotPin verifies OTP and resets the PIN
+func (p *TransactionPinServiceProxy) CompleteForgotPin(ctx context.Context, req *pb.CompleteForgotPinRequest) (*pb.CompleteForgotPinResponse, error) {
+	return p.client.CompleteForgotPin(forwardContext(ctx), req)
+}

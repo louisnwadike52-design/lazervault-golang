@@ -121,7 +121,9 @@ message SecuritySettings {
 
 // GetUserAccounts (Renamed from ListUserAccounts)
 message GetUserAccountsRequest {
-    // User ID will be inferred from context/auth token on the server
+    // User ID will be inferred from context/auth token on the server.
+    // If target_user_id is set, fetch accounts for that user instead (for recipient lookup).
+    optional string target_user_id = 1;
 }
 
 message GetUserAccountsResponse {
