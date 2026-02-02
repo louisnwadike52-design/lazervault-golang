@@ -58,5 +58,23 @@ func (p *AccountsServiceProxy) GetUserAccounts(ctx context.Context, req *account
 	return p.client.GetUserAccounts(forwardContext(ctx), req)
 }
 
+// === Transaction History Proxies ===
+
+func (p *AccountsServiceProxy) CreateTransaction(ctx context.Context, req *accountspb.CreateTransactionRequest) (*accountspb.CreateTransactionResponse, error) {
+	return p.client.CreateTransaction(forwardContext(ctx), req)
+}
+
+func (p *AccountsServiceProxy) UpdateTransactionStatus(ctx context.Context, req *accountspb.UpdateTransactionStatusRequest) (*accountspb.UpdateTransactionStatusResponse, error) {
+	return p.client.UpdateTransactionStatus(forwardContext(ctx), req)
+}
+
+func (p *AccountsServiceProxy) GetTransactionHistory(ctx context.Context, req *accountspb.GetTransactionHistoryRequest) (*accountspb.GetTransactionHistoryResponse, error) {
+	return p.client.GetTransactionHistory(forwardContext(ctx), req)
+}
+
+func (p *AccountsServiceProxy) GetTransactionStatistics(ctx context.Context, req *accountspb.GetTransactionStatisticsRequest) (*accountspb.GetTransactionStatisticsResponse, error) {
+	return p.client.GetTransactionStatistics(forwardContext(ctx), req)
+}
+
 // Additional methods can be added as needed
 // Any unimplemented methods will return "Unimplemented" error by default
