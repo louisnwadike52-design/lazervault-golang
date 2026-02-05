@@ -17,7 +17,7 @@ replace (
 )
 
 require (
-	accounts-service v0.0.0
+	accounts-service/proto v0.0.0-00010101000000-000000000000
 	github.com/gin-contrib/cors v1.7.6
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.27.4
@@ -107,3 +107,5 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	gorm.io/gorm v1.31.1
 )
+
+replace accounts-service/proto => ../../microservices/accounts-service/accounts-microservice/proto

@@ -19,8 +19,10 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	_ "google.golang.org/grpc/encoding/gzip" // Register gzip compressor for 60-80% payload reduction
 	"google.golang.org/grpc/health"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
+	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/reflection"
 
 	shareddegradation "github.com/lazervault/shared/degradation"
@@ -550,6 +552,7 @@ func main() {
 	userProxy := proxy.NewUserServiceProxy(pb.NewAuthServiceClient(authConn))
 
 	// Create gRPC server with interceptor chain
+	// Configured for low-network regions (Nigeria) with compression and lenient keepalive
 	grpcServer := grpc.NewServer(
 		grpc.ChainUnaryInterceptor(
 			interceptors.PanicRecoveryInterceptor(zapLogger),
@@ -560,6 +563,21 @@ func main() {
 		grpc.ChainStreamInterceptor(
 			interceptors.StreamPanicRecoveryInterceptor(zapLogger),
 		),
+		// Keepalive settings optimized for mobile clients in low-network regions
+		grpc.KeepaliveParams(keepalive.ServerParameters{
+			MaxConnectionIdle:     5 * time.Minute,  // Allow idle connections longer for mobile
+			MaxConnectionAge:      30 * time.Minute, // Max connection lifetime
+			MaxConnectionAgeGrace: 10 * time.Second, // Grace period for existing RPCs
+			Time:                  30 * time.Second, // Ping interval
+			Timeout:               10 * time.Second, // Ping timeout
+		}),
+		grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{
+			MinTime:             10 * time.Second, // Minimum ping interval from client
+			PermitWithoutStream: true,             // Allow pings when no active streams
+		}),
+		// Message size limits for large payloads
+		grpc.MaxRecvMsgSize(10*1024*1024), // 10MB max receive
+		grpc.MaxSendMsgSize(10*1024*1024), // 10MB max send
 	)
 
 	// Register services
