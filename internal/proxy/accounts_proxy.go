@@ -76,5 +76,23 @@ func (p *AccountsServiceProxy) GetTransactionStatistics(ctx context.Context, req
 	return p.client.GetTransactionStatistics(forwardContext(ctx), req)
 }
 
+// === Financial Analytics Proxies ===
+
+func (p *AccountsServiceProxy) GetFinancialAnalytics(ctx context.Context, req *accountspb.GetFinancialAnalyticsRequest) (*accountspb.GetFinancialAnalyticsResponse, error) {
+	return p.client.GetFinancialAnalytics(forwardContext(ctx), req)
+}
+
+func (p *AccountsServiceProxy) GetCategoryAnalytics(ctx context.Context, req *accountspb.GetCategoryAnalyticsRequest) (*accountspb.GetCategoryAnalyticsResponse, error) {
+	return p.client.GetCategoryAnalytics(forwardContext(ctx), req)
+}
+
+func (p *AccountsServiceProxy) GetMonthlyTrends(ctx context.Context, req *accountspb.GetMonthlyTrendsRequest) (*accountspb.GetMonthlyTrendsResponse, error) {
+	return p.client.GetMonthlyTrends(forwardContext(ctx), req)
+}
+
+func (p *AccountsServiceProxy) GetExpenseTimeSeries(ctx context.Context, req *accountspb.GetExpenseTimeSeriesRequest) (*accountspb.GetExpenseTimeSeriesResponse, error) {
+	return p.client.GetExpenseTimeSeries(forwardContext(ctx), req)
+}
+
 // Additional methods can be added as needed
 // Any unimplemented methods will return "Unimplemented" error by default

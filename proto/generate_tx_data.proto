@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package pb;
 
-option go_package = "github.com/louislawrence/lazervault/pb"; // Adjust path if needed
+option go_package = "lazervaultGo/pb";
 
 import "google/api/annotations.proto";
 

@@ -34,6 +34,11 @@ func (p *WhatsAppServiceProxy) UnlinkAccount(ctx context.Context, req *whatsappp
 	return p.client.UnlinkAccount(forwardContext(ctx), req)
 }
 
+// GetLinkStatus proxies to whatsapp-service
+func (p *WhatsAppServiceProxy) GetLinkStatus(ctx context.Context, req *whatsapppb.GetLinkStatusRequest) (*whatsapppb.GetLinkStatusResponse, error) {
+	return p.client.GetLinkStatus(forwardContext(ctx), req)
+}
+
 // HandleWebhook proxies to whatsapp-service
 func (p *WhatsAppServiceProxy) HandleWebhook(ctx context.Context, req *whatsapppb.WebhookRequest) (*whatsapppb.WebhookResponse, error) {
 	return p.client.HandleWebhook(forwardContext(ctx), req)

@@ -1,0 +1,150 @@
+syntax = "proto3";
+
+package qr_pay;
+option go_package = "lazervaultGo/pb";
+
+import "google/protobuf/timestamp.proto";
+
+service QRPayService {
+  // Generate a QR code for receiving payment
+  rpc GenerateQR(GenerateQRRequest) returns (GenerateQRResponse);
+
+  // Get QR code details by code string (for scanner)
+  rpc GetQRDetails(GetQRDetailsRequest) returns (GetQRDetailsResponse);
+
+  // Process payment via scanned QR code
+  rpc ProcessQRPayment(ProcessQRPaymentRequest) returns (ProcessQRPaymentResponse);
+
+  // Get user's generated QR codes
+  rpc GetMyGeneratedQRCodes(GetMyGeneratedQRCodesRequest) returns (GetMyGeneratedQRCodesResponse);
+
+  // Get user's QR payment history
+  rpc GetMyQRPayments(GetMyQRPaymentsRequest) returns (GetMyQRPaymentsResponse);
+
+  // Cancel a pending QR code
+  rpc CancelQR(CancelQRRequest) returns (CancelQRResponse);
+
+  // Get receipt data for a completed QR transaction
+  rpc GetQRTransactionReceipt(GetQRTransactionReceiptRequest) returns (GetQRTransactionReceiptResponse);
+}
+
+// Enums
+enum QRType {
+  QR_TYPE_DYNAMIC = 0;   // One-time use with specific amount
+  QR_TYPE_STATIC = 1;    // Reusable, payer enters amount
+}
+
+enum QRStatus {
+  QR_STATUS_PENDING = 0;
+  QR_STATUS_PAID = 1;
+  QR_STATUS_CANCELLED = 2;
+  QR_STATUS_EXPIRED = 3;
+}
+
+// Models
+message QRCode {
+  string id = 1;
+  string user_id = 2;
+  string username = 3;
+  string full_name = 4;
+  string qr_code = 5;          // The actual code string to encode in QR
+  double amount = 6;
+  string currency = 7;
+  string description = 8;
+  QRType qr_type = 9;
+  QRStatus status = 10;
+  google.protobuf.Timestamp created_at = 11;
+  google.protobuf.Timestamp expires_at = 12;
+  google.protobuf.Timestamp paid_at = 13;
+}
+
+message QRTransaction {
+  string id = 1;
+  string qr_id = 2;
+  string payer_id = 3;
+  string payer_username = 4;
+  string payer_name = 5;
+  string recipient_id = 6;
+  string recipient_username = 7;
+  string recipient_name = 8;
+  double amount = 9;
+  string currency = 10;
+  string description = 11;
+  string reference_number = 12;
+  string status = 13;           // completed, failed
+  google.protobuf.Timestamp created_at = 14;
+}
+
+// Request/Response messages
+message GenerateQRRequest {
+  double amount = 1;            // 0 for static QR
+  string currency = 2;
+  string description = 3;
+  QRType qr_type = 4;
+  int32 validity_minutes = 5;   // Default 30 mins for dynamic, 0 for static (no expiry)
+}
+
+message GenerateQRResponse {
+  QRCode qr_code = 1;
+  string qr_data = 2;          // JSON data for QR code image
+  string message = 3;
+}
+
+message GetQRDetailsRequest {
+  string qr_code = 1;
+}
+
+message GetQRDetailsResponse {
+  QRCode qr_code = 1;
+}
+
+message ProcessQRPaymentRequest {
+  string qr_code = 1;
+  string source_account_id = 2;
+  double amount = 3;            // Required for static QR, ignored for dynamic
+  string transaction_pin = 4;
+  string idempotency_key = 5;
+}
+
+message ProcessQRPaymentResponse {
+  QRTransaction transaction = 1;
+  double new_balance = 2;
+  string message = 3;
+}
+
+message GetMyGeneratedQRCodesRequest {
+  int32 limit = 1;
+  int32 offset = 2;
+  QRStatus status_filter = 3;
+}
+
+message GetMyGeneratedQRCodesResponse {
+  repeated QRCode qr_codes = 1;
+  int32 total = 2;
+}
+
+message GetMyQRPaymentsRequest {
+  int32 limit = 1;
+  int32 offset = 2;
+}
+
+message GetMyQRPaymentsResponse {
+  repeated QRTransaction transactions = 1;
+  int32 total = 2;
+}
+
+message CancelQRRequest {
+  string qr_id = 1;
+}
+
+message CancelQRResponse {
+  string message = 1;
+}
+
+message GetQRTransactionReceiptRequest {
+  string transaction_id = 1;
+}
+
+message GetQRTransactionReceiptResponse {
+  QRTransaction transaction = 1;
+}

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"net/http"
 	"os"
@@ -309,6 +310,14 @@ func main() {
 		log.Warn().Err(err).Msg("Failed to register notifications service handler - notifications will be unavailable")
 	}
 
+	// Register AI Chat service handler (proxies to local gRPC AI chat proxy)
+	grpcPort := getEnv("GRPC_PORT", "50070")
+	localGrpcAddr := "127.0.0.1:" + grpcPort
+	log.Info().Msg("Registering AI Chat service gRPC-gateway...")
+	if err := registerAIChatServiceHandler(ctx, mux, localGrpcAddr, opts); err != nil {
+		log.Warn().Err(err).Msg("Failed to register AI chat service handler - AI chat will be unavailable via HTTP")
+	}
+
 	// Create Gin router for additional middleware and routing
 	router := gin.New()
 
@@ -480,10 +489,14 @@ func main() {
 		c.String(http.StatusOK, "# Metrics endpoint - integrate with Prometheus\n")
 	})
 
-	// API group with JWT authentication
+	// API group with JWT authentication (applies to all /api/* routes except auth public endpoints)
 	apiGroup := router.Group("/api")
 	apiGroup.Use(middleware.JWTAuthMiddleware())
 	apiGroup.Any("/*path", wrapGrpcGateway(mux))
+
+	// Note: Auth service routes (/api/v1/auth/*) are registered via grpc-gateway mux
+	// They go through apiGroup but JWT middleware skips public paths (login, signup, etc.)
+	// This keeps gRPC and HTTP routes in sync - no workarounds needed
 
 	// Start HTTP server
 	httpPort := getEnv("HTTP_PORT", "7878")
@@ -602,6 +615,12 @@ func main() {
 		log.Info().Msg("Notifications service registered on gRPC server")
 	}
 
+	// Register AI Chat proxy (proxies gRPC to Python chat-agent-gateway via HTTP)
+	chatGatewayURL := getEnv("CHAT_AGENT_GATEWAY_URL", "http://localhost:3011")
+	aiChatProxy := proxy.NewAIChatServiceProxy(chatGatewayURL)
+	pb.RegisterAIChatServiceServer(grpcServer, aiChatProxy)
+	log.Info().Str("chat_gateway_url", chatGatewayURL).Msg("AI Chat service registered on gRPC server")
+
 	// Register health check
 	healthServer := health.NewServer()
 	healthpb.RegisterHealthServer(grpcServer, healthServer)
@@ -680,6 +699,7 @@ func main() {
 // wrapGrpcGateway wraps grpc-gateway mux as a Gin handler
 func wrapGrpcGateway(mux *runtime.ServeMux) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		fmt.Printf("[wrapGrpcGateway] Path: %s, Method: %s\n", c.Request.URL.Path, c.Request.Method)
 		mux.ServeHTTP(c.Writer, c.Request)
 	}
 }
@@ -734,6 +754,12 @@ func registerWhatsAppServiceHandler(ctx context.Context, mux *runtime.ServeMux, 
 // This connects to notifications-microservice on port 50061
 func registerNotificationsServiceHandler(ctx context.Context, mux *runtime.ServeMux, addr string, opts []grpc.DialOption) error {
 	return notificationspb.RegisterNotificationsServiceHandlerFromEndpoint(ctx, mux, addr, opts)
+}
+
+// registerAIChatServiceHandler registers AI Chat service gRPC-gateway handler
+// This proxies /v1/ai/* to the local AI chat proxy (which forwards to Python chat-agent-gateway)
+func registerAIChatServiceHandler(ctx context.Context, mux *runtime.ServeMux, addr string, opts []grpc.DialOption) error {
+	return pb.RegisterAIChatServiceHandlerFromEndpoint(ctx, mux, addr, opts)
 }
 
 // getEnv gets environment variable or returns default

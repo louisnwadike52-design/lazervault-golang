@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"time"
 
@@ -191,8 +192,12 @@ func authorize(ctx context.Context) (*AuthPayload, string, error) {
 // This middleware is used for HTTP API routes (grpc-gateway path)
 func JWTAuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		path := c.Request.URL.Path
+		// Debug logging to check path matching
+		fmt.Printf("[JWTAuthMiddleware] Request path: %s, isPublic: %v\n", path, isPublicHTTPPath(path))
+
 		// Skip auth for public endpoints
-		if isPublicHTTPPath(c.Request.URL.Path) {
+		if isPublicHTTPPath(path) {
 			c.Next()
 			return
 		}

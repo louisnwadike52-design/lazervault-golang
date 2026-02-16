@@ -795,15 +795,15 @@ rpc RefreshToken(RefreshTokenRequest) returns (RefreshTokenResponse) {
     };
   }
 
-  // Search users by username prefix
-  rpc SearchUsersByUsername(SearchUsersByUsernameRequest) returns (SearchUsersByUsernameResponse) {
+  // Search users by name, username, email, or phone number
+  rpc SearchUsers(UserSearchRequest) returns (UserSearchResponse) {
     option (google.api.http) = {
-      get: "/v1/users/search"
+      get: "/api/v1/auth/search/users"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      summary: "Search Users by Username"
-      description: "Searches for users by username prefix for autocomplete functionality."
-      tags: ["User"]
+      summary: "Search Users"
+      description: "Search for users by name, username, email, or phone number. Supports multi-field search with optional search_type filter."
+      tags: ["User Lookup"]
       security: {
         security_requirement: {
           key: "bearer" value: {}
@@ -877,12 +877,13 @@ message LookupUserByUsernameResponse {
   AuthUserLookupResult user = 4;
 }
 
-message SearchUsersByUsernameRequest {
+message UserSearchRequest {
   string query = 1;
   int32 limit = 2;
+  string search_type = 3;
 }
 
-message SearchUsersByUsernameResponse {
+message UserSearchResponse {
   bool success = 1;
   string msg = 2;
   repeated AuthUserLookupResult users = 3;
@@ -895,4 +896,7 @@ message AuthUserLookupResult {
   string last_name = 4;
   string profile_picture = 5;
   bool is_lazervault_user = 6;
+  string phone_number = 7;
+  string email = 8;
+  string primary_account_id = 9;
 } 

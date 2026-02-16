@@ -376,6 +376,9 @@ message InitiatePaymentRequest {
   string payment_gateway = 6;
   string source_account_id = 7;
   string beneficiary_id = 8;
+  string transaction_id = 9;
+  string verification_token = 10;
+  string phone_number = 11;
 }
 
 message InitiatePaymentResponse {

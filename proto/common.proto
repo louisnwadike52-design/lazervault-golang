@@ -92,8 +92,8 @@ enum InvoicePriority {
   INVOICE_PRIORITY_URGENT = 3;
 }
 
-// Pagination Info - Common pagination structure
-message PaginationInfo {
+// Pagination Info - Common pagination structure for gateway
+message GatewayPaginationInfo {
     int32 current_page = 1;
     int32 total_pages = 2;
     int32 total_items = 3;

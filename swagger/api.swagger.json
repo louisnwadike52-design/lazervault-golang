@@ -25,9 +25,6 @@
       "name": "AutoSaveService"
     },
     {
-      "name": "BarcodePaymentService"
-    },
-    {
       "name": "ChatService"
     },
     {
@@ -63,9 +60,6 @@
       "name": "GroupAccountService"
     },
     {
-      "name": "InsuranceService"
-    },
-    {
       "name": "InvoicePaymentService"
     },
     {
@@ -78,7 +72,7 @@
       "name": "PortfolioService"
     },
     {
-      "name": "RecipientService"
+      "name": "QRPayService"
     },
     {
       "name": "ReferralService"
@@ -97,6 +91,12 @@
     },
     {
       "name": "TaggedInvoiceService"
+    },
+    {
+      "name": "TransactionHistoryService"
+    },
+    {
+      "name": "TransactionPinService"
     },
     {
       "name": "TransactionService"
@@ -128,6 +128,56 @@
     "application/json"
   ],
   "paths": {
+    "/api/v1/auth/search/users": {
+      "get": {
+        "summary": "Search Users",
+        "description": "Search for users by name, username, email, or phone number. Supports multi-field search with optional search_type filter.",
+        "operationId": "AuthService_SearchUsers",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/authUserSearchResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "query",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "searchType",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "User Lookup"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/v1/accounts": {
       "get": {
         "summary": "Get User Accounts Summary",
@@ -147,6 +197,15 @@
             }
           }
         },
+        "parameters": [
+          {
+            "name": "targetUserId",
+            "description": "User ID will be inferred from context/auth token on the server.\nIf target_user_id is set, fetch accounts for that user instead (for recipient lookup).",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
         "tags": [
           "Accounts"
         ]
@@ -653,7 +712,7 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/pbLoginResponse"
+              "$ref": "#/definitions/authLoginResponse"
             }
           },
           "default": {
@@ -669,7 +728,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/pbSignInWithAppleRequest"
+              "$ref": "#/definitions/authSignInWithAppleRequest"
             }
           }
         ],
@@ -687,7 +746,7 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/pbChangePasscodeResponse"
+              "$ref": "#/definitions/authChangePasscodeResponse"
             }
           },
           "default": {
@@ -703,7 +762,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/pbChangePasscodeRequest"
+              "$ref": "#/definitions/authChangePasscodeRequest"
             }
           }
         ],
@@ -717,16 +776,15 @@
         ]
       }
     },
-    "/v1/auth/check-email-availability": {
+    "/v1/auth/change-password": {
       "post": {
-        "summary": "Check Email Availability",
-        "description": "Checks if an email address is available for registration or already in use.",
-        "operationId": "AuthService_CheckEmailAvailability",
+        "summary": "--- Change Password ---",
+        "operationId": "AuthService_ChangePassword",
         "responses": {
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/pbCheckEmailAvailabilityResponse"
+              "$ref": "#/definitions/authChangePasswordResponse"
             }
           },
           "default": {
@@ -742,7 +800,41 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/pbCheckEmailAvailabilityRequest"
+              "$ref": "#/definitions/authChangePasswordRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthService"
+        ]
+      }
+    },
+    "/v1/auth/check-email-availability": {
+      "post": {
+        "summary": "Check Email Availability",
+        "description": "Checks if an email address is available for registration or already in use.",
+        "operationId": "AuthService_CheckEmailAvailability",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/authCheckEmailAvailabilityResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/authCheckEmailAvailabilityRequest"
             }
           }
         ],
@@ -760,7 +852,7 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/pbCheckFaceRegistrationResponse"
+              "$ref": "#/definitions/authCheckFaceRegistrationResponse"
             }
           },
           "default": {
@@ -777,7 +869,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/pbCheckFaceRegistrationRequest"
+              "$ref": "#/definitions/authCheckFaceRegistrationRequest"
             }
           }
         ],
@@ -791,16 +883,15 @@
         ]
       }
     },
-    "/v1/auth/google/signin": {
+    "/v1/auth/forgot-password": {
       "post": {
-        "summary": "Sign In/Up with Google",
-        "description": "Authenticates a user using a Google ID token. Creates an account if one doesn't exist for the Google user.",
-        "operationId": "AuthService_SignInWithGoogle",
+        "summary": "--- Forgot Password ---",
+        "operationId": "AuthService_ForgotPassword",
         "responses": {
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/pbLoginResponse"
+              "$ref": "#/definitions/authForgotPasswordResponse"
             }
           },
           "default": {
@@ -816,12 +907,69 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/pbSignInWithGoogleRequest"
+              "$ref": "#/definitions/authForgotPasswordRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthService"
+        ]
+      }
+    },
+    "/v1/auth/google/signin": {
+      "post": {
+        "summary": "Sign In/Up with Google",
+        "description": "Authenticates a user using a Google ID token. Creates an account if one doesn't exist for the Google user.",
+        "operationId": "AuthService_SignInWithGoogle",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/authLoginResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/authSignInWithGoogleRequest"
             }
           }
         ],
         "tags": [
           "Auth"
+        ]
+      }
+    },
+    "/v1/auth/identity-status": {
+      "get": {
+        "summary": "--- Get Identity Verification Status ---",
+        "operationId": "AuthService_GetIdentityVerificationStatus",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/authGetIdentityVerificationStatusResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "AuthService"
         ]
       }
     },
@@ -832,7 +980,7 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/pbLoginResponse"
+              "$ref": "#/definitions/authLoginResponse"
             }
           },
           "default": {
@@ -848,7 +996,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/pbLoginRequest"
+              "$ref": "#/definitions/authLoginRequest"
             }
           }
         ],
@@ -866,7 +1014,7 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/pbLoginWithFaceResponse"
+              "$ref": "#/definitions/authLoginWithFaceResponse"
             }
           },
           "default": {
@@ -882,7 +1030,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/pbLoginWithFaceRequest"
+              "$ref": "#/definitions/authLoginWithFaceRequest"
             }
           }
         ],
@@ -900,7 +1048,7 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/pbLoginResponse"
+              "$ref": "#/definitions/authLoginResponse"
             }
           },
           "default": {
@@ -916,7 +1064,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/pbLoginWithPasscodeRequest"
+              "$ref": "#/definitions/authLoginWithPasscodeRequest"
             }
           }
         ],
@@ -932,7 +1080,7 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/pbLogoutResponse"
+              "$ref": "#/definitions/authLogoutResponse"
             }
           },
           "default": {
@@ -948,12 +1096,89 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/pbLogoutRequest"
+              "$ref": "#/definitions/authLogoutRequest"
             }
           }
         ],
         "tags": [
           "AuthService"
+        ]
+      }
+    },
+    "/v1/auth/me": {
+      "get": {
+        "summary": "Get Current User",
+        "description": "Gets the profile of the currently authenticated user.",
+        "operationId": "AuthService_GetMe",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/authGetMeResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "userId",
+            "description": "User ID (from JWT context in proxy)",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "User"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/v1/auth/profile": {
+      "put": {
+        "summary": "Update Profile",
+        "description": "Updates the profile of the currently authenticated user.",
+        "operationId": "AuthService_UpdateProfile",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/authUpdateProfileResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/authUpdateProfileRequest"
+            }
+          }
+        ],
+        "tags": [
+          "User"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
         ]
       }
     },
@@ -964,7 +1189,7 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/pbRefreshTokenResponse"
+              "$ref": "#/definitions/authRefreshTokenResponse"
             }
           },
           "default": {
@@ -980,7 +1205,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/pbRefreshTokenRequest"
+              "$ref": "#/definitions/authRefreshTokenRequest"
             }
           }
         ],
@@ -998,7 +1223,7 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/pbRegisterPasscodeResponse"
+              "$ref": "#/definitions/authRegisterPasscodeResponse"
             }
           },
           "default": {
@@ -1014,7 +1239,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/pbRegisterPasscodeRequest"
+              "$ref": "#/definitions/authRegisterPasscodeRequest"
             }
           }
         ],
@@ -1037,7 +1262,7 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/pbRequestPasswordResetResponse"
+              "$ref": "#/definitions/authRequestPasswordResetResponse"
             }
           },
           "default": {
@@ -1054,12 +1279,45 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/pbRequestPasswordResetRequest"
+              "$ref": "#/definitions/authRequestPasswordResetRequest"
             }
           }
         ],
         "tags": [
           "Auth"
+        ]
+      }
+    },
+    "/v1/auth/request-phone-verification": {
+      "post": {
+        "summary": "--- Request Phone Verification ---",
+        "operationId": "AuthService_RequestPhoneVerification",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/authRequestPhoneVerificationResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/authRequestPhoneVerificationRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthService"
         ]
       }
     },
@@ -1072,7 +1330,7 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/pbRequestEmailVerificationResponse"
+              "$ref": "#/definitions/authRequestEmailVerificationResponse"
             }
           },
           "default": {
@@ -1089,7 +1347,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/pbRequestEmailVerificationRequest"
+              "$ref": "#/definitions/authRequestEmailVerificationRequest"
             }
           }
         ],
@@ -1103,6 +1361,39 @@
         ]
       }
     },
+    "/v1/auth/resend-verification-email": {
+      "post": {
+        "summary": "--- Resend Verification Email ---",
+        "operationId": "AuthService_ResendVerificationEmail",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/authResendVerificationEmailResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/authResendVerificationEmailRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthService"
+        ]
+      }
+    },
     "/v1/auth/reset-password": {
       "post": {
         "summary": "Reset Password (Email Token)",
@@ -1112,7 +1403,7 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/pbResetPasswordResponse"
+              "$ref": "#/definitions/authResetPasswordResponse"
             }
           },
           "default": {
@@ -1129,12 +1420,78 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/pbResetPasswordRequest"
+              "$ref": "#/definitions/authResetPasswordRequest"
             }
           }
         ],
         "tags": [
           "Auth"
+        ]
+      }
+    },
+    "/v1/auth/signup": {
+      "post": {
+        "summary": "--- Signup ---",
+        "operationId": "AuthService_Signup",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/authSignupResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/authSignupRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthService"
+        ]
+      }
+    },
+    "/v1/auth/validate-token": {
+      "post": {
+        "summary": "--- Validate Token ---",
+        "operationId": "AuthService_ValidateToken",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/authValidateTokenResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/authValidateTokenRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthService"
         ]
       }
     },
@@ -1147,7 +1504,7 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/pbVerifyEmailResponse"
+              "$ref": "#/definitions/authVerifyEmailResponse"
             }
           },
           "default": {
@@ -1164,12 +1521,45 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/pbVerifyEmailRequest"
+              "$ref": "#/definitions/authVerifyEmailRequest"
             }
           }
         ],
         "tags": [
           "Auth"
+        ]
+      }
+    },
+    "/v1/auth/verify-identity": {
+      "post": {
+        "summary": "--- Verify Identity ---",
+        "operationId": "AuthService_VerifyIdentity",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/authVerifyIdentityResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/authVerifyIdentityRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthService"
         ]
       }
     },
@@ -1182,7 +1572,7 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/pbVerifyPasswordResetCodeResponse"
+              "$ref": "#/definitions/authVerifyPasswordResetCodeResponse"
             }
           },
           "default": {
@@ -1198,12 +1588,45 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/pbVerifyPasswordResetCodeRequest"
+              "$ref": "#/definitions/authVerifyPasswordResetCodeRequest"
             }
           }
         ],
         "tags": [
           "Auth"
+        ]
+      }
+    },
+    "/v1/auth/verify-phone-number": {
+      "post": {
+        "summary": "--- Verify Phone Number ---",
+        "operationId": "AuthService_VerifyPhoneNumber",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/authVerifyPhoneNumberResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/authVerifyPhoneNumberRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthService"
         ]
       }
     },
@@ -1216,7 +1639,7 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/pbVerifyPinResponse"
+              "$ref": "#/definitions/authVerifyPinResponse"
             }
           },
           "default": {
@@ -1232,7 +1655,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/pbVerifyPinRequest"
+              "$ref": "#/definitions/authVerifyPinRequest"
             }
           }
         ],
@@ -5686,711 +6109,6 @@
         ]
       }
     },
-    "/v1/insurance": {
-      "get": {
-        "summary": "Insurance Policy Management",
-        "operationId": "InsuranceService_GetUserInsurances",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/pbGetUserInsurancesResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "page",
-            "in": "query",
-            "required": false,
-            "type": "integer",
-            "format": "int32"
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "required": false,
-            "type": "integer",
-            "format": "int32"
-          }
-        ],
-        "tags": [
-          "InsuranceService"
-        ]
-      },
-      "post": {
-        "operationId": "InsuranceService_CreateInsurance",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/pbCreateInsuranceResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/pbCreateInsuranceRequest"
-            }
-          }
-        ],
-        "tags": [
-          "InsuranceService"
-        ]
-      },
-      "put": {
-        "operationId": "InsuranceService_UpdateInsurance",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/pbUpdateInsuranceResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/pbUpdateInsuranceRequest"
-            }
-          }
-        ],
-        "tags": [
-          "InsuranceService"
-        ]
-      }
-    },
-    "/v1/insurance/claims": {
-      "get": {
-        "operationId": "InsuranceService_GetUserClaims",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/pbGetUserClaimsResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "page",
-            "in": "query",
-            "required": false,
-            "type": "integer",
-            "format": "int32"
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "required": false,
-            "type": "integer",
-            "format": "int32"
-          }
-        ],
-        "tags": [
-          "InsuranceService"
-        ]
-      },
-      "post": {
-        "operationId": "InsuranceService_CreateClaim",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/pbCreateClaimResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/pbCreateClaimRequest"
-            }
-          }
-        ],
-        "tags": [
-          "InsuranceService"
-        ]
-      },
-      "put": {
-        "operationId": "InsuranceService_UpdateClaim",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/pbUpdateClaimResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/pbUpdateClaimRequest"
-            }
-          }
-        ],
-        "tags": [
-          "InsuranceService"
-        ]
-      }
-    },
-    "/v1/insurance/claims/{id}": {
-      "get": {
-        "operationId": "InsuranceService_GetClaimById",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/pbGetClaimByIdResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "type": "string"
-          }
-        ],
-        "tags": [
-          "InsuranceService"
-        ]
-      }
-    },
-    "/v1/insurance/payments": {
-      "get": {
-        "operationId": "InsuranceService_GetUserPayments",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/pbGetUserPaymentsResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "page",
-            "in": "query",
-            "required": false,
-            "type": "integer",
-            "format": "int32"
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "required": false,
-            "type": "integer",
-            "format": "int32"
-          }
-        ],
-        "tags": [
-          "InsuranceService"
-        ]
-      },
-      "post": {
-        "operationId": "InsuranceService_CreatePayment",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/pbCreatePaymentResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/pbCreatePaymentRequest"
-            }
-          }
-        ],
-        "tags": [
-          "InsuranceService"
-        ]
-      }
-    },
-    "/v1/insurance/payments/overdue": {
-      "get": {
-        "operationId": "InsuranceService_GetOverduePayments",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/pbGetOverduePaymentsResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "tags": [
-          "InsuranceService"
-        ]
-      }
-    },
-    "/v1/insurance/payments/statistics": {
-      "get": {
-        "operationId": "InsuranceService_GetPaymentStatistics",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/pbGetPaymentStatisticsResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "startDate",
-            "in": "query",
-            "required": false,
-            "type": "string"
-          },
-          {
-            "name": "endDate",
-            "in": "query",
-            "required": false,
-            "type": "string"
-          }
-        ],
-        "tags": [
-          "InsuranceService"
-        ]
-      }
-    },
-    "/v1/insurance/payments/{id}": {
-      "get": {
-        "operationId": "InsuranceService_GetPaymentById",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/pbGetPaymentByIdResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "type": "string"
-          }
-        ],
-        "tags": [
-          "InsuranceService"
-        ]
-      }
-    },
-    "/v1/insurance/payments/{paymentId}/process": {
-      "post": {
-        "operationId": "InsuranceService_ProcessPayment",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/pbProcessPaymentResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "paymentId",
-            "in": "path",
-            "required": true,
-            "type": "string"
-          },
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/pbInsuranceServiceProcessPaymentBody"
-            }
-          }
-        ],
-        "tags": [
-          "InsuranceService"
-        ]
-      }
-    },
-    "/v1/insurance/payments/{paymentId}/receipt": {
-      "post": {
-        "summary": "Receipt Management",
-        "operationId": "InsuranceService_GeneratePaymentReceipt",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/pbGeneratePaymentReceiptResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "paymentId",
-            "in": "path",
-            "required": true,
-            "type": "string"
-          }
-        ],
-        "tags": [
-          "InsuranceService"
-        ]
-      }
-    },
-    "/v1/insurance/receipts": {
-      "get": {
-        "operationId": "InsuranceService_GetUserReceipts",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/pbGetUserReceiptsResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "page",
-            "in": "query",
-            "required": false,
-            "type": "integer",
-            "format": "int32"
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "required": false,
-            "type": "integer",
-            "format": "int32"
-          }
-        ],
-        "tags": [
-          "InsuranceService"
-        ]
-      }
-    },
-    "/v1/insurance/search": {
-      "get": {
-        "operationId": "InsuranceService_SearchInsurances",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/pbSearchInsurancesResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "query",
-            "in": "query",
-            "required": false,
-            "type": "string"
-          },
-          {
-            "name": "page",
-            "in": "query",
-            "required": false,
-            "type": "integer",
-            "format": "int32"
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "required": false,
-            "type": "integer",
-            "format": "int32"
-          }
-        ],
-        "tags": [
-          "InsuranceService"
-        ]
-      }
-    },
-    "/v1/insurance/statistics": {
-      "get": {
-        "summary": "Statistics",
-        "operationId": "InsuranceService_GetInsuranceStatistics",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/pbGetInsuranceStatisticsResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "tags": [
-          "InsuranceService"
-        ]
-      }
-    },
-    "/v1/insurance/{id}": {
-      "get": {
-        "operationId": "InsuranceService_GetInsuranceById",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/pbGetInsuranceByIdResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "type": "string"
-          }
-        ],
-        "tags": [
-          "InsuranceService"
-        ]
-      },
-      "delete": {
-        "operationId": "InsuranceService_DeleteInsurance",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/pbDeleteInsuranceResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "type": "string"
-          }
-        ],
-        "tags": [
-          "InsuranceService"
-        ]
-      }
-    },
-    "/v1/insurance/{insuranceId}/claims": {
-      "get": {
-        "summary": "Claims Management",
-        "operationId": "InsuranceService_GetInsuranceClaims",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/pbGetInsuranceClaimsResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "insuranceId",
-            "in": "path",
-            "required": true,
-            "type": "string"
-          },
-          {
-            "name": "page",
-            "in": "query",
-            "required": false,
-            "type": "integer",
-            "format": "int32"
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "required": false,
-            "type": "integer",
-            "format": "int32"
-          }
-        ],
-        "tags": [
-          "InsuranceService"
-        ]
-      }
-    },
-    "/v1/insurance/{insuranceId}/payments": {
-      "get": {
-        "summary": "Payment Management",
-        "operationId": "InsuranceService_GetInsurancePayments",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/pbGetInsurancePaymentsResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "insuranceId",
-            "in": "path",
-            "required": true,
-            "type": "string"
-          },
-          {
-            "name": "page",
-            "in": "query",
-            "required": false,
-            "type": "integer",
-            "format": "int32"
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "required": false,
-            "type": "integer",
-            "format": "int32"
-          }
-        ],
-        "tags": [
-          "InsuranceService"
-        ]
-      }
-    },
     "/v1/invoices": {
       "get": {
         "summary": "Get all invoices for a user",
@@ -7308,267 +7026,6 @@
         ],
         "tags": [
           "PortfolioService"
-        ]
-      }
-    },
-    "/v1/recipients": {
-      "get": {
-        "summary": "Lists all recipients saved by the authenticated user.",
-        "operationId": "RecipientService_ListRecipients",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/pbListRecipientsResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "countryCode",
-            "description": "Filter by country code (e.g., \"GB\", \"US\")",
-            "in": "query",
-            "required": false,
-            "type": "string"
-          },
-          {
-            "name": "currency",
-            "description": "Filter by currency (e.g., \"USD\", \"GBP\")",
-            "in": "query",
-            "required": false,
-            "type": "string"
-          },
-          {
-            "name": "favoritesOnly",
-            "description": "Only return favorite recipients",
-            "in": "query",
-            "required": false,
-            "type": "boolean"
-          }
-        ],
-        "tags": [
-          "RecipientService"
-        ]
-      },
-      "post": {
-        "summary": "Creates a new recipient for the authenticated user.",
-        "operationId": "RecipientService_CreateRecipient",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/pbCreateRecipientResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/pbCreateRecipientRequest"
-            }
-          }
-        ],
-        "tags": [
-          "RecipientService"
-        ]
-      }
-    },
-    "/v1/recipients/search-by-account": {
-      "get": {
-        "summary": "Search saved recipients by account details",
-        "description": "Searches existing saved recipients by their account details. Returns a list of matching recipients with full details.",
-        "operationId": "RecipientService_SearchRecipientsByAccount",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/pbSearchRecipientsByAccountResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "accountNumber",
-            "description": "Required - account number to search for",
-            "in": "query",
-            "required": false,
-            "type": "string"
-          },
-          {
-            "name": "sortCode",
-            "description": "Optional - sort code or routing number",
-            "in": "query",
-            "required": false,
-            "type": "string"
-          },
-          {
-            "name": "bankName",
-            "description": "Optional - bank name (case-insensitive)",
-            "in": "query",
-            "required": false,
-            "type": "string"
-          }
-        ],
-        "tags": [
-          "Recipients"
-        ]
-      }
-    },
-    "/v1/recipients/search-by-name": {
-      "get": {
-        "summary": "Search saved recipients by name",
-        "description": "Searches existing saved recipients by their name. Returns a list of matching recipients with their ID and name.",
-        "operationId": "RecipientService_GetSimilarRecipientsByName",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/pbGetSimilarRecipientsByNameResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "name",
-            "description": "Changed from name_query. This will be the name (or partial name) to search for in saved recipients.",
-            "in": "query",
-            "required": false,
-            "type": "string"
-          }
-        ],
-        "tags": [
-          "Recipients"
-        ]
-      }
-    },
-    "/v1/recipients/{recipientId}": {
-      "get": {
-        "summary": "Retrieves details for a specific recipient owned by the authenticated user.",
-        "description": "Renamed from GetRecipientByID",
-        "operationId": "RecipientService_GetRecipient",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/pbGetRecipientResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "recipientId",
-            "description": "ID of the recipient to retrieve",
-            "in": "path",
-            "required": true,
-            "type": "string",
-            "format": "uint64"
-          }
-        ],
-        "tags": [
-          "RecipientService"
-        ]
-      },
-      "delete": {
-        "summary": "Deletes a recipient owned by the authenticated user.",
-        "operationId": "RecipientService_DeleteRecipient",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/pbDeleteRecipientResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "recipientId",
-            "description": "ID of the recipient to delete",
-            "in": "path",
-            "required": true,
-            "type": "string",
-            "format": "uint64"
-          }
-        ],
-        "tags": [
-          "RecipientService"
-        ]
-      },
-      "patch": {
-        "summary": "Updates an existing recipient owned by the authenticated user.",
-        "operationId": "RecipientService_UpdateRecipient",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/pbUpdateRecipientResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "recipientId",
-            "description": "ID of the recipient to update",
-            "in": "path",
-            "required": true,
-            "type": "string",
-            "format": "uint64"
-          },
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/RecipientServiceUpdateRecipientBody"
-            }
-          }
-        ],
-        "tags": [
-          "RecipientService"
         ]
       }
     },
@@ -9311,6 +8768,39 @@
         ]
       }
     },
+    "/v1/statistics/wrapped": {
+      "post": {
+        "summary": "Financial Wrapped Experience",
+        "operationId": "StatisticsService_GetFinancialWrapped",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbGetFinancialWrappedResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/pbGetFinancialWrappedRequest"
+            }
+          }
+        ],
+        "tags": [
+          "StatisticsService"
+        ]
+      }
+    },
     "/v1/stocks": {
       "get": {
         "summary": "Get multiple stocks",
@@ -9950,6 +9440,335 @@
         ]
       }
     },
+    "/v1/transactions/history": {
+      "get": {
+        "summary": "Get Transaction History",
+        "description": "Retrieves transaction history with support for filtering by service, status, date range, amount, and search query.",
+        "operationId": "TransactionHistoryService_GetTransactionHistory",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbGetTransactionHistoryResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "userId",
+            "description": "User identification",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "serviceType",
+            "description": "Service type filter (optional - if not provided, returns all services)",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "TRANSACTION_SERVICE_TYPE_UNKNOWN",
+              "TRANSACTION_SERVICE_TYPE_AIRTIME",
+              "TRANSACTION_SERVICE_TYPE_GIFT_CARD",
+              "TRANSACTION_SERVICE_TYPE_ELECTRICITY",
+              "TRANSACTION_SERVICE_TYPE_WATER",
+              "TRANSACTION_SERVICE_TYPE_TV_SUBSCRIPTION",
+              "TRANSACTION_SERVICE_TYPE_TRANSFER",
+              "TRANSACTION_SERVICE_TYPE_CRYPTO",
+              "TRANSACTION_SERVICE_TYPE_STOCKS",
+              "TRANSACTION_SERVICE_TYPE_INSURANCE",
+              "TRANSACTION_SERVICE_TYPE_INVOICE",
+              "TRANSACTION_SERVICE_TYPE_BARCODE_PAYMENT",
+              "TRANSACTION_SERVICE_TYPE_TAG_PAY",
+              "TRANSACTION_SERVICE_TYPE_CROWDFUND",
+              "TRANSACTION_SERVICE_TYPE_AUTOSAVE",
+              "TRANSACTION_SERVICE_TYPE_DEPOSIT",
+              "TRANSACTION_SERVICE_TYPE_WITHDRAWAL"
+            ],
+            "default": "TRANSACTION_SERVICE_TYPE_UNKNOWN"
+          },
+          {
+            "name": "statuses",
+            "description": "Status filter",
+            "in": "query",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "TRANSACTION_STATUS_UNKNOWN",
+                "TRANSACTION_STATUS_PENDING",
+                "TRANSACTION_STATUS_PROCESSING",
+                "TRANSACTION_STATUS_COMPLETED",
+                "TRANSACTION_STATUS_FAILED",
+                "TRANSACTION_STATUS_CANCELLED",
+                "TRANSACTION_STATUS_REFUNDED",
+                "TRANSACTION_STATUS_EXPIRED"
+              ]
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "startDate",
+            "description": "Date range filter",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "date-time"
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "date-time"
+          },
+          {
+            "name": "minAmount",
+            "description": "Amount range filter",
+            "in": "query",
+            "required": false,
+            "type": "number",
+            "format": "double"
+          },
+          {
+            "name": "maxAmount",
+            "in": "query",
+            "required": false,
+            "type": "number",
+            "format": "double"
+          },
+          {
+            "name": "page",
+            "description": "Pagination\n\nDefault: 1",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "limit",
+            "description": "Default: 20",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "cursor",
+            "description": "For cursor-based pagination",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "searchQuery",
+            "description": "Search query",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "Transaction History"
+        ]
+      }
+    },
+    "/v1/transactions/refresh": {
+      "post": {
+        "summary": "Refresh Transactions",
+        "description": "Triggers a refresh/sync of transactions from all upstream services.",
+        "operationId": "TransactionHistoryService_RefreshTransactions",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbRefreshTransactionsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "Transaction History"
+        ]
+      }
+    },
+    "/v1/transactions/search": {
+      "get": {
+        "summary": "Search Transactions",
+        "description": "Searches transactions by title, description, or reference number.",
+        "operationId": "TransactionHistoryService_SearchTransactions",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbSearchTransactionsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "query",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "limit",
+            "description": "Default: 20",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "tags": [
+          "Transaction History"
+        ]
+      }
+    },
+    "/v1/transactions/statistics": {
+      "get": {
+        "summary": "Get Transaction Statistics",
+        "description": "Retrieves transaction statistics including totals by flow type, counts by service, and counts by status.",
+        "operationId": "TransactionHistoryService_GetTransactionStatistics",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbGetTransactionStatisticsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "serviceType",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "TRANSACTION_SERVICE_TYPE_UNKNOWN",
+              "TRANSACTION_SERVICE_TYPE_AIRTIME",
+              "TRANSACTION_SERVICE_TYPE_GIFT_CARD",
+              "TRANSACTION_SERVICE_TYPE_ELECTRICITY",
+              "TRANSACTION_SERVICE_TYPE_WATER",
+              "TRANSACTION_SERVICE_TYPE_TV_SUBSCRIPTION",
+              "TRANSACTION_SERVICE_TYPE_TRANSFER",
+              "TRANSACTION_SERVICE_TYPE_CRYPTO",
+              "TRANSACTION_SERVICE_TYPE_STOCKS",
+              "TRANSACTION_SERVICE_TYPE_INSURANCE",
+              "TRANSACTION_SERVICE_TYPE_INVOICE",
+              "TRANSACTION_SERVICE_TYPE_BARCODE_PAYMENT",
+              "TRANSACTION_SERVICE_TYPE_TAG_PAY",
+              "TRANSACTION_SERVICE_TYPE_CROWDFUND",
+              "TRANSACTION_SERVICE_TYPE_AUTOSAVE",
+              "TRANSACTION_SERVICE_TYPE_DEPOSIT",
+              "TRANSACTION_SERVICE_TYPE_WITHDRAWAL"
+            ],
+            "default": "TRANSACTION_SERVICE_TYPE_UNKNOWN"
+          },
+          {
+            "name": "startDate",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "date-time"
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "date-time"
+          }
+        ],
+        "tags": [
+          "Transaction History"
+        ]
+      }
+    },
+    "/v1/transactions/{transactionId}": {
+      "get": {
+        "summary": "Get Transaction Details",
+        "description": "Retrieves detailed information for a specific transaction.",
+        "operationId": "TransactionHistoryService_GetTransactionDetails",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbGetTransactionDetailsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "transactionId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "userId",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "Transaction History"
+        ]
+      }
+    },
     "/v1/transfers": {
       "get": {
         "summary": "List Transfers",
@@ -10049,121 +9868,6 @@
         ],
         "tags": [
           "transfers"
-        ]
-      }
-    },
-    "/v1/transfers/batch": {
-      "get": {
-        "summary": "Get Batch Transfer History",
-        "description": "Retrieves a paginated list of batch transfers",
-        "operationId": "TransferService_GetBatchTransferHistory",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/pbGetBatchTransferHistoryResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "page",
-            "description": "Page number (default: 1)",
-            "in": "query",
-            "required": false,
-            "type": "integer",
-            "format": "int32"
-          },
-          {
-            "name": "pageSize",
-            "description": "Items per page (default: 20, max: 100)",
-            "in": "query",
-            "required": false,
-            "type": "integer",
-            "format": "int32"
-          },
-          {
-            "name": "status",
-            "description": "Optional filter by status",
-            "in": "query",
-            "required": false,
-            "type": "string"
-          }
-        ],
-        "tags": [
-          "Transfers"
-        ]
-      },
-      "post": {
-        "summary": "Initiate a batch transfer",
-        "description": "Initiates a batch transfer to multiple recipients in a single transaction",
-        "operationId": "TransferService_InitiateBatchTransfer",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/pbInitiateBatchTransferResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/pbInitiateBatchTransferRequest"
-            }
-          }
-        ],
-        "tags": [
-          "transfers"
-        ]
-      }
-    },
-    "/v1/transfers/batch/{batch_id}": {
-      "get": {
-        "summary": "Get Batch Transfer Status",
-        "description": "Retrieves the current status and details of a batch transfer",
-        "operationId": "TransferService_GetBatchTransferStatus",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/pbGetBatchTransferStatusResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "batch_id",
-            "description": "ID of the batch to check",
-            "in": "path",
-            "required": true,
-            "type": "string",
-            "format": "uint64"
-          }
-        ],
-        "tags": [
-          "Transfers"
         ]
       }
     },
@@ -10532,6 +10236,43 @@
         ]
       }
     },
+    "/v1/users/lookup/username/{username}": {
+      "get": {
+        "summary": "Lookup User by Username",
+        "description": "Finds a user by their LazerTag username for transfers.",
+        "operationId": "AuthService_LookupUserByUsername",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/authLookupUserByUsernameResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "username",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "User"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/v1/users/passcode": {
       "post": {
         "summary": "Set passcode",
@@ -10890,12 +10631,14 @@
     },
     "/v1/users/search": {
       "get": {
-        "operationId": "GroupAccountService_SearchUsers",
+        "summary": "Search users by username",
+        "description": "Search for LazerVault users by their username (LazerTag) for internal transfers",
+        "operationId": "UserService_SearchUserByUsername",
         "responses": {
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/pbSearchUsersResponse"
+              "$ref": "#/definitions/pbSearchUserByUsernameResponse"
             }
           },
           "default": {
@@ -10907,21 +10650,20 @@
         },
         "parameters": [
           {
-            "name": "query",
+            "name": "username",
+            "description": "Username to search for (with or without @)",
             "in": "query",
             "required": false,
             "type": "string"
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "required": false,
-            "type": "integer",
-            "format": "int32"
           }
         ],
         "tags": [
-          "GroupAccountService"
+          "users"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
         ]
       }
     },
@@ -11760,34 +11502,6 @@
       },
       "title": "Unlock fund request"
     },
-    "RecipientServiceUpdateRecipientBody": {
-      "type": "object",
-      "properties": {
-        "name": {
-          "type": "string",
-          "description": "Optional fields to update. Use wrappers to distinguish between\nsetting a field to its default value (e.g., false, \"\") and not updating it."
-        },
-        "isFavorite": {
-          "type": "boolean"
-        },
-        "accountNumber": {
-          "type": "string",
-          "title": "Only applicable for external recipients"
-        },
-        "sortCode": {
-          "type": "string",
-          "title": "Only applicable for external recipients"
-        },
-        "bankName": {
-          "type": "string",
-          "title": "Only applicable for external recipients"
-        },
-        "countryCode": {
-          "type": "string",
-          "title": "Only applicable for external recipients"
-        }
-      }
-    },
     "StatisticsServiceUpdateBudgetBody": {
       "type": "object",
       "properties": {
@@ -12189,6 +11903,988 @@
         }
       }
     },
+    "authAuthUser": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "firstName": {
+          "type": "string"
+        },
+        "lastName": {
+          "type": "string"
+        },
+        "phone": {
+          "type": "string"
+        },
+        "countryCode": {
+          "type": "string"
+        },
+        "emailVerified": {
+          "type": "boolean"
+        },
+        "phoneVerified": {
+          "type": "boolean"
+        },
+        "twoFactorEnabled": {
+          "type": "boolean"
+        },
+        "twoFactorMethod": {
+          "type": "string"
+        },
+        "profilePicture": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string"
+        },
+        "updatedAt": {
+          "type": "string"
+        },
+        "signupStatus": {
+          "type": "string"
+        },
+        "currentSignupStep": {
+          "type": "string"
+        },
+        "username": {
+          "type": "string"
+        },
+        "identityVerified": {
+          "type": "boolean"
+        },
+        "identityType": {
+          "type": "string"
+        },
+        "identityVerifiedAt": {
+          "type": "string"
+        },
+        "dateOfBirth": {
+          "type": "string"
+        }
+      },
+      "description": "--- User Profile Messages ---\nAuthUser mirrors the auth-service's User message field layout exactly.\nThe auth-service uses different field numbers/types than common.proto User,\nso we define this separate type for wire compatibility with the auth-service."
+    },
+    "authAuthUserLookupResult": {
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string"
+        },
+        "username": {
+          "type": "string"
+        },
+        "firstName": {
+          "type": "string"
+        },
+        "lastName": {
+          "type": "string"
+        },
+        "profilePicture": {
+          "type": "string"
+        },
+        "isLazervaultUser": {
+          "type": "boolean"
+        },
+        "phoneNumber": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "primaryAccountId": {
+          "type": "string"
+        }
+      }
+    },
+    "authChangePasscodeRequest": {
+      "type": "object",
+      "properties": {
+        "oldPasscode": {
+          "type": "string",
+          "title": "Current 6-digit passcode"
+        },
+        "newPasscode": {
+          "type": "string",
+          "title": "New 6-digit passcode"
+        }
+      }
+    },
+    "authChangePasscodeResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "msg": {
+          "type": "string"
+        }
+      }
+    },
+    "authChangePasswordRequest": {
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string"
+        },
+        "currentPassword": {
+          "type": "string"
+        },
+        "newPassword": {
+          "type": "string"
+        }
+      },
+      "title": "--- Change Password Messages ---"
+    },
+    "authChangePasswordResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "authCheckEmailAvailabilityRequest": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "title": "The email to check for availability"
+        }
+      },
+      "title": "--- Email Availability Check ---",
+      "required": [
+        "email"
+      ]
+    },
+    "authCheckEmailAvailabilityResponse": {
+      "type": "object",
+      "properties": {
+        "available": {
+          "type": "boolean",
+          "title": "Indicates if the email is available (true) or already in use (false)"
+        },
+        "msg": {
+          "type": "string",
+          "title": "User-facing message (e.g., \"Email is available\" or \"Email already in use\")"
+        }
+      }
+    },
+    "authCheckFaceRegistrationRequest": {
+      "type": "object",
+      "description": "User identified via auth token, no parameters needed",
+      "title": "Request to check if user has facial recognition enabled"
+    },
+    "authCheckFaceRegistrationResponse": {
+      "type": "object",
+      "properties": {
+        "isRegistered": {
+          "type": "boolean"
+        },
+        "registeredAt": {
+          "type": "string",
+          "title": "ISO 8601 timestamp"
+        },
+        "msg": {
+          "type": "string"
+        }
+      },
+      "title": "Response for checking face registration status"
+    },
+    "authForgotPasswordRequest": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string"
+        }
+      },
+      "title": "--- Forgot Password Messages ---"
+    },
+    "authForgotPasswordResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "authGetIdentityVerificationStatusResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "msg": {
+          "type": "string"
+        },
+        "identityVerified": {
+          "type": "boolean"
+        },
+        "identityType": {
+          "$ref": "#/definitions/authIdentityType"
+        },
+        "identityVerifiedAt": {
+          "type": "string"
+        },
+        "maskedIdentityNumber": {
+          "type": "string"
+        }
+      }
+    },
+    "authGetMeResponse": {
+      "type": "object",
+      "properties": {
+        "user": {
+          "$ref": "#/definitions/authAuthUser"
+        }
+      }
+    },
+    "authIdentityType": {
+      "type": "string",
+      "enum": [
+        "IDENTITY_TYPE_UNSPECIFIED",
+        "IDENTITY_TYPE_BVN",
+        "IDENTITY_TYPE_NIN"
+      ],
+      "default": "IDENTITY_TYPE_UNSPECIFIED",
+      "title": "--- Identity Verification Messages ---"
+    },
+    "authLoginRequest": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string"
+        },
+        "password": {
+          "type": "string"
+        }
+      }
+    },
+    "authLoginResponse": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "$ref": "#/definitions/pbData"
+        },
+        "success": {
+          "type": "boolean"
+        },
+        "msg": {
+          "type": "string"
+        }
+      }
+    },
+    "authLoginWithFaceRequest": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string"
+        },
+        "imageData": {
+          "type": "string",
+          "format": "byte"
+        },
+        "imageFilename": {
+          "type": "string"
+        }
+      },
+      "title": "Request to login with facial recognition",
+      "required": [
+        "email",
+        "imageData"
+      ]
+    },
+    "authLoginWithFaceResponse": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "$ref": "#/definitions/pbData"
+        },
+        "success": {
+          "type": "boolean"
+        },
+        "msg": {
+          "type": "string"
+        },
+        "confidence": {
+          "type": "number",
+          "format": "double",
+          "title": "Confidence score from facial recognition"
+        }
+      },
+      "title": "Response for facial recognition login"
+    },
+    "authLoginWithPasscodeRequest": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string"
+        },
+        "loginPasscode": {
+          "type": "string",
+          "title": "4-6 digit passcode"
+        }
+      }
+    },
+    "authLogoutRequest": {
+      "type": "object",
+      "properties": {
+        "sessionId": {
+          "type": "string"
+        }
+      }
+    },
+    "authLogoutResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "msg": {
+          "type": "string"
+        }
+      }
+    },
+    "authLookupUserByUsernameResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "msg": {
+          "type": "string"
+        },
+        "found": {
+          "type": "boolean"
+        },
+        "user": {
+          "$ref": "#/definitions/authAuthUserLookupResult"
+        }
+      },
+      "title": "UserLookupResponse - common response for username and phone lookups"
+    },
+    "authRefreshTokenRequest": {
+      "type": "object",
+      "properties": {
+        "refreshToken": {
+          "type": "string"
+        }
+      }
+    },
+    "authRefreshTokenResponse": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "$ref": "#/definitions/pbData"
+        },
+        "success": {
+          "type": "boolean"
+        },
+        "msg": {
+          "type": "string"
+        }
+      }
+    },
+    "authRegisterPasscodeRequest": {
+      "type": "object",
+      "properties": {
+        "loginPasscode": {
+          "type": "string",
+          "title": "6-digit passcode to register"
+        }
+      }
+    },
+    "authRegisterPasscodeResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "msg": {
+          "type": "string"
+        }
+      }
+    },
+    "authRequestEmailVerificationRequest": {
+      "type": "object",
+      "description": "Request to send a verification email to the authenticated user.\nNo parameters needed as user is identified via auth token."
+    },
+    "authRequestEmailVerificationResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "title": "Indicates if the request was accepted (email sending enqueued)"
+        },
+        "msg": {
+          "type": "string",
+          "title": "User-facing message (e.g., \"Verification email sent\")"
+        }
+      },
+      "description": "Response for requesting email verification."
+    },
+    "authRequestPasswordResetRequest": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "description": "User provides their email to initiate reset."
+        },
+        "deliveryMethod": {
+          "type": "string",
+          "title": "Delivery method for OTP: \"EMAIL\" or \"SMS\" (default: \"SMS\")"
+        }
+      },
+      "description": "Request to initiate password reset process via email or SMS.",
+      "required": [
+        "email"
+      ]
+    },
+    "authRequestPasswordResetResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "msg": {
+          "type": "string",
+          "title": "e.g., \"Password reset instructions sent to your email.\""
+        }
+      },
+      "description": "Response for requesting password reset."
+    },
+    "authRequestPhoneVerificationRequest": {
+      "type": "object",
+      "properties": {
+        "phone": {
+          "type": "string"
+        },
+        "countryCode": {
+          "type": "string"
+        }
+      },
+      "title": "--- Request Phone Verification Messages ---"
+    },
+    "authRequestPhoneVerificationResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "msg": {
+          "type": "string"
+        },
+        "verificationId": {
+          "type": "string"
+        },
+        "expiresIn": {
+          "type": "string",
+          "format": "int64"
+        }
+      }
+    },
+    "authResendVerificationEmailRequest": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string"
+        }
+      },
+      "title": "--- Resend Verification Email Messages ---"
+    },
+    "authResendVerificationEmailResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "message": {
+          "type": "string"
+        },
+        "cooldownSeconds": {
+          "type": "integer",
+          "format": "int32"
+        }
+      }
+    },
+    "authResetPasswordRequest": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "title": "Email used in the initial request"
+        },
+        "token": {
+          "type": "string",
+          "title": "The reset token received via email"
+        },
+        "newPassword": {
+          "type": "string",
+          "title": "The desired new password"
+        }
+      },
+      "description": "Request to reset password using the email token.",
+      "required": [
+        "email",
+        "token",
+        "newPassword"
+      ]
+    },
+    "authResetPasswordResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "msg": {
+          "type": "string",
+          "title": "e.g., \"Password reset successfully.\""
+        }
+      },
+      "description": "Response for resetting password."
+    },
+    "authSignInWithAppleRequest": {
+      "type": "object",
+      "properties": {
+        "identityToken": {
+          "type": "string",
+          "description": "The identity token received from Sign in with Apple on the client."
+        },
+        "userIdentifier": {
+          "type": "string",
+          "description": "The unique user identifier received from Apple."
+        },
+        "email": {
+          "type": "string",
+          "description": "Optional: Email provided by Apple (usually only on first sign-in)."
+        },
+        "givenName": {
+          "type": "string",
+          "description": "Optional: Given name provided by Apple."
+        },
+        "familyName": {
+          "type": "string",
+          "description": "Optional: Family name provided by Apple."
+        }
+      },
+      "required": [
+        "identityToken",
+        "userIdentifier"
+      ]
+    },
+    "authSignInWithGoogleRequest": {
+      "type": "object",
+      "properties": {
+        "idToken": {
+          "type": "string",
+          "description": "The ID token received from Google Sign-In on the client."
+        }
+      },
+      "title": "--- Social Sign-In Messages ---",
+      "required": [
+        "idToken"
+      ]
+    },
+    "authSignupRequest": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string"
+        },
+        "password": {
+          "type": "string"
+        },
+        "firstName": {
+          "type": "string"
+        },
+        "lastName": {
+          "type": "string"
+        },
+        "phone": {
+          "type": "string"
+        },
+        "deviceId": {
+          "type": "string"
+        },
+        "deviceName": {
+          "type": "string"
+        },
+        "username": {
+          "type": "string"
+        },
+        "referralCode": {
+          "type": "string"
+        },
+        "dateOfBirth": {
+          "type": "string"
+        },
+        "locale": {
+          "type": "string"
+        },
+        "bvn": {
+          "type": "string"
+        },
+        "nin": {
+          "type": "string"
+        },
+        "countryCode": {
+          "type": "string"
+        },
+        "currencyCode": {
+          "type": "string"
+        }
+      },
+      "title": "--- Signup Messages ---"
+    },
+    "authSignupResponse": {
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "emailVerificationRequired": {
+          "type": "boolean"
+        },
+        "accessToken": {
+          "type": "string"
+        },
+        "refreshToken": {
+          "type": "string"
+        },
+        "expiresIn": {
+          "type": "string",
+          "format": "int64"
+        },
+        "user": {
+          "$ref": "#/definitions/pbUser"
+        },
+        "phoneVerificationRequired": {
+          "type": "boolean"
+        },
+        "verificationSentTo": {
+          "type": "string"
+        },
+        "phoneVerificationId": {
+          "type": "string"
+        },
+        "phoneVerificationExpiresIn": {
+          "type": "string",
+          "format": "int64"
+        }
+      }
+    },
+    "authUpdateProfileRequest": {
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "title": "User ID (from JWT context)"
+        },
+        "firstName": {
+          "type": "string",
+          "title": "New first name (optional)"
+        },
+        "lastName": {
+          "type": "string",
+          "title": "New last name (optional)"
+        },
+        "username": {
+          "type": "string",
+          "title": "New username/LazerTag (optional)"
+        },
+        "phone": {
+          "type": "string",
+          "title": "New phone number (optional)"
+        },
+        "profilePicture": {
+          "type": "string",
+          "title": "New profile picture URL (optional)"
+        }
+      }
+    },
+    "authUpdateProfileResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "msg": {
+          "type": "string"
+        },
+        "user": {
+          "$ref": "#/definitions/authAuthUser"
+        }
+      }
+    },
+    "authUserSearchResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "msg": {
+          "type": "string"
+        },
+        "users": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/authAuthUserLookupResult"
+          }
+        }
+      }
+    },
+    "authValidateTokenRequest": {
+      "type": "object",
+      "properties": {
+        "token": {
+          "type": "string"
+        }
+      },
+      "title": "--- Validate Token Messages ---"
+    },
+    "authValidateTokenResponse": {
+      "type": "object",
+      "properties": {
+        "valid": {
+          "type": "boolean"
+        },
+        "userId": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "expiresAt": {
+          "type": "string",
+          "format": "int64"
+        }
+      }
+    },
+    "authVerifiedIdentity": {
+      "type": "object",
+      "properties": {
+        "firstName": {
+          "type": "string"
+        },
+        "lastName": {
+          "type": "string"
+        },
+        "middleName": {
+          "type": "string"
+        },
+        "phoneNumber": {
+          "type": "string"
+        },
+        "dateOfBirth": {
+          "type": "string"
+        },
+        "gender": {
+          "type": "string"
+        },
+        "photoUrl": {
+          "type": "string"
+        },
+        "address": {
+          "type": "string"
+        },
+        "stateOfOrigin": {
+          "type": "string"
+        },
+        "lgaOfOrigin": {
+          "type": "string"
+        }
+      }
+    },
+    "authVerifyEmailRequest": {
+      "type": "object",
+      "properties": {
+        "verificationCode": {
+          "type": "string",
+          "title": "The verification code sent to the user's email"
+        }
+      },
+      "description": "Request to verify an email using a received code.",
+      "required": [
+        "verificationCode"
+      ]
+    },
+    "authVerifyEmailResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "title": "Indicates if the email was successfully verified"
+        },
+        "msg": {
+          "type": "string",
+          "title": "User-facing message (e.g., \"Email verified successfully\")"
+        }
+      },
+      "description": "Response for verifying an email."
+    },
+    "authVerifyIdentityRequest": {
+      "type": "object",
+      "properties": {
+        "identityType": {
+          "$ref": "#/definitions/authIdentityType"
+        },
+        "identityNumber": {
+          "type": "string"
+        },
+        "dateOfBirth": {
+          "type": "string"
+        }
+      }
+    },
+    "authVerifyIdentityResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "verified": {
+          "type": "boolean"
+        },
+        "errorCode": {
+          "type": "string"
+        },
+        "errorMessage": {
+          "type": "string"
+        },
+        "identity": {
+          "$ref": "#/definitions/authVerifiedIdentity"
+        },
+        "virtualAccount": {
+          "$ref": "#/definitions/authVirtualAccountInfo"
+        }
+      }
+    },
+    "authVerifyPasswordResetCodeRequest": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "title": "Email used in the reset request"
+        },
+        "code": {
+          "type": "string",
+          "title": "6-digit OTP code"
+        }
+      },
+      "title": "Request to verify password reset code (6-digit OTP)",
+      "required": [
+        "email",
+        "code"
+      ]
+    },
+    "authVerifyPasswordResetCodeResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "msg": {
+          "type": "string"
+        },
+        "resetToken": {
+          "type": "string",
+          "title": "Temporary token for password reset (valid 15 minutes)"
+        }
+      },
+      "title": "Response for verifying password reset code"
+    },
+    "authVerifyPhoneNumberRequest": {
+      "type": "object",
+      "properties": {
+        "phone": {
+          "type": "string"
+        },
+        "countryCode": {
+          "type": "string"
+        },
+        "code": {
+          "type": "string"
+        },
+        "verificationId": {
+          "type": "string"
+        }
+      },
+      "title": "--- Verify Phone Number Messages ---"
+    },
+    "authVerifyPhoneNumberResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "msg": {
+          "type": "string"
+        },
+        "isVerified": {
+          "type": "boolean"
+        }
+      }
+    },
+    "authVerifyPinRequest": {
+      "type": "object",
+      "properties": {
+        "pin": {
+          "type": "string",
+          "title": "The 4-digit transaction PIN entered by the user"
+        }
+      },
+      "title": "--- PIN Verification ---",
+      "required": [
+        "pin"
+      ]
+    },
+    "authVerifyPinResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "title": "Indicates if the PIN was correct"
+        },
+        "msg": {
+          "type": "string",
+          "title": "e.g., \"PIN verified successfully.\""
+        }
+      }
+    },
+    "authVirtualAccountInfo": {
+      "type": "object",
+      "properties": {
+        "accountNumber": {
+          "type": "string"
+        },
+        "bankName": {
+          "type": "string"
+        },
+        "bankCode": {
+          "type": "string"
+        },
+        "accountName": {
+          "type": "string"
+        },
+        "currency": {
+          "type": "string"
+        },
+        "provider": {
+          "type": "string"
+        }
+      }
+    },
     "pbAIChatHistoryEntry": {
       "type": "object",
       "properties": {
@@ -12471,6 +13167,28 @@
         }
       },
       "title": "AccountSummary: Used for listing accounts (e.g., in the carousel)"
+    },
+    "pbActionButton": {
+      "type": "object",
+      "properties": {
+        "label": {
+          "type": "string",
+          "description": "Display text for the button."
+        },
+        "actionType": {
+          "type": "string",
+          "description": "Type of action: navigate, confirm, quick_reply."
+        },
+        "payload": {
+          "type": "string",
+          "description": "Action payload or route."
+        },
+        "icon": {
+          "type": "string",
+          "description": "Optional icon name."
+        }
+      },
+      "title": "Action button for rich chat responses"
     },
     "pbActionStep": {
       "type": "object",
@@ -12972,72 +13690,6 @@
         }
       },
       "title": "Auto-save transaction record"
-    },
-    "pbBatchRecipient": {
-      "type": "object",
-      "properties": {
-        "recipientId": {
-          "type": "string",
-          "format": "uint64",
-          "title": "ID of the saved recipient"
-        },
-        "toAccountId": {
-          "type": "string",
-          "format": "uint64",
-          "title": "Optional: Direct account ID (if not using recipient_id)"
-        },
-        "amount": {
-          "type": "string",
-          "format": "uint64",
-          "title": "Amount in minor units (cents/pence)"
-        },
-        "reference": {
-          "type": "string",
-          "title": "Optional reference for this transfer"
-        },
-        "category": {
-          "type": "string",
-          "title": "Optional category for this transfer"
-        }
-      },
-      "title": "Represents a single recipient in a batch transfer"
-    },
-    "pbBatchTransferResult": {
-      "type": "object",
-      "properties": {
-        "transferId": {
-          "type": "string",
-          "format": "uint64",
-          "title": "ID of the individual transfer"
-        },
-        "status": {
-          "type": "string",
-          "title": "\"completed\" or \"failed\""
-        },
-        "amount": {
-          "type": "string",
-          "format": "uint64",
-          "title": "Amount in minor units"
-        },
-        "fee": {
-          "type": "string",
-          "format": "uint64",
-          "title": "Fee in minor units"
-        },
-        "recipientName": {
-          "type": "string",
-          "title": "Recipient name for display"
-        },
-        "recipientAccount": {
-          "type": "string",
-          "title": "Masked account number (e.g., \"****1234\")"
-        },
-        "failureReason": {
-          "type": "string",
-          "title": "Empty if successful, reason if failed"
-        }
-      },
-      "title": "Represents the result of a single transfer within a batch"
     },
     "pbBillBeneficiary": {
       "type": "object",
@@ -13702,30 +14354,6 @@
       },
       "title": "Represents summary data for a specific category"
     },
-    "pbChangePasscodeRequest": {
-      "type": "object",
-      "properties": {
-        "oldPasscode": {
-          "type": "string",
-          "title": "Current 6-digit passcode"
-        },
-        "newPasscode": {
-          "type": "string",
-          "title": "New 6-digit passcode"
-        }
-      }
-    },
-    "pbChangePasscodeResponse": {
-      "type": "object",
-      "properties": {
-        "success": {
-          "type": "boolean"
-        },
-        "msg": {
-          "type": "string"
-        }
-      }
-    },
     "pbChatFile": {
       "type": "object",
       "properties": {
@@ -13799,53 +14427,6 @@
         }
       },
       "title": "Represents a single chat message"
-    },
-    "pbCheckEmailAvailabilityRequest": {
-      "type": "object",
-      "properties": {
-        "email": {
-          "type": "string",
-          "title": "The email to check for availability"
-        }
-      },
-      "title": "--- Email Availability Check ---",
-      "required": [
-        "email"
-      ]
-    },
-    "pbCheckEmailAvailabilityResponse": {
-      "type": "object",
-      "properties": {
-        "available": {
-          "type": "boolean",
-          "title": "Indicates if the email is available (true) or already in use (false)"
-        },
-        "msg": {
-          "type": "string",
-          "title": "User-facing message (e.g., \"Email is available\" or \"Email already in use\")"
-        }
-      }
-    },
-    "pbCheckFaceRegistrationRequest": {
-      "type": "object",
-      "description": "User identified via auth token, no parameters needed",
-      "title": "Request to check if user has facial recognition enabled"
-    },
-    "pbCheckFaceRegistrationResponse": {
-      "type": "object",
-      "properties": {
-        "isRegistered": {
-          "type": "boolean"
-        },
-        "registeredAt": {
-          "type": "string",
-          "title": "ISO 8601 timestamp"
-        },
-        "msg": {
-          "type": "string"
-        }
-      },
-      "title": "Response for checking face registration status"
     },
     "pbCheckPasscodeExistsResponse": {
       "type": "object",
@@ -13979,6 +14560,43 @@
           "format": "date-time"
         }
       }
+    },
+    "pbConfirmationData": {
+      "type": "object",
+      "properties": {
+        "actionType": {
+          "type": "string",
+          "description": "Type of financial action (transfer, tag_pay, etc.)."
+        },
+        "amount": {
+          "type": "string",
+          "description": "Transaction amount in minor units."
+        },
+        "currency": {
+          "type": "string",
+          "description": "Currency code (NGN, USD, etc.)."
+        },
+        "recipientName": {
+          "type": "string",
+          "description": "Recipient display name."
+        },
+        "recipientId": {
+          "type": "string",
+          "description": "Recipient user or account ID."
+        },
+        "description": {
+          "type": "string",
+          "description": "Transaction description."
+        },
+        "extra": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Additional key-value data for the confirmation."
+        }
+      },
+      "title": "Structured confirmation data for financial actions"
     },
     "pbContactToSync": {
       "type": "object",
@@ -14629,28 +15247,6 @@
         }
       }
     },
-    "pbCreateClaimRequest": {
-      "type": "object",
-      "properties": {
-        "claim": {
-          "$ref": "#/definitions/pbInsuranceClaim"
-        }
-      }
-    },
-    "pbCreateClaimResponse": {
-      "type": "object",
-      "properties": {
-        "claim": {
-          "$ref": "#/definitions/pbInsuranceClaim"
-        },
-        "success": {
-          "type": "boolean"
-        },
-        "msg": {
-          "type": "string"
-        }
-      }
-    },
     "pbCreateContributionResponse": {
       "type": "object",
       "properties": {
@@ -14934,28 +15530,6 @@
         }
       }
     },
-    "pbCreateInsuranceRequest": {
-      "type": "object",
-      "properties": {
-        "insurance": {
-          "$ref": "#/definitions/pbInsurance"
-        }
-      }
-    },
-    "pbCreateInsuranceResponse": {
-      "type": "object",
-      "properties": {
-        "insurance": {
-          "$ref": "#/definitions/pbInsurance"
-        },
-        "success": {
-          "type": "boolean"
-        },
-        "msg": {
-          "type": "string"
-        }
-      }
-    },
     "pbCreateInvestmentRequest": {
       "type": "object",
       "properties": {
@@ -15148,86 +15722,6 @@
         },
         "message": {
           "type": "string"
-        }
-      }
-    },
-    "pbCreatePaymentRequest": {
-      "type": "object",
-      "properties": {
-        "payment": {
-          "$ref": "#/definitions/pbInsurancePayment"
-        }
-      }
-    },
-    "pbCreatePaymentResponse": {
-      "type": "object",
-      "properties": {
-        "payment": {
-          "$ref": "#/definitions/pbInsurancePayment"
-        },
-        "success": {
-          "type": "boolean"
-        },
-        "msg": {
-          "type": "string"
-        }
-      }
-    },
-    "pbCreateRecipientRequest": {
-      "type": "object",
-      "properties": {
-        "name": {
-          "type": "string",
-          "title": "Required"
-        },
-        "isFavorite": {
-          "type": "boolean",
-          "title": "Defaults to false if not set"
-        },
-        "type": {
-          "type": "string",
-          "title": "Defaults to \"external\" if not set (\"internal\", \"external\")"
-        },
-        "internalAccountId": {
-          "type": "string",
-          "format": "uint64",
-          "description": "Required if type is \"internal\"",
-          "title": "Provide ONE of the following based on 'type'"
-        },
-        "accountNumber": {
-          "type": "string"
-        },
-        "bankName": {
-          "type": "string"
-        },
-        "sortCode": {
-          "type": "string"
-        },
-        "countryCode": {
-          "type": "string"
-        },
-        "email": {
-          "type": "string"
-        },
-        "phoneNumber": {
-          "type": "string"
-        },
-        "currency": {
-          "type": "string"
-        },
-        "swiftCode": {
-          "type": "string"
-        },
-        "iban": {
-          "type": "string"
-        }
-      }
-    },
-    "pbCreateRecipientResponse": {
-      "type": "object",
-      "properties": {
-        "recipient": {
-          "$ref": "#/definitions/pbRecipient"
         }
       }
     },
@@ -16023,17 +16517,6 @@
         }
       }
     },
-    "pbDeleteInsuranceResponse": {
-      "type": "object",
-      "properties": {
-        "success": {
-          "type": "boolean"
-        },
-        "msg": {
-          "type": "string"
-        }
-      }
-    },
     "pbDeleteInvoiceResponse": {
       "type": "object",
       "properties": {
@@ -16042,15 +16525,6 @@
         }
       },
       "title": "DeleteInvoiceResponse represents a response after deleting an invoice"
-    },
-    "pbDeleteRecipientResponse": {
-      "type": "object",
-      "properties": {
-        "message": {
-          "type": "string",
-          "title": "e.g., \"Recipient deleted successfully\""
-        }
-      }
     },
     "pbDeleteReminderResponse": {
       "type": "object",
@@ -16591,6 +17065,68 @@
         }
       }
     },
+    "pbFinancialWrapped": {
+      "type": "object",
+      "properties": {
+        "period": {
+          "$ref": "#/definitions/pbWrappedPeriod"
+        },
+        "year": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "month": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "periodStart": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "periodEnd": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "summary": {
+          "$ref": "#/definitions/pbWrappedSummary"
+        },
+        "topCategories": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbWrappedCategoryRanking"
+          }
+        },
+        "topMerchants": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbWrappedMerchantRanking"
+          }
+        },
+        "trends": {
+          "$ref": "#/definitions/pbWrappedTrends"
+        },
+        "aiInsights": {
+          "$ref": "#/definitions/pbWrappedAIInsights"
+        },
+        "funFacts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbWrappedFunFact"
+          }
+        },
+        "achievements": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbWrappedAchievement"
+          }
+        }
+      },
+      "title": "Main Financial Wrapped container"
+    },
     "pbFindLazerVaultUsersRequest": {
       "type": "object",
       "properties": {
@@ -16626,20 +17162,6 @@
       },
       "title": "Response with found LazerVault users"
     },
-    "pbFoundRecipientResult": {
-      "type": "object",
-      "properties": {
-        "recipientId": {
-          "type": "string",
-          "title": "Mapped from Recipient.ID"
-        },
-        "name": {
-          "type": "string",
-          "title": "Mapped from Recipient.Name"
-        }
-      },
-      "title": "Renamed from SimilarRecipientUser and fields adjusted"
-    },
     "pbFreezeCardResponse": {
       "type": "object",
       "properties": {
@@ -16654,23 +17176,6 @@
       "properties": {
         "receipt": {
           "$ref": "#/definitions/pbCrowdfundReceiptMessage"
-        }
-      }
-    },
-    "pbGeneratePaymentReceiptResponse": {
-      "type": "object",
-      "properties": {
-        "receiptUrl": {
-          "type": "string"
-        },
-        "receiptId": {
-          "type": "string"
-        },
-        "success": {
-          "type": "boolean"
-        },
-        "msg": {
-          "type": "string"
         }
       }
     },
@@ -16949,74 +17454,6 @@
       },
       "title": "Get auto-save transactions response"
     },
-    "pbGetBatchTransferHistoryResponse": {
-      "type": "object",
-      "properties": {
-        "batches": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/pbGetBatchTransferStatusResponse"
-          }
-        },
-        "pagination": {
-          "$ref": "#/definitions/pbTransferPaginationInfo"
-        }
-      },
-      "title": "Response message for getting batch transfer history"
-    },
-    "pbGetBatchTransferStatusResponse": {
-      "type": "object",
-      "properties": {
-        "batchId": {
-          "type": "string",
-          "format": "uint64"
-        },
-        "status": {
-          "type": "string"
-        },
-        "totalAmount": {
-          "type": "string",
-          "format": "uint64"
-        },
-        "totalFee": {
-          "type": "string",
-          "format": "uint64"
-        },
-        "totalAmountWithFee": {
-          "type": "string",
-          "format": "uint64"
-        },
-        "successfulTransfers": {
-          "type": "integer",
-          "format": "int32"
-        },
-        "failedTransfers": {
-          "type": "integer",
-          "format": "int32"
-        },
-        "totalTransfers": {
-          "type": "integer",
-          "format": "int32"
-        },
-        "results": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/pbBatchTransferResult"
-          }
-        },
-        "createdAt": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "completedAt": {
-          "type": "string",
-          "format": "date-time"
-        }
-      },
-      "title": "Response message for getting batch transfer status (same as initiate response)"
-    },
     "pbGetBeneficiariesResponse": {
       "type": "object",
       "properties": {
@@ -17215,20 +17652,6 @@
       },
       "description": "Contains a list of messages and pagination info.",
       "title": "Get Chat History Response"
-    },
-    "pbGetClaimByIdResponse": {
-      "type": "object",
-      "properties": {
-        "claim": {
-          "$ref": "#/definitions/pbInsuranceClaim"
-        },
-        "success": {
-          "type": "boolean"
-        },
-        "msg": {
-          "type": "string"
-        }
-      }
     },
     "pbGetCompletePortfolioRequest": {
       "type": "object",
@@ -17456,8 +17879,7 @@
           "type": "string"
         },
         "target_account_id": {
-          "type": "string",
-          "format": "uint64"
+          "type": "string"
         },
         "amount": {
           "type": "string",
@@ -17599,6 +18021,39 @@
           "$ref": "#/definitions/pbFinancialGoalsList"
         }
       }
+    },
+    "pbGetFinancialWrappedRequest": {
+      "type": "object",
+      "properties": {
+        "period": {
+          "$ref": "#/definitions/pbWrappedPeriod"
+        },
+        "year": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "month": {
+          "type": "integer",
+          "format": "int32",
+          "title": "only used for monthly wrapped"
+        }
+      },
+      "title": "Financial Wrapped Request"
+    },
+    "pbGetFinancialWrappedResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "wrapped": {
+          "$ref": "#/definitions/pbFinancialWrapped"
+        },
+        "error": {
+          "type": "string"
+        }
+      },
+      "title": "Financial Wrapped Response"
     },
     "pbGetGiftCardBrandByIdResponse": {
       "type": "object",
@@ -17786,100 +18241,6 @@
         "totalMonthlyIncome": {
           "type": "number",
           "format": "double"
-        }
-      }
-    },
-    "pbGetInsuranceByIdResponse": {
-      "type": "object",
-      "properties": {
-        "insurance": {
-          "$ref": "#/definitions/pbInsurance"
-        },
-        "success": {
-          "type": "boolean"
-        },
-        "msg": {
-          "type": "string"
-        }
-      }
-    },
-    "pbGetInsuranceClaimsResponse": {
-      "type": "object",
-      "properties": {
-        "claims": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/pbInsuranceClaim"
-          }
-        },
-        "pagination": {
-          "$ref": "#/definitions/pbPaginationInfo"
-        },
-        "success": {
-          "type": "boolean"
-        },
-        "msg": {
-          "type": "string"
-        }
-      }
-    },
-    "pbGetInsurancePaymentsResponse": {
-      "type": "object",
-      "properties": {
-        "payments": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/pbInsurancePayment"
-          }
-        },
-        "pagination": {
-          "$ref": "#/definitions/pbPaginationInfo"
-        },
-        "success": {
-          "type": "boolean"
-        },
-        "msg": {
-          "type": "string"
-        }
-      }
-    },
-    "pbGetInsuranceStatisticsResponse": {
-      "type": "object",
-      "properties": {
-        "totalPolicies": {
-          "type": "integer",
-          "format": "int32"
-        },
-        "activePolicies": {
-          "type": "integer",
-          "format": "int32"
-        },
-        "expiredPolicies": {
-          "type": "integer",
-          "format": "int32"
-        },
-        "totalCoverageAmount": {
-          "type": "number",
-          "format": "double"
-        },
-        "totalPremiumAmount": {
-          "type": "number",
-          "format": "double"
-        },
-        "policiesByType": {
-          "type": "object",
-          "additionalProperties": {
-            "type": "integer",
-            "format": "int32"
-          }
-        },
-        "success": {
-          "type": "boolean"
-        },
-        "msg": {
-          "type": "string"
         }
       }
     },
@@ -18117,38 +18478,6 @@
         }
       }
     },
-    "pbGetOverduePaymentsResponse": {
-      "type": "object",
-      "properties": {
-        "payments": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/pbInsurancePayment"
-          }
-        },
-        "success": {
-          "type": "boolean"
-        },
-        "msg": {
-          "type": "string"
-        }
-      }
-    },
-    "pbGetPaymentByIdResponse": {
-      "type": "object",
-      "properties": {
-        "payment": {
-          "$ref": "#/definitions/pbInsurancePayment"
-        },
-        "success": {
-          "type": "boolean"
-        },
-        "msg": {
-          "type": "string"
-        }
-      }
-    },
     "pbGetPaymentHistoryResponse": {
       "type": "object",
       "properties": {
@@ -18173,48 +18502,6 @@
         },
         "receiptData": {
           "$ref": "#/definitions/pbReceiptData"
-        }
-      }
-    },
-    "pbGetPaymentStatisticsResponse": {
-      "type": "object",
-      "properties": {
-        "totalPayments": {
-          "type": "integer",
-          "format": "int32"
-        },
-        "completedPayments": {
-          "type": "integer",
-          "format": "int32"
-        },
-        "pendingPayments": {
-          "type": "integer",
-          "format": "int32"
-        },
-        "failedPayments": {
-          "type": "integer",
-          "format": "int32"
-        },
-        "totalAmount": {
-          "type": "number",
-          "format": "double"
-        },
-        "completedAmount": {
-          "type": "number",
-          "format": "double"
-        },
-        "paymentsByMethod": {
-          "type": "object",
-          "additionalProperties": {
-            "type": "integer",
-            "format": "int32"
-          }
-        },
-        "success": {
-          "type": "boolean"
-        },
-        "msg": {
-          "type": "string"
         }
       }
     },
@@ -18350,14 +18637,6 @@
       "description": "List of recent international exchange transactions.",
       "title": "Get Recent Exchanges Response"
     },
-    "pbGetRecipientResponse": {
-      "type": "object",
-      "properties": {
-        "recipient": {
-          "$ref": "#/definitions/pbRecipient"
-        }
-      }
-    },
     "pbGetReferralLeaderboardResponse": {
       "type": "object",
       "properties": {
@@ -18390,19 +18669,6 @@
         },
         "hasGoal": {
           "type": "boolean"
-        }
-      }
-    },
-    "pbGetSimilarRecipientsByNameResponse": {
-      "type": "object",
-      "properties": {
-        "foundRecipients": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/pbFoundRecipientResult"
-          },
-          "title": "Changed from similar_users and type updated"
         }
       }
     },
@@ -18680,6 +18946,84 @@
         }
       }
     },
+    "pbGetTransactionDetailsResponse": {
+      "type": "object",
+      "properties": {
+        "transaction": {
+          "$ref": "#/definitions/pbTransactionHistoryItem"
+        }
+      },
+      "title": "Response for transaction details"
+    },
+    "pbGetTransactionHistoryResponse": {
+      "type": "object",
+      "properties": {
+        "transactions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbTransactionHistoryItem"
+          }
+        },
+        "hasMore": {
+          "type": "boolean"
+        },
+        "currentPage": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "totalPages": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "totalItems": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "nextCursor": {
+          "type": "string"
+        }
+      },
+      "title": "Response message for transaction history"
+    },
+    "pbGetTransactionStatisticsResponse": {
+      "type": "object",
+      "properties": {
+        "totalIncoming": {
+          "type": "number",
+          "format": "double"
+        },
+        "totalOutgoing": {
+          "type": "number",
+          "format": "double"
+        },
+        "netBalance": {
+          "type": "number",
+          "format": "double"
+        },
+        "totalTransactions": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "transactionCountsByService": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "title": "service_type enum -\u003e count"
+        },
+        "transactionCountsByStatus": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "title": "status enum -\u003e count"
+        }
+      },
+      "title": "Transaction statistics response"
+    },
     "pbGetTransactionsResponse": {
       "type": "object",
       "properties": {
@@ -18843,27 +19187,6 @@
       },
       "title": "Get all cards response"
     },
-    "pbGetUserClaimsResponse": {
-      "type": "object",
-      "properties": {
-        "claims": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/pbInsuranceClaim"
-          }
-        },
-        "pagination": {
-          "$ref": "#/definitions/pbPaginationInfo"
-        },
-        "success": {
-          "type": "boolean"
-        },
-        "msg": {
-          "type": "string"
-        }
-      }
-    },
     "pbGetUserContributionReceiptsResponse": {
       "type": "object",
       "properties": {
@@ -18930,27 +19253,6 @@
         }
       }
     },
-    "pbGetUserInsurancesResponse": {
-      "type": "object",
-      "properties": {
-        "insurances": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/pbInsurance"
-          }
-        },
-        "pagination": {
-          "$ref": "#/definitions/pbPaginationInfo"
-        },
-        "success": {
-          "type": "boolean"
-        },
-        "msg": {
-          "type": "string"
-        }
-      }
-    },
     "pbGetUserOrdersResponse": {
       "type": "object",
       "properties": {
@@ -18963,27 +19265,6 @@
         },
         "pagination": {
           "$ref": "#/definitions/pbStockPaginationInfo"
-        }
-      }
-    },
-    "pbGetUserPaymentsResponse": {
-      "type": "object",
-      "properties": {
-        "payments": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/pbInsurancePayment"
-          }
-        },
-        "pagination": {
-          "$ref": "#/definitions/pbPaginationInfo"
-        },
-        "success": {
-          "type": "boolean"
-        },
-        "msg": {
-          "type": "string"
         }
       }
     },
@@ -19009,26 +19290,6 @@
         },
         "preferences": {
           "$ref": "#/definitions/pbUserPreferences"
-        }
-      }
-    },
-    "pbGetUserReceiptsResponse": {
-      "type": "object",
-      "properties": {
-        "receiptUrls": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "pagination": {
-          "$ref": "#/definitions/pbPaginationInfo"
-        },
-        "success": {
-          "type": "boolean"
-        },
-        "msg": {
-          "type": "string"
         }
       }
     },
@@ -19772,102 +20033,12 @@
       "description": "Response confirming the transaction file indexing task was triggered.",
       "title": "Index Transaction File Response"
     },
-    "pbInitiateBatchTransferRequest": {
-      "type": "object",
-      "properties": {
-        "from_account_id": {
-          "type": "string",
-          "format": "uint64",
-          "title": "Source account"
-        },
-        "recipients": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/pbBatchRecipient"
-          },
-          "title": "List of recipients"
-        },
-        "scheduledAt": {
-          "type": "string",
-          "title": "Optional. If not provided, processed immediately"
-        }
-      },
-      "title": "Request message for initiating a batch transfer",
-      "required": [
-        "from_account_id",
-        "recipients"
-      ]
-    },
-    "pbInitiateBatchTransferResponse": {
-      "type": "object",
-      "properties": {
-        "batchId": {
-          "type": "string",
-          "format": "uint64",
-          "title": "Unique batch ID"
-        },
-        "status": {
-          "type": "string",
-          "title": "\"processing\", \"completed\", \"partial_success\", \"failed\""
-        },
-        "totalAmount": {
-          "type": "string",
-          "format": "uint64",
-          "title": "Total amount in minor units"
-        },
-        "totalFee": {
-          "type": "string",
-          "format": "uint64",
-          "title": "Total fee in minor units"
-        },
-        "totalAmountWithFee": {
-          "type": "string",
-          "format": "uint64",
-          "title": "Total including fees"
-        },
-        "successfulTransfers": {
-          "type": "integer",
-          "format": "int32",
-          "title": "Number of successful transfers"
-        },
-        "failedTransfers": {
-          "type": "integer",
-          "format": "int32",
-          "title": "Number of failed transfers"
-        },
-        "totalTransfers": {
-          "type": "integer",
-          "format": "int32",
-          "title": "Total number of transfers"
-        },
-        "results": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/pbBatchTransferResult"
-          },
-          "title": "Individual transfer results"
-        },
-        "createdAt": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "completedAt": {
-          "type": "string",
-          "format": "date-time",
-          "title": "Null if still processing"
-        }
-      },
-      "title": "Response message for initiating a batch transfer"
-    },
     "pbInitiateDepositRequest": {
       "type": "object",
       "properties": {
         "target_account_id": {
           "type": "string",
-          "format": "uint64",
-          "title": "Account to deposit into"
+          "title": "Account UUID to deposit into"
         },
         "amount": {
           "type": "string",
@@ -19977,6 +20148,15 @@
         },
         "beneficiaryId": {
           "type": "string"
+        },
+        "transactionId": {
+          "type": "string"
+        },
+        "verificationToken": {
+          "type": "string"
+        },
+        "phoneNumber": {
+          "type": "string"
         }
       },
       "title": "Payment Messages"
@@ -20029,6 +20209,15 @@
           "type": "string",
           "title": "Optional. If not provided, processed immediately. Format: \"2006-01-02T15:04:05Z07:00\""
         },
+        "transaction_id": {
+          "type": "string",
+          "description": "Required: Unique transaction ID from PIN verification",
+          "title": "--- PIN Verification (Required for security) ---"
+        },
+        "verification_token": {
+          "type": "string",
+          "title": "Required: Token from PIN verification"
+        },
         "to_account_id": {
           "type": "string",
           "format": "uint64",
@@ -20044,7 +20233,9 @@
       "title": "Request message for initiating a transfer",
       "required": [
         "from_account_id",
-        "amount"
+        "amount",
+        "transaction_id",
+        "verification_token"
       ]
     },
     "pbInitiateTransferResponse": {
@@ -20135,242 +20326,6 @@
         }
       },
       "title": "Response after initiating a withdrawal (Acknowledgement)"
-    },
-    "pbInsurance": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string"
-        },
-        "policyNumber": {
-          "type": "string"
-        },
-        "policyHolderName": {
-          "type": "string"
-        },
-        "policyHolderEmail": {
-          "type": "string"
-        },
-        "policyHolderPhone": {
-          "type": "string"
-        },
-        "type": {
-          "type": "string"
-        },
-        "provider": {
-          "type": "string"
-        },
-        "providerLogo": {
-          "type": "string"
-        },
-        "premiumAmount": {
-          "type": "number",
-          "format": "double"
-        },
-        "coverageAmount": {
-          "type": "number",
-          "format": "double"
-        },
-        "currency": {
-          "type": "string"
-        },
-        "startDate": {
-          "type": "string"
-        },
-        "endDate": {
-          "type": "string"
-        },
-        "nextPaymentDate": {
-          "type": "string"
-        },
-        "status": {
-          "type": "string"
-        },
-        "beneficiaries": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "coverageDetails": {
-          "type": "object",
-          "additionalProperties": {
-            "type": "string"
-          }
-        },
-        "description": {
-          "type": "string"
-        },
-        "userId": {
-          "type": "string"
-        },
-        "createdAt": {
-          "type": "string"
-        },
-        "updatedAt": {
-          "type": "string"
-        }
-      },
-      "title": "Data Models"
-    },
-    "pbInsuranceClaim": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string"
-        },
-        "claimNumber": {
-          "type": "string"
-        },
-        "insuranceId": {
-          "type": "string"
-        },
-        "policyNumber": {
-          "type": "string"
-        },
-        "type": {
-          "type": "string"
-        },
-        "status": {
-          "type": "string"
-        },
-        "title": {
-          "type": "string"
-        },
-        "description": {
-          "type": "string"
-        },
-        "claimAmount": {
-          "type": "number",
-          "format": "double"
-        },
-        "approvedAmount": {
-          "type": "number",
-          "format": "double"
-        },
-        "currency": {
-          "type": "string"
-        },
-        "incidentDate": {
-          "type": "string"
-        },
-        "incidentLocation": {
-          "type": "string"
-        },
-        "attachments": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "documents": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "additionalInfo": {
-          "type": "object",
-          "additionalProperties": {
-            "type": "string"
-          }
-        },
-        "rejectionReason": {
-          "type": "string"
-        },
-        "settlementDate": {
-          "type": "string"
-        },
-        "settlementDetails": {
-          "type": "string"
-        },
-        "userId": {
-          "type": "string"
-        },
-        "createdAt": {
-          "type": "string"
-        },
-        "updatedAt": {
-          "type": "string"
-        }
-      }
-    },
-    "pbInsurancePayment": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string"
-        },
-        "insuranceId": {
-          "type": "string"
-        },
-        "policyNumber": {
-          "type": "string"
-        },
-        "amount": {
-          "type": "number",
-          "format": "double"
-        },
-        "currency": {
-          "type": "string"
-        },
-        "paymentMethod": {
-          "type": "string"
-        },
-        "status": {
-          "type": "string"
-        },
-        "transactionId": {
-          "type": "string"
-        },
-        "referenceNumber": {
-          "type": "string"
-        },
-        "paymentDate": {
-          "type": "string"
-        },
-        "dueDate": {
-          "type": "string"
-        },
-        "processedAt": {
-          "type": "string"
-        },
-        "paymentDetails": {
-          "type": "object",
-          "additionalProperties": {
-            "type": "string"
-          }
-        },
-        "failureReason": {
-          "type": "string"
-        },
-        "receiptUrl": {
-          "type": "string"
-        },
-        "userId": {
-          "type": "string"
-        },
-        "createdAt": {
-          "type": "string"
-        },
-        "updatedAt": {
-          "type": "string"
-        }
-      }
-    },
-    "pbInsuranceServiceProcessPaymentBody": {
-      "type": "object",
-      "properties": {
-        "paymentMethod": {
-          "type": "string"
-        },
-        "paymentDetails": {
-          "type": "object",
-          "additionalProperties": {
-            "type": "string"
-          }
-        }
-      }
     },
     "pbInvestment": {
       "type": "object",
@@ -20742,18 +20697,6 @@
         }
       }
     },
-    "pbListRecipientsResponse": {
-      "type": "object",
-      "properties": {
-        "recipients": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/pbRecipient"
-          }
-        }
-      }
-    },
     "pbListTransfersResponse": {
       "type": "object",
       "properties": {
@@ -20939,102 +20882,6 @@
       "default": "LOCK_TYPE_UNSPECIFIED",
       "title": "Lock type enumeration"
     },
-    "pbLoginRequest": {
-      "type": "object",
-      "properties": {
-        "email": {
-          "type": "string"
-        },
-        "password": {
-          "type": "string"
-        }
-      }
-    },
-    "pbLoginResponse": {
-      "type": "object",
-      "properties": {
-        "data": {
-          "$ref": "#/definitions/pbData"
-        },
-        "success": {
-          "type": "boolean"
-        },
-        "msg": {
-          "type": "string"
-        }
-      }
-    },
-    "pbLoginWithFaceRequest": {
-      "type": "object",
-      "properties": {
-        "email": {
-          "type": "string"
-        },
-        "imageData": {
-          "type": "string",
-          "format": "byte"
-        },
-        "imageFilename": {
-          "type": "string"
-        }
-      },
-      "title": "Request to login with facial recognition",
-      "required": [
-        "email",
-        "imageData"
-      ]
-    },
-    "pbLoginWithFaceResponse": {
-      "type": "object",
-      "properties": {
-        "data": {
-          "$ref": "#/definitions/pbData"
-        },
-        "success": {
-          "type": "boolean"
-        },
-        "msg": {
-          "type": "string"
-        },
-        "confidence": {
-          "type": "number",
-          "format": "double",
-          "title": "Confidence score from facial recognition"
-        }
-      },
-      "title": "Response for facial recognition login"
-    },
-    "pbLoginWithPasscodeRequest": {
-      "type": "object",
-      "properties": {
-        "email": {
-          "type": "string"
-        },
-        "loginPasscode": {
-          "type": "string",
-          "title": "4-6 digit passcode"
-        }
-      }
-    },
-    "pbLogoutRequest": {
-      "type": "object",
-      "properties": {
-        "sessionId": {
-          "type": "string"
-        }
-      }
-    },
-    "pbLogoutResponse": {
-      "type": "object",
-      "properties": {
-        "success": {
-          "type": "boolean"
-        },
-        "msg": {
-          "type": "string"
-        }
-      }
-    },
     "pbMakeDonationResponse": {
       "type": "object",
       "properties": {
@@ -21183,34 +21030,6 @@
         "ORDER_TYPE_STOP_LIMIT"
       ],
       "default": "ORDER_TYPE_UNSPECIFIED"
-    },
-    "pbPaginationInfo": {
-      "type": "object",
-      "properties": {
-        "currentPage": {
-          "type": "integer",
-          "format": "int32"
-        },
-        "totalPages": {
-          "type": "integer",
-          "format": "int32"
-        },
-        "totalItems": {
-          "type": "integer",
-          "format": "int32"
-        },
-        "itemsPerPage": {
-          "type": "integer",
-          "format": "int32"
-        },
-        "hasNext": {
-          "type": "boolean"
-        },
-        "hasPrev": {
-          "type": "boolean"
-        }
-      },
-      "title": "Pagination Info - Common pagination structure"
     },
     "pbPaginationMetadata": {
       "type": "object",
@@ -21747,6 +21566,32 @@
           "$ref": "#/definitions/pbChatFile",
           "description": "Optional file uploaded by the user for AI processing.",
           "title": "Optional file handling field"
+        },
+        "sessionId": {
+          "type": "string",
+          "description": "Session identifier for conversation continuity.",
+          "title": "Conversation context fields"
+        },
+        "sourceContext": {
+          "type": "string",
+          "description": "Where the chat was initiated from (e.g., dashboard, transfers)."
+        },
+        "language": {
+          "type": "string",
+          "description": "User's preferred language code (e.g., en, fr)."
+        },
+        "accountId": {
+          "type": "string",
+          "description": "User's active account ID.",
+          "title": "Account context fields for agent routing"
+        },
+        "userCountry": {
+          "type": "string",
+          "description": "User's country code (e.g., NG, GH)."
+        },
+        "currency": {
+          "type": "string",
+          "description": "User's currency code (e.g., NGN, GHS)."
         }
       },
       "description": "Payload containing the user's query for the AI chatbot with optional file.",
@@ -21782,38 +21627,51 @@
             "$ref": "#/definitions/pbChatFile"
           },
           "description": "Files generated by the AI in response to the query.",
-          "title": "Optional file handling response fields (for future AI service enhancements)"
+          "title": "Optional file handling response fields"
         },
         "fileAnalysis": {
           "$ref": "#/definitions/pbFileAnalysis",
           "description": "Analysis results of uploaded files."
+        },
+        "intent": {
+          "type": "string",
+          "description": "Classified intent of the user's message.",
+          "title": "Conversation intelligence fields"
+        },
+        "entities": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Extracted entities (amount, recipient, etc.)."
+        },
+        "requiresConfirmation": {
+          "type": "boolean",
+          "description": "Whether the user must confirm an action."
+        },
+        "actionButtons": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbActionButton"
+          },
+          "description": "Suggested action buttons for the user."
+        },
+        "sessionId": {
+          "type": "string",
+          "description": "Session ID for conversation continuity."
+        },
+        "confirmationData": {
+          "$ref": "#/definitions/pbConfirmationData",
+          "description": "Structured data for transaction confirmation."
+        },
+        "conversationState": {
+          "type": "string",
+          "description": "Current conversation state (IDLE, AWAITING_CONFIRMATION, etc.)."
         }
       },
       "description": "Contains the AI chatbot's response along with status.",
       "title": "AI Process Chat Response"
-    },
-    "pbProcessPaymentResponse": {
-      "type": "object",
-      "properties": {
-        "payment": {
-          "$ref": "#/definitions/pbInsurancePayment"
-        },
-        "transactionId": {
-          "type": "string"
-        },
-        "referenceNumber": {
-          "type": "string"
-        },
-        "receiptUrl": {
-          "type": "string"
-        },
-        "success": {
-          "type": "boolean"
-        },
-        "msg": {
-          "type": "string"
-        }
-      }
     },
     "pbProcessPayoutResponse": {
       "type": "object",
@@ -22006,80 +21864,6 @@
         }
       },
       "title": "Represents receiver details for an international transfer"
-    },
-    "pbRecipient": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string",
-          "format": "uint64"
-        },
-        "name": {
-          "type": "string"
-        },
-        "isFavorite": {
-          "type": "boolean"
-        },
-        "type": {
-          "type": "string",
-          "title": "\"internal\" or \"external\""
-        },
-        "internalAccountId": {
-          "type": "string",
-          "format": "uint64",
-          "description": "ID of the linked internal account",
-          "title": "Fields for INTERNAL recipients"
-        },
-        "internalUserId": {
-          "type": "string",
-          "format": "uint64",
-          "title": "ID of the owner of the linked internal account"
-        },
-        "accountNumber": {
-          "type": "string",
-          "description": "Consider masking in responses if sensitive",
-          "title": "Fields for EXTERNAL recipients"
-        },
-        "sortCode": {
-          "type": "string"
-        },
-        "bankName": {
-          "type": "string"
-        },
-        "countryCode": {
-          "type": "string",
-          "title": "e.g., \"GB\", \"US\""
-        },
-        "email": {
-          "type": "string",
-          "title": "Recipient email address"
-        },
-        "phoneNumber": {
-          "type": "string",
-          "title": "Recipient phone number"
-        },
-        "currency": {
-          "type": "string",
-          "title": "Currency for this recipient (e.g., \"USD\", \"GBP\")"
-        },
-        "swiftCode": {
-          "type": "string",
-          "title": "SWIFT/BIC code for international transfers"
-        },
-        "iban": {
-          "type": "string",
-          "title": "IBAN for European transfers"
-        },
-        "createdAt": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "format": "date-time"
-        }
-      },
-      "description": "Represents a saved recipient entity."
     },
     "pbRecipientDetails": {
       "type": "object",
@@ -22316,27 +22100,21 @@
       },
       "title": "ReferralTransaction message represents a referral event"
     },
-    "pbRefreshTokenRequest": {
+    "pbRefreshTransactionsResponse": {
       "type": "object",
       "properties": {
-        "refreshToken": {
-          "type": "string"
-        }
-      }
-    },
-    "pbRefreshTokenResponse": {
-      "type": "object",
-      "properties": {
-        "data": {
-          "$ref": "#/definitions/pbData"
-        },
         "success": {
           "type": "boolean"
         },
-        "msg": {
+        "message": {
           "type": "string"
+        },
+        "transactionsSynced": {
+          "type": "integer",
+          "format": "int32"
         }
-      }
+      },
+      "title": "Response for refresh"
     },
     "pbRegisterFaceRequest": {
       "type": "object",
@@ -22397,26 +22175,6 @@
       },
       "title": "Register Face Response"
     },
-    "pbRegisterPasscodeRequest": {
-      "type": "object",
-      "properties": {
-        "loginPasscode": {
-          "type": "string",
-          "title": "6-digit passcode to register"
-        }
-      }
-    },
-    "pbRegisterPasscodeResponse": {
-      "type": "object",
-      "properties": {
-        "success": {
-          "type": "boolean"
-        },
-        "msg": {
-          "type": "string"
-        }
-      }
-    },
     "pbRemoveFromWatchlistResponse": {
       "type": "object",
       "properties": {
@@ -22438,7 +22196,12 @@
     },
     "pbRemovePasscodeRequest": {
       "type": "object",
-      "title": "No parameters needed - user is authenticated via token"
+      "properties": {
+        "password": {
+          "type": "string",
+          "title": "Require password confirmation"
+        }
+      }
     },
     "pbRemovePasscodeResponse": {
       "type": "object",
@@ -22465,90 +22228,6 @@
         }
       },
       "title": "Renew lock fund response"
-    },
-    "pbRequestEmailVerificationRequest": {
-      "type": "object",
-      "description": "Request to send a verification email to the authenticated user.\nNo parameters needed as user is identified via auth token."
-    },
-    "pbRequestEmailVerificationResponse": {
-      "type": "object",
-      "properties": {
-        "success": {
-          "type": "boolean",
-          "title": "Indicates if the request was accepted (email sending enqueued)"
-        },
-        "msg": {
-          "type": "string",
-          "title": "User-facing message (e.g., \"Verification email sent\")"
-        }
-      },
-      "description": "Response for requesting email verification."
-    },
-    "pbRequestPasswordResetRequest": {
-      "type": "object",
-      "properties": {
-        "email": {
-          "type": "string",
-          "description": "User provides their email to initiate reset."
-        },
-        "deliveryMethod": {
-          "type": "string",
-          "title": "Delivery method for OTP: \"EMAIL\" or \"SMS\" (default: \"SMS\")"
-        }
-      },
-      "description": "Request to initiate password reset process via email or SMS.",
-      "required": [
-        "email"
-      ]
-    },
-    "pbRequestPasswordResetResponse": {
-      "type": "object",
-      "properties": {
-        "success": {
-          "type": "boolean"
-        },
-        "msg": {
-          "type": "string",
-          "title": "e.g., \"Password reset instructions sent to your email.\""
-        }
-      },
-      "description": "Response for requesting password reset."
-    },
-    "pbResetPasswordRequest": {
-      "type": "object",
-      "properties": {
-        "email": {
-          "type": "string",
-          "title": "Email used in the initial request"
-        },
-        "token": {
-          "type": "string",
-          "title": "The reset token received via email"
-        },
-        "newPassword": {
-          "type": "string",
-          "title": "The desired new password"
-        }
-      },
-      "description": "Request to reset password using the email token.",
-      "required": [
-        "email",
-        "token",
-        "newPassword"
-      ]
-    },
-    "pbResetPasswordResponse": {
-      "type": "object",
-      "properties": {
-        "success": {
-          "type": "boolean"
-        },
-        "msg": {
-          "type": "string",
-          "title": "e.g., \"Password reset successfully.\""
-        }
-      },
-      "description": "Response for resetting password."
     },
     "pbResumeAutoRechargeResponse": {
       "type": "object",
@@ -22693,27 +22372,6 @@
         }
       }
     },
-    "pbSearchInsurancesResponse": {
-      "type": "object",
-      "properties": {
-        "insurances": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/pbInsurance"
-          }
-        },
-        "pagination": {
-          "$ref": "#/definitions/pbPaginationInfo"
-        },
-        "success": {
-          "type": "boolean"
-        },
-        "msg": {
-          "type": "string"
-        }
-      }
-    },
     "pbSearchInvoiceUsersResponse": {
       "type": "object",
       "properties": {
@@ -22727,19 +22385,6 @@
       },
       "title": "SearchInvoiceUsersResponse represents a response containing search results"
     },
-    "pbSearchRecipientsByAccountResponse": {
-      "type": "object",
-      "properties": {
-        "recipients": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/pbRecipient"
-          },
-          "title": "Full recipient details for matches"
-        }
-      }
-    },
     "pbSearchStocksResponse": {
       "type": "object",
       "properties": {
@@ -22748,6 +22393,37 @@
           "items": {
             "type": "object",
             "$ref": "#/definitions/pbStockMessage"
+          }
+        }
+      }
+    },
+    "pbSearchTransactionsResponse": {
+      "type": "object",
+      "properties": {
+        "transactions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbTransactionHistoryItem"
+          }
+        }
+      },
+      "title": "Response for search"
+    },
+    "pbSearchUserByUsernameResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "message": {
+          "type": "string"
+        },
+        "users": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbUserServiceSearchResult"
           }
         }
       }
@@ -22873,6 +22549,10 @@
         "passcode": {
           "type": "string",
           "title": "4-6 digit passcode"
+        },
+        "password": {
+          "type": "string",
+          "title": "Require password confirmation for security"
         }
       },
       "title": "Passcode Messages"
@@ -22887,48 +22567,6 @@
           "type": "string"
         }
       }
-    },
-    "pbSignInWithAppleRequest": {
-      "type": "object",
-      "properties": {
-        "identityToken": {
-          "type": "string",
-          "description": "The identity token received from Sign in with Apple on the client."
-        },
-        "userIdentifier": {
-          "type": "string",
-          "description": "The unique user identifier received from Apple."
-        },
-        "email": {
-          "type": "string",
-          "description": "Optional: Email provided by Apple (usually only on first sign-in)."
-        },
-        "givenName": {
-          "type": "string",
-          "description": "Optional: Given name provided by Apple."
-        },
-        "familyName": {
-          "type": "string",
-          "description": "Optional: Family name provided by Apple."
-        }
-      },
-      "required": [
-        "identityToken",
-        "userIdentifier"
-      ]
-    },
-    "pbSignInWithGoogleRequest": {
-      "type": "object",
-      "properties": {
-        "idToken": {
-          "type": "string",
-          "description": "The ID token received from Google Sign-In on the client."
-        }
-      },
-      "title": "--- Social Sign-In Messages ---",
-      "required": [
-        "idToken"
-      ]
     },
     "pbSpendingAnalytics": {
       "type": "object",
@@ -23778,6 +23416,105 @@
         }
       }
     },
+    "pbTransactionFlow": {
+      "type": "string",
+      "enum": [
+        "TRANSACTION_FLOW_UNKNOWN",
+        "TRANSACTION_FLOW_INCOMING",
+        "TRANSACTION_FLOW_OUTGOING",
+        "TRANSACTION_FLOW_NEUTRAL"
+      ],
+      "default": "TRANSACTION_FLOW_UNKNOWN",
+      "title": "Transaction Flow Direction"
+    },
+    "pbTransactionHistoryItem": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "serviceType": {
+          "$ref": "#/definitions/pbTransactionServiceType"
+        },
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "amount": {
+          "type": "number",
+          "format": "double"
+        },
+        "currency": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "status": {
+          "$ref": "#/definitions/pbTransactionStatus"
+        },
+        "flow": {
+          "$ref": "#/definitions/pbTransactionFlow"
+        },
+        "transactionReference": {
+          "type": "string"
+        },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "title": "Enhanced Transaction message with full history support"
+    },
+    "pbTransactionServiceType": {
+      "type": "string",
+      "enum": [
+        "TRANSACTION_SERVICE_TYPE_UNKNOWN",
+        "TRANSACTION_SERVICE_TYPE_AIRTIME",
+        "TRANSACTION_SERVICE_TYPE_GIFT_CARD",
+        "TRANSACTION_SERVICE_TYPE_ELECTRICITY",
+        "TRANSACTION_SERVICE_TYPE_WATER",
+        "TRANSACTION_SERVICE_TYPE_TV_SUBSCRIPTION",
+        "TRANSACTION_SERVICE_TYPE_TRANSFER",
+        "TRANSACTION_SERVICE_TYPE_CRYPTO",
+        "TRANSACTION_SERVICE_TYPE_STOCKS",
+        "TRANSACTION_SERVICE_TYPE_INSURANCE",
+        "TRANSACTION_SERVICE_TYPE_INVOICE",
+        "TRANSACTION_SERVICE_TYPE_BARCODE_PAYMENT",
+        "TRANSACTION_SERVICE_TYPE_TAG_PAY",
+        "TRANSACTION_SERVICE_TYPE_CROWDFUND",
+        "TRANSACTION_SERVICE_TYPE_AUTOSAVE",
+        "TRANSACTION_SERVICE_TYPE_DEPOSIT",
+        "TRANSACTION_SERVICE_TYPE_WITHDRAWAL"
+      ],
+      "default": "TRANSACTION_SERVICE_TYPE_UNKNOWN",
+      "title": "Transaction Service Types - comprehensive service types enumeration"
+    },
+    "pbTransactionStatus": {
+      "type": "string",
+      "enum": [
+        "TRANSACTION_STATUS_UNKNOWN",
+        "TRANSACTION_STATUS_PENDING",
+        "TRANSACTION_STATUS_PROCESSING",
+        "TRANSACTION_STATUS_COMPLETED",
+        "TRANSACTION_STATUS_FAILED",
+        "TRANSACTION_STATUS_CANCELLED",
+        "TRANSACTION_STATUS_REFUNDED",
+        "TRANSACTION_STATUS_EXPIRED"
+      ],
+      "default": "TRANSACTION_STATUS_UNKNOWN",
+      "title": "Transaction Status - comprehensive status tracking"
+    },
     "pbTransferPaginationInfo": {
       "type": "object",
       "properties": {
@@ -23967,28 +23704,6 @@
       },
       "title": "Update card spending limit response"
     },
-    "pbUpdateClaimRequest": {
-      "type": "object",
-      "properties": {
-        "claim": {
-          "$ref": "#/definitions/pbInsuranceClaim"
-        }
-      }
-    },
-    "pbUpdateClaimResponse": {
-      "type": "object",
-      "properties": {
-        "claim": {
-          "$ref": "#/definitions/pbInsuranceClaim"
-        },
-        "success": {
-          "type": "boolean"
-        },
-        "msg": {
-          "type": "string"
-        }
-      }
-    },
     "pbUpdateContributionResponse": {
       "type": "object",
       "properties": {
@@ -24061,28 +23776,6 @@
       "properties": {
         "group": {
           "$ref": "#/definitions/pbGroupAccountMessage"
-        }
-      }
-    },
-    "pbUpdateInsuranceRequest": {
-      "type": "object",
-      "properties": {
-        "insurance": {
-          "$ref": "#/definitions/pbInsurance"
-        }
-      }
-    },
-    "pbUpdateInsuranceResponse": {
-      "type": "object",
-      "properties": {
-        "insurance": {
-          "$ref": "#/definitions/pbInsurance"
-        },
-        "success": {
-          "type": "boolean"
-        },
-        "msg": {
-          "type": "string"
         }
       }
     },
@@ -24184,14 +23877,6 @@
         },
         "preferences": {
           "$ref": "#/definitions/pbUserPreferences"
-        }
-      }
-    },
-    "pbUpdateRecipientResponse": {
-      "type": "object",
-      "properties": {
-        "recipient": {
-          "$ref": "#/definitions/pbRecipient"
         }
       }
     },
@@ -24439,6 +24124,29 @@
         }
       }
     },
+    "pbUserServiceSearchResult": {
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string"
+        },
+        "username": {
+          "type": "string"
+        },
+        "displayName": {
+          "type": "string",
+          "title": "First name + Last name"
+        },
+        "profilePicture": {
+          "type": "string"
+        },
+        "primaryAccountId": {
+          "type": "string",
+          "format": "uint64",
+          "title": "For internal transfers"
+        }
+      }
+    },
     "pbUserVerifyFaceRequest": {
       "type": "object",
       "properties": {
@@ -24539,33 +24247,6 @@
       ],
       "default": "VERIFICATION_STATUS_PENDING"
     },
-    "pbVerifyEmailRequest": {
-      "type": "object",
-      "properties": {
-        "verificationCode": {
-          "type": "string",
-          "title": "The verification code sent to the user's email"
-        }
-      },
-      "description": "Request to verify an email using a received code.",
-      "required": [
-        "verificationCode"
-      ]
-    },
-    "pbVerifyEmailResponse": {
-      "type": "object",
-      "properties": {
-        "success": {
-          "type": "boolean",
-          "title": "Indicates if the email was successfully verified"
-        },
-        "msg": {
-          "type": "string",
-          "title": "User-facing message (e.g., \"Email verified successfully\")"
-        }
-      },
-      "description": "Response for verifying an email."
-    },
     "pbVerifyFaceRequest": {
       "type": "object",
       "properties": {
@@ -24663,40 +24344,6 @@
         }
       }
     },
-    "pbVerifyPasswordResetCodeRequest": {
-      "type": "object",
-      "properties": {
-        "email": {
-          "type": "string",
-          "title": "Email used in the reset request"
-        },
-        "code": {
-          "type": "string",
-          "title": "6-digit OTP code"
-        }
-      },
-      "title": "Request to verify password reset code (6-digit OTP)",
-      "required": [
-        "email",
-        "code"
-      ]
-    },
-    "pbVerifyPasswordResetCodeResponse": {
-      "type": "object",
-      "properties": {
-        "success": {
-          "type": "boolean"
-        },
-        "msg": {
-          "type": "string"
-        },
-        "resetToken": {
-          "type": "string",
-          "title": "Temporary token for password reset (valid 15 minutes)"
-        }
-      },
-      "title": "Response for verifying password reset code"
-    },
     "pbVerifyPaymentResponse": {
       "type": "object",
       "properties": {
@@ -24705,32 +24352,6 @@
         },
         "message": {
           "type": "string"
-        }
-      }
-    },
-    "pbVerifyPinRequest": {
-      "type": "object",
-      "properties": {
-        "pin": {
-          "type": "string",
-          "title": "The 4-digit transaction PIN entered by the user"
-        }
-      },
-      "title": "--- PIN Verification ---",
-      "required": [
-        "pin"
-      ]
-    },
-    "pbVerifyPinResponse": {
-      "type": "object",
-      "properties": {
-        "success": {
-          "type": "boolean",
-          "title": "Indicates if the PIN was correct"
-        },
-        "msg": {
-          "type": "string",
-          "title": "e.g., \"PIN verified successfully.\""
         }
       }
     },
@@ -24774,6 +24395,254 @@
       "default": "WITHDRAWAL_STATUS_UNSPECIFIED",
       "description": "- WITHDRAWAL_STATUS_PENDING: Request received, validation pending\n - WITHDRAWAL_STATUS_PROCESSING: Funds deducted, payout in progress (if async)\n - WITHDRAWAL_STATUS_COMPLETED: Payout successful\n - WITHDRAWAL_STATUS_FAILED: Withdrawal failed",
       "title": "Represents the status of a withdrawal transaction"
+    },
+    "pbWrappedAIInsights": {
+      "type": "object",
+      "properties": {
+        "overallSummary": {
+          "type": "string"
+        },
+        "personalityTraits": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "financialPersona": {
+          "type": "string"
+        },
+        "spendingStyle": {
+          "type": "string"
+        },
+        "personalizedInsights": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "encouragement": {
+          "type": "string"
+        }
+      },
+      "title": "AI-generated insights"
+    },
+    "pbWrappedAchievement": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "emoji": {
+          "type": "string"
+        },
+        "tier": {
+          "type": "string",
+          "title": "\"bronze\", \"silver\", \"gold\", \"platinum\""
+        },
+        "unlocked": {
+          "type": "boolean"
+        },
+        "progress": {
+          "type": "number",
+          "format": "double",
+          "title": "0-100"
+        }
+      },
+      "title": "Achievements/badges earned"
+    },
+    "pbWrappedCategoryRanking": {
+      "type": "object",
+      "properties": {
+        "rank": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "category": {
+          "$ref": "#/definitions/pbExpenseCategory"
+        },
+        "categoryName": {
+          "type": "string"
+        },
+        "amount": {
+          "type": "number",
+          "format": "double"
+        },
+        "percentage": {
+          "type": "number",
+          "format": "double"
+        },
+        "transactionCount": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "trend": {
+          "type": "string",
+          "title": "\"up\", \"down\", \"stable\""
+        },
+        "trendPercentage": {
+          "type": "number",
+          "format": "double"
+        },
+        "emoji": {
+          "type": "string"
+        }
+      },
+      "title": "Category ranking for wrapped"
+    },
+    "pbWrappedFunFact": {
+      "type": "object",
+      "properties": {
+        "emoji": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "comparison": {
+          "type": "string"
+        }
+      },
+      "title": "Fun facts and comparisons"
+    },
+    "pbWrappedMerchantRanking": {
+      "type": "object",
+      "properties": {
+        "rank": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "merchantName": {
+          "type": "string"
+        },
+        "amount": {
+          "type": "number",
+          "format": "double"
+        },
+        "visitCount": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "percentage": {
+          "type": "number",
+          "format": "double"
+        },
+        "category": {
+          "type": "string"
+        },
+        "emoji": {
+          "type": "string"
+        }
+      },
+      "title": "Merchant ranking for wrapped"
+    },
+    "pbWrappedMonthlyTrend": {
+      "type": "object",
+      "properties": {
+        "monthLabel": {
+          "type": "string"
+        },
+        "amount": {
+          "type": "number",
+          "format": "double"
+        },
+        "transactionCount": {
+          "type": "integer",
+          "format": "int32"
+        }
+      },
+      "title": "Monthly trend data point"
+    },
+    "pbWrappedPeriod": {
+      "type": "string",
+      "enum": [
+        "WRAPPED_PERIOD_UNSPECIFIED",
+        "WRAPPED_PERIOD_MONTHLY",
+        "WRAPPED_PERIOD_YEARLY"
+      ],
+      "default": "WRAPPED_PERIOD_UNSPECIFIED"
+    },
+    "pbWrappedSummary": {
+      "type": "object",
+      "properties": {
+        "totalSpent": {
+          "type": "number",
+          "format": "double"
+        },
+        "totalEarned": {
+          "type": "number",
+          "format": "double"
+        },
+        "totalSaved": {
+          "type": "number",
+          "format": "double"
+        },
+        "savingsRate": {
+          "type": "number",
+          "format": "double",
+          "title": "percentage"
+        },
+        "transactionCount": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "averageTransaction": {
+          "type": "number",
+          "format": "double"
+        },
+        "biggestSpendingDay": {
+          "type": "string"
+        },
+        "biggestSpendingDayAmount": {
+          "type": "number",
+          "format": "double"
+        },
+        "mostActiveDayOfWeek": {
+          "type": "string"
+        }
+      },
+      "title": "Summary stats for the period"
+    },
+    "pbWrappedTrends": {
+      "type": "object",
+      "properties": {
+        "monthlyTrends": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbWrappedMonthlyTrend"
+          }
+        },
+        "improvingCategories": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "watchCategories": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "spendingTrendPercentage": {
+          "type": "number",
+          "format": "double",
+          "title": "positive = spending increased"
+        },
+        "spendingTrendDescription": {
+          "type": "string"
+        }
+      },
+      "title": "Trends over the period"
     },
     "protobufAny": {
       "type": "object",

@@ -25,6 +25,7 @@ proto: create-dirs
 	@echo "Generating protobuf files..."
 	protoc \
 		--proto_path=proto \
+		--proto_path=../../microservices/accounts-service/accounts-microservice/proto \
 		--proto_path=proto/google/api \
 		--proto_path=proto/protoc-gen-openapiv2/options \
 		--go_out=./pb --go_opt=paths=source_relative \
