@@ -1,14 +1,15 @@
 {
   "swagger": "2.0",
   "info": {
-    "title": "LazerVault API",
-    "description": "LazerVault Account Card API",
-    "version": "1.0"
+    "title": "LazerVault Account Service",
+    "version": "1.0",
+    "contact": {
+      "name": "LazerVault Support",
+      "url": "https://github.com/LazerVault",
+      "email": "support@lazervault.example"
+    }
   },
   "tags": [
-    {
-      "name": "AccountCardService"
-    },
     {
       "name": "AccountService"
     },
@@ -117,10 +118,6 @@
       "name": "WithdrawService"
     }
   ],
-  "schemes": [
-    "http",
-    "https"
-  ],
   "consumes": [
     "application/json"
   ],
@@ -163,6 +160,13 @@
           },
           {
             "name": "searchType",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "countryCode",
+            "description": "Optional: filter results to only users in this country/locale",
             "in": "query",
             "required": false,
             "type": "string"
@@ -2016,439 +2020,6 @@
           {
             "bearer": []
           }
-        ]
-      }
-    },
-    "/v1/cards": {
-      "get": {
-        "summary": "Get User Cards",
-        "description": "Retrieves all cards for the authenticated user with optional filters.",
-        "operationId": "AccountCardService_GetUserCards",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/pbGetUserCardsResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "cardTypeFilter",
-            "description": "Optional: \"Virtual\", \"Disposable\", \"Permanent\"",
-            "in": "query",
-            "required": false,
-            "type": "string"
-          },
-          {
-            "name": "statusFilter",
-            "description": "Optional: \"active\", \"frozen\", \"cancelled\", \"expired\"",
-            "in": "query",
-            "required": false,
-            "type": "string"
-          }
-        ],
-        "tags": [
-          "AccountCardService"
-        ]
-      }
-    },
-    "/v1/cards/disposable": {
-      "post": {
-        "summary": "Create Disposable Card",
-        "description": "Creates a new disposable card with spending limits and expiration.",
-        "operationId": "AccountCardService_CreateDisposableCard",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/pbCreateDisposableCardResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/pbCreateDisposableCardRequest"
-            }
-          }
-        ],
-        "tags": [
-          "AccountCardService"
-        ]
-      }
-    },
-    "/v1/cards/virtual": {
-      "post": {
-        "summary": "Create Virtual Card",
-        "description": "Creates a new virtual debit card for online transactions.",
-        "operationId": "AccountCardService_CreateVirtualCard",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/pbCreateVirtualCardResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/pbCreateVirtualCardRequest"
-            }
-          }
-        ],
-        "tags": [
-          "AccountCardService"
-        ]
-      }
-    },
-    "/v1/cards/{cardUuid}": {
-      "get": {
-        "summary": "Get Card Details",
-        "description": "Retrieves detailed information about a specific card.",
-        "operationId": "AccountCardService_GetCardDetails",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/pbGetCardDetailsResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "cardUuid",
-            "in": "path",
-            "required": true,
-            "type": "string"
-          },
-          {
-            "name": "includeFullDetails",
-            "description": "Include full card number and CVV",
-            "in": "query",
-            "required": false,
-            "type": "boolean"
-          }
-        ],
-        "tags": [
-          "AccountCardService"
-        ]
-      }
-    },
-    "/v1/cards/{cardUuid}/cancel": {
-      "post": {
-        "summary": "Cancel Card",
-        "description": "Permanently cancels a card.",
-        "operationId": "AccountCardService_CancelCard",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/pbCancelCardResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "cardUuid",
-            "in": "path",
-            "required": true,
-            "type": "string"
-          },
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/AccountCardServiceCancelCardBody"
-            }
-          }
-        ],
-        "tags": [
-          "AccountCardService"
-        ]
-      }
-    },
-    "/v1/cards/{cardUuid}/default": {
-      "put": {
-        "summary": "Set Default Card",
-        "description": "Sets a card as the default payment method.",
-        "operationId": "AccountCardService_SetDefaultCard",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/pbSetDefaultCardResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "cardUuid",
-            "in": "path",
-            "required": true,
-            "type": "string"
-          },
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/AccountCardServiceSetDefaultCardBody"
-            }
-          }
-        ],
-        "tags": [
-          "AccountCardService"
-        ]
-      }
-    },
-    "/v1/cards/{cardUuid}/freeze": {
-      "post": {
-        "summary": "Freeze Card",
-        "description": "Temporarily freezes a card to prevent transactions.",
-        "operationId": "AccountCardService_FreezeCard",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/pbFreezeCardResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "cardUuid",
-            "in": "path",
-            "required": true,
-            "type": "string"
-          },
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/AccountCardServiceFreezeCardBody"
-            }
-          }
-        ],
-        "tags": [
-          "AccountCardService"
-        ]
-      }
-    },
-    "/v1/cards/{cardUuid}/nickname": {
-      "put": {
-        "summary": "Update Card Nickname",
-        "description": "Updates the nickname of a card.",
-        "operationId": "AccountCardService_UpdateCardNickname",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/pbUpdateCardNicknameResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "cardUuid",
-            "in": "path",
-            "required": true,
-            "type": "string"
-          },
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/AccountCardServiceUpdateCardNicknameBody"
-            }
-          }
-        ],
-        "tags": [
-          "AccountCardService"
-        ]
-      }
-    },
-    "/v1/cards/{cardUuid}/spending-limit": {
-      "put": {
-        "summary": "Update Card Spending Limit",
-        "description": "Updates the spending limit for a disposable card.",
-        "operationId": "AccountCardService_UpdateCardSpendingLimit",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/pbUpdateCardSpendingLimitResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "cardUuid",
-            "in": "path",
-            "required": true,
-            "type": "string"
-          },
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/AccountCardServiceUpdateCardSpendingLimitBody"
-            }
-          }
-        ],
-        "tags": [
-          "AccountCardService"
-        ]
-      }
-    },
-    "/v1/cards/{cardUuid}/transactions": {
-      "get": {
-        "summary": "Get Card Transactions",
-        "description": "Retrieves transaction history for a specific card.",
-        "operationId": "AccountCardService_GetCardTransactions",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/pbGetCardTransactionsResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "cardUuid",
-            "in": "path",
-            "required": true,
-            "type": "string"
-          },
-          {
-            "name": "page",
-            "in": "query",
-            "required": false,
-            "type": "integer",
-            "format": "int32"
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "required": false,
-            "type": "integer",
-            "format": "int32"
-          }
-        ],
-        "tags": [
-          "AccountCardService"
-        ]
-      }
-    },
-    "/v1/cards/{cardUuid}/unfreeze": {
-      "post": {
-        "summary": "Unfreeze Card",
-        "description": "Unfreezes a previously frozen card.",
-        "operationId": "AccountCardService_UnfreezeCard",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/pbUnfreezeCardResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "cardUuid",
-            "in": "path",
-            "required": true,
-            "type": "string"
-          },
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/AccountCardServiceUnfreezeCardBody"
-            }
-          }
-        ],
-        "tags": [
-          "AccountCardService"
         ]
       }
     },
@@ -4930,6 +4501,65 @@
         ]
       }
     },
+    "/v1/exchange/convert": {
+      "post": {
+        "summary": "Convert Currency",
+        "description": "Converts currency between user's own wallets (e.g., NGN to USD).",
+        "operationId": "ExchangeService_ConvertCurrency",
+        "responses": {
+          "200": {
+            "description": "Conversion Successful",
+            "schema": {
+              "$ref": "#/definitions/pbConvertCurrencyResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "Payload for wallet-to-wallet currency conversion.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/pbConvertCurrencyRequest"
+            }
+          }
+        ],
+        "tags": [
+          "Exchange"
+        ]
+      }
+    },
+    "/v1/exchange/currencies": {
+      "get": {
+        "summary": "Get Supported Currencies",
+        "description": "Returns list of currencies supported for exchange operations.",
+        "operationId": "ExchangeService_GetSupportedCurrencies",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/pbGetSupportedCurrenciesResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "Exchange"
+        ]
+      }
+    },
     "/v1/exchange/rates": {
       "get": {
         "summary": "Get Exchange Rate",
@@ -4952,17 +4582,25 @@
         "parameters": [
           {
             "name": "fromCurrency",
-            "description": "e.g., GBP, USD\n\nThe currency code to convert from (e.g., GBP).",
+            "description": "The currency code to convert from (e.g., NGN).",
             "in": "query",
             "required": true,
             "type": "string"
           },
           {
             "name": "toCurrency",
-            "description": "e.g., USD, EUR\n\nThe currency code to convert to (e.g., USD).",
+            "description": "The currency code to convert to (e.g., USD).",
             "in": "query",
             "required": true,
             "type": "string"
+          },
+          {
+            "name": "amount",
+            "description": "Optional amount for fee calculation.",
+            "in": "query",
+            "required": false,
+            "type": "number",
+            "format": "double"
           }
         ],
         "tags": [
@@ -4973,7 +4611,7 @@
     "/v1/exchange/transfers": {
       "post": {
         "summary": "Initiate International Transfer",
-        "description": "Initiates a new international transfer, converting currency and sending to the specified receiver.",
+        "description": "Initiates a new international transfer with currency exchange.",
         "operationId": "ExchangeService_InitiateInternationalTransfer",
         "responses": {
           "200": {
@@ -5008,7 +4646,7 @@
     "/v1/exchange/transfers/history": {
       "get": {
         "summary": "Get Recent Exchanges",
-        "description": "Retrieves a paginated list of recent international exchange transactions for the authenticated user.",
+        "description": "Retrieves a paginated list of recent exchange transactions.",
         "operationId": "ExchangeService_GetRecentExchanges",
         "responses": {
           "200": {
@@ -5035,9 +4673,42 @@
           },
           {
             "name": "pageToken",
-            "description": "Token for fetching the next page (e.g., last transaction ID). Optional.",
+            "description": "Token for fetching the next page.",
             "in": "query",
             "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "Exchange"
+        ]
+      }
+    },
+    "/v1/exchange/transfers/{transactionId}/status": {
+      "get": {
+        "summary": "Get Transaction Status",
+        "description": "Polls the current status of an exchange transaction.",
+        "operationId": "ExchangeService_GetTransactionStatus",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/pbGetTransactionStatusResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "transactionId",
+            "description": "The exchange transaction ID.",
+            "in": "path",
+            "required": true,
             "type": "string"
           }
         ],
@@ -7180,6 +6851,13 @@
             "required": false,
             "type": "integer",
             "format": "int32"
+          },
+          {
+            "name": "filter",
+            "description": "\"all\", \"joined\", \"pending\"",
+            "in": "query",
+            "required": false,
+            "type": "string"
           }
         ],
         "tags": [
@@ -7205,6 +6883,91 @@
             }
           }
         },
+        "tags": [
+          "ReferralService"
+        ]
+      }
+    },
+    "/v1/referral/points/balance": {
+      "get": {
+        "summary": "Get the authenticated user's LazerPoints balance",
+        "operationId": "ReferralService_GetMyPointsBalance",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbGetMyPointsBalanceResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "ReferralService"
+        ]
+      }
+    },
+    "/v1/referral/points/config": {
+      "get": {
+        "summary": "Get points earn rules configuration",
+        "operationId": "ReferralService_GetPointsConfig",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbGetPointsConfigResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "ReferralService"
+        ]
+      }
+    },
+    "/v1/referral/points/history": {
+      "get": {
+        "summary": "Get the authenticated user's points transaction history",
+        "operationId": "ReferralService_GetMyPointsHistory",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbGetMyPointsHistoryResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
         "tags": [
           "ReferralService"
         ]
@@ -10848,53 +10611,6 @@
     }
   },
   "definitions": {
-    "AccountCardServiceCancelCardBody": {
-      "type": "object",
-      "properties": {
-        "reason": {
-          "type": "string",
-          "title": "Optional reason for cancellation"
-        }
-      },
-      "title": "Cancel card request"
-    },
-    "AccountCardServiceFreezeCardBody": {
-      "type": "object",
-      "properties": {
-        "reason": {
-          "type": "string",
-          "title": "Optional reason for freezing"
-        }
-      },
-      "title": "Freeze card request"
-    },
-    "AccountCardServiceSetDefaultCardBody": {
-      "type": "object",
-      "title": "Set default card request"
-    },
-    "AccountCardServiceUnfreezeCardBody": {
-      "type": "object",
-      "title": "Unfreeze card request"
-    },
-    "AccountCardServiceUpdateCardNicknameBody": {
-      "type": "object",
-      "properties": {
-        "nickname": {
-          "type": "string"
-        }
-      },
-      "title": "Update card nickname request"
-    },
-    "AccountCardServiceUpdateCardSpendingLimitBody": {
-      "type": "object",
-      "properties": {
-        "newLimit": {
-          "type": "number",
-          "format": "double"
-        }
-      },
-      "title": "Update card spending limit request (for disposable cards)"
-    },
     "AccountServiceUpdateAccountStatusBody": {
       "type": "object",
       "properties": {
@@ -11998,6 +11714,10 @@
         },
         "primaryAccountId": {
           "type": "string"
+        },
+        "countryCode": {
+          "type": "string",
+          "title": "User's country code (e.g., \"NG\", \"US\")"
         }
       }
     },
@@ -12956,112 +12676,6 @@
         }
       },
       "title": "AI Recommendation"
-    },
-    "pbAccountCard": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string",
-          "format": "uint64"
-        },
-        "uuid": {
-          "type": "string"
-        },
-        "accountId": {
-          "type": "string",
-          "format": "uint64"
-        },
-        "userId": {
-          "type": "string",
-          "format": "uint64"
-        },
-        "cardHolderName": {
-          "type": "string"
-        },
-        "brand": {
-          "type": "string",
-          "title": "e.g., Visa, Mastercard"
-        },
-        "last4": {
-          "type": "string",
-          "title": "Last 4 digits for display"
-        },
-        "cardExpiry": {
-          "type": "string",
-          "title": "MM/YY"
-        },
-        "isActive": {
-          "type": "boolean"
-        },
-        "isDefault": {
-          "type": "boolean"
-        },
-        "cardType": {
-          "type": "string",
-          "title": "\"Virtual\", \"Disposable\", \"Permanent\""
-        },
-        "cardNickname": {
-          "type": "string"
-        },
-        "spendingLimit": {
-          "type": "number",
-          "format": "double",
-          "title": "For disposable cards"
-        },
-        "remainingLimit": {
-          "type": "number",
-          "format": "double",
-          "title": "Remaining spending limit"
-        },
-        "expiresAt": {
-          "type": "string",
-          "format": "date-time",
-          "title": "For disposable cards"
-        },
-        "usageCount": {
-          "type": "integer",
-          "format": "int32"
-        },
-        "maxUsageCount": {
-          "type": "integer",
-          "format": "int32",
-          "title": "Max usage (0 = unlimited)"
-        },
-        "currency": {
-          "type": "string"
-        },
-        "billingAddress": {
-          "type": "string"
-        },
-        "status": {
-          "type": "string",
-          "title": "active, frozen, cancelled, expired"
-        },
-        "frozenReason": {
-          "type": "string"
-        },
-        "lastUsedAt": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "createdAt": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "cardNumber": {
-          "type": "string",
-          "title": "Full number (only for creation response, encrypted)"
-        },
-        "cvv": {
-          "type": "string",
-          "title": "CVV (only for creation response, encrypted)"
-        }
-      },
-      "title": "Represents a specific card linked to an account"
     },
     "pbAccountDetails": {
       "type": "object",
@@ -14148,18 +13762,6 @@
       },
       "title": "Calculate interest response"
     },
-    "pbCancelCardResponse": {
-      "type": "object",
-      "properties": {
-        "success": {
-          "type": "boolean"
-        },
-        "message": {
-          "type": "string"
-        }
-      },
-      "title": "Cancel card response"
-    },
     "pbCancelLockFundResponse": {
       "type": "object",
       "properties": {
@@ -14186,107 +13788,6 @@
           "type": "string"
         }
       }
-    },
-    "pbCardStatistics": {
-      "type": "object",
-      "properties": {
-        "totalCards": {
-          "type": "integer",
-          "format": "int32"
-        },
-        "activeCards": {
-          "type": "integer",
-          "format": "int32"
-        },
-        "virtualCards": {
-          "type": "integer",
-          "format": "int32"
-        },
-        "disposableCards": {
-          "type": "integer",
-          "format": "int32"
-        },
-        "frozenCards": {
-          "type": "integer",
-          "format": "int32"
-        },
-        "totalSpendingLimit": {
-          "type": "number",
-          "format": "double"
-        },
-        "totalRemainingLimit": {
-          "type": "number",
-          "format": "double"
-        }
-      },
-      "title": "Card statistics"
-    },
-    "pbCardTransaction": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string",
-          "format": "uint64"
-        },
-        "uuid": {
-          "type": "string"
-        },
-        "cardId": {
-          "type": "string",
-          "format": "uint64"
-        },
-        "userId": {
-          "type": "string",
-          "format": "uint64"
-        },
-        "accountId": {
-          "type": "string",
-          "format": "uint64"
-        },
-        "amount": {
-          "type": "number",
-          "format": "double"
-        },
-        "currency": {
-          "type": "string"
-        },
-        "merchantName": {
-          "type": "string"
-        },
-        "merchantCategory": {
-          "type": "string"
-        },
-        "transactionType": {
-          "type": "string",
-          "title": "purchase, refund, reversal"
-        },
-        "status": {
-          "type": "string",
-          "title": "pending, completed, failed, declined"
-        },
-        "declineReason": {
-          "type": "string"
-        },
-        "authorizationCode": {
-          "type": "string"
-        },
-        "description": {
-          "type": "string"
-        },
-        "transactionDate": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "settledAt": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "createdAt": {
-          "type": "string",
-          "format": "date-time"
-        }
-      },
-      "title": "Card transaction message"
     },
     "pbCategorySpending": {
       "type": "object",
@@ -15008,6 +14509,55 @@
       },
       "title": "Response to convert contact to recipient"
     },
+    "pbConvertCurrencyRequest": {
+      "type": "object",
+      "properties": {
+        "fromCurrency": {
+          "type": "string",
+          "description": "Source currency code (e.g., NGN)."
+        },
+        "toCurrency": {
+          "type": "string",
+          "description": "Destination currency code (e.g., USD)."
+        },
+        "amount": {
+          "type": "number",
+          "format": "double",
+          "description": "Amount to convert in source currency."
+        },
+        "verificationToken": {
+          "type": "string",
+          "description": "PIN verification token."
+        },
+        "idempotencyKey": {
+          "type": "string",
+          "description": "Client-generated UUID for duplicate prevention."
+        },
+        "rateId": {
+          "type": "string",
+          "description": "Rate ID for staleness validation."
+        }
+      },
+      "description": "Payload for wallet-to-wallet currency conversion.",
+      "title": "Convert Currency Request",
+      "required": [
+        "fromCurrency",
+        "toCurrency",
+        "amount",
+        "verificationToken",
+        "idempotencyKey"
+      ]
+    },
+    "pbConvertCurrencyResponse": {
+      "type": "object",
+      "properties": {
+        "transaction": {
+          "$ref": "#/definitions/pbExchangeTransaction"
+        }
+      },
+      "description": "Result of wallet-to-wallet conversion.",
+      "title": "Convert Currency Response"
+    },
     "pbCountryRewardConfig": {
       "type": "object",
       "properties": {
@@ -15300,51 +14850,6 @@
           "$ref": "#/definitions/pbCrowdfundMessage"
         }
       }
-    },
-    "pbCreateDisposableCardRequest": {
-      "type": "object",
-      "properties": {
-        "accountId": {
-          "type": "string",
-          "format": "uint64"
-        },
-        "cardNickname": {
-          "type": "string",
-          "title": "Optional nickname"
-        },
-        "spendingLimit": {
-          "type": "number",
-          "format": "double",
-          "title": "Required for disposable"
-        },
-        "currency": {
-          "type": "string"
-        },
-        "maxUsageCount": {
-          "type": "integer",
-          "format": "int32",
-          "title": "Optional, 0 = unlimited"
-        },
-        "expiresInHours": {
-          "type": "integer",
-          "format": "int32",
-          "title": "Optional, how many hours until expiry"
-        },
-        "billingAddress": {
-          "type": "string"
-        }
-      },
-      "title": "Create disposable card request"
-    },
-    "pbCreateDisposableCardResponse": {
-      "type": "object",
-      "properties": {
-        "card": {
-          "$ref": "#/definitions/pbAccountCard",
-          "title": "Includes full card details including CVV"
-        }
-      },
-      "title": "Create disposable card response"
     },
     "pbCreateExpenseRequest": {
       "type": "object",
@@ -15865,37 +15370,6 @@
           "$ref": "#/definitions/pbData"
         }
       }
-    },
-    "pbCreateVirtualCardRequest": {
-      "type": "object",
-      "properties": {
-        "accountId": {
-          "type": "string",
-          "format": "uint64"
-        },
-        "cardNickname": {
-          "type": "string",
-          "title": "Optional nickname"
-        },
-        "currency": {
-          "type": "string",
-          "title": "Default to account currency"
-        },
-        "billingAddress": {
-          "type": "string"
-        }
-      },
-      "title": "Create virtual card request"
-    },
-    "pbCreateVirtualCardResponse": {
-      "type": "object",
-      "properties": {
-        "card": {
-          "$ref": "#/definitions/pbAccountCard",
-          "title": "Includes full card details including CVV"
-        }
-      },
-      "title": "Create virtual card response"
     },
     "pbCreateWatchlistRequest": {
       "type": "object",
@@ -16740,8 +16214,7 @@
         "FAILED",
         "CANCELLED"
       ],
-      "default": "PENDING",
-      "title": "Enum for transaction status"
+      "default": "PENDING"
     },
     "pbExchangeTransaction": {
       "type": "object",
@@ -16750,8 +16223,7 @@
           "type": "string"
         },
         "userId": {
-          "type": "string",
-          "title": "ID of the user initiating the transfer"
+          "type": "string"
         },
         "fromCurrency": {
           "type": "string"
@@ -16765,8 +16237,7 @@
         },
         "amountTo": {
           "type": "number",
-          "format": "double",
-          "title": "Amount received after conversion and fees"
+          "format": "double"
         },
         "exchangeRate": {
           "type": "number",
@@ -16774,8 +16245,7 @@
         },
         "fees": {
           "type": "number",
-          "format": "double",
-          "title": "Optional: Applicable fees"
+          "format": "double"
         },
         "receiverDetails": {
           "$ref": "#/definitions/pbReceiverDetails"
@@ -16789,11 +16259,32 @@
         },
         "updatedAt": {
           "type": "string",
-          "format": "date-time",
-          "title": "google.protobuf.Timestamp estimated_delivery = 13; // Optional"
+          "format": "date-time"
+        },
+        "reference": {
+          "type": "string"
+        },
+        "providerReference": {
+          "type": "string"
+        },
+        "exchangeType": {
+          "$ref": "#/definitions/pbExchangeType"
+        },
+        "failureReason": {
+          "type": "string"
         }
       },
       "title": "Represents a recorded exchange transaction"
+    },
+    "pbExchangeType": {
+      "type": "string",
+      "enum": [
+        "EXCHANGE_TYPE_UNSPECIFIED",
+        "CONVERSION",
+        "INTERNATIONAL"
+      ],
+      "default": "EXCHANGE_TYPE_UNSPECIFIED",
+      "title": "- CONVERSION: Wallet-to-wallet conversion\n - INTERNATIONAL: International transfer with FX"
     },
     "pbExpenseCategory": {
       "type": "string",
@@ -17161,15 +16652,6 @@
         }
       },
       "title": "Response with found LazerVault users"
-    },
-    "pbFreezeCardResponse": {
-      "type": "object",
-      "properties": {
-        "card": {
-          "$ref": "#/definitions/pbAccountCard"
-        }
-      },
-      "title": "Freeze card response"
     },
     "pbGenerateDonationReceiptResponse": {
       "type": "object",
@@ -17576,48 +17058,6 @@
         }
       }
     },
-    "pbGetCardDetailsResponse": {
-      "type": "object",
-      "properties": {
-        "card": {
-          "$ref": "#/definitions/pbAccountCard"
-        },
-        "recentTransactions": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/pbCardTransaction"
-          },
-          "title": "Last 10 transactions"
-        }
-      },
-      "title": "Get card details response"
-    },
-    "pbGetCardTransactionsResponse": {
-      "type": "object",
-      "properties": {
-        "transactions": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/pbCardTransaction"
-          }
-        },
-        "totalCount": {
-          "type": "integer",
-          "format": "int32"
-        },
-        "currentPage": {
-          "type": "integer",
-          "format": "int32"
-        },
-        "totalPages": {
-          "type": "integer",
-          "format": "int32"
-        }
-      },
-      "title": "Get card transactions response"
-    },
     "pbGetCategoryBreakdownResponse": {
       "type": "object",
       "properties": {
@@ -17962,11 +17402,29 @@
         },
         "timestamp": {
           "type": "string",
-          "format": "date-time",
-          "title": "Time when the rate was fetched/valid"
+          "format": "date-time"
+        },
+        "fee": {
+          "type": "number",
+          "format": "double",
+          "title": "Calculated fee amount"
+        },
+        "feePercentage": {
+          "type": "number",
+          "format": "double",
+          "title": "Fee as percentage (e.g., 1.5)"
+        },
+        "rateValidSeconds": {
+          "type": "integer",
+          "format": "int32",
+          "title": "Seconds until rate expires"
+        },
+        "rateId": {
+          "type": "string",
+          "title": "Unique rate identifier for staleness check"
         }
       },
-      "description": "Contains the current exchange rate.",
+      "description": "Contains the current exchange rate with fee breakdown.",
       "title": "Get Exchange Rate Response"
     },
     "pbGetExpenseByIdResponse": {
@@ -18430,6 +17888,38 @@
         }
       }
     },
+    "pbGetMyPointsBalanceResponse": {
+      "type": "object",
+      "properties": {
+        "balance": {
+          "$ref": "#/definitions/pbPointsBalance"
+        }
+      }
+    },
+    "pbGetMyPointsHistoryResponse": {
+      "type": "object",
+      "properties": {
+        "transactions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbPointTransaction"
+          }
+        },
+        "page": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "pageSize": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "totalCount": {
+          "type": "integer",
+          "format": "int32"
+        }
+      }
+    },
     "pbGetMyReferralCodeResponse": {
       "type": "object",
       "properties": {
@@ -18461,6 +17951,10 @@
           "format": "int32"
         },
         "pageSize": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "totalCount": {
           "type": "integer",
           "format": "int32"
         }
@@ -18513,6 +18007,18 @@
           "items": {
             "type": "object",
             "$ref": "#/definitions/pbPayoutScheduleMessage"
+          }
+        }
+      }
+    },
+    "pbGetPointsConfigResponse": {
+      "type": "object",
+      "properties": {
+        "configs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbPointsConfigEntry"
           }
         }
       }
@@ -18634,7 +18140,7 @@
           "type": "string"
         }
       },
-      "description": "List of recent international exchange transactions.",
+      "description": "List of recent exchange transactions.",
       "title": "Get Recent Exchanges Response"
     },
     "pbGetReferralLeaderboardResponse": {
@@ -18782,6 +18288,20 @@
           "$ref": "#/definitions/pbStockPaginationInfo"
         }
       }
+    },
+    "pbGetSupportedCurrenciesResponse": {
+      "type": "object",
+      "properties": {
+        "currencies": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbSupportedCurrency"
+          }
+        }
+      },
+      "description": "List of supported exchange currencies.",
+      "title": "Get Supported Currencies Response"
     },
     "pbGetSyncedContactsResponse": {
       "type": "object",
@@ -19024,6 +18544,16 @@
       },
       "title": "Transaction statistics response"
     },
+    "pbGetTransactionStatusResponse": {
+      "type": "object",
+      "properties": {
+        "transaction": {
+          "$ref": "#/definitions/pbExchangeTransaction"
+        }
+      },
+      "description": "Current status of an exchange transaction.",
+      "title": "Get Transaction Status Response"
+    },
     "pbGetTransactionsResponse": {
       "type": "object",
       "properties": {
@@ -19170,22 +18700,6 @@
           }
         }
       }
-    },
-    "pbGetUserCardsResponse": {
-      "type": "object",
-      "properties": {
-        "cards": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/pbAccountCard"
-          }
-        },
-        "statistics": {
-          "$ref": "#/definitions/pbCardStatistics"
-        }
-      },
-      "title": "Get all cards response"
     },
     "pbGetUserContributionReceiptsResponse": {
       "type": "object",
@@ -20085,7 +19599,7 @@
       "properties": {
         "fromCurrency": {
           "type": "string",
-          "description": "The currency code to send from (e.g., GBP)."
+          "description": "The currency code to send from (e.g., NGN)."
         },
         "toCurrency": {
           "type": "string",
@@ -20098,8 +19612,23 @@
         },
         "receiverDetails": {
           "$ref": "#/definitions/pbReceiverDetails",
-          "description": "Details of the recipient.",
-          "title": "string purpose_of_payment = 5; // Optional"
+          "description": "Details of the recipient."
+        },
+        "verificationToken": {
+          "type": "string",
+          "description": "PIN verification token from auth-service."
+        },
+        "idempotencyKey": {
+          "type": "string",
+          "description": "Client-generated UUID for duplicate prevention."
+        },
+        "rateId": {
+          "type": "string",
+          "description": "Rate ID from GetExchangeRate for staleness check."
+        },
+        "purposeOfPayment": {
+          "type": "string",
+          "description": "Reason for transfer (e.g., family_support, business)."
         }
       },
       "description": "Payload to start an international currency exchange and transfer.",
@@ -20108,7 +19637,9 @@
         "fromCurrency",
         "toCurrency",
         "amountFrom",
-        "receiverDetails"
+        "receiverDetails",
+        "verificationToken",
+        "idempotencyKey"
       ]
     },
     "pbInitiateInternationalTransferResponse": {
@@ -20647,6 +20178,16 @@
         "rank": {
           "type": "integer",
           "format": "int32"
+        },
+        "totalRewardsEarned": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "currency": {
+          "type": "string"
+        },
+        "profilePicture": {
+          "type": "string"
         }
       },
       "title": "LeaderboardEntry message represents a top referrer"
@@ -21335,6 +20876,90 @@
         }
       }
     },
+    "pbPointSource": {
+      "type": "string",
+      "enum": [
+        "POINT_SOURCE_REFERRAL",
+        "POINT_SOURCE_SIGNUP_BONUS",
+        "POINT_SOURCE_FIRST_TRANSACTION",
+        "POINT_SOURCE_MONTHLY_ACTIVE",
+        "POINT_SOURCE_ACHIEVEMENT",
+        "POINT_SOURCE_REDEMPTION"
+      ],
+      "default": "POINT_SOURCE_REFERRAL",
+      "title": "Point source types"
+    },
+    "pbPointTransaction": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "userId": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "points": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "source": {
+          "$ref": "#/definitions/pbPointSource"
+        },
+        "referenceId": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "title": "PointTransaction represents a single points ledger entry"
+    },
+    "pbPointsBalance": {
+      "type": "object",
+      "properties": {
+        "totalEarned": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "totalRedeemed": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "currentBalance": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "tier": {
+          "type": "string"
+        }
+      },
+      "title": "PointsBalance represents a user's current points state"
+    },
+    "pbPointsConfigEntry": {
+      "type": "object",
+      "properties": {
+        "source": {
+          "type": "string"
+        },
+        "pointsAmount": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "description": {
+          "type": "string"
+        },
+        "isActive": {
+          "type": "boolean"
+        }
+      },
+      "title": "PointsConfigEntry represents a single earn rule"
+    },
     "pbPortfolioAsset": {
       "type": "object",
       "properties": {
@@ -21859,8 +21484,16 @@
           "type": "string"
         },
         "swiftBicCode": {
-          "type": "string",
-          "title": "Optional fields\n string address = 5;\n string country = 6;"
+          "type": "string"
+        },
+        "country": {
+          "type": "string"
+        },
+        "bankCode": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
         }
       },
       "title": "Represents receiver details for an international transfer"
@@ -22039,6 +21672,14 @@
         },
         "currency": {
           "type": "string"
+        },
+        "pendingReferrals": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "completedReferrals": {
+          "type": "integer",
+          "format": "int32"
         }
       },
       "title": "ReferralStats message represents aggregated referral statistics"
@@ -22096,6 +21737,21 @@
         },
         "failureReason": {
           "type": "string"
+        },
+        "refereeFirstName": {
+          "type": "string"
+        },
+        "refereeLastName": {
+          "type": "string"
+        },
+        "refereeUsername": {
+          "type": "string"
+        },
+        "referrerUsername": {
+          "type": "string"
+        },
+        "refereeHasJoined": {
+          "type": "boolean"
         }
       },
       "title": "ReferralTransaction message represents a referral event"
@@ -22534,15 +22190,6 @@
         }
       }
     },
-    "pbSetDefaultCardResponse": {
-      "type": "object",
-      "properties": {
-        "card": {
-          "$ref": "#/definitions/pbAccountCard"
-        }
-      },
-      "title": "Set default card response"
-    },
     "pbSetPasscodeRequest": {
       "type": "object",
       "properties": {
@@ -22925,6 +22572,37 @@
         },
         "hasPrev": {
           "type": "boolean"
+        }
+      }
+    },
+    "pbSupportedCurrency": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "symbol": {
+          "type": "string"
+        },
+        "country": {
+          "type": "string"
+        },
+        "supportsConversion": {
+          "type": "boolean"
+        },
+        "supportsInternational": {
+          "type": "boolean"
+        },
+        "minAmount": {
+          "type": "number",
+          "format": "double"
+        },
+        "maxAmount": {
+          "type": "number",
+          "format": "double"
         }
       }
     },
@@ -23570,15 +23248,6 @@
       "description": "- TRIGGER_ON_DEPOSIT: Trigger when money is deposited\n - TRIGGER_SCHEDULED: Trigger on a schedule\n - TRIGGER_ROUND_UP: Round up transactions to nearest value",
       "title": "Auto-save rule trigger types"
     },
-    "pbUnfreezeCardResponse": {
-      "type": "object",
-      "properties": {
-        "card": {
-          "$ref": "#/definitions/pbAccountCard"
-        }
-      },
-      "title": "Unfreeze card response"
-    },
     "pbUnlockFundResponse": {
       "type": "object",
       "properties": {
@@ -23685,24 +23354,6 @@
           "type": "string"
         }
       }
-    },
-    "pbUpdateCardNicknameResponse": {
-      "type": "object",
-      "properties": {
-        "card": {
-          "$ref": "#/definitions/pbAccountCard"
-        }
-      },
-      "title": "Update card nickname response"
-    },
-    "pbUpdateCardSpendingLimitResponse": {
-      "type": "object",
-      "properties": {
-        "card": {
-          "$ref": "#/definitions/pbAccountCard"
-        }
-      },
-      "title": "Update card spending limit response"
     },
     "pbUpdateContributionResponse": {
       "type": "object",
@@ -24672,5 +24323,18 @@
         }
       }
     }
-  }
+  },
+  "securityDefinitions": {
+    "bearer": {
+      "type": "apiKey",
+      "description": "Authentication token, prefixed by Bearer: Bearer \u003ctoken\u003e",
+      "name": "Authorization",
+      "in": "header"
+    }
+  },
+  "security": [
+    {
+      "bearer": []
+    }
+  ]
 }

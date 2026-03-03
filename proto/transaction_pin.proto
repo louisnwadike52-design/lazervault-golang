@@ -6,6 +6,13 @@ option go_package = "lazervaultGo/pb";
 
 import "google/protobuf/timestamp.proto";
 
+// PinChannelType represents the banking channel for PIN operations
+enum PinChannelType {
+  PIN_CHANNEL_APP = 0;        // Flutter mobile app (default)
+  PIN_CHANNEL_WHATSAPP = 1;   // WhatsApp banking
+  PIN_CHANNEL_TELEPHONY = 2;  // Phone calls and SMS banking
+}
+
 // TransactionPinService handles transaction PIN operations
 // Proxied from core-gateway to auth-service
 service TransactionPinService {
@@ -38,6 +45,24 @@ service TransactionPinService {
 
   // CompleteForgotPin verifies OTP and resets the PIN (forgot PIN flow)
   rpc CompleteForgotPin(CompleteForgotPinRequest) returns (CompleteForgotPinResponse);
+
+  // GetUserChannelPins returns PIN setup status for all channels
+  rpc GetUserChannelPins(GetUserChannelPinsRequest) returns (GetUserChannelPinsResponse);
+
+  // CreateChannelRegistration registers a user for a banking channel
+  rpc CreateChannelRegistration(CreateChannelRegistrationRequest) returns (CreateChannelRegistrationResponse);
+
+  // VerifyChannelOTP verifies OTP for channel registration
+  rpc VerifyChannelOTP(VerifyChannelOTPRequest) returns (VerifyChannelOTPResponse);
+
+  // GetChannelRegistrations gets all channel registrations for a user
+  rpc GetChannelRegistrations(GetChannelRegistrationsRequest) returns (GetChannelRegistrationsResponse);
+
+  // DeactivateChannel deactivates a banking channel
+  rpc DeactivateChannel(DeactivateChannelRequest) returns (DeactivateChannelResponse);
+
+  // ResolvePhoneToUser resolves a phone number to a user ID (service-to-service)
+  rpc ResolvePhoneToUser(ResolvePhoneToUserRequest) returns (ResolvePhoneToUserResponse);
 }
 
 // CreateTransactionPinRequest creates a new PIN
@@ -47,6 +72,7 @@ message CreateTransactionPinRequest {
   string confirm_pin = 3;
   string device_id = 4;
   string device_name = 5;
+  PinChannelType channel_type = 6;
 }
 
 message CreateTransactionPinResponse {
@@ -64,6 +90,7 @@ message VerifyTransactionPinRequest {
   double amount = 5;
   string currency = 6;
   string device_id = 7;
+  PinChannelType channel_type = 8;
 }
 
 message VerifyTransactionPinResponse {
@@ -81,6 +108,7 @@ message ChangeTransactionPinRequest {
   string current_pin = 2;
   string new_pin = 3;
   string confirm_new_pin = 4;
+  PinChannelType channel_type = 5;
 }
 
 message ChangeTransactionPinResponse {
@@ -95,6 +123,7 @@ message ResetTransactionPinRequest {
   string verification_code = 3;
   string new_pin = 4;
   string confirm_new_pin = 5;
+  PinChannelType channel_type = 6;
 }
 
 message ResetTransactionPinResponse {
@@ -105,6 +134,7 @@ message ResetTransactionPinResponse {
 // CheckUserHasPinRequest checks if user has PIN setup
 message CheckUserHasPinRequest {
   string user_id = 1;
+  PinChannelType channel_type = 2;
 }
 
 message CheckUserHasPinResponse {
@@ -139,6 +169,7 @@ message TransactionPinDetails {
   int32 failed_attempts = 7;
   bool is_locked = 8;
   google.protobuf.Timestamp locked_until = 9;
+  PinChannelType channel_type = 10;
 }
 
 // InitiatePinOTP request - sends OTP for PIN create/change/reset
@@ -168,6 +199,7 @@ message VerifyPinOTPRequest {
   string confirm_new_pin = 6;
   string device_id = 7;
   string device_name = 8;
+  PinChannelType channel_type = 9;
 }
 
 message VerifyPinOTPResponse {
@@ -200,6 +232,7 @@ message CompleteForgotPinRequest {
   string new_pin = 3;
   string confirm_new_pin = 4;
   string device_id = 5;
+  PinChannelType channel_type = 6;
 }
 
 message CompleteForgotPinResponse {
@@ -215,4 +248,93 @@ message PinConfig {
   int32 max_attempts = 3;
   int32 lockout_duration_minutes = 4;
   int32 token_expiry_minutes = 5;
+}
+
+// GetUserChannelPins - returns PIN status for all channels
+message GetUserChannelPinsRequest {
+  string user_id = 1;
+}
+
+message GetUserChannelPinsResponse {
+  repeated ChannelPinStatus channel_pins = 1;
+}
+
+message ChannelPinStatus {
+  PinChannelType channel_type = 1;
+  bool has_pin = 2;
+  bool is_active = 3;
+  bool is_locked = 4;
+  google.protobuf.Timestamp created_at = 5;
+  google.protobuf.Timestamp last_used_at = 6;
+}
+
+// CreateChannelRegistration
+message CreateChannelRegistrationRequest {
+  string user_id = 1;
+  string channel_type = 2; // "whatsapp" or "telephony"
+  string phone_number = 3; // E.164 format
+}
+
+message CreateChannelRegistrationResponse {
+  bool success = 1;
+  string message = 2;
+  string masked_phone = 3;
+  int32 otp_expires_in_seconds = 4;
+}
+
+// VerifyChannelOTP
+message VerifyChannelOTPRequest {
+  string user_id = 1;
+  string channel_type = 2;
+  string otp_code = 3;
+}
+
+message VerifyChannelOTPResponse {
+  bool success = 1;
+  string message = 2;
+  ChannelRegistrationDetails registration = 3;
+}
+
+// GetChannelRegistrations
+message GetChannelRegistrationsRequest {
+  string user_id = 1;
+}
+
+message GetChannelRegistrationsResponse {
+  repeated ChannelRegistrationDetails registrations = 1;
+}
+
+message ChannelRegistrationDetails {
+  string id = 1;
+  string user_id = 2;
+  string channel_type = 3;
+  string phone_number = 4; // masked: +234***5678
+  string status = 5; // pending, active, suspended, deactivated
+  bool has_pin = 6;
+  google.protobuf.Timestamp activated_at = 7;
+  google.protobuf.Timestamp created_at = 8;
+}
+
+// DeactivateChannel
+message DeactivateChannelRequest {
+  string user_id = 1;
+  string channel_type = 2;
+}
+
+message DeactivateChannelResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+// ResolvePhoneToUser - service-to-service only
+message ResolvePhoneToUserRequest {
+  string phone_number = 1; // E.164 format
+  string channel_type = 2; // "whatsapp" or "telephony"
+}
+
+message ResolvePhoneToUserResponse {
+  bool found = 1;
+  string user_id = 2;
+  string channel_status = 3; // active, suspended, etc.
+  bool has_pin = 4;
 }

@@ -37,5 +37,58 @@ func (p *FamilyAccountsServiceProxy) RemoveFamilyMember(ctx context.Context, req
 	return p.client.RemoveFamilyMember(forwardContext(ctx), req)
 }
 
-// Additional methods can be added as needed
-// Any unimplemented methods will return "Unimplemented" error by default
+func (p *FamilyAccountsServiceProxy) GetFamilyAccounts(ctx context.Context, req *accountspb.GetFamilyAccountsRequest) (*accountspb.GetFamilyAccountsResponse, error) {
+	return p.client.GetFamilyAccounts(forwardContext(ctx), req)
+}
+
+func (p *FamilyAccountsServiceProxy) UpdateFamilyMember(ctx context.Context, req *accountspb.UpdateFamilyMemberRequest) (*accountspb.UpdateFamilyMemberResponse, error) {
+	return p.client.UpdateFamilyMember(forwardContext(ctx), req)
+}
+
+func (p *FamilyAccountsServiceProxy) AcceptFamilyInvitation(ctx context.Context, req *accountspb.AcceptFamilyInvitationRequest) (*accountspb.AcceptFamilyInvitationResponse, error) {
+	return p.client.AcceptFamilyInvitation(forwardContext(ctx), req)
+}
+
+func (p *FamilyAccountsServiceProxy) DeclineFamilyInvitation(ctx context.Context, req *accountspb.DeclineFamilyInvitationRequest) (*accountspb.DeclineFamilyInvitationResponse, error) {
+	return p.client.DeclineFamilyInvitation(forwardContext(ctx), req)
+}
+
+func (p *FamilyAccountsServiceProxy) GetPendingInvitations(ctx context.Context, req *accountspb.GetPendingInvitationsRequest) (*accountspb.GetPendingInvitationsResponse, error) {
+	return p.client.GetPendingInvitations(forwardContext(ctx), req)
+}
+
+func (p *FamilyAccountsServiceProxy) GetFamilyTransactions(ctx context.Context, req *accountspb.GetFamilyTransactionsRequest) (*accountspb.GetFamilyTransactionsResponse, error) {
+	return p.client.GetFamilyTransactions(forwardContext(ctx), req)
+}
+
+func (p *FamilyAccountsServiceProxy) AllocateFunds(ctx context.Context, req *accountspb.AllocateFundsRequest) (*accountspb.AllocateFundsResponse, error) {
+	return p.client.AllocateFunds(forwardContext(ctx), req)
+}
+
+func (p *FamilyAccountsServiceProxy) GenerateMemberCard(ctx context.Context, req *accountspb.GenerateMemberCardRequest) (*accountspb.GenerateMemberCardResponse, error) {
+	return p.client.GenerateMemberCard(forwardContext(ctx), req)
+}
+
+func (p *FamilyAccountsServiceProxy) FreezeFamilyAccount(ctx context.Context, req *accountspb.FreezeFamilyAccountRequest) (*accountspb.FreezeFamilyAccountResponse, error) {
+	return p.client.FreezeFamilyAccount(forwardContext(ctx), req)
+}
+
+func (p *FamilyAccountsServiceProxy) UnfreezeFamilyAccount(ctx context.Context, req *accountspb.UnfreezeFamilyAccountRequest) (*accountspb.UnfreezeFamilyAccountResponse, error) {
+	return p.client.UnfreezeFamilyAccount(forwardContext(ctx), req)
+}
+
+func (p *FamilyAccountsServiceProxy) DeleteFamilyAccount(ctx context.Context, req *accountspb.DeleteFamilyAccountRequest) (*accountspb.DeleteFamilyAccountResponse, error) {
+	return p.client.DeleteFamilyAccount(forwardContext(ctx), req)
+}
+
+func (p *FamilyAccountsServiceProxy) ProcessMemberContribution(ctx context.Context, req *accountspb.ProcessMemberContributionRequest) (*accountspb.ProcessMemberContributionResponse, error) {
+	return p.client.ProcessMemberContribution(forwardContext(ctx), req)
+}
+
+func (p *FamilyAccountsServiceProxy) SetupFamilyAccount(ctx context.Context, req *accountspb.SetupFamilyAccountRequest) (*accountspb.SetupFamilyAccountResponse, error) {
+	return p.client.SetupFamilyAccount(forwardContext(ctx), req)
+}
+
+func (p *FamilyAccountsServiceProxy) UpdateFundDistributionMode(ctx context.Context, req *accountspb.UpdateFundDistributionModeRequest) (*accountspb.UpdateFundDistributionModeResponse, error) {
+	return p.client.UpdateFundDistributionMode(forwardContext(ctx), req)
+}

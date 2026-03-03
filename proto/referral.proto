@@ -45,6 +45,16 @@ enum ReferralStatus {
   REFERRAL_STATUS_CANCELLED = 3;
 }
 
+// Point source types
+enum PointSource {
+  POINT_SOURCE_REFERRAL = 0;
+  POINT_SOURCE_SIGNUP_BONUS = 1;
+  POINT_SOURCE_FIRST_TRANSACTION = 2;
+  POINT_SOURCE_MONTHLY_ACTIVE = 3;
+  POINT_SOURCE_ACHIEVEMENT = 4;
+  POINT_SOURCE_REDEMPTION = 5;
+}
+
 // ReferralCode message represents a user's referral code
 message ReferralCode {
   uint64 id = 1;
@@ -68,6 +78,11 @@ message ReferralTransaction {
   google.protobuf.Timestamp created_at = 9;
   google.protobuf.Timestamp completed_at = 10;
   string failure_reason = 11;
+  string referee_first_name = 12;
+  string referee_last_name = 13;
+  string referee_username = 14;
+  string referrer_username = 15;
+  bool referee_has_joined = 16;
 }
 
 // CountryRewardConfig message represents country-specific reward configuration
@@ -88,6 +103,8 @@ message ReferralStats {
   int32 total_rewards_earned = 2;
   int32 pending_rewards = 3;
   string currency = 4;
+  int32 pending_referrals = 5;
+  int32 completed_referrals = 6;
 }
 
 // LeaderboardEntry message represents a top referrer
@@ -98,6 +115,36 @@ message LeaderboardEntry {
   string username = 4;
   int64 total_referrals = 5;
   int32 rank = 6;
+  int32 total_rewards_earned = 7;
+  string currency = 8;
+  string profile_picture = 9;
+}
+
+// PointTransaction represents a single points ledger entry
+message PointTransaction {
+  uint64 id = 1;
+  uint64 user_id = 2;
+  int32 points = 3;
+  PointSource source = 4;
+  string reference_id = 5;
+  string description = 6;
+  google.protobuf.Timestamp created_at = 7;
+}
+
+// PointsBalance represents a user's current points state
+message PointsBalance {
+  int32 total_earned = 1;
+  int32 total_redeemed = 2;
+  int32 current_balance = 3;
+  string tier = 4;
+}
+
+// PointsConfigEntry represents a single earn rule
+message PointsConfigEntry {
+  string source = 1;
+  int32 points_amount = 2;
+  string description = 3;
+  bool is_active = 4;
 }
 
 // Request/Response messages for ValidateReferralCode
@@ -128,12 +175,14 @@ message GetMyReferralStatsResponse {
 message GetMyReferralsRequest {
   int32 page = 1;
   int32 page_size = 2;
+  string filter = 3; // "all", "joined", "pending"
 }
 
 message GetMyReferralsResponse {
   repeated ReferralTransaction referrals = 1;
   int32 page = 2;
   int32 page_size = 3;
+  int32 total_count = 4;
 }
 
 // Request/Response messages for GetReferralLeaderboard
@@ -174,6 +223,31 @@ message CreditReferralRewardsRequest {
 message CreditReferralRewardsResponse {
   bool success = 1;
   string message = 2;
+}
+
+// Request/Response messages for LazerPoints
+message GetMyPointsBalanceRequest {}
+
+message GetMyPointsBalanceResponse {
+  PointsBalance balance = 1;
+}
+
+message GetMyPointsHistoryRequest {
+  int32 page = 1;
+  int32 page_size = 2;
+}
+
+message GetMyPointsHistoryResponse {
+  repeated PointTransaction transactions = 1;
+  int32 page = 2;
+  int32 page_size = 3;
+  int32 total_count = 4;
+}
+
+message GetPointsConfigRequest {}
+
+message GetPointsConfigResponse {
+  repeated PointsConfigEntry configs = 1;
 }
 
 // ReferralService service definition
@@ -234,6 +308,27 @@ service ReferralService {
     option (google.api.http) = {
       post: "/v1/referral/credit-rewards"
       body: "*"
+    };
+  }
+
+  // Get the authenticated user's LazerPoints balance
+  rpc GetMyPointsBalance(GetMyPointsBalanceRequest) returns (GetMyPointsBalanceResponse) {
+    option (google.api.http) = {
+      get: "/v1/referral/points/balance"
+    };
+  }
+
+  // Get the authenticated user's points transaction history
+  rpc GetMyPointsHistory(GetMyPointsHistoryRequest) returns (GetMyPointsHistoryResponse) {
+    option (google.api.http) = {
+      get: "/v1/referral/points/history"
+    };
+  }
+
+  // Get points earn rules configuration
+  rpc GetPointsConfig(GetPointsConfigRequest) returns (GetPointsConfigResponse) {
+    option (google.api.http) = {
+      get: "/v1/referral/points/config"
     };
   }
 }

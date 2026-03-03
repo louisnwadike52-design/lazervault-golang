@@ -43,12 +43,21 @@ func forwardContext(ctx context.Context) context.Context {
 	if accountID := md.Get("x-account-id"); len(accountID) > 0 {
 		outgoingMD.Set("x-account-id", accountID[0])
 	}
+	if country := md.Get("x-user-country"); len(country) > 0 {
+		outgoingMD.Set("x-user-country", country[0])
+	}
+	if currency := md.Get("x-currency"); len(currency) > 0 {
+		outgoingMD.Set("x-currency", currency[0])
+	}
 
 	// Extract user_id from auth context and add to metadata
 	userID, err := authinterceptor.GetUserID(ctx)
 	if err == nil && userID != "" {
 		outgoingMD.Set("x-user-id", userID)
 	}
+
+	// Add service name for tracing
+	outgoingMD.Set("x-service-name", "core-gateway")
 
 	return metadata.NewOutgoingContext(ctx, outgoingMD)
 }

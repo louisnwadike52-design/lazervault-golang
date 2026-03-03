@@ -2,11 +2,12 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"net"
 	"net/http"
 	"os"
 	"os/signal"
+	"regexp"
+	"strings"
 	"syscall"
 	"time"
 
@@ -87,6 +88,8 @@ func main() {
 	accountsServiceAddr := getEnv("ACCOUNTS_SERVICE_GRPC_ADDR", "127.0.0.1:50052")
 	whatsappServiceAddr := getEnv("WHATSAPP_SERVICE_GRPC_ADDR", "127.0.0.1:50062")
 	notificationsServiceAddr := getEnv("NOTIFICATIONS_SERVICE_GRPC_ADDR", "127.0.0.1:50061")
+	exchangeServiceAddr := getEnv("EXCHANGE_SERVICE_GRPC_ADDR", "127.0.0.1:50081")
+	referralServiceAddr := getEnv("REFERRAL_SERVICE_GRPC_ADDR", "127.0.0.1:50084")
 
 	// Get Redis configuration
 	redisURL := getEnv("REDIS_URL", "redis://localhost:6379")
@@ -106,6 +109,8 @@ func main() {
 		Str("accounts_service", accountsServiceAddr).
 		Str("whatsapp_service", whatsappServiceAddr).
 		Str("notifications_service", notificationsServiceAddr).
+		Str("exchange_service", exchangeServiceAddr).
+		Str("referral_service", referralServiceAddr).
 		Str("redis_url", redisURL).
 		Bool("cache_enabled", enableCache).
 		Dur("cache_ttl", cacheTTL).
@@ -228,7 +233,7 @@ func main() {
 
 	// Get JWT configuration from environment
 	jwksURL := getEnv("JWKS_URL", "http://127.0.0.1:8081/.well-known/jwks.json") // Use 127.0.0.1 to avoid IPv6 resolution issues
-	jwtIssuer := getEnv("JWT_ISSUER", "https://auth.lazervault.com")
+	jwtIssuer := getEnv("JWT_ISSUER", "https://auth.lazervault.app")
 	jwtAudience := getEnv("JWT_AUDIENCE", "lazervault-api")
 
 	// Initialize banking-grade JWT verification (NO RPC to auth service)
@@ -290,6 +295,13 @@ func main() {
 		log.Fatal().Err(err).Msg("Failed to register recipient service handler")
 	}
 
+	// Register multi-country account service handler (from accounts-microservice)
+	// This will proxy /api/v1/accounts/by-locale, /api/v1/accounts/locale, etc.
+	log.Info().Msg("🔌 Connecting to multi-country-account-service gRPC...")
+	if err := registerMultiCountryServiceHandler(ctx, mux, accountsServiceAddr, opts); err != nil {
+		log.Fatal().Err(err).Msg("Failed to register multi-country account service handler")
+	}
+
 	// Register user service handler (proxies to auth-service)
 	// This will proxy /v1/users/* to auth-service via UserServiceProxy
 	log.Info().Msg("🔌 Registering user-service gRPC-gateway...")
@@ -316,6 +328,20 @@ func main() {
 	log.Info().Msg("Registering AI Chat service gRPC-gateway...")
 	if err := registerAIChatServiceHandler(ctx, mux, localGrpcAddr, opts); err != nil {
 		log.Warn().Err(err).Msg("Failed to register AI chat service handler - AI chat will be unavailable via HTTP")
+	}
+
+	// Register Exchange service handler (from exchange-microservice)
+	// This will proxy /api/v1/exchange/* to exchange-service gRPC
+	log.Info().Msg("🔌 Connecting to exchange-service gRPC...")
+	if err := registerExchangeServiceHandler(ctx, mux, exchangeServiceAddr, opts); err != nil {
+		log.Warn().Err(err).Msg("Failed to register exchange service handler - currency exchange will be unavailable")
+	}
+
+	// Register Referral service handler (from referral-microservice)
+	// This will proxy /api/v1/referral/* to referral-service gRPC
+	log.Info().Msg("🔌 Connecting to referral-service gRPC...")
+	if err := registerReferralServiceHandler(ctx, mux, referralServiceAddr, opts); err != nil {
+		log.Warn().Err(err).Msg("Failed to register referral service handler - referral will be unavailable")
 	}
 
 	// Create Gin router for additional middleware and routing
@@ -489,9 +515,20 @@ func main() {
 		c.String(http.StatusOK, "# Metrics endpoint - integrate with Prometheus\n")
 	})
 
+	// Custom HTTP handler for VerifyTransactionPin (gRPC-only service exposed via HTTP for chatbot)
+	var txPinClient pb.TransactionPinServiceClient
+	txPinConn, err := grpc.Dial(authServiceAddr, opts...)
+	if err != nil {
+		log.Warn().Err(err).Msg("Failed to create transaction PIN gRPC connection - PIN verification via HTTP will be unavailable")
+	} else {
+		txPinClient = pb.NewTransactionPinServiceClient(txPinConn)
+		log.Info().Msg("✅ Transaction PIN + Channel Management HTTP endpoints registered")
+	}
+
 	// API group with JWT authentication (applies to all /api/* routes except auth public endpoints)
 	apiGroup := router.Group("/api")
 	apiGroup.Use(middleware.JWTAuthMiddleware())
+	apiGroup.Use(interceptVerifyTransactionPin(txPinClient))
 	apiGroup.Any("/*path", wrapGrpcGateway(mux))
 
 	// Note: Auth service routes (/api/v1/auth/*) are registered via grpc-gateway mux
@@ -556,13 +593,43 @@ func main() {
 	}
 	defer accountsConn.Close()
 
+	exchangeConn, err := grpc.Dial(exchangeServiceAddr, opts...)
+	if err != nil {
+		log.Warn().Err(err).Msg("Failed to connect to exchange service for gRPC - currency exchange will be unavailable")
+	}
+	if exchangeConn != nil {
+		defer exchangeConn.Close()
+	}
+
 	// Create proxy services
 	authProxy := proxy.NewAuthServiceProxy(pb.NewAuthServiceClient(authConn))
 	transactionPinProxy := proxy.NewTransactionPinServiceProxy(pb.NewTransactionPinServiceClient(authConn))
 	accountsProxy := proxy.NewAccountsServiceProxy(accountspb.NewAccountsServiceClient(accountsConn))
 	familyAccountsProxy := proxy.NewFamilyAccountsServiceProxy(accountspb.NewFamilyAccountsServiceClient(accountsConn))
 	recipientProxy := proxy.NewRecipientServiceProxy(accountspb.NewRecipientServiceClient(accountsConn))
-	userProxy := proxy.NewUserServiceProxy(pb.NewAuthServiceClient(authConn))
+	multiCountryProxy := proxy.NewMultiCountryServiceProxy(accountspb.NewMultiCountryAccountServiceClient(accountsConn))
+	var notificationsClient notificationspb.NotificationsServiceClient
+	if notificationsConn != nil {
+		notificationsClient = notificationspb.NewNotificationsServiceClient(notificationsConn)
+	}
+	userProxy := proxy.NewUserServiceProxy(pb.NewAuthServiceClient(authConn), notificationsClient)
+
+	var exchangeProxy *proxy.ExchangeServiceProxy
+	if exchangeConn != nil {
+		exchangeProxy = proxy.NewExchangeServiceProxy(pb.NewExchangeServiceClient(exchangeConn))
+	}
+
+	referralConn, err := grpc.Dial(referralServiceAddr, opts...)
+	if err != nil {
+		log.Warn().Err(err).Msg("Failed to connect to referral service for gRPC - referral will be unavailable")
+	}
+	if referralConn != nil {
+		defer referralConn.Close()
+	}
+	var referralProxy *proxy.ReferralServiceProxy
+	if referralConn != nil {
+		referralProxy = proxy.NewReferralServiceProxy(pb.NewReferralServiceClient(referralConn))
+	}
 
 	// Create gRPC server with interceptor chain
 	// Configured for low-network regions (Nigeria) with compression and lenient keepalive
@@ -599,7 +666,14 @@ func main() {
 	accountspb.RegisterAccountsServiceServer(grpcServer, accountsProxy)
 	accountspb.RegisterFamilyAccountsServiceServer(grpcServer, familyAccountsProxy)
 	accountspb.RegisterRecipientServiceServer(grpcServer, recipientProxy)
+	accountspb.RegisterMultiCountryAccountServiceServer(grpcServer, multiCountryProxy)
 	pb.RegisterUserServiceServer(grpcServer, userProxy)
+
+	// Register Exchange service proxy (if connection available)
+	if exchangeProxy != nil {
+		pb.RegisterExchangeServiceServer(grpcServer, exchangeProxy)
+		log.Info().Msg("Exchange service registered on gRPC server")
+	}
 
 	// Register WhatsApp service proxy (if connection available)
 	if whatsappConn != nil {
@@ -613,6 +687,12 @@ func main() {
 		notificationsProxy := proxy.NewNotificationsServiceProxy(notificationspb.NewNotificationsServiceClient(notificationsConn))
 		notificationspb.RegisterNotificationsServiceServer(grpcServer, notificationsProxy)
 		log.Info().Msg("Notifications service registered on gRPC server")
+	}
+
+	// Register Referral service proxy (if connection available)
+	if referralProxy != nil {
+		pb.RegisterReferralServiceServer(grpcServer, referralProxy)
+		log.Info().Msg("✅ Referral service registered on gRPC server")
 	}
 
 	// Register AI Chat proxy (proxies gRPC to Python chat-agent-gateway via HTTP)
@@ -696,18 +776,428 @@ func main() {
 	log.Info().Msg("✅ Core Gateway stopped gracefully")
 }
 
-// wrapGrpcGateway wraps grpc-gateway mux as a Gin handler
+// handleVerifyTransactionPin creates a Gin handler that proxies to the gRPC VerifyTransactionPin RPC.
+// This exposes the gRPC-only TransactionPinService via HTTP for chat microservices.
+func handleVerifyTransactionPin(client pb.TransactionPinServiceClient) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var req struct {
+			Pin             string  `json:"pin"`
+			TransactionID   string  `json:"transaction_id"`
+			TransactionType string  `json:"transaction_type"`
+			Amount          float64 `json:"amount"`
+			Currency        string  `json:"currency"`
+			DeviceID        string  `json:"device_id"`
+			ChannelType     string  `json:"channel_type"` // "app", "whatsapp", "telephony"
+		}
+		if err := c.ShouldBindJSON(&req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body", "message": err.Error()})
+			return
+		}
+
+		userID, _ := c.Get("user_id")
+		userIDStr, _ := userID.(string)
+
+		grpcReq := &pb.VerifyTransactionPinRequest{
+			UserId:          userIDStr,
+			Pin:             req.Pin,
+			TransactionId:   req.TransactionID,
+			TransactionType: req.TransactionType,
+			Amount:          req.Amount,
+			Currency:        req.Currency,
+			DeviceId:        req.DeviceID,
+			ChannelType:     channelTypeToProto(req.ChannelType),
+		}
+
+		resp, err := client.VerifyTransactionPin(c.Request.Context(), grpcReq)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error":   true,
+				"message": err.Error(),
+			})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"success":            resp.Success,
+			"message":            resp.Message,
+			"verification_token": resp.VerificationToken,
+			"remaining_attempts": resp.RemainingAttempts,
+			"is_locked":          resp.IsLocked,
+		})
+	}
+}
+
+// handleGetChannelPins returns PIN status for all banking channels.
+// GET /api/v1/auth/channel-pins
+func handleGetChannelPins(client pb.TransactionPinServiceClient) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		userID, _ := c.Get("user_id")
+		userIDStr, _ := userID.(string)
+		if userIDStr == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "user not authenticated"})
+			return
+		}
+
+		resp, err := client.GetUserChannelPins(c.Request.Context(), &pb.GetUserChannelPinsRequest{
+			UserId: userIDStr,
+		})
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": true, "message": err.Error()})
+			return
+		}
+
+		pins := make([]gin.H, 0, len(resp.ChannelPins))
+		for _, p := range resp.ChannelPins {
+			pin := gin.H{
+				"channel_type": channelTypeFromProto(p.ChannelType),
+				"has_pin":      p.HasPin,
+				"is_active":    p.IsActive,
+				"is_locked":    p.IsLocked,
+			}
+			if p.CreatedAt != nil {
+				pin["created_at"] = p.CreatedAt.AsTime()
+			}
+			if p.LastUsedAt != nil {
+				pin["last_used_at"] = p.LastUsedAt.AsTime()
+			}
+			pins = append(pins, pin)
+		}
+
+		c.JSON(http.StatusOK, gin.H{"channel_pins": pins})
+	}
+}
+
+// handleRegisterChannel initiates channel registration (sends OTP).
+// POST /api/v1/channels/register
+func handleRegisterChannel(client pb.TransactionPinServiceClient) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var req struct {
+			ChannelType string `json:"channel_type"`
+			PhoneNumber string `json:"phone_number"`
+		}
+		if err := c.ShouldBindJSON(&req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body", "message": err.Error()})
+			return
+		}
+
+		userID, _ := c.Get("user_id")
+		userIDStr, _ := userID.(string)
+		if userIDStr == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "user not authenticated"})
+			return
+		}
+
+		if req.ChannelType != "whatsapp" && req.ChannelType != "telephony" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid channel_type, must be 'whatsapp' or 'telephony'"})
+			return
+		}
+
+		e164Re := regexp.MustCompile(`^\+[1-9]\d{1,14}$`)
+		if !e164Re.MatchString(req.PhoneNumber) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid phone_number, E.164 format required"})
+			return
+		}
+
+		resp, err := client.CreateChannelRegistration(c.Request.Context(), &pb.CreateChannelRegistrationRequest{
+			UserId:      userIDStr,
+			ChannelType: req.ChannelType,
+			PhoneNumber: req.PhoneNumber,
+		})
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": true, "message": err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"success":                resp.Success,
+			"message":                resp.Message,
+			"masked_phone":           resp.MaskedPhone,
+			"otp_expires_in_seconds": resp.OtpExpiresInSeconds,
+		})
+	}
+}
+
+// handleVerifyChannelOTP verifies the OTP to activate a channel.
+// POST /api/v1/channels/verify-otp
+func handleVerifyChannelOTP(client pb.TransactionPinServiceClient) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var req struct {
+			ChannelType string `json:"channel_type"`
+			OtpCode     string `json:"otp_code"`
+		}
+		if err := c.ShouldBindJSON(&req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body", "message": err.Error()})
+			return
+		}
+
+		userID, _ := c.Get("user_id")
+		userIDStr, _ := userID.(string)
+		if userIDStr == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "user not authenticated"})
+			return
+		}
+
+		otpRe := regexp.MustCompile(`^\d{4,6}$`)
+		if !otpRe.MatchString(req.OtpCode) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid otp_code, must be 4-6 digits"})
+			return
+		}
+
+		resp, err := client.VerifyChannelOTP(c.Request.Context(), &pb.VerifyChannelOTPRequest{
+			UserId:      userIDStr,
+			ChannelType: req.ChannelType,
+			OtpCode:     req.OtpCode,
+		})
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": true, "message": err.Error()})
+			return
+		}
+
+		result := gin.H{
+			"success": resp.Success,
+			"message": resp.Message,
+		}
+		if resp.Registration != nil {
+			result["registration"] = gin.H{
+				"id":           resp.Registration.Id,
+				"channel_type": resp.Registration.ChannelType,
+				"phone_number": resp.Registration.PhoneNumber,
+				"status":       resp.Registration.Status,
+				"has_pin":      resp.Registration.HasPin,
+			}
+		}
+		c.JSON(http.StatusOK, result)
+	}
+}
+
+// handleGetChannelRegistrations returns all channel registrations for the user.
+// GET /api/v1/channels/status
+func handleGetChannelRegistrations(client pb.TransactionPinServiceClient) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		userID, _ := c.Get("user_id")
+		userIDStr, _ := userID.(string)
+
+		resp, err := client.GetChannelRegistrations(c.Request.Context(), &pb.GetChannelRegistrationsRequest{
+			UserId: userIDStr,
+		})
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": true, "message": err.Error()})
+			return
+		}
+
+		registrations := make([]gin.H, 0, len(resp.Registrations))
+		for _, r := range resp.Registrations {
+			reg := gin.H{
+				"id":           r.Id,
+				"channel_type": r.ChannelType,
+				"phone_number": r.PhoneNumber,
+				"status":       r.Status,
+				"has_pin":      r.HasPin,
+			}
+			if r.ActivatedAt != nil {
+				reg["activated_at"] = r.ActivatedAt.AsTime()
+			}
+			if r.CreatedAt != nil {
+				reg["created_at"] = r.CreatedAt.AsTime()
+			}
+			registrations = append(registrations, reg)
+		}
+
+		c.JSON(http.StatusOK, gin.H{"registrations": registrations})
+	}
+}
+
+// handleDeactivateChannel deactivates a banking channel.
+// DELETE /api/v1/channels/{type}
+func handleDeactivateChannel(client pb.TransactionPinServiceClient) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		channelType := c.Param("type")
+		if channelType == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "channel type is required"})
+			return
+		}
+
+		if channelType != "whatsapp" && channelType != "telephony" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "can only deactivate 'whatsapp' or 'telephony' channels"})
+			return
+		}
+
+		userID, _ := c.Get("user_id")
+		userIDStr, _ := userID.(string)
+		if userIDStr == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "user not authenticated"})
+			return
+		}
+
+		resp, err := client.DeactivateChannel(c.Request.Context(), &pb.DeactivateChannelRequest{
+			UserId:      userIDStr,
+			ChannelType: channelType,
+		})
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": true, "message": err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"success": resp.Success,
+			"message": resp.Message,
+		})
+	}
+}
+
+// handleResolvePhoneToUser resolves a phone number to a user ID (service-to-service).
+// POST /api/v1/channels/resolve-phone
+func handleResolvePhoneToUser(client pb.TransactionPinServiceClient) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Service-to-service auth: restrict to internal callers only
+		serviceSecret := c.GetHeader("X-Service-Secret")
+		expected := os.Getenv("INTERNAL_SERVICE_SECRET")
+		if expected == "" || serviceSecret != expected {
+			c.JSON(http.StatusForbidden, gin.H{"error": "unauthorized: service-to-service only"})
+			return
+		}
+
+		var req struct {
+			PhoneNumber string `json:"phone_number"`
+			ChannelType string `json:"channel_type"`
+		}
+		if err := c.ShouldBindJSON(&req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body", "message": err.Error()})
+			return
+		}
+
+		resp, err := client.ResolvePhoneToUser(c.Request.Context(), &pb.ResolvePhoneToUserRequest{
+			PhoneNumber: req.PhoneNumber,
+			ChannelType: req.ChannelType,
+		})
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": true, "message": err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"found":          resp.Found,
+			"user_id":        resp.UserId,
+			"channel_status": resp.ChannelStatus,
+			"has_pin":        resp.HasPin,
+		})
+	}
+}
+
+// channelTypeToProto converts a string channel type to the proto enum.
+func channelTypeToProto(channelType string) pb.PinChannelType {
+	switch channelType {
+	case "whatsapp":
+		return pb.PinChannelType_PIN_CHANNEL_WHATSAPP
+	case "telephony":
+		return pb.PinChannelType_PIN_CHANNEL_TELEPHONY
+	default:
+		return pb.PinChannelType_PIN_CHANNEL_APP
+	}
+}
+
+// channelTypeFromProto converts the proto enum to a string channel type.
+func channelTypeFromProto(ct pb.PinChannelType) string {
+	switch ct {
+	case pb.PinChannelType_PIN_CHANNEL_WHATSAPP:
+		return "whatsapp"
+	case pb.PinChannelType_PIN_CHANNEL_TELEPHONY:
+		return "telephony"
+	default:
+		return "app"
+	}
+}
+
+// interceptVerifyTransactionPin is a Gin middleware that intercepts PIN and channel management
+// HTTP endpoints and handles them via custom gRPC handlers instead of passing to grpc-gateway.
+func interceptVerifyTransactionPin(client pb.TransactionPinServiceClient) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if client == nil {
+			c.Next()
+			return
+		}
+
+		path := c.Param("path")
+		method := c.Request.Method
+
+		// POST /v1/auth/verify-transaction-pin
+		if method == http.MethodPost && path == "/v1/auth/verify-transaction-pin" {
+			handleVerifyTransactionPin(client)(c)
+			c.Abort()
+			return
+		}
+
+		// GET /v1/auth/channel-pins
+		if method == http.MethodGet && path == "/v1/auth/channel-pins" {
+			handleGetChannelPins(client)(c)
+			c.Abort()
+			return
+		}
+
+		// POST /v1/channels/register
+		if method == http.MethodPost && path == "/v1/channels/register" {
+			handleRegisterChannel(client)(c)
+			c.Abort()
+			return
+		}
+
+		// POST /v1/channels/verify-otp
+		if method == http.MethodPost && path == "/v1/channels/verify-otp" {
+			handleVerifyChannelOTP(client)(c)
+			c.Abort()
+			return
+		}
+
+		// GET /v1/channels/status
+		if method == http.MethodGet && path == "/v1/channels/status" {
+			handleGetChannelRegistrations(client)(c)
+			c.Abort()
+			return
+		}
+
+		// POST /v1/channels/resolve-phone (service-to-service)
+		if method == http.MethodPost && path == "/v1/channels/resolve-phone" {
+			handleResolvePhoneToUser(client)(c)
+			c.Abort()
+			return
+		}
+
+		// DELETE /v1/channels/{type} — match pattern /v1/channels/whatsapp or /v1/channels/telephony
+		if method == http.MethodDelete && strings.HasPrefix(path, "/v1/channels/") {
+			channelType := strings.TrimPrefix(path, "/v1/channels/")
+			if channelType == "whatsapp" || channelType == "telephony" {
+				// Inject the channel type as a param for the handler
+				c.Params = append(c.Params, gin.Param{Key: "type", Value: channelType})
+				handleDeactivateChannel(client)(c)
+				c.Abort()
+				return
+			}
+		}
+
+		c.Next()
+	}
+}
+
+// wrapGrpcGateway wraps grpc-gateway mux as a Gin handler.
+// The Gin router group adds "/api" prefix, but grpc-gateway patterns use "/v1/..."
+// so we strip the "/api" prefix before passing to the grpc-gateway mux.
 func wrapGrpcGateway(mux *runtime.ServeMux) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		fmt.Printf("[wrapGrpcGateway] Path: %s, Method: %s\n", c.Request.URL.Path, c.Request.Method)
-		mux.ServeHTTP(c.Writer, c.Request)
+		// Strip /api prefix so grpc-gateway patterns (/v1/...) match
+		req := c.Request.Clone(c.Request.Context())
+		if strings.HasPrefix(req.URL.Path, "/api/") {
+			req.URL.Path = strings.TrimPrefix(req.URL.Path, "/api")
+			req.URL.RawPath = strings.TrimPrefix(req.URL.RawPath, "/api")
+		}
+		mux.ServeHTTP(c.Writer, req)
 	}
 }
 
 // customHeaderMatcher matches custom headers
+// Includes all headers needed for proper request routing and context propagation
 func customHeaderMatcher(key string) (string, bool) {
 	switch key {
-	case "Authorization", "X-User-Id", "X-Username":
+	case "Authorization", "X-User-Id", "X-Username", "X-Account-Id", "X-Currency", "X-User-Country", "X-Locale", "X-Service-Name":
 		return key, true
 	default:
 		return runtime.DefaultHeaderMatcher(key)
@@ -738,6 +1228,12 @@ func registerRecipientServiceHandler(ctx context.Context, mux *runtime.ServeMux,
 	return accountspb.RegisterRecipientServiceHandlerFromEndpoint(ctx, mux, addr, opts)
 }
 
+// registerMultiCountryServiceHandler registers multi-country account service gRPC-gateway handler
+// This connects to accounts-microservice (multi-country accounts are part of accounts service)
+func registerMultiCountryServiceHandler(ctx context.Context, mux *runtime.ServeMux, addr string, opts []grpc.DialOption) error {
+	return accountspb.RegisterMultiCountryAccountServiceHandlerFromEndpoint(ctx, mux, addr, opts)
+}
+
 // registerUserServiceHandler registers user service gRPC-gateway handler
 // This proxies user profile operations to auth-service via UserServiceProxy
 func registerUserServiceHandler(ctx context.Context, mux *runtime.ServeMux, addr string, opts []grpc.DialOption) error {
@@ -760,6 +1256,18 @@ func registerNotificationsServiceHandler(ctx context.Context, mux *runtime.Serve
 // This proxies /v1/ai/* to the local AI chat proxy (which forwards to Python chat-agent-gateway)
 func registerAIChatServiceHandler(ctx context.Context, mux *runtime.ServeMux, addr string, opts []grpc.DialOption) error {
 	return pb.RegisterAIChatServiceHandlerFromEndpoint(ctx, mux, addr, opts)
+}
+
+// registerExchangeServiceHandler registers exchange service gRPC-gateway handler
+// This connects to exchange-microservice on port 50081
+func registerExchangeServiceHandler(ctx context.Context, mux *runtime.ServeMux, addr string, opts []grpc.DialOption) error {
+	return pb.RegisterExchangeServiceHandlerFromEndpoint(ctx, mux, addr, opts)
+}
+
+// registerReferralServiceHandler registers referral service gRPC-gateway handler
+// This connects to referral-microservice on port 50084
+func registerReferralServiceHandler(ctx context.Context, mux *runtime.ServeMux, addr string, opts []grpc.DialOption) error {
+	return pb.RegisterReferralServiceHandlerFromEndpoint(ctx, mux, addr, opts)
 }
 
 // getEnv gets environment variable or returns default

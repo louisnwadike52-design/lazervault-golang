@@ -135,6 +135,10 @@ func requiresAuth(method string) bool {
 		"/pb.ElectricityBillService/SyncProviders":       false,
 		"/pb.ElectricityBillService/ValidateMeterNumber": false,
 
+		// Referral Service public endpoints
+		"/pb.ReferralService/ValidateReferralCode": false, // Public - validate during signup
+		"/pb.ReferralService/GetPointsConfig":      false, // Public - show earn rules
+
 		// Add more public endpoints as needed
 	}
 
@@ -253,6 +257,8 @@ func isPublicHTTPPath(path string) bool {
 		"/api/v1/auth/check-email-availability",
 		"/api/v1/auth/request-email-verification",
 		"/api/v1/auth/request-phone-verification",
+		"/api/v1/referral/validate",
+		"/api/v1/referral/points-config",
 		"/.well-known/jwks.json",
 		"/health",
 		"/ready",

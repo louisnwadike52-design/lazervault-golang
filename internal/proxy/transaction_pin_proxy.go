@@ -68,3 +68,33 @@ func (p *TransactionPinServiceProxy) GetPinOTPChannels(ctx context.Context, req 
 func (p *TransactionPinServiceProxy) CompleteForgotPin(ctx context.Context, req *pb.CompleteForgotPinRequest) (*pb.CompleteForgotPinResponse, error) {
 	return p.client.CompleteForgotPin(forwardContext(ctx), req)
 }
+
+// GetUserChannelPins returns PIN setup status for all channels
+func (p *TransactionPinServiceProxy) GetUserChannelPins(ctx context.Context, req *pb.GetUserChannelPinsRequest) (*pb.GetUserChannelPinsResponse, error) {
+	return p.client.GetUserChannelPins(forwardContext(ctx), req)
+}
+
+// CreateChannelRegistration registers a user for a banking channel
+func (p *TransactionPinServiceProxy) CreateChannelRegistration(ctx context.Context, req *pb.CreateChannelRegistrationRequest) (*pb.CreateChannelRegistrationResponse, error) {
+	return p.client.CreateChannelRegistration(forwardContext(ctx), req)
+}
+
+// VerifyChannelOTP verifies OTP for channel registration
+func (p *TransactionPinServiceProxy) VerifyChannelOTP(ctx context.Context, req *pb.VerifyChannelOTPRequest) (*pb.VerifyChannelOTPResponse, error) {
+	return p.client.VerifyChannelOTP(forwardContext(ctx), req)
+}
+
+// GetChannelRegistrations gets all channel registrations for a user
+func (p *TransactionPinServiceProxy) GetChannelRegistrations(ctx context.Context, req *pb.GetChannelRegistrationsRequest) (*pb.GetChannelRegistrationsResponse, error) {
+	return p.client.GetChannelRegistrations(forwardContext(ctx), req)
+}
+
+// DeactivateChannel deactivates a banking channel
+func (p *TransactionPinServiceProxy) DeactivateChannel(ctx context.Context, req *pb.DeactivateChannelRequest) (*pb.DeactivateChannelResponse, error) {
+	return p.client.DeactivateChannel(forwardContext(ctx), req)
+}
+
+// ResolvePhoneToUser resolves a phone number to a user ID (service-to-service)
+func (p *TransactionPinServiceProxy) ResolvePhoneToUser(ctx context.Context, req *pb.ResolvePhoneToUserRequest) (*pb.ResolvePhoneToUserResponse, error) {
+	return p.client.ResolvePhoneToUser(forwardContext(ctx), req)
+}

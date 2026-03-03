@@ -8,6 +8,7 @@ import (
 
 	authinterceptor "github.com/lazervault/shared/auth-interceptor"
 	pb "lazervaultGo/pb"
+	notificationspb "notifications-service/proto"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -18,13 +19,15 @@ import (
 // This enables the Flutter app to fetch user profiles and search users via the gateway
 type UserServiceProxy struct {
 	pb.UnimplementedUserServiceServer
-	authClient pb.AuthServiceClient
+	authClient          pb.AuthServiceClient
+	notificationsClient notificationspb.NotificationsServiceClient
 }
 
 // NewUserServiceProxy creates a new UserServiceProxy
-func NewUserServiceProxy(authClient pb.AuthServiceClient) *UserServiceProxy {
+func NewUserServiceProxy(authClient pb.AuthServiceClient, notificationsClient notificationspb.NotificationsServiceClient) *UserServiceProxy {
 	return &UserServiceProxy{
-		authClient: authClient,
+		authClient:          authClient,
+		notificationsClient: notificationsClient,
 	}
 }
 
@@ -158,7 +161,48 @@ func (p *UserServiceProxy) UpdatePassword(ctx context.Context, req *pb.UpdatePas
 }
 
 func (p *UserServiceProxy) UpdatePreferences(ctx context.Context, req *pb.UpdatePreferencesRequest) (*pb.UpdatePreferencesResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "not implemented")
+	userID, err := authinterceptor.GetUserID(ctx)
+	if err != nil {
+		return nil, status.Error(codes.Unauthenticated, "authentication required")
+	}
+
+	if p.notificationsClient == nil {
+		return nil, status.Error(codes.Unavailable, "notifications service not available")
+	}
+
+	// Proxy notification preferences to notifications-service
+	notifResp, err := p.notificationsClient.UpdateNotificationPreferences(forwardContext(ctx), &notificationspb.UpdateNotificationPreferencesRequest{
+		UserId: userID,
+		Preferences: &notificationspb.NotificationPreferences{
+			TransfersEnabled:      req.PushNotifications,
+			PaymentsEnabled:       req.PushNotifications,
+			DepositsEnabled:       req.PushNotifications,
+			WithdrawalsEnabled:    req.PushNotifications,
+			AccountUpdatesEnabled: req.EmailNotifications,
+			SecurityAlertsEnabled: req.SmsNotifications,
+		},
+	})
+	if err != nil {
+		log.Printf("[UserProxy] Failed to update notification preferences: %v", err)
+		return nil, err
+	}
+
+	return &pb.UpdatePreferencesResponse{
+		Success: true,
+		Message: notifResp.Message,
+		Preferences: &pb.UserPreferences{
+			UserId:            userID,
+			PushNotifications: req.PushNotifications,
+			EmailNotifications: req.EmailNotifications,
+			SmsNotifications:  req.SmsNotifications,
+			DarkMode:          req.DarkMode,
+			Language:          req.Language,
+			Currency:          req.Currency,
+			Country:           req.ActiveCountry,
+			PreferredCountries: req.PreferredCountries,
+			ActiveCountry:     req.ActiveCountry,
+		},
+	}, nil
 }
 
 func (p *UserServiceProxy) UploadIDDocument(ctx context.Context, req *pb.UploadIDDocumentRequest) (*pb.UploadIDDocumentResponse, error) {
@@ -198,7 +242,30 @@ func (p *UserServiceProxy) RemovePasscode(ctx context.Context, req *pb.RemovePas
 }
 
 func (p *UserServiceProxy) CheckPasscodeExists(ctx context.Context, req *pb.CheckPasscodeExistsRequest) (*pb.CheckPasscodeExistsResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "not implemented")
+	userID, err := authinterceptor.GetUserID(ctx)
+	if err != nil {
+		return nil, status.Error(codes.Unauthenticated, "authentication required")
+	}
+
+	authResp, err := p.authClient.GetMe(forwardContext(ctx), &pb.GetMeRequest{
+		UserId: userID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if authResp.User == nil {
+		return nil, status.Error(codes.NotFound, "user not found")
+	}
+
+	// Passcode is set if signup_status indicates passcode_set or complete
+	hasPasscode := authResp.User.SignupStatus == "passcode_set" ||
+		authResp.User.SignupStatus == "complete"
+
+	return &pb.CheckPasscodeExistsResponse{
+		Success:     true,
+		HasPasscode: hasPasscode,
+	}, nil
 }
 
 func (p *UserServiceProxy) UpdateDevicePermissions(ctx context.Context, req *pb.UpdateDevicePermissionsRequest) (*pb.UpdateDevicePermissionsResponse, error) {

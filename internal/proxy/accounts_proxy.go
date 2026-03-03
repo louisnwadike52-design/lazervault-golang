@@ -94,5 +94,44 @@ func (p *AccountsServiceProxy) GetExpenseTimeSeries(ctx context.Context, req *ac
 	return p.client.GetExpenseTimeSeries(forwardContext(ctx), req)
 }
 
-// Additional methods can be added as needed
-// Any unimplemented methods will return "Unimplemented" error by default
+// === Account Freeze/Unfreeze Proxies ===
+
+func (p *AccountsServiceProxy) FreezeAccount(ctx context.Context, req *accountspb.FreezeAccountRequest) (*accountspb.FreezeAccountResponse, error) {
+	return p.client.FreezeAccount(forwardContext(ctx), req)
+}
+
+func (p *AccountsServiceProxy) UnfreezeAccount(ctx context.Context, req *accountspb.UnfreezeAccountRequest) (*accountspb.UnfreezeAccountResponse, error) {
+	return p.client.UnfreezeAccount(forwardContext(ctx), req)
+}
+
+// === Card Management Proxies ===
+
+func (p *AccountsServiceProxy) UpdateSpendingLimits(ctx context.Context, req *accountspb.UpdateSpendingLimitsRequest) (*accountspb.UpdateSpendingLimitsResponse, error) {
+	return p.client.UpdateSpendingLimits(forwardContext(ctx), req)
+}
+
+func (p *AccountsServiceProxy) RevealPIN(ctx context.Context, req *accountspb.RevealPINRequest) (*accountspb.RevealPINResponse, error) {
+	return p.client.RevealPIN(forwardContext(ctx), req)
+}
+
+func (p *AccountsServiceProxy) RevealCardDetails(ctx context.Context, req *accountspb.RevealCardDetailsRequest) (*accountspb.RevealCardDetailsResponse, error) {
+	return p.client.RevealCardDetails(forwardContext(ctx), req)
+}
+
+func (p *AccountsServiceProxy) UpdateSecuritySettings(ctx context.Context, req *accountspb.UpdateSecuritySettingsRequest) (*accountspb.UpdateSecuritySettingsResponse, error) {
+	return p.client.UpdateSecuritySettings(forwardContext(ctx), req)
+}
+
+// === Document Generation Proxies ===
+
+func (p *AccountsServiceProxy) GenerateStatement(ctx context.Context, req *accountspb.GenerateStatementRequest) (*accountspb.GenerateStatementResponse, error) {
+	return p.client.GenerateStatement(forwardContext(ctx), req)
+}
+
+func (p *AccountsServiceProxy) GenerateAccountConfirmation(ctx context.Context, req *accountspb.GenerateAccountConfirmationRequest) (*accountspb.GenerateAccountConfirmationResponse, error) {
+	return p.client.GenerateAccountConfirmation(forwardContext(ctx), req)
+}
+
+func (p *AccountsServiceProxy) GenerateProofOfFunds(ctx context.Context, req *accountspb.GenerateProofOfFundsRequest) (*accountspb.GenerateProofOfFundsResponse, error) {
+	return p.client.GenerateProofOfFunds(forwardContext(ctx), req)
+}

@@ -798,7 +798,7 @@ rpc RefreshToken(RefreshTokenRequest) returns (RefreshTokenResponse) {
   // Search users by name, username, email, or phone number
   rpc SearchUsers(UserSearchRequest) returns (UserSearchResponse) {
     option (google.api.http) = {
-      get: "/api/v1/auth/search/users"
+      get: "/v1/auth/search/users"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "Search Users"
@@ -881,6 +881,7 @@ message UserSearchRequest {
   string query = 1;
   int32 limit = 2;
   string search_type = 3;
+  string country_code = 4;            // Optional: filter results to only users in this country/locale
 }
 
 message UserSearchResponse {
@@ -899,4 +900,5 @@ message AuthUserLookupResult {
   string phone_number = 7;
   string email = 8;
   string primary_account_id = 9;
-} 
+  string country_code = 10;           // User's country code (e.g., "NG", "US")
+}
