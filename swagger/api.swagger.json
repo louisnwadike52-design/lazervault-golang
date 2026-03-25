@@ -125,16 +125,14 @@
     "application/json"
   ],
   "paths": {
-    "/api/v1/auth/search/users": {
-      "get": {
-        "summary": "Search Users",
-        "description": "Search for users by name, username, email, or phone number. Supports multi-field search with optional search_type filter.",
-        "operationId": "AuthService_SearchUsers",
+    "/api/v1/kyc/confirm": {
+      "post": {
+        "operationId": "AuthService_ConfirmVerification",
         "responses": {
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/authUserSearchResponse"
+              "$ref": "#/definitions/authConfirmVerificationResponse"
             }
           },
           "default": {
@@ -146,39 +144,196 @@
         },
         "parameters": [
           {
-            "name": "query",
-            "in": "query",
-            "required": false,
-            "type": "string"
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/authConfirmVerificationRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthService"
+        ]
+      }
+    },
+    "/api/v1/kyc/confirm-bvn-name": {
+      "post": {
+        "operationId": "AuthService_ConfirmBVNName",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/authConfirmBVNNameResponse"
+            }
           },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
           {
-            "name": "limit",
-            "in": "query",
-            "required": false,
-            "type": "integer",
-            "format": "int32"
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/authConfirmBVNNameRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthService"
+        ]
+      }
+    },
+    "/api/v1/kyc/requirements/{countryCode}": {
+      "get": {
+        "operationId": "AuthService_GetCountryRequirements",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/authGetCountryRequirementsResponse"
+            }
           },
-          {
-            "name": "searchType",
-            "in": "query",
-            "required": false,
-            "type": "string"
-          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
           {
             "name": "countryCode",
-            "description": "Optional: filter results to only users in this country/locale",
-            "in": "query",
-            "required": false,
+            "in": "path",
+            "required": true,
             "type": "string"
           }
         ],
         "tags": [
-          "User Lookup"
-        ],
-        "security": [
-          {
-            "bearer": []
+          "AuthService"
+        ]
+      }
+    },
+    "/api/v1/kyc/status": {
+      "get": {
+        "operationId": "AuthService_GetKYCStatus",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/authGetKYCStatusResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
           }
+        },
+        "tags": [
+          "AuthService"
+        ]
+      }
+    },
+    "/api/v1/kyc/submit-documents": {
+      "post": {
+        "operationId": "AuthService_SubmitDocumentsForReview",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/authSubmitDocumentsForReviewResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/authSubmitDocumentsForReviewRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthService"
+        ]
+      }
+    },
+    "/api/v1/kyc/upload-url": {
+      "post": {
+        "operationId": "AuthService_GetDocumentUploadURL",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/authGetDocumentUploadURLResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/authGetDocumentUploadURLRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthService"
+        ]
+      }
+    },
+    "/api/v1/kyc/verify": {
+      "post": {
+        "operationId": "AuthService_CreateVerificationSession",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/authCreateVerificationSessionResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/authCreateVerificationSessionRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthService"
         ]
       }
     },
@@ -1430,6 +1585,63 @@
         ],
         "tags": [
           "Auth"
+        ]
+      }
+    },
+    "/v1/auth/search/users": {
+      "get": {
+        "summary": "Search Users",
+        "description": "Search for users by name, username, email, or phone number. Supports multi-field search with optional search_type filter.",
+        "operationId": "AuthService_SearchUsers",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/authUserSearchResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "query",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "searchType",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "countryCode",
+            "description": "Optional: filter results to only users in this country/locale",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "User Lookup"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
         ]
       }
     },
@@ -4555,6 +4767,39 @@
             }
           }
         },
+        "tags": [
+          "Exchange"
+        ]
+      }
+    },
+    "/v1/exchange/limits": {
+      "get": {
+        "summary": "Get Exchange Limits",
+        "description": "Returns the authenticated user's daily FX conversion limits based on KYC tier.",
+        "operationId": "ExchangeService_GetExchangeLimits",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/pbGetExchangeLimitsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "currency",
+            "description": "Source currency for limit check (e.g., NGN).",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
         "tags": [
           "Exchange"
         ]
@@ -11815,6 +12060,178 @@
       },
       "title": "Response for checking face registration status"
     },
+    "authConfirmBVNNameRequest": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string"
+        },
+        "verificationId": {
+          "type": "string"
+        }
+      }
+    },
+    "authConfirmBVNNameResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "message": {
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/definitions/authKYCVerificationStatus"
+        },
+        "currentTier": {
+          "$ref": "#/definitions/authKYCTier"
+        }
+      }
+    },
+    "authConfirmVerificationRequest": {
+      "type": "object",
+      "properties": {
+        "verificationId": {
+          "type": "string"
+        },
+        "provider": {
+          "type": "string"
+        },
+        "providerAuthCode": {
+          "type": "string"
+        },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "authConfirmVerificationResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "status": {
+          "$ref": "#/definitions/authKYCVerificationStatus"
+        },
+        "currentTier": {
+          "$ref": "#/definitions/authKYCTier"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "authCountryKYCRequirements": {
+      "type": "object",
+      "properties": {
+        "countryCode": {
+          "type": "string"
+        },
+        "acceptedIdTypes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/authIdentityType"
+          }
+        },
+        "mandatoryIdTypes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/authIdentityType"
+          }
+        },
+        "addressProofRequired": {
+          "type": "boolean"
+        },
+        "livenessCheckRequired": {
+          "type": "boolean"
+        },
+        "tier1DailyLimit": {
+          "type": "string",
+          "format": "int64"
+        },
+        "tier2DailyLimit": {
+          "type": "string",
+          "format": "int64"
+        },
+        "tier3DailyLimit": {
+          "type": "string",
+          "format": "int64"
+        }
+      }
+    },
+    "authCreateVerificationSessionRequest": {
+      "type": "object",
+      "properties": {
+        "targetTier": {
+          "$ref": "#/definitions/authKYCTier"
+        },
+        "countryCode": {
+          "type": "string"
+        },
+        "idType": {
+          "$ref": "#/definitions/authIdentityType"
+        },
+        "idNumber": {
+          "type": "string"
+        },
+        "firstName": {
+          "type": "string"
+        },
+        "lastName": {
+          "type": "string"
+        },
+        "dateOfBirth": {
+          "type": "string"
+        },
+        "phoneNumber": {
+          "type": "string"
+        }
+      }
+    },
+    "authCreateVerificationSessionResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "verificationId": {
+          "type": "string"
+        },
+        "sessionUrl": {
+          "type": "string"
+        },
+        "sessionToken": {
+          "type": "string"
+        },
+        "provider": {
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/definitions/authKYCVerificationStatus"
+        },
+        "errorMessage": {
+          "type": "string"
+        }
+      }
+    },
+    "authDocumentSubmissionItem": {
+      "type": "object",
+      "properties": {
+        "storageKey": {
+          "type": "string"
+        },
+        "documentType": {
+          "type": "string"
+        },
+        "contentType": {
+          "type": "string"
+        }
+      }
+    },
     "authForgotPasswordRequest": {
       "type": "object",
       "properties": {
@@ -11829,6 +12246,46 @@
       "properties": {
         "message": {
           "type": "string"
+        }
+      }
+    },
+    "authGetCountryRequirementsResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "requirements": {
+          "$ref": "#/definitions/authCountryKYCRequirements"
+        }
+      }
+    },
+    "authGetDocumentUploadURLRequest": {
+      "type": "object",
+      "properties": {
+        "documentType": {
+          "type": "string"
+        },
+        "contentType": {
+          "type": "string"
+        }
+      }
+    },
+    "authGetDocumentUploadURLResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "uploadUrl": {
+          "type": "string"
+        },
+        "storageKey": {
+          "type": "string"
+        },
+        "expiresAt": {
+          "type": "string",
+          "format": "int64"
         }
       }
     },
@@ -11855,6 +12312,33 @@
         }
       }
     },
+    "authGetKYCStatusResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "status": {
+          "$ref": "#/definitions/authKYCVerificationStatus"
+        },
+        "currentTier": {
+          "$ref": "#/definitions/authKYCTier"
+        },
+        "tierInfo": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/authKYCTierInfo"
+          }
+        },
+        "lastUpdated": {
+          "type": "string"
+        },
+        "rejectionReason": {
+          "type": "string"
+        }
+      }
+    },
     "authGetMeResponse": {
       "type": "object",
       "properties": {
@@ -11868,10 +12352,92 @@
       "enum": [
         "IDENTITY_TYPE_UNSPECIFIED",
         "IDENTITY_TYPE_BVN",
-        "IDENTITY_TYPE_NIN"
+        "IDENTITY_TYPE_NIN",
+        "IDENTITY_TYPE_GHANA_CARD",
+        "IDENTITY_TYPE_KENYA_NATIONAL_ID",
+        "IDENTITY_TYPE_KRA_PIN",
+        "IDENTITY_TYPE_SA_ID",
+        "IDENTITY_TYPE_SA_PASSPORT",
+        "IDENTITY_TYPE_UK_PASSPORT",
+        "IDENTITY_TYPE_UK_DRIVING_LICENSE",
+        "IDENTITY_TYPE_US_SSN",
+        "IDENTITY_TYPE_US_STATE_ID",
+        "IDENTITY_TYPE_US_PASSPORT",
+        "IDENTITY_TYPE_DRIVERS_LICENSE",
+        "IDENTITY_TYPE_INTERNATIONAL_PASSPORT"
       ],
       "default": "IDENTITY_TYPE_UNSPECIFIED",
       "title": "--- Identity Verification Messages ---"
+    },
+    "authKYCTier": {
+      "type": "string",
+      "enum": [
+        "KYC_TIER_UNKNOWN",
+        "KYC_TIER_1",
+        "KYC_TIER_2",
+        "KYC_TIER_3"
+      ],
+      "default": "KYC_TIER_UNKNOWN"
+    },
+    "authKYCTierInfo": {
+      "type": "object",
+      "properties": {
+        "tier": {
+          "$ref": "#/definitions/authKYCTier"
+        },
+        "status": {
+          "$ref": "#/definitions/authKYCVerificationStatus"
+        },
+        "displayName": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "benefits": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "dailyTransactionLimit": {
+          "type": "string",
+          "format": "int64"
+        },
+        "dailyReceiveLimit": {
+          "type": "string",
+          "format": "int64"
+        },
+        "maxBalance": {
+          "type": "string",
+          "format": "int64"
+        },
+        "verifiedAt": {
+          "type": "string"
+        },
+        "expiresAt": {
+          "type": "string"
+        },
+        "isCurrent": {
+          "type": "boolean"
+        },
+        "isLocked": {
+          "type": "boolean"
+        }
+      }
+    },
+    "authKYCVerificationStatus": {
+      "type": "string",
+      "enum": [
+        "KYC_STATUS_UNKNOWN",
+        "KYC_STATUS_NOT_STARTED",
+        "KYC_STATUS_IN_PROGRESS",
+        "KYC_STATUS_PENDING_REVIEW",
+        "KYC_STATUS_APPROVED",
+        "KYC_STATUS_REJECTED",
+        "KYC_STATUS_EXPIRED"
+      ],
+      "default": "KYC_STATUS_UNKNOWN"
     },
     "authLoginRequest": {
       "type": "object",
@@ -12300,6 +12866,32 @@
         "phoneVerificationExpiresIn": {
           "type": "string",
           "format": "int64"
+        }
+      }
+    },
+    "authSubmitDocumentsForReviewRequest": {
+      "type": "object",
+      "properties": {
+        "documents": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/authDocumentSubmissionItem"
+          }
+        }
+      }
+    },
+    "authSubmitDocumentsForReviewResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "message": {
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/definitions/authKYCVerificationStatus"
         }
       }
     },
@@ -12747,6 +13339,16 @@
         "updatedAt": {
           "type": "string",
           "format": "date-time"
+        },
+        "availableBalance": {
+          "type": "string",
+          "format": "uint64",
+          "title": "Available balance (balance - reserved - clearing holds) in minor units"
+        },
+        "reservedBalance": {
+          "type": "string",
+          "format": "uint64",
+          "title": "Funds held (fund holds + clearing deposits) in minor units"
         }
       },
       "title": "AccountDetails: Used for the detailed view"
@@ -12778,6 +13380,16 @@
         "status": {
           "type": "string",
           "title": "e.g., \"active\", \"blocked_temporary\""
+        },
+        "availableBalance": {
+          "type": "string",
+          "format": "uint64",
+          "title": "Available balance (balance - reserved - clearing holds) in minor units"
+        },
+        "reservedBalance": {
+          "type": "string",
+          "format": "uint64",
+          "title": "Funds held (fund holds + clearing deposits) in minor units"
         }
       },
       "title": "AccountSummary: Used for listing accounts (e.g., in the carousel)"
@@ -17387,6 +17999,45 @@
         }
       }
     },
+    "pbGetExchangeLimitsResponse": {
+      "type": "object",
+      "properties": {
+        "kycTier": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "dailyLimit": {
+          "type": "number",
+          "format": "double",
+          "title": "In major units (e.g., 50000 for ₦50K)"
+        },
+        "dailyUsed": {
+          "type": "number",
+          "format": "double",
+          "title": "In major units"
+        },
+        "dailyRemaining": {
+          "type": "number",
+          "format": "double",
+          "title": "In major units"
+        },
+        "currency": {
+          "type": "string"
+        },
+        "minPerTransaction": {
+          "type": "number",
+          "format": "double",
+          "title": "In major units"
+        },
+        "maxPerTransaction": {
+          "type": "number",
+          "format": "double",
+          "title": "In major units"
+        }
+      },
+      "description": "Current user's FX conversion limits based on KYC tier.",
+      "title": "Get Exchange Limits Response"
+    },
     "pbGetExchangeRateResponse": {
       "type": "object",
       "properties": {
@@ -21478,25 +22129,45 @@
           "type": "string"
         },
         "accountNumber": {
-          "type": "string"
+          "type": "string",
+          "title": "Bank account number or IBAN (for EUR)"
         },
         "bankName": {
           "type": "string"
         },
         "swiftBicCode": {
-          "type": "string"
+          "type": "string",
+          "title": "SWIFT/BIC code (required for USD, GBP, EUR)"
         },
         "country": {
-          "type": "string"
+          "type": "string",
+          "title": "2-letter ISO country code"
         },
         "bankCode": {
-          "type": "string"
+          "type": "string",
+          "title": "Provider bank code (African transfers)"
         },
         "email": {
           "type": "string"
+        },
+        "routingNumber": {
+          "type": "string",
+          "title": "ABA routing (US) or sort code (UK)"
+        },
+        "branchCode": {
+          "type": "string",
+          "title": "Branch code (GHS, UGX)"
+        },
+        "phone": {
+          "type": "string",
+          "title": "Recipient phone number"
+        },
+        "address": {
+          "type": "string",
+          "title": "Recipient address (required for USD, GBP, EUR)"
         }
       },
-      "title": "Represents receiver details for an international transfer"
+      "description": "Represents receiver details for an international transfer.\nFields are provider-agnostic; which ones are required depends on the destination currency.\nUse GetTransferRequirements to discover required fields per currency."
     },
     "pbRecipientDetails": {
       "type": "object",
@@ -22318,6 +22989,14 @@
         "serviceName": {
           "type": "string",
           "title": "Service name to route the voice session to the correct agent"
+        },
+        "language": {
+          "type": "string",
+          "title": "User's preferred language code (e.g., \"en\", \"fr\", \"yo\")"
+        },
+        "voicePreference": {
+          "type": "string",
+          "title": "User's preferred TTS voice ID"
         }
       }
     },

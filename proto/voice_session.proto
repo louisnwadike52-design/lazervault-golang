@@ -22,6 +22,10 @@ option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
 message StartVoiceSessionRequest {
     // Service name to route the voice session to the correct agent
     string service_name = 1;
+    // User's preferred language code (e.g., "en", "fr", "yo")
+    string language = 2;
+    // User's preferred TTS voice ID
+    string voice_preference = 3;
 }
 
 message StartVoiceSessionResponse {

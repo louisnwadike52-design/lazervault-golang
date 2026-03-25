@@ -88,7 +88,6 @@ func main() {
 	accountsServiceAddr := getEnv("ACCOUNTS_SERVICE_GRPC_ADDR", "127.0.0.1:50052")
 	whatsappServiceAddr := getEnv("WHATSAPP_SERVICE_GRPC_ADDR", "127.0.0.1:50062")
 	notificationsServiceAddr := getEnv("NOTIFICATIONS_SERVICE_GRPC_ADDR", "127.0.0.1:50061")
-	exchangeServiceAddr := getEnv("EXCHANGE_SERVICE_GRPC_ADDR", "127.0.0.1:50081")
 	referralServiceAddr := getEnv("REFERRAL_SERVICE_GRPC_ADDR", "127.0.0.1:50084")
 
 	// Get Redis configuration
@@ -109,7 +108,6 @@ func main() {
 		Str("accounts_service", accountsServiceAddr).
 		Str("whatsapp_service", whatsappServiceAddr).
 		Str("notifications_service", notificationsServiceAddr).
-		Str("exchange_service", exchangeServiceAddr).
 		Str("referral_service", referralServiceAddr).
 		Str("redis_url", redisURL).
 		Bool("cache_enabled", enableCache).
@@ -330,11 +328,10 @@ func main() {
 		log.Warn().Err(err).Msg("Failed to register AI chat service handler - AI chat will be unavailable via HTTP")
 	}
 
-	// Register Exchange service handler (from exchange-microservice)
-	// This will proxy /api/v1/exchange/* to exchange-service gRPC
-	log.Info().Msg("🔌 Connecting to exchange-service gRPC...")
-	if err := registerExchangeServiceHandler(ctx, mux, exchangeServiceAddr, opts); err != nil {
-		log.Warn().Err(err).Msg("Failed to register exchange service handler - currency exchange will be unavailable")
+	// Register Voice Session service handler (proxies to local gRPC voice session proxy)
+	log.Info().Msg("Registering Voice Session service gRPC-gateway...")
+	if err := registerVoiceSessionServiceHandler(ctx, mux, localGrpcAddr, opts); err != nil {
+		log.Warn().Err(err).Msg("Failed to register voice session service handler - voice sessions will be unavailable via HTTP")
 	}
 
 	// Register Referral service handler (from referral-microservice)
@@ -593,14 +590,6 @@ func main() {
 	}
 	defer accountsConn.Close()
 
-	exchangeConn, err := grpc.Dial(exchangeServiceAddr, opts...)
-	if err != nil {
-		log.Warn().Err(err).Msg("Failed to connect to exchange service for gRPC - currency exchange will be unavailable")
-	}
-	if exchangeConn != nil {
-		defer exchangeConn.Close()
-	}
-
 	// Create proxy services
 	authProxy := proxy.NewAuthServiceProxy(pb.NewAuthServiceClient(authConn))
 	transactionPinProxy := proxy.NewTransactionPinServiceProxy(pb.NewTransactionPinServiceClient(authConn))
@@ -613,11 +602,6 @@ func main() {
 		notificationsClient = notificationspb.NewNotificationsServiceClient(notificationsConn)
 	}
 	userProxy := proxy.NewUserServiceProxy(pb.NewAuthServiceClient(authConn), notificationsClient)
-
-	var exchangeProxy *proxy.ExchangeServiceProxy
-	if exchangeConn != nil {
-		exchangeProxy = proxy.NewExchangeServiceProxy(pb.NewExchangeServiceClient(exchangeConn))
-	}
 
 	referralConn, err := grpc.Dial(referralServiceAddr, opts...)
 	if err != nil {
@@ -669,12 +653,6 @@ func main() {
 	accountspb.RegisterMultiCountryAccountServiceServer(grpcServer, multiCountryProxy)
 	pb.RegisterUserServiceServer(grpcServer, userProxy)
 
-	// Register Exchange service proxy (if connection available)
-	if exchangeProxy != nil {
-		pb.RegisterExchangeServiceServer(grpcServer, exchangeProxy)
-		log.Info().Msg("Exchange service registered on gRPC server")
-	}
-
 	// Register WhatsApp service proxy (if connection available)
 	if whatsappConn != nil {
 		whatsappProxy := proxy.NewWhatsAppServiceProxy(whatsapppb.NewWhatsAppServiceClient(whatsappConn))
@@ -700,6 +678,12 @@ func main() {
 	aiChatProxy := proxy.NewAIChatServiceProxy(chatGatewayURL)
 	pb.RegisterAIChatServiceServer(grpcServer, aiChatProxy)
 	log.Info().Str("chat_gateway_url", chatGatewayURL).Msg("AI Chat service registered on gRPC server")
+
+	// Register Voice Session proxy (proxies gRPC to Python voice-agent-gateway via HTTP)
+	voiceGatewayURL := getEnv("VOICE_AGENT_GATEWAY_URL", "http://localhost:3010")
+	voiceSessionProxy := proxy.NewVoiceSessionServiceProxy(voiceGatewayURL)
+	pb.RegisterVoiceSessionServiceServer(grpcServer, voiceSessionProxy)
+	log.Info().Str("voice_gateway_url", voiceGatewayURL).Msg("Voice Session service registered on gRPC server")
 
 	// Register health check
 	healthServer := health.NewServer()
@@ -1258,16 +1242,16 @@ func registerAIChatServiceHandler(ctx context.Context, mux *runtime.ServeMux, ad
 	return pb.RegisterAIChatServiceHandlerFromEndpoint(ctx, mux, addr, opts)
 }
 
-// registerExchangeServiceHandler registers exchange service gRPC-gateway handler
-// This connects to exchange-microservice on port 50081
-func registerExchangeServiceHandler(ctx context.Context, mux *runtime.ServeMux, addr string, opts []grpc.DialOption) error {
-	return pb.RegisterExchangeServiceHandlerFromEndpoint(ctx, mux, addr, opts)
-}
-
 // registerReferralServiceHandler registers referral service gRPC-gateway handler
 // This connects to referral-microservice on port 50084
 func registerReferralServiceHandler(ctx context.Context, mux *runtime.ServeMux, addr string, opts []grpc.DialOption) error {
 	return pb.RegisterReferralServiceHandlerFromEndpoint(ctx, mux, addr, opts)
+}
+
+// registerVoiceSessionServiceHandler registers voice session service gRPC-gateway handler
+// This proxies /v1/voice/session/start to the local voice session proxy (which forwards to Python voice-agent-gateway)
+func registerVoiceSessionServiceHandler(ctx context.Context, mux *runtime.ServeMux, addr string, opts []grpc.DialOption) error {
+	return pb.RegisterVoiceSessionServiceHandlerFromEndpoint(ctx, mux, addr, opts)
 }
 
 // getEnv gets environment variable or returns default

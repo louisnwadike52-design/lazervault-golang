@@ -74,15 +74,21 @@ message GetExchangeRateResponse {
   string rate_id = 8;               // Unique rate identifier for staleness check
 }
 
-// Represents receiver details for an international transfer
+// Represents receiver details for an international transfer.
+// Fields are provider-agnostic; which ones are required depends on the destination currency.
+// Use GetTransferRequirements to discover required fields per currency.
 message ReceiverDetails {
   string full_name = 1;
-  string account_number = 2;
+  string account_number = 2;    // Bank account number or IBAN (for EUR)
   string bank_name = 3;
-  string swift_bic_code = 4;
-  string country = 5;
-  string bank_code = 6;
+  string swift_bic_code = 4;    // SWIFT/BIC code (required for USD, GBP, EUR)
+  string country = 5;           // 2-letter ISO country code
+  string bank_code = 6;         // Provider bank code (African transfers)
   string email = 7;
+  string routing_number = 8;    // ABA routing (US) or sort code (UK)
+  string branch_code = 9;       // Branch code (GHS, UGX)
+  string phone = 10;            // Recipient phone number
+  string address = 11;          // Recipient address (required for USD, GBP, EUR)
 }
 
 // Request to initiate an international currency transfer
@@ -242,6 +248,34 @@ message GetSupportedCurrenciesResponse {
   repeated SupportedCurrency currencies = 1;
 }
 
+// --- Exchange Limits Messages ---
+
+message GetExchangeLimitsRequest {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+		json_schema: {
+			title: "Get Exchange Limits Request";
+			description: "Request current user's FX conversion limits.";
+		}
+	};
+  string currency = 1 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {description: "Source currency for limit check (e.g., NGN)."}];
+}
+
+message GetExchangeLimitsResponse {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+		json_schema: {
+			title: "Get Exchange Limits Response";
+			description: "Current user's FX conversion limits based on KYC tier.";
+		}
+	};
+  int32 kyc_tier = 1;
+  double daily_limit = 2;          // In major units (e.g., 50000 for ₦50K)
+  double daily_used = 3;           // In major units
+  double daily_remaining = 4;      // In major units
+  string currency = 5;
+  double min_per_transaction = 6;  // In major units
+  double max_per_transaction = 7;  // In major units
+}
+
 // --- Service Definition ---
 service ExchangeService {
 
@@ -327,6 +361,23 @@ service ExchangeService {
             responses: {
                 key: "200"; value: {
                     description: "OK"; schema: { json_schema: { ref: "#/definitions/pbGetTransactionStatusResponse"; }}
+                }
+            }
+		};
+  }
+
+  // Get the user's FX conversion limits based on KYC tier
+  rpc GetExchangeLimits (GetExchangeLimitsRequest) returns (GetExchangeLimitsResponse) {
+    option (google.api.http) = {
+      get: "/v1/exchange/limits"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+			description: "Returns the authenticated user's daily FX conversion limits based on KYC tier.";
+			summary: "Get Exchange Limits";
+            tags: ["Exchange"];
+            responses: {
+                key: "200"; value: {
+                    description: "OK"; schema: { json_schema: { ref: "#/definitions/pbGetExchangeLimitsResponse"; }}
                 }
             }
 		};

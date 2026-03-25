@@ -374,6 +374,18 @@ enum IdentityType {
   IDENTITY_TYPE_UNSPECIFIED = 0;
   IDENTITY_TYPE_BVN = 1;
   IDENTITY_TYPE_NIN = 2;
+  IDENTITY_TYPE_GHANA_CARD = 3;
+  IDENTITY_TYPE_KENYA_NATIONAL_ID = 4;
+  IDENTITY_TYPE_KRA_PIN = 5;
+  IDENTITY_TYPE_SA_ID = 6;
+  IDENTITY_TYPE_SA_PASSPORT = 7;
+  IDENTITY_TYPE_UK_PASSPORT = 8;
+  IDENTITY_TYPE_UK_DRIVING_LICENSE = 9;
+  IDENTITY_TYPE_US_SSN = 10;
+  IDENTITY_TYPE_US_STATE_ID = 11;
+  IDENTITY_TYPE_US_PASSPORT = 12;
+  IDENTITY_TYPE_DRIVERS_LICENSE = 13;
+  IDENTITY_TYPE_INTERNATIONAL_PASSPORT = 14;
 }
 
 message VerifyIdentityRequest {
@@ -811,6 +823,36 @@ rpc RefreshToken(RefreshTokenRequest) returns (RefreshTokenResponse) {
       }
     };
   }
+
+  // --- KYC Phase 2 RPCs ---
+
+  rpc GetKYCStatus(GetKYCStatusRequest) returns (GetKYCStatusResponse) {
+    option (google.api.http) = { get: "/api/v1/kyc/status" };
+  }
+
+  rpc GetCountryRequirements(GetCountryRequirementsRequest) returns (GetCountryRequirementsResponse) {
+    option (google.api.http) = { get: "/api/v1/kyc/requirements/{country_code}" };
+  }
+
+  rpc CreateVerificationSession(CreateVerificationSessionRequest) returns (CreateVerificationSessionResponse) {
+    option (google.api.http) = { post: "/api/v1/kyc/verify" body: "*" };
+  }
+
+  rpc ConfirmVerification(ConfirmVerificationRequest) returns (ConfirmVerificationResponse) {
+    option (google.api.http) = { post: "/api/v1/kyc/confirm" body: "*" };
+  }
+
+  rpc GetDocumentUploadURL(GetDocumentUploadURLRequest) returns (GetDocumentUploadURLResponse) {
+    option (google.api.http) = { post: "/api/v1/kyc/upload-url" body: "*" };
+  }
+
+  rpc SubmitDocumentsForReview(SubmitDocumentsForReviewRequest) returns (SubmitDocumentsForReviewResponse) {
+    option (google.api.http) = { post: "/api/v1/kyc/submit-documents" body: "*" };
+  }
+
+  rpc ConfirmBVNName(ConfirmBVNNameRequest) returns (ConfirmBVNNameResponse) {
+    option (google.api.http) = { post: "/api/v1/kyc/confirm-bvn-name" body: "*" };
+  }
 }
 
 // --- User Profile Messages ---
@@ -901,4 +943,155 @@ message AuthUserLookupResult {
   string email = 8;
   string primary_account_id = 9;
   string country_code = 10;           // User's country code (e.g., "NG", "US")
+}
+
+// ===== KYC Phase 2 Messages =====
+
+enum KYCTier {
+  KYC_TIER_UNKNOWN = 0;
+  KYC_TIER_1 = 1;
+  KYC_TIER_2 = 2;
+  KYC_TIER_3 = 3;
+}
+
+enum KYCVerificationStatus {
+  KYC_STATUS_UNKNOWN = 0;
+  KYC_STATUS_NOT_STARTED = 1;
+  KYC_STATUS_IN_PROGRESS = 2;
+  KYC_STATUS_PENDING_REVIEW = 3;
+  KYC_STATUS_APPROVED = 4;
+  KYC_STATUS_REJECTED = 5;
+  KYC_STATUS_EXPIRED = 6;
+}
+
+message KYCTierInfo {
+  KYCTier tier = 1;
+  KYCVerificationStatus status = 2;
+  string display_name = 3;
+  string description = 4;
+  repeated string benefits = 5;
+  int64 daily_transaction_limit = 6;
+  int64 daily_receive_limit = 7;
+  int64 max_balance = 8;
+  string verified_at = 9;
+  string expires_at = 10;
+  bool is_current = 11;
+  bool is_locked = 12;
+}
+
+message GetKYCStatusRequest {}
+
+message GetKYCStatusResponse {
+  bool success = 1;
+  KYCVerificationStatus status = 2;
+  KYCTier current_tier = 3;
+  repeated KYCTierInfo tier_info = 4;
+  string last_updated = 5;
+  string rejection_reason = 6;
+}
+
+message CountryKYCRequirements {
+  string country_code = 1;
+  repeated IdentityType accepted_id_types = 2;
+  repeated IdentityType mandatory_id_types = 3;
+  bool address_proof_required = 4;
+  bool liveness_check_required = 5;
+  int64 tier_1_daily_limit = 6;
+  int64 tier_2_daily_limit = 7;
+  int64 tier_3_daily_limit = 8;
+}
+
+message GetCountryRequirementsRequest {
+  string country_code = 1;
+}
+
+message GetCountryRequirementsResponse {
+  bool success = 1;
+  CountryKYCRequirements requirements = 2;
+}
+
+message CreateVerificationSessionRequest {
+  KYCTier target_tier = 1;
+  string country_code = 2;
+  IdentityType id_type = 3;
+  string id_number = 4;
+  string first_name = 5;
+  string last_name = 6;
+  string date_of_birth = 7;
+  string phone_number = 8;
+}
+
+message CreateVerificationSessionResponse {
+  bool success = 1;
+  string verification_id = 2;
+  string session_url = 3;
+  string session_token = 4;
+  string provider = 5;
+  KYCVerificationStatus status = 6;
+  string error_message = 7;
+}
+
+message ConfirmVerificationRequest {
+  string verification_id = 1;
+  string provider = 2;
+  string provider_auth_code = 3;
+  map<string, string> metadata = 4;
+}
+
+message ConfirmVerificationResponse {
+  bool success = 1;
+  KYCVerificationStatus status = 2;
+  KYCTier current_tier = 3;
+  string message = 4;
+}
+
+message GetDocumentUploadURLRequest {
+  string document_type = 1;
+  string content_type = 2;
+}
+
+message GetDocumentUploadURLResponse {
+  bool success = 1;
+  string upload_url = 2;
+  string storage_key = 3;
+  int64 expires_at = 4;
+}
+
+message DocumentSubmissionItem {
+  string storage_key = 1;
+  string document_type = 2;
+  string content_type = 3;
+}
+
+message SubmitDocumentsForReviewRequest {
+  repeated DocumentSubmissionItem documents = 1;
+}
+
+message SubmitDocumentsForReviewResponse {
+  bool success = 1;
+  string message = 2;
+  KYCVerificationStatus status = 3;
+}
+
+message DataReconciliation {
+  string name_action = 1;
+  double name_match_score = 2;
+  string verified_name = 3;
+  string profile_name = 4;
+  bool dob_mismatch = 5;
+  string verified_dob = 6;
+  string profile_dob = 7;
+  bool phone_mismatch = 8;
+}
+
+message ConfirmBVNNameRequest {
+  string action = 1;
+  string verification_id = 2;
+}
+
+message ConfirmBVNNameResponse {
+  bool success = 1;
+  string message = 2;
+  KYCVerificationStatus status = 3;
+  KYCTier current_tier = 4;
 }

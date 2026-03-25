@@ -122,6 +122,20 @@ func (p *AccountsServiceProxy) UpdateSecuritySettings(ctx context.Context, req *
 	return p.client.UpdateSecuritySettings(forwardContext(ctx), req)
 }
 
+// === Category Management Proxies ===
+
+func (p *AccountsServiceProxy) GetUserCategoryMappings(ctx context.Context, req *accountspb.GetUserCategoryMappingsRequest) (*accountspb.GetUserCategoryMappingsResponse, error) {
+	return p.client.GetUserCategoryMappings(forwardContext(ctx), req)
+}
+
+func (p *AccountsServiceProxy) UpdateUserCategoryMapping(ctx context.Context, req *accountspb.UpdateUserCategoryMappingRequest) (*accountspb.UpdateUserCategoryMappingResponse, error) {
+	return p.client.UpdateUserCategoryMapping(forwardContext(ctx), req)
+}
+
+func (p *AccountsServiceProxy) ReorderCategories(ctx context.Context, req *accountspb.ReorderCategoriesRequest) (*accountspb.ReorderCategoriesResponse, error) {
+	return p.client.ReorderCategories(forwardContext(ctx), req)
+}
+
 // === Document Generation Proxies ===
 
 func (p *AccountsServiceProxy) GenerateStatement(ctx context.Context, req *accountspb.GenerateStatementRequest) (*accountspb.GenerateStatementResponse, error) {
