@@ -5,8 +5,8 @@ option go_package = "lazervaultGo/pb";
 
 import "google/protobuf/timestamp.proto";
 
-// Base user type
-message User {
+// Common user type (for gateway-internal use, distinct from auth.proto User)
+message CommonUser {
     uint64 id = 1;
     string first_name = 2;
     string last_name = 3;
@@ -22,16 +22,17 @@ message User {
     string currency = 13;
     string country = 14;
     string profile_picture = 15;
+    repeated string roles = 16;
   }
-  
-  
+
+
   message Data {
-    optional User user = 1;
-    optional Session session = 2;
+    optional CommonUser user = 1;
+    optional CommonSession session = 2;
   }
 
 
-message Session {
+message CommonSession {
     string id = 1;
     uint64 user_id = 2;
     string access_token = 3;

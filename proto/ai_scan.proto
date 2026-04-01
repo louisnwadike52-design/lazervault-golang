@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package ai_scan;
+package pb;
 
 option go_package = "lazervaultGo/pb";
 
@@ -70,13 +70,13 @@ enum ScanType {
   BANK_DETAILS = 8;
 }
 
-// Scan status enum
+// Scan status enum (value names must be unique across package pb — no bare PENDING, etc.)
 enum ScanStatus {
   SCAN_STATUS_UNSPECIFIED = 0;
-  PENDING = 1;
-  PROCESSING = 2;
-  COMPLETED = 3;
-  FAILED = 4;
+  SCAN_STATUS_PENDING = 1;
+  SCAN_STATUS_PROCESSING = 2;
+  SCAN_STATUS_COMPLETED = 3;
+  SCAN_STATUS_FAILED = 4;
 }
 
 // Start Scan Session

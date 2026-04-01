@@ -271,6 +271,33 @@ service StatisticsService {
     };
   }
 
+  // Service category & budget validation (aligned with statistics-service / mobile API)
+  rpc ValidateCategoryBudget(ValidateCategoryBudgetRequest) returns (ValidateCategoryBudgetResponse) {
+    option (google.api.http) = {
+      post: "/v1/statistics/validate-budget"
+      body: "*"
+    };
+  }
+
+  rpc GetServiceCategories(GetServiceCategoriesRequest) returns (GetServiceCategoriesResponse) {
+    option (google.api.http) = {
+      get: "/v1/statistics/service-categories/{service_name}"
+    };
+  }
+
+  rpc CreateCustomCategory(CreateCustomCategoryRequest) returns (CreateCustomCategoryResponse) {
+    option (google.api.http) = {
+      post: "/v1/statistics/categories/custom"
+      body: "*"
+    };
+  }
+
+  rpc DeleteCustomCategory(DeleteCustomCategoryRequest) returns (DeleteCustomCategoryResponse) {
+    option (google.api.http) = {
+      delete: "/v1/statistics/categories/custom/{category_id}"
+    };
+  }
+
   // Financial Wrapped Experience
   rpc GetFinancialWrapped(GetFinancialWrappedRequest) returns (GetFinancialWrappedResponse) {
     option (google.api.http) = {
@@ -1288,6 +1315,84 @@ message ComprehensiveExpenditureData {
   double tracked_expenditure = 2; // from expenditure_transactions table (automatic tracking)
   double total_expenditure = 3;
   map<string, double> expenditure_breakdown = 4; // breakdown by expense type
+}
+
+// ========================================
+// SERVICE CATEGORY & BUDGET VALIDATION MESSAGES
+// ========================================
+
+message ValidateCategoryBudgetRequest {
+  string user_id = 1;
+  int32 budget_category = 2;
+  int64 amount_minor = 3;
+  string currency = 4;
+}
+
+message ValidateCategoryBudgetResponse {
+  bool allowed = 1;
+  string reason = 2;
+  double current_spent = 3;
+  double budget_limit = 4;
+  double percentage_used = 5;
+  double remaining = 6;
+  repeated BudgetInfo matching_budgets = 7;
+}
+
+message BudgetInfo {
+  string budget_id = 1;
+  string budget_name = 2;
+  double amount = 3;
+  double spent = 4;
+  double percentage = 5;
+  int32 days_remaining = 6;
+  google.protobuf.Timestamp start_date = 7;
+  google.protobuf.Timestamp end_date = 8;
+  string currency = 9;
+}
+
+message GetServiceCategoriesRequest {
+  string service_name = 1;
+  bool active_only = 2;
+}
+
+message GetServiceCategoriesResponse {
+  repeated ServiceCategoryItem categories = 1;
+  bool success = 2;
+}
+
+message ServiceCategoryItem {
+  string id = 1;
+  string service_name = 2;
+  string sub_category_name = 3;
+  int32 budget_category = 4;
+  string display_name = 5;
+  string icon = 6;
+  string color = 7;
+  bool is_active = 8;
+  bool is_custom = 9;
+}
+
+message CreateCustomCategoryRequest {
+  string service_name = 1;
+  string display_name = 2;
+  int32 budget_category = 3;
+  string icon = 4;
+  string color = 5;
+}
+
+message CreateCustomCategoryResponse {
+  bool success = 1;
+  string message = 2;
+  ServiceCategoryItem category = 3;
+}
+
+message DeleteCustomCategoryRequest {
+  string category_id = 1;
+}
+
+message DeleteCustomCategoryResponse {
+  bool success = 1;
+  string message = 2;
 }
 
 // ========================================

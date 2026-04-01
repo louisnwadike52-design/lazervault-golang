@@ -6,9 +6,10 @@ import (
 	"strconv"
 	"time"
 
-	authinterceptor "github.com/lazervault/shared/auth-interceptor"
 	pb "lazervaultGo/pb"
 	notificationspb "notifications-service/proto"
+
+	authinterceptor "github.com/lazervault/shared/auth-interceptor"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -91,9 +92,9 @@ func (p *UserServiceProxy) UpdateUserProfile(ctx context.Context, req *pb.Update
 	}, nil
 }
 
-// authUserToCommonUser maps auth-service AuthUser fields to common.proto User fields.
-// The auth-service User message has a different field layout than common.proto User.
-func authUserToCommonUser(au *pb.AuthUser) *pb.User {
+// authUserToCommonUser maps auth-service User (auth.proto) to CommonUser (common.proto).
+// The auth.proto User message has different field names and types than common.proto CommonUser.
+func authUserToCommonUser(au *pb.User) *pb.CommonUser {
 	if au == nil {
 		return nil
 	}
@@ -109,7 +110,7 @@ func authUserToCommonUser(au *pb.AuthUser) *pb.User {
 		}
 	}
 
-	return &pb.User{
+	return &pb.CommonUser{
 		Id:              userID,
 		FirstName:       au.FirstName,
 		LastName:        au.LastName,
@@ -122,6 +123,8 @@ func authUserToCommonUser(au *pb.AuthUser) *pb.User {
 		ProfilePicture:  au.ProfilePicture,
 		CreatedAt:       parseISO8601Timestamp(au.CreatedAt),
 		UpdatedAt:       parseISO8601Timestamp(au.UpdatedAt),
+		Roles:           au.Roles,
+		Role:            au.Role,
 	}
 }
 
@@ -191,16 +194,16 @@ func (p *UserServiceProxy) UpdatePreferences(ctx context.Context, req *pb.Update
 		Success: true,
 		Message: notifResp.Message,
 		Preferences: &pb.UserPreferences{
-			UserId:            userID,
-			PushNotifications: req.PushNotifications,
+			UserId:             userID,
+			PushNotifications:  req.PushNotifications,
 			EmailNotifications: req.EmailNotifications,
-			SmsNotifications:  req.SmsNotifications,
-			DarkMode:          req.DarkMode,
-			Language:          req.Language,
-			Currency:          req.Currency,
-			Country:           req.ActiveCountry,
+			SmsNotifications:   req.SmsNotifications,
+			DarkMode:           req.DarkMode,
+			Language:           req.Language,
+			Currency:           req.Currency,
+			Country:            req.ActiveCountry,
 			PreferredCountries: req.PreferredCountries,
-			ActiveCountry:     req.ActiveCountry,
+			ActiveCountry:      req.ActiveCountry,
 		},
 	}, nil
 }

@@ -57,7 +57,7 @@ message GetUserProfileRequest {
 message GetUserProfileResponse {
   bool success = 1;
   string message = 2;
-  User user = 3;
+  CommonUser user = 3;
   UserPreferences preferences = 4;
 }
 
@@ -75,7 +75,7 @@ message UpdateUserProfileRequest {
 message UpdateUserProfileResponse {
   bool success = 1;
   string message = 2;
-  User user = 3;
+  CommonUser user = 3;
 }
 
 message UpdatePasswordRequest {
@@ -119,11 +119,12 @@ message UserPreferences {
 }
 
 // Identity Verification Messages
-enum DocumentType {
-  DOCUMENT_TYPE_PASSPORT = 0;
-  DOCUMENT_TYPE_DRIVERS_LICENSE = 1;
-  DOCUMENT_TYPE_NATIONAL_ID = 2;
-  DOCUMENT_TYPE_RESIDENCE_PERMIT = 3;
+// Note: Enum values are prefixed with USER_ to avoid conflict with auth.proto DocumentType
+enum UserDocumentType {
+  USER_DOCUMENT_TYPE_PASSPORT = 0;
+  USER_DOCUMENT_TYPE_DRIVERS_LICENSE = 1;
+  USER_DOCUMENT_TYPE_NATIONAL_ID = 2;
+  USER_DOCUMENT_TYPE_RESIDENCE_PERMIT = 3;
 }
 
 enum VerificationStatus {
@@ -137,7 +138,7 @@ enum VerificationStatus {
 message IDDocument {
   string id = 1;
   uint64 user_id = 2;
-  DocumentType document_type = 3;
+  UserDocumentType document_type = 3;
   string document_number = 4;
   string full_name = 5;
   string date_of_birth = 6;
@@ -153,7 +154,7 @@ message IDDocument {
 }
 
 message UploadIDDocumentRequest {
-  DocumentType document_type = 1;
+  UserDocumentType document_type = 1;
   bytes front_image = 2;
   bytes back_image = 3; // Optional for some document types
 }

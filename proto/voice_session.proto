@@ -26,6 +26,10 @@ message StartVoiceSessionRequest {
     string language = 2;
     // User's preferred TTS voice ID
     string voice_preference = 3;
+    // Dashboard BCP-47 locale (e.g. "en-NG") for voice-agent TTS routing
+    string locale = 4;
+    // ISO country code from dashboard (e.g. "NG") — forwarded to LiveKit metadata
+    string user_country = 5;
 }
 
 message StartVoiceSessionResponse {

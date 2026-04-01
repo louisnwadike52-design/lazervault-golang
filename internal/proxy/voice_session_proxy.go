@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	authinterceptor "github.com/lazervault/shared/auth-interceptor"
@@ -39,7 +40,9 @@ func NewVoiceSessionServiceProxy(voiceGatewayURL string) *VoiceSessionServicePro
 type voiceSessionRequest struct {
 	ServiceName     string `json:"serviceName,omitempty"`
 	Language        string `json:"language,omitempty"`
-	VoicePreference string `json:"voice_preference,omitempty"`
+	VoicePreference string `json:"voicePreference,omitempty"`
+	Locale          string `json:"locale,omitempty"`
+	UserCountry     string `json:"userCountry,omitempty"`
 }
 
 // voiceSessionResponse is the JSON response from the Python voice-agent-gateway
@@ -69,11 +72,13 @@ func (p *VoiceSessionServiceProxy) StartVoiceSession(ctx context.Context, req *p
 		return nil, status.Error(codes.Unauthenticated, "missing authorization token")
 	}
 
-	// Build request body — forward all fields to Python gateway
+	// Build request body — forward all fields to Python gateway (trim whitespace)
 	body := voiceSessionRequest{
-		ServiceName:     req.ServiceName,
-		Language:        req.Language,
-		VoicePreference: req.VoicePreference,
+		ServiceName:     strings.TrimSpace(req.ServiceName),
+		Language:        strings.TrimSpace(req.Language),
+		VoicePreference: strings.TrimSpace(req.VoicePreference),
+		Locale:          strings.TrimSpace(req.Locale),
+		UserCountry:     strings.TrimSpace(req.UserCountry),
 	}
 
 	jsonBody, err := json.Marshal(body)

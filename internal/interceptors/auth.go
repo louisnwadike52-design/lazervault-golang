@@ -56,15 +56,15 @@ func JWTAuthInterceptor(verifier *authinterceptor.JWTVerifier) grpc.UnaryServerI
 func isPublicEndpoint(method string) bool {
 	publicEndpoints := map[string]bool{
 		// Auth Service public endpoints
-		"/auth.AuthService/Login":                   true,
-		"/auth.AuthService/Signup":                  true,
-		"/auth.AuthService/LoginWithPasscode":       true, // Public - login with passcode
-		"/auth.AuthService/RefreshToken":            true,
-		"/auth.AuthService/VerifyEmail":             true,
-		"/auth.AuthService/ForgotPassword":          true,
-		"/auth.AuthService/ResetPassword":           true,
-		"/auth.AuthService/ResendVerificationEmail": true,
-		"/auth.AuthService/CheckEmailAvailability":  true,
+		"/pb.AuthService/Login":                   true,
+		"/pb.AuthService/Signup":                  true,
+		"/pb.AuthService/LoginWithPasscode":       true, // Public - login with passcode
+		"/pb.AuthService/RefreshToken":            true,
+		"/pb.AuthService/VerifyEmail":             true,
+		"/pb.AuthService/ForgotPassword":          true,
+		"/pb.AuthService/ResetPassword":           true,
+		"/pb.AuthService/ResendVerificationEmail": true,
+		"/pb.AuthService/CheckEmailAvailability":  true,
 
 		// Crypto Service public endpoints (if needed)
 		"/crypto.CryptoService/GetCryptos":     true,

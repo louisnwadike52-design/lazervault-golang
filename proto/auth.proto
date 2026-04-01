@@ -1,314 +1,1168 @@
 syntax = "proto3";
 
-package auth;
-option go_package = "lazervaultGo/pb";
+// Must match core-gateway and Flutter (pb.AuthService) so gRPC full method names align on the wire.
+package pb;
 
 import "google/api/annotations.proto";
 import "protoc-gen-openapiv2/options/annotations.proto";
-import "common.proto";
 
+option go_package = "lazervaultGo/pb";
+
+// OpenAPI v2 documentation
 option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
-    info: {
-        title: "LazerVault API"
-        version: "1.0"
-        description: "LazerVault Authentication API"
+  info: {
+    title: "LazerVault Auth Service";
+    version: "1.0";
+    description: "Authentication and authorization service for LazerVault";
+  };
+  schemes: HTTP;
+  schemes: HTTPS;
+  consumes: "application/json";
+  produces: "application/json";
+  security_definitions: {
+    security: {
+      key: "bearer";
+      value: {
+        type: TYPE_API_KEY;
+        in: IN_HEADER;
+        name: "Authorization";
+        description: "Bearer token authentication";
+      }
     }
-    schemes: HTTP
-    schemes: HTTPS
-    consumes: "application/json"
-    produces: "application/json"
+  };
 };
 
+// Auth Service - Complete authentication and authorization
+service AuthService {
+  // User registration
+  rpc Signup(SignupRequest) returns (SignupResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/signup"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "User Registration";
+      description: "Register a new user account";
+      tags: ["Authentication"];
+    };
+  }
 
-message LoginRequest {
-  string email = 1;
-  string password = 2;
+  // User login
+  rpc Login(LoginRequest) returns (LoginResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/login"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "User Login";
+      description: "Login with email and password";
+      tags: ["Authentication"];
+    };
+  }
+
+  // Refresh access token
+  rpc RefreshToken(RefreshTokenRequest) returns (RefreshTokenResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/refresh"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Refresh Token";
+      description: "Refresh access token using refresh token";
+      tags: ["Authentication"];
+    };
+  }
+
+  // Logout user
+  rpc Logout(LogoutRequest) returns (LogoutResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/logout"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "User Logout";
+      description: "Logout and invalidate refresh token";
+      tags: ["Authentication"];
+      security: {
+        security_requirement: {
+          key: "bearer";
+        }
+      };
+    };
+  }
+
+  // Email verification
+  rpc VerifyEmail(VerifyEmailRequest) returns (VerifyEmailResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/verify-email"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Verify Email";
+      description: "Verify email address with token";
+      tags: ["Authentication"];
+    };
+  }
+
+  // Phone verification
+  rpc VerifyPhone(VerifyPhoneRequest) returns (VerifyPhoneResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/verify-phone"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Verify Phone";
+      description: "Verify phone number with OTP code";
+      tags: ["Authentication"];
+      security: {
+        security_requirement: {
+          key: "bearer";
+        }
+      };
+    };
+  }
+
+  // Request password reset (supports email or SMS)
+  rpc ForgotPassword(ForgotPasswordRequest) returns (ForgotPasswordResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/forgot-password"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Forgot Password";
+      description: "Request password reset via email or SMS. Sends a 6-digit OTP for SMS or reset token for email.";
+      tags: ["Authentication"];
+    };
+  }
+
+  // Verify password reset code (for SMS OTP or email token)
+  rpc VerifyPasswordResetCode(VerifyPasswordResetCodeRequest) returns (VerifyPasswordResetCodeResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/verify-password-reset-code"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Verify Password Reset Code";
+      description: "Verify password reset code (6-digit OTP for SMS or UUID token for email). Returns a reset token on success.";
+      tags: ["Authentication"];
+    };
+  }
+
+  // Reset password with token
+  rpc ResetPassword(ResetPasswordRequest) returns (ResetPasswordResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/reset-password"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Reset Password";
+      description: "Reset password using verification token received after code verification";
+      tags: ["Authentication"];
+    };
+  }
+
+  // Get current user info
+  rpc GetMe(GetMeRequest) returns (GetMeResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/auth/me"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Get Current User";
+      description: "Get currently authenticated user information";
+      tags: ["User"];
+      security: {
+        security_requirement: {
+          key: "bearer";
+        }
+      };
+    };
+  }
+
+  // Update user profile
+  rpc UpdateProfile(UpdateProfileRequest) returns (UpdateProfileResponse) {
+    option (google.api.http) = {
+      put: "/api/v1/auth/profile"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Update User Profile";
+      description: "Update the authenticated user's profile information";
+      tags: ["User"];
+      security: {
+        security_requirement: {
+          key: "bearer";
+        }
+      };
+    };
+  }
+
+  // Facial recognition login
+  rpc FacialLogin(FacialLoginRequest) returns (FacialLoginResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/facial-login"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Facial Login";
+      description: "Login using facial recognition";
+      tags: ["Authentication"];
+    };
+  }
+
+  // Social login (Google, Facebook, Apple)
+  rpc SocialLogin(SocialLoginRequest) returns (SocialLoginResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/social-login"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Social Login";
+      description: "Login with social provider (Google, Facebook, Apple)";
+      tags: ["Authentication"];
+    };
+  }
+
+  // Enable two-factor authentication
+  rpc EnableTwoFactor(EnableTwoFactorRequest) returns (EnableTwoFactorResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/2fa/enable"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Enable 2FA";
+      description: "Enable two-factor authentication";
+      tags: ["Two-Factor Authentication"];
+      security: {
+        security_requirement: {
+          key: "bearer";
+        }
+      };
+    };
+  }
+
+  // Verify two-factor authentication
+  rpc VerifyTwoFactor(VerifyTwoFactorRequest) returns (VerifyTwoFactorResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/2fa/verify"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Verify 2FA";
+      description: "Verify two-factor authentication code";
+      tags: ["Two-Factor Authentication"];
+    };
+  }
+
+  // Complete two-factor authentication setup
+  rpc CompleteTwoFactorSetup(CompleteTwoFactorSetupRequest) returns (CompleteTwoFactorSetupResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/2fa/complete-setup"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Complete 2FA Setup";
+      description: "Complete 2FA setup by verifying the initial code";
+      tags: ["Two-Factor Authentication"];
+      security: {
+        security_requirement: {
+          key: "bearer";
+        }
+      };
+    };
+  }
+
+  // Disable two-factor authentication
+  rpc DisableTwoFactor(DisableTwoFactorRequest) returns (DisableTwoFactorResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/2fa/disable"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Disable 2FA";
+      description: "Disable two-factor authentication. Requires 2FA code verification.";
+      tags: ["Two-Factor Authentication"];
+      security: {
+        security_requirement: {
+          key: "bearer";
+        }
+      };
+    };
+  }
+
+  // Get two-factor authentication status
+  rpc GetTwoFactorStatus(GetTwoFactorStatusRequest) returns (GetTwoFactorStatusResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/auth/2fa/status"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Get 2FA Status";
+      description: "Get current two-factor authentication status";
+      tags: ["Two-Factor Authentication"];
+      security: {
+        security_requirement: {
+          key: "bearer";
+        }
+      };
+    };
+  }
+
+  // Regenerate two-factor backup codes
+  rpc RegenerateBackupCodes(RegenerateBackupCodesRequest) returns (RegenerateBackupCodesResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/2fa/regenerate-codes"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Regenerate Backup Codes";
+      description: "Regenerate two-factor backup codes";
+      tags: ["Two-Factor Authentication"];
+      security: {
+        security_requirement: {
+          key: "bearer";
+        }
+      };
+    };
+  }
+
+  // Send two-factor authentication code (for SMS/Email methods)
+  rpc SendTwoFactorCode(SendTwoFactorCodeRequest) returns (SendTwoFactorCodeResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/2fa/send-code"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Send 2FA Code";
+      description: "Send a new two-factor authentication code via SMS or email";
+      tags: ["Two-Factor Authentication"];
+      security: {
+        security_requirement: {
+          key: "bearer";
+        }
+      };
+    };
+  }
+
+  // Get available two-factor authentication methods
+  rpc GetAvailable2FAMethods(GetAvailable2FAMethodsRequest) returns (GetAvailable2FAMethodsResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/auth/2fa/methods"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Get Available 2FA Methods";
+      description: "Get list of available two-factor authentication methods";
+      tags: ["Two-Factor Authentication"];
+    };
+  }
+
+  // Validate token (used by gateway)
+  rpc ValidateToken(ValidateTokenRequest) returns (ValidateTokenResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/validate-token"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Validate Token";
+      description: "Validate JWT token (internal use by gateway)";
+      tags: ["Internal"];
+    };
+  }
+
+  // Resend verification email
+  rpc ResendVerificationEmail(ResendVerificationEmailRequest) returns (ResendVerificationEmailResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/resend-verification"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Resend Verification Email";
+      description: "Resend email verification link";
+      tags: ["Authentication"];
+    };
+  }
+
+  // Resend phone verification SMS
+  rpc ResendPhoneVerification(ResendPhoneVerificationRequest) returns (ResendPhoneVerificationResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/resend-phone-verification"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Resend Phone Verification";
+      description: "Resend phone verification SMS code";
+      tags: ["Authentication"];
+    };
+  }
+
+  // Change password (authenticated)
+  rpc ChangePassword(ChangePasswordRequest) returns (ChangePasswordResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/change-password"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Change Password";
+      description: "Change user password (requires old password)";
+      tags: ["Authentication"];
+      security: {
+        security_requirement: {
+          key: "bearer";
+        }
+      };
+    };
+  }
+
+  // Channel login - authenticate via phone number for SMS/WhatsApp/Phone banking
+  rpc ChannelLogin(ChannelLoginRequest) returns (ChannelLoginResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/channel-login"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Channel Login";
+      description: "Authenticate user via phone number for SMS, WhatsApp, or Phone banking channels. Returns access token for channel operations.";
+      tags: ["Channel Authentication"];
+    };
+  }
+
+  // Channel register - register new user via phone channel
+  rpc ChannelRegister(ChannelRegisterRequest) returns (ChannelRegisterResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/channel-register"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Channel Register";
+      description: "Register a new user account via phone channel (SMS/WhatsApp/Phone). Sends OTP to email for verification.";
+      tags: ["Channel Authentication"];
+    };
+  }
+
+  // Channel verify registration - verify OTP for new user registration
+  rpc ChannelVerifyRegistration(ChannelVerifyRegistrationRequest) returns (ChannelVerifyRegistrationResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/channel-verify-registration"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Channel Verify Registration";
+      description: "Verify OTP sent during channel registration and activate the account";
+      tags: ["Channel Authentication"];
+    };
+  }
+
+  // Admin: Generate JWT token for user by phone number (for telephony/WhatsApp voice agents)
+  rpc AdminGenerateTokenByPhone(AdminGenerateTokenByPhoneRequest) returns (AdminGenerateTokenByPhoneResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/admin/token-by-phone"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Admin Generate Token by Phone";
+      description: "Generate JWT token for user by phone number using admin secret. Used by telephony voice agents to authenticate callers.";
+      tags: ["Admin", "Channel Authentication"];
+    };
+  }
+
+  // Login with passcode
+  rpc LoginWithPasscode(LoginWithPasscodeRequest) returns (LoginResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/login-passcode"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Login with Passcode";
+      description: "Login using passcode instead of password";
+      tags: ["Authentication"];
+    };
+  }
+
+  // Register passcode
+  rpc RegisterPasscode(RegisterPasscodeRequest) returns (RegisterPasscodeResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/register-passcode"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Register Passcode";
+      description: "Register a passcode for quick login";
+      tags: ["Authentication"];
+      security: {
+        security_requirement: {
+          key: "bearer";
+        }
+      };
+    };
+  }
+
+  // Change passcode
+  rpc ChangePasscode(ChangePasscodeRequest) returns (ChangePasscodeResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/change-passcode"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Change Passcode";
+      description: "Change user passcode";
+      tags: ["Authentication"];
+      security: {
+        security_requirement: {
+          key: "bearer";
+        }
+      };
+    };
+  }
+
+  // Request password reset
+  rpc RequestPasswordReset(RequestPasswordResetRequest) returns (RequestPasswordResetResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/request-password-reset"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Request Password Reset";
+      description: "Request password reset email";
+      tags: ["Authentication"];
+    };
+  }
+
+  // Request email verification
+  rpc RequestEmailVerification(RequestEmailVerificationRequest) returns (RequestEmailVerificationResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/request-email-verification"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Request Email Verification";
+      description: "Request email verification email";
+      tags: ["Authentication"];
+    };
+  }
+
+  // Check email availability
+  rpc CheckEmailAvailability(CheckEmailAvailabilityRequest) returns (CheckEmailAvailabilityResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/check-email-availability"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Check Email Availability";
+      description: "Check if email is available for registration";
+      tags: ["Authentication"];
+    };
+  }
+
+  // Request phone verification
+  rpc RequestPhoneVerification(RequestPhoneVerificationRequest) returns (RequestPhoneVerificationResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/request-phone-verification"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Request Phone Verification";
+      description: "Request phone verification code";
+      tags: ["Authentication"];
+    };
+  }
+
+  // Verify phone number
+  rpc VerifyPhoneNumber(VerifyPhoneNumberRequest) returns (VerifyPhoneNumberResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/verify-phone-number"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Verify Phone Number";
+      description: "Verify phone number with code";
+      tags: ["Authentication"];
+    };
+  }
+
+  // Get signup progress for authenticated user
+  rpc GetSignupProgress(GetSignupProgressRequest) returns (GetSignupProgressResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/auth/signup-progress"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Get Signup Progress";
+      description: "Get current signup flow progress for authenticated user";
+      tags: ["Signup Progress"];
+      security: {
+        security_requirement: {
+          key: "bearer";
+        }
+      };
+    };
+  }
+
+  // Update signup step progress
+  rpc UpdateSignupStep(UpdateSignupStepRequest) returns (UpdateSignupStepResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/signup-progress/step"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Update Signup Step";
+      description: "Mark a signup step as complete or update its status";
+      tags: ["Signup Progress"];
+      security: {
+        security_requirement: {
+          key: "bearer";
+        }
+      };
+    };
+  }
+
+  // Complete signup flow
+  rpc CompleteSignup(CompleteSignupRequest) returns (CompleteSignupResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/signup-progress/complete"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Complete Signup";
+      description: "Mark signup flow as complete after all steps finished";
+      tags: ["Signup Progress"];
+      security: {
+        security_requirement: {
+          key: "bearer";
+        }
+      };
+    };
+  }
+
+  // Verify identity (BVN or NIN) - Synchronous flow during signup
+  rpc VerifyIdentity(VerifyIdentityRequest) returns (VerifyIdentityResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/verify-identity"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Verify Identity";
+      description: "Verify user identity using BVN or NIN. This is a synchronous operation that verifies with the banking service and creates a virtual account on success.";
+      tags: ["Identity Verification"];
+      security: {
+        security_requirement: {
+          key: "bearer";
+        }
+      };
+    };
+  }
+
+  // Get identity verification status
+  rpc GetIdentityVerificationStatus(GetIdentityVerificationStatusRequest) returns (GetIdentityVerificationStatusResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/auth/identity-status"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Get Identity Verification Status";
+      description: "Get the current identity verification status for the authenticated user";
+      tags: ["Identity Verification"];
+      security: {
+        security_requirement: {
+          key: "bearer";
+        }
+      };
+    };
+  }
+
+  // Initiate KYC verification flow
+  rpc InitiateKYC(InitiateKYCRequest) returns (InitiateKYCResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/kyc/initiate"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Initiate KYC";
+      description: "Initiate a KYC verification flow for a specific tier. Returns required documents and fields.";
+      tags: ["KYC"];
+      security: {
+        security_requirement: {
+          key: "bearer";
+        }
+      };
+    };
+  }
+
+  // Upload KYC document
+  rpc UploadDocument(UploadDocumentRequest) returns (UploadDocumentResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/kyc/upload-document"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Upload Document";
+      description: "Upload a KYC document for verification. Supports ID cards, selfies, and proof of address.";
+      tags: ["KYC"];
+      security: {
+        security_requirement: {
+          key: "bearer";
+        }
+      };
+    };
+  }
+
+  // Skip KYC upgrade (progressive onboarding)
+  rpc SkipKYCUpgrade(SkipKYCUpgradeRequest) returns (SkipKYCUpgradeResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/kyc/skip"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Skip KYC Upgrade";
+      description: "Skip a KYC tier upgrade for progressive onboarding. Users can complete later in Settings.";
+      tags: ["KYC"];
+      security: {
+        security_requirement: {
+          key: "bearer";
+        }
+      };
+    };
+  }
+
+  // Get user's KYC documents
+  rpc GetUserDocuments(GetUserDocumentsRequest) returns (GetUserDocumentsResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/kyc/documents"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Get User Documents";
+      description: "Get all documents uploaded by the user for KYC verification";
+      tags: ["KYC"];
+      security: {
+        security_requirement: {
+          key: "bearer";
+        }
+      };
+    };
+  }
+
+  // Get KYC status for the authenticated user
+  rpc GetKYCStatus(GetKYCStatusRequest) returns (GetKYCStatusResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/kyc/status"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Get KYC Status";
+      description: "Get the current KYC verification status and tier for the authenticated user";
+      tags: ["KYC"];
+      security: { security_requirement: { key: "bearer"; } };
+    };
+  }
+
+  // Get country-specific KYC requirements
+  rpc GetCountryRequirements(GetCountryRequirementsRequest) returns (GetCountryRequirementsResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/kyc/requirements/{country_code}"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Get Country Requirements";
+      description: "Get KYC requirements and accepted ID types for a specific country";
+      tags: ["KYC"];
+      security: { security_requirement: { key: "bearer"; } };
+    };
+  }
+
+  // Create async verification session (provider-hosted SDK/WebView)
+  rpc CreateVerificationSession(CreateVerificationSessionRequest) returns (CreateVerificationSessionResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/kyc/verify"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Create Verification Session";
+      description: "Create an async verification session with a provider (Mono, Smile ID, Onfido, Persona). Returns session URL/token for SDK/WebView.";
+      tags: ["KYC"];
+      security: { security_requirement: { key: "bearer"; } };
+    };
+  }
+
+  // Confirm verification after SDK/WebView completion
+  rpc ConfirmVerification(ConfirmVerificationRequest) returns (ConfirmVerificationResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/kyc/confirm"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Confirm Verification";
+      description: "Confirm a verification session after the user completes the provider SDK/WebView flow";
+      tags: ["KYC"];
+      security: { security_requirement: { key: "bearer"; } };
+    };
+  }
+
+  // Get presigned upload URL for KYC documents (Tier 3)
+  rpc GetDocumentUploadURL(GetDocumentUploadURLRequest) returns (GetDocumentUploadURLResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/kyc/upload-url"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Get Document Upload URL";
+      description: "Get a presigned GCS URL for uploading KYC documents (Tier 3 address proof)";
+      tags: ["KYC"];
+      security: { security_requirement: { key: "bearer"; } };
+    };
+  }
+
+  // Submit uploaded documents for Tier 3 admin review
+  rpc SubmitDocumentsForReview(SubmitDocumentsForReviewRequest) returns (SubmitDocumentsForReviewResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/kyc/submit-documents"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Submit Documents for Review";
+      description: "Submit uploaded documents for admin review to upgrade to Tier 3";
+      tags: ["KYC"];
+      security: { security_requirement: { key: "bearer"; } };
+    };
+  }
+
+  // Confirm BVN name after reconciliation (user chooses to update or keep)
+  rpc ConfirmBVNName(ConfirmBVNNameRequest) returns (ConfirmBVNNameResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/kyc/confirm-bvn-name"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Confirm BVN Name";
+      description: "Confirm name choice after BVN verification detected a name mismatch. User can choose to update to BVN name or keep their profile name.";
+      tags: ["KYC"];
+      security: { security_requirement: { key: "bearer"; } };
+    };
+  }
+
+  // Lookup user by username (LazerTag)
+  rpc LookupUserByUsername(LookupUserByUsernameRequest) returns (UserLookupResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/auth/lookup/username/{username}"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Lookup User by Username";
+      description: "Find a user by their LazerTag username for transfers";
+      tags: ["User Lookup"];
+      security: {
+        security_requirement: {
+          key: "bearer";
+        }
+      };
+    };
+  }
+
+  // Lookup user by phone number
+  rpc LookupUserByPhone(LookupUserByPhoneRequest) returns (UserLookupResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/auth/lookup/phone/{phone}"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Lookup User by Phone";
+      description: "Find a user by their phone number for transfers";
+      tags: ["User Lookup"];
+      security: {
+        security_requirement: {
+          key: "bearer";
+        }
+      };
+    };
+  }
+
+  // Search users for transfers / invites (unified: username, name, email, phone)
+  rpc SearchUsers(UserSearchRequest) returns (UserSearchResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/auth/search/users"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Search Users";
+      description: "Search for users by name, username, email, or phone number. Supports multi-field search with optional search_type filter";
+      tags: ["User Lookup"];
+      security: {
+        security_requirement: {
+          key: "bearer";
+        }
+      };
+    };
+  }
+
+  // ===== Social Account Linking =====
+
+  // Get all linked social accounts for current user
+  rpc GetLinkedSocialAccounts(GetLinkedSocialAccountsRequest) returns (GetLinkedSocialAccountsResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/auth/social/linked"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Get Linked Social Accounts";
+      description: "Get all social media accounts linked to the current user";
+      tags: ["Social Accounts"];
+      security: {
+        security_requirement: {
+          key: "bearer";
+        }
+      };
+    };
+  }
+
+  // Link a new social account
+  rpc LinkSocialAccount(LinkSocialAccountRequest) returns (LinkSocialAccountResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/social/link"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Link Social Account";
+      description: "Link a social media account to the current user profile";
+      tags: ["Social Accounts"];
+      security: {
+        security_requirement: {
+          key: "bearer";
+        }
+      };
+    };
+  }
+
+  // Unlink a social account
+  rpc UnlinkSocialAccount(UnlinkSocialAccountRequest) returns (UnlinkSocialAccountResponse) {
+    option (google.api.http) = {
+      delete: "/api/v1/auth/social/linked/{account_id}"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Unlink Social Account";
+      description: "Remove a linked social media account from the user profile";
+      tags: ["Social Accounts"];
+      security: {
+        security_requirement: {
+          key: "bearer";
+        }
+      };
+    };
+  }
+
+  // Set a social account as primary for login
+  rpc SetPrimarySocialAccount(SetPrimarySocialAccountRequest) returns (SetPrimarySocialAccountResponse) {
+    option (google.api.http) = {
+      put: "/api/v1/auth/social/linked/{account_id}/primary"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Set Primary Social Account";
+      description: "Set a linked social account as the primary account for social login";
+      tags: ["Social Accounts"];
+      security: {
+        security_requirement: {
+          key: "bearer";
+        }
+      };
+    };
+  }
+
+  // Reauthorize a social account (refresh tokens)
+  rpc ReauthorizeSocialAccount(ReauthorizeSocialAccountRequest) returns (ReauthorizeSocialAccountResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/social/linked/{account_id}/reauthorize"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Reauthorize Social Account";
+      description: "Refresh the authorization tokens for a linked social account";
+      tags: ["Social Accounts"];
+      security: {
+        security_requirement: {
+          key: "bearer";
+        }
+      };
+    };
+  }
 }
 
-message LoginWithPasscodeRequest {
-  string email = 1;
-  string login_passcode = 2; // 4-6 digit passcode
+// ===== Signup =====
+// Enum to specify primary contact method for signup
+enum PrimaryContactType {
+  EMAIL = 0;   // User signed up with email (default)
+  PHONE = 1;   // User signed up with phone number
 }
 
-message RegisterPasscodeRequest {
-  string login_passcode = 1; // 6-digit passcode to register
-}
-
-message RegisterPasscodeResponse {
-  bool success = 1;
-  string msg = 2;
-}
-
-message ChangePasscodeRequest {
-  string old_passcode = 1; // Current 6-digit passcode
-  string new_passcode = 2; // New 6-digit passcode
-}
-
-message ChangePasscodeResponse {
-  bool success = 1;
-  string msg = 2;
-}
-
-message LoginResponse {
-  pb.Data data = 1;
-  bool success = 2;
-  string msg = 3;
-}
-
-message RefreshTokenRequest {
-  string refresh_token = 1;
-}
-
-message RefreshTokenResponse {
-  pb.Data data = 1;
-  bool success = 2;     
-  string msg = 3;
-}   
-
-message LogoutRequest {
-  string session_id = 1;
-}
-
-message LogoutResponse {
-  bool success = 1;
-  string msg = 2;
-}
-
-// --- Email Verification Messages ---
-
-// Request to send a verification email to the authenticated user.
-// No parameters needed as user is identified via auth token.
-message RequestEmailVerificationRequest {}
-
-// Response for requesting email verification.
-message RequestEmailVerificationResponse {
-  bool success = 1; // Indicates if the request was accepted (email sending enqueued)
-  string msg = 2;   // User-facing message (e.g., "Verification email sent")
-}
-
-// Request to verify an email using a received code.
-message VerifyEmailRequest {
-  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
-    json_schema: {
-      required: ["verification_code"]
-    }
-  };
-  string verification_code = 1; // The verification code sent to the user's email
-}
-
-// Response for verifying an email.
-message VerifyEmailResponse {
-  bool success = 1; // Indicates if the email was successfully verified
-  string msg = 2;   // User-facing message (e.g., "Email verified successfully")
-}
-
-// --- End Email Verification Messages ---
-
-// --- Password Reset Messages (Email/Token Based) ---
-
-// Request to initiate password reset process via email or SMS.
-message RequestPasswordResetRequest {
-  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
-    json_schema: {
-      required: ["email"]
-    }
-  };
-  // User provides their email to initiate reset.
-  string email = 1;
-  // Delivery method for OTP: "EMAIL" or "SMS" (default: "SMS")
-  string delivery_method = 2;
-}
-
-// Response for requesting password reset.
-message RequestPasswordResetResponse {
-  bool success = 1;
-  string msg = 2; // e.g., "Password reset instructions sent to your email."
-}
-
-// Request to reset password using the email token.
-message ResetPasswordRequest {
- option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
-    json_schema: {
-      required: ["email", "token", "new_password"]
-    }
-  };
-  string email = 1;        // Email used in the initial request
-  string token = 2;        // The reset token received via email
-  string new_password = 3; // The desired new password
-}
-
-// Response for resetting password.
-message ResetPasswordResponse {
-  bool success = 1;
-  string msg = 2; // e.g., "Password reset successfully."
-}
-
-// Request to verify password reset code (6-digit OTP)
-message VerifyPasswordResetCodeRequest {
-  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
-    json_schema: {
-      required: ["email", "code"]
-    }
-  };
-  string email = 1; // Email used in the reset request
-  string code = 2;  // 6-digit OTP code
-}
-
-// Response for verifying password reset code
-message VerifyPasswordResetCodeResponse {
-  bool success = 1;
-  string msg = 2;
-  string reset_token = 3; // Temporary token for password reset (valid 15 minutes)
-}
-
-// --- End Password Reset Messages ---
-
-// --- Facial Recognition Messages ---
-
-// Request to login with facial recognition
-message LoginWithFaceRequest {
-  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
-    json_schema: {
-      required: ["email", "image_data"]
-    }
-  };
-  string email = 1;
-  bytes image_data = 2;
-  string image_filename = 3;
-}
-
-// Response for facial recognition login
-message LoginWithFaceResponse {
-  pb.Data data = 1;
-  bool success = 2;
-  string msg = 3;
-  double confidence = 4; // Confidence score from facial recognition
-}
-
-// Request to check if user has facial recognition enabled
-message CheckFaceRegistrationRequest {
-  // User identified via auth token, no parameters needed
-}
-
-// Response for checking face registration status
-message CheckFaceRegistrationResponse {
-  bool is_registered = 1;
-  string registered_at = 2; // ISO 8601 timestamp
-  string msg = 3;
-}
-
-// --- End Facial Recognition Messages ---
-
-// --- Social Sign-In Messages ---
-message SignInWithGoogleRequest {
-  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
-    json_schema: {
-      required: ["id_token"]
-    }
-  };
-  // The ID token received from Google Sign-In on the client.
-  string id_token = 1;
-}
-
-message SignInWithAppleRequest {
-  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
-    json_schema: {
-      required: ["identity_token", "user_identifier"]
-      // Optional: Include email and name if you want the client to send them
-      // when first available from Apple. The backend should prioritize
-      // verification via identity_token.
-    }
-  };
-  // The identity token received from Sign in with Apple on the client.
-  string identity_token = 1;
-  // The unique user identifier received from Apple.
-  string user_identifier = 2;
-  // Optional: Email provided by Apple (usually only on first sign-in).
-  string email = 3;
-  // Optional: Given name provided by Apple.
-  string given_name = 4;
-  // Optional: Family name provided by Apple.
-  string family_name = 5;
-}
-
-// We can reuse LoginResponse for social sign-in success.
-
-// --- End Social Sign-In Messages ---
-
-// --- Email Availability Check ---
-message CheckEmailAvailabilityRequest {
-  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
-    json_schema: {
-      required: ["email"]
-    }
-  };
-  string email = 1; // The email to check for availability
-}
-
-message CheckEmailAvailabilityResponse {
-  bool available = 1; // Indicates if the email is available (true) or already in use (false)
-  string msg = 2;     // User-facing message (e.g., "Email is available" or "Email already in use")
-}
-
-// --- PIN Verification ---
-message VerifyPinRequest {
-  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
-    json_schema: {
-      required: ["pin"]
-    }
-  };
-  string pin = 1; // The 4-digit transaction PIN entered by the user
-}
-
-message VerifyPinResponse {
-  bool success = 1; // Indicates if the PIN was correct
-  string msg = 2;   // e.g., "PIN verified successfully."
-}
-
-// --- Signup Messages ---
 message SignupRequest {
   string email = 1;
   string password = 2;
   string first_name = 3;
   string last_name = 4;
-  string phone = 5;
+  string phone = 5;                              // E.164 format (e.g., +12345678901)
   string device_id = 6;
   string device_name = 7;
-  string username = 9;
-  string referral_code = 10;
-  string date_of_birth = 11;
-  string locale = 12;
-  string bvn = 13;
-  string nin = 14;
-  string country_code = 15;
-  string currency_code = 16;
+  PrimaryContactType primary_contact_type = 8;   // Which contact method user chose first
+  string username = 9;                          // Optional username
+  string referral_code = 10;                     // Optional referral code
+  string date_of_birth = 11;                     // ISO 8601 date (YYYY-MM-DD)
+  string locale = 12;                           // Locale format: "en-NG", "en-US", etc. Backend will derive country/currency
+  string bvn = 13;                               // Bank Verification Number (11 digits, Nigeria)
+  string nin = 14;                               // National Identification Number (11 digits, Nigeria)
+
+  // Deprecated: Use locale instead. Frontend should only send locale.
+  // Kept for backward compatibility during migration.
+  string country_code = 15 [deprecated = true];  // ISO country code (e.g., "NG" for Nigeria)
+  string currency_code = 16 [deprecated = true]; // ISO currency code (e.g., "NGN" for Naira)
 }
 
 message SignupResponse {
   string user_id = 1;
   string email = 2;
   string message = 3;
-  bool email_verification_required = 4;
+  bool email_verification_required = 4;          // True if email needs verification
   string access_token = 5;
   string refresh_token = 6;
   int64 expires_in = 7;
-  pb.User user = 8;
-  bool phone_verification_required = 9;
-  string verification_sent_to = 10;
-  string phone_verification_id = 11;
-  int64 phone_verification_expires_in = 12;
+  User user = 8;
+  bool phone_verification_required = 9;          // True if phone needs verification
+  string verification_sent_to = 10;              // Email or phone where verification was sent
+  string phone_verification_id = 11;             // Verification ID for phone OTP (used for verify endpoint)
+  int64 phone_verification_expires_in = 12;      // Seconds until phone verification code expires
 }
 
-// --- Forgot Password Messages ---
-message ForgotPasswordRequest {
+// ===== Login =====
+message LoginRequest {
+  string email = 1;                 // Email OR phone number (specify one)
+  string password = 2;
+  string device_id = 3;
+  string device_name = 4;
+  string phone = 5;                 // Alternative to email for login
+}
+
+message LoginResponse {
+  bool success = 1;
+  string msg = 2;
+  string access_token = 3;
+  string refresh_token = 4;
+  int64 expires_in = 5;
+  LoginData data = 6;
+  bool two_factor_required = 7;
+  string two_factor_token = 8; // Temporary token for 2FA flow
+}
+
+message LoginData {
+  User user = 1;
+  Session session = 2;
+  bool has_passcode = 3;
+  bool has_transaction_pin = 4;
+}
+
+message Session {
+  string access_token = 1;
+  string refresh_token = 2;
+  int64 expires_in = 3;
+  string user_id = 4;
+}
+
+// ===== Refresh Token =====
+message RefreshTokenRequest {
+  string refresh_token = 1;
+}
+
+message RefreshTokenResponse {
+  string access_token = 1;
+  string refresh_token = 2;
+  int64 expires_in = 3;
+  User user = 4;
+}
+
+// ===== Logout =====
+message LogoutRequest {
+  string user_id = 1;
+  string refresh_token = 2;
+}
+
+message LogoutResponse {
+  string message = 1;
+}
+
+// ===== Email Verification =====
+message VerifyEmailRequest {
+  string verificationCode = 1;
+}
+
+message VerifyEmailResponse {
+  string msg = 1;
+  bool success = 2;
+}
+
+message ResendVerificationEmailRequest {
   string email = 1;
+}
+
+message ResendVerificationEmailResponse {
+  bool success = 1;
+  string message = 2;
+  int32 cooldown_seconds = 3;           // Seconds to wait before next resend (60s default)
+}
+
+// ===== Phone Verification =====
+message VerifyPhoneRequest {
+  string user_id = 1;
+  string code = 2;
+  string phone = 3;                    // Phone number to verify (E.164 format)
+}
+
+message VerifyPhoneResponse {
+  string message = 1;
+  bool success = 2;
+}
+
+message ResendPhoneVerificationRequest {
+  string phone = 1;                    // Phone number in E.164 format
+  string user_id = 2;                  // Optional user ID
+}
+
+message ResendPhoneVerificationResponse {
+  string message = 1;
+  bool success = 2;
+}
+
+// ===== Password Reset =====
+
+// Delivery method for password reset
+enum PasswordResetDeliveryMethod {
+  DELIVERY_METHOD_UNSPECIFIED = 0;
+  DELIVERY_METHOD_EMAIL = 1;     // Send reset token via email
+  DELIVERY_METHOD_SMS = 2;       // Send 6-digit OTP via SMS
+}
+
+message ForgotPasswordRequest {
+  string email = 1;                       // Email address (required if phone not provided)
+  string phone = 2;                       // Phone number in E.164 format (required if email not provided)
+  PasswordResetDeliveryMethod delivery_method = 3; // Delivery method preference (auto-detect if not specified)
 }
 
 message ForgotPasswordResponse {
   string message = 1;
+  bool success = 2;
+  string delivery_method = 3;           // Actual delivery method used
+  string masked_contact = 4;             // Masked email/phone for security (e.g., j***@gmail.com or ***1234)
+  int64 expires_in_seconds = 5;          // When the code expires (in seconds)
+  bool user_found = 6;                   // Internal: whether user was found (for better UX without compromising security)
 }
 
-// --- Change Password Messages ---
+message VerifyPasswordResetCodeRequest {
+  string contact = 1;                    // Email or phone (E.164)
+  string code = 2;                        // 6-digit OTP for SMS or reset token for email
+  PasswordResetDeliveryMethod delivery_method = 3; // How the code was sent
+}
+
+message VerifyPasswordResetCodeResponse {
+  bool success = 1;
+  string message = 2;
+  string reset_token = 3;                 // Verified reset token to use with ResetPassword
+  int64 expires_in_seconds = 4;          // When the reset token expires (in seconds)
+}
+
+message ResetPasswordRequest {
+  string reset_token = 1;                 // Verification token from code verification
+  string new_password = 2;
+}
+
+message ResetPasswordResponse {
+  string msg = 1;
+  bool success = 2;
+}
+
 message ChangePasswordRequest {
   string user_id = 1;
   string current_password = 2;
@@ -319,7 +1173,231 @@ message ChangePasswordResponse {
   string message = 1;
 }
 
-// --- Validate Token Messages ---
+// ===== Get User Info =====
+message GetMeRequest {
+  string user_id = 1;
+}
+
+message GetMeResponse {
+  User user = 1;
+}
+
+// ===== Update Profile =====
+message UpdateProfileRequest {
+  string user_id = 1;          // User ID (from JWT context)
+  string first_name = 2;       // New first name (optional)
+  string last_name = 3;        // New last name (optional)
+  string username = 4;         // New username/LazerTag (optional)
+  string phone = 5;            // New phone number (optional)
+  string profile_picture = 6;  // New profile picture URL (optional)
+}
+
+message UpdateProfileResponse {
+  bool success = 1;
+  string msg = 2;
+  User user = 3;               // Updated user details
+}
+
+// ===== Facial Login =====
+message FacialLoginRequest {
+  bytes facial_data = 1;
+  string device_id = 2;
+}
+
+message FacialLoginResponse {
+  string access_token = 1;
+  string refresh_token = 2;
+  int64 expires_in = 3;
+  User user = 4;
+}
+
+// ===== Social Login =====
+message SocialLoginRequest {
+  string provider = 1; // "google", "facebook", "apple"
+  string provider_token = 2;
+  string email = 3;
+  string first_name = 4;
+  string last_name = 5;
+  string provider_user_id = 6;
+}
+
+message SocialLoginResponse {
+  string access_token = 1;
+  string refresh_token = 2;
+  int64 expires_in = 3;
+  User user = 4;
+  bool is_new_user = 5;
+}
+
+// ===== Social Account Linking =====
+message LinkedSocialAccount {
+  string id = 1;
+  string user_id = 2;
+  string provider = 3;              // "google", "facebook", "apple", "x", "linkedin", "instagram"
+  string provider_user_id = 4;
+  string provider_email = 5;
+  string display_name = 6;
+  string profile_picture_url = 7;
+  string profile_url = 8;           // Link to social profile
+  string status = 9;                // "active", "inactive", "needs_reauth"
+  bool is_primary = 10;
+  string linked_at = 11;
+  string last_used_at = 12;
+}
+
+message GetLinkedSocialAccountsRequest {
+  // User ID extracted from JWT
+}
+
+message GetLinkedSocialAccountsResponse {
+  bool success = 1;
+  repeated LinkedSocialAccount accounts = 2;
+  int32 total_count = 3;
+}
+
+message LinkSocialAccountRequest {
+  string provider = 1;              // "google", "facebook", "apple", "x", "linkedin", "instagram"
+  string provider_token = 2;        // OAuth access token from provider
+  string provider_user_id = 3;
+  string provider_email = 4;
+  string display_name = 5;
+  string profile_picture_url = 6;
+  string profile_url = 7;
+  bool set_as_primary = 8;
+}
+
+message LinkSocialAccountResponse {
+  bool success = 1;
+  string message = 2;
+  LinkedSocialAccount account = 3;
+}
+
+message UnlinkSocialAccountRequest {
+  string account_id = 1;
+}
+
+message UnlinkSocialAccountResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message SetPrimarySocialAccountRequest {
+  string account_id = 1;
+}
+
+message SetPrimarySocialAccountResponse {
+  bool success = 1;
+  string message = 2;
+  LinkedSocialAccount account = 3;
+}
+
+message ReauthorizeSocialAccountRequest {
+  string account_id = 1;
+  string provider_token = 2;        // New OAuth access token from provider
+}
+
+message ReauthorizeSocialAccountResponse {
+  bool success = 1;
+  string message = 2;
+  LinkedSocialAccount account = 3;
+}
+
+// ===== Two-Factor Authentication =====
+message EnableTwoFactorRequest {
+  string user_id = 1;
+  string method = 2; // "totp", "sms", "email"
+}
+
+message EnableTwoFactorResponse {
+  string message = 1;
+  string qr_code = 2; // Base64-encoded QR code PNG for TOTP
+  string secret = 3; // TOTP secret (for manual entry)
+  repeated string backup_codes = 4; // Backup codes (save these!)
+  string method_name = 5; // Display name of the method
+  bool verification_required = 6; // User must verify to complete setup
+}
+
+message VerifyTwoFactorRequest {
+  string two_factor_token = 1; // From login response
+  string code = 2;
+  string method = 3;
+}
+
+message VerifyTwoFactorResponse {
+  string access_token = 1;
+  string refresh_token = 2;
+  int64 expires_in = 3;
+  User user = 4;
+}
+
+message CompleteTwoFactorSetupRequest {
+  string code = 1; // Verification code to complete setup
+}
+
+message CompleteTwoFactorSetupResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message DisableTwoFactorRequest {
+  string code = 1; // 2FA code required for security
+}
+
+message DisableTwoFactorResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message GetTwoFactorStatusRequest {
+  // User ID extracted from JWT
+}
+
+message GetTwoFactorStatusResponse {
+  bool enabled = 1;
+  string method = 2;
+  string method_name = 3;
+  string method_description = 4;
+  int32 backup_codes_count = 5;
+  bool has_backup_codes = 6;
+}
+
+message RegenerateBackupCodesRequest {
+  string code = 1; // Current 2FA code required for security
+}
+
+message RegenerateBackupCodesResponse {
+  bool success = 1;
+  string message = 2;
+  repeated string backup_codes = 3; // New backup codes (save these!)
+}
+
+message SendTwoFactorCodeRequest {
+  // User ID extracted from JWT
+}
+
+message SendTwoFactorCodeResponse {
+  bool success = 1;
+  string message = 2;
+  int64 expires_in = 3; // Seconds until code expires
+}
+
+message GetAvailable2FAMethodsRequest {
+  // No parameters needed
+}
+
+message TwoFactorMethodInfo {
+  string method = 1; // "totp", "sms", "email"
+  string name = 2; // Display name
+  string description = 3; // Method description
+  string icon = 4; // Icon identifier
+  bool available = 5; // Whether this method is available
+}
+
+message GetAvailable2FAMethodsResponse {
+  repeated TwoFactorMethodInfo methods = 1;
+}
+
+// ===== Validate Token (for gateway) =====
 message ValidateTokenRequest {
   string token = 1;
 }
@@ -331,18 +1409,64 @@ message ValidateTokenResponse {
   int64 expires_at = 4;
 }
 
-// --- Resend Verification Email Messages ---
-message ResendVerificationEmailRequest {
+// ===== Passcode Login =====
+message LoginWithPasscodeRequest {
+  string email = 1;
+  string passcode = 2;
+  string device_id = 3;
+  string device_name = 4;
+}
+
+message RegisterPasscodeRequest {
+  string passcode = 1;
+}
+
+message RegisterPasscodeResponse {
+  bool success = 1;
+  string msg = 2;
+}
+
+message ChangePasscodeRequest {
+  string current_passcode = 1;
+  string new_passcode = 2;
+}
+
+message ChangePasscodeResponse {
+  bool success = 1;
+  string msg = 2;
+}
+
+// ===== Password Reset =====
+message RequestPasswordResetRequest {
   string email = 1;
 }
 
-message ResendVerificationEmailResponse {
+message RequestPasswordResetResponse {
   bool success = 1;
-  string message = 2;
-  int32 cooldown_seconds = 3;
+  string msg = 2;
 }
 
-// --- Request Phone Verification Messages ---
+// ===== Email Verification Request =====
+message RequestEmailVerificationRequest {
+  string email = 1;
+}
+
+message RequestEmailVerificationResponse {
+  bool success = 1;
+  string msg = 2;
+}
+
+// ===== Email Availability Check =====
+message CheckEmailAvailabilityRequest {
+  string email = 1;
+}
+
+message CheckEmailAvailabilityResponse {
+  bool available = 1;
+  string msg = 2;
+}
+
+// ===== Phone Verification =====
 message RequestPhoneVerificationRequest {
   string phone = 1;
   string country_code = 2;
@@ -355,7 +1479,6 @@ message RequestPhoneVerificationResponse {
   int64 expires_in = 4;
 }
 
-// --- Verify Phone Number Messages ---
 message VerifyPhoneNumberRequest {
   string phone = 1;
   string country_code = 2;
@@ -369,497 +1492,8 @@ message VerifyPhoneNumberResponse {
   bool is_verified = 3;
 }
 
-// --- Identity Verification Messages ---
-enum IdentityType {
-  IDENTITY_TYPE_UNSPECIFIED = 0;
-  IDENTITY_TYPE_BVN = 1;
-  IDENTITY_TYPE_NIN = 2;
-  IDENTITY_TYPE_GHANA_CARD = 3;
-  IDENTITY_TYPE_KENYA_NATIONAL_ID = 4;
-  IDENTITY_TYPE_KRA_PIN = 5;
-  IDENTITY_TYPE_SA_ID = 6;
-  IDENTITY_TYPE_SA_PASSPORT = 7;
-  IDENTITY_TYPE_UK_PASSPORT = 8;
-  IDENTITY_TYPE_UK_DRIVING_LICENSE = 9;
-  IDENTITY_TYPE_US_SSN = 10;
-  IDENTITY_TYPE_US_STATE_ID = 11;
-  IDENTITY_TYPE_US_PASSPORT = 12;
-  IDENTITY_TYPE_DRIVERS_LICENSE = 13;
-  IDENTITY_TYPE_INTERNATIONAL_PASSPORT = 14;
-}
-
-message VerifyIdentityRequest {
-  IdentityType identity_type = 1;
-  string identity_number = 2;
-  string date_of_birth = 3;
-}
-
-message VerifiedIdentity {
-  string first_name = 1;
-  string last_name = 2;
-  string middle_name = 3;
-  string phone_number = 4;
-  string date_of_birth = 5;
-  string gender = 6;
-  string photo_url = 7;
-  string address = 8;
-  string state_of_origin = 9;
-  string lga_of_origin = 10;
-}
-
-message VirtualAccountInfo {
-  string account_number = 1;
-  string bank_name = 2;
-  string bank_code = 3;
-  string account_name = 4;
-  string currency = 5;
-  string provider = 6;
-}
-
-message VerifyIdentityResponse {
-  bool success = 1;
-  bool verified = 2;
-  string error_code = 3;
-  string error_message = 4;
-  VerifiedIdentity identity = 5;
-  VirtualAccountInfo virtual_account = 6;
-}
-
-// --- Get Identity Verification Status Messages ---
-message GetIdentityVerificationStatusRequest {
-  // User ID extracted from JWT
-}
-
-message GetIdentityVerificationStatusResponse {
-  bool success = 1;
-  string msg = 2;
-  bool identity_verified = 3;
-  IdentityType identity_type = 4;
-  string identity_verified_at = 5;
-  string masked_identity_number = 6;
-}
-
-// Service Definition
-service AuthService {
-  // --- Signup ---
-  rpc Signup(SignupRequest) returns (SignupResponse) {
-    option (google.api.http) = {
-      post: "/v1/auth/signup"
-      body: "*"
-    };
-  }
-
-  rpc Login(LoginRequest) returns (LoginResponse) {
-    option (google.api.http) = {
-      post: "/v1/auth/login"
-      body: "*"
-    };
-  }
-
-  // --- Forgot Password ---
-  rpc ForgotPassword(ForgotPasswordRequest) returns (ForgotPasswordResponse) {
-    option (google.api.http) = {
-      post: "/v1/auth/forgot-password"
-      body: "*"
-    };
-  }
-
-  // --- Change Password ---
-  rpc ChangePassword(ChangePasswordRequest) returns (ChangePasswordResponse) {
-    option (google.api.http) = {
-      post: "/v1/auth/change-password"
-      body: "*"
-    };
-  }
-
-  // --- Validate Token ---
-  rpc ValidateToken(ValidateTokenRequest) returns (ValidateTokenResponse) {
-    option (google.api.http) = {
-      post: "/v1/auth/validate-token"
-      body: "*"
-    };
-  }
-
-  // --- Resend Verification Email ---
-  rpc ResendVerificationEmail(ResendVerificationEmailRequest) returns (ResendVerificationEmailResponse) {
-    option (google.api.http) = {
-      post: "/v1/auth/resend-verification-email"
-      body: "*"
-    };
-  }
-
-  // --- Request Phone Verification ---
-  rpc RequestPhoneVerification(RequestPhoneVerificationRequest) returns (RequestPhoneVerificationResponse) {
-    option (google.api.http) = {
-      post: "/v1/auth/request-phone-verification"
-      body: "*"
-    };
-  }
-
-  // --- Verify Phone Number ---
-  rpc VerifyPhoneNumber(VerifyPhoneNumberRequest) returns (VerifyPhoneNumberResponse) {
-    option (google.api.http) = {
-      post: "/v1/auth/verify-phone-number"
-      body: "*"
-    };
-  }
-
-  // --- Verify Identity ---
-  rpc VerifyIdentity(VerifyIdentityRequest) returns (VerifyIdentityResponse) {
-    option (google.api.http) = {
-      post: "/v1/auth/verify-identity"
-      body: "*"
-    };
-  }
-
-  // --- Get Identity Verification Status ---
-  rpc GetIdentityVerificationStatus(GetIdentityVerificationStatusRequest) returns (GetIdentityVerificationStatusResponse) {
-    option (google.api.http) = {
-      get: "/v1/auth/identity-status"
-    };
-  }
-
-  rpc LoginWithPasscode(LoginWithPasscodeRequest) returns (LoginResponse) {
-    option (google.api.http) = {
-      post: "/v1/auth/login-passcode"
-      body: "*"
-    };
-    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      summary: "Login with Passcode"
-      description: "Authenticates a user using their email and login passcode."
-      tags: ["Auth"]
-    };
-  }
-
-  rpc RegisterPasscode(RegisterPasscodeRequest) returns (RegisterPasscodeResponse) {
-    option (google.api.http) = {
-      post: "/v1/auth/register-passcode"
-      body: "*"
-    };
-    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      summary: "Register Passcode"
-      description: "Registers a login passcode for the authenticated user."
-      tags: ["Auth"]
-      security: {
-        security_requirement: {
-          key: "bearer" value: {}
-        }
-      }
-    };
-  }
-
-  rpc ChangePasscode(ChangePasscodeRequest) returns (ChangePasscodeResponse) {
-    option (google.api.http) = {
-      post: "/v1/auth/change-passcode"
-      body: "*"
-    };
-    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      summary: "Change Passcode"
-      description: "Changes the login passcode for the authenticated user."
-      tags: ["Auth"]
-      security: {
-        security_requirement: {
-          key: "bearer" value: {}
-        }
-      }
-    };
-  }
-
-rpc RefreshToken(RefreshTokenRequest) returns (RefreshTokenResponse) {
-    option (google.api.http) = {
-      post: "/v1/auth/refresh-token"
-      body: "*"
-    };
-  }
-  rpc Logout(LogoutRequest) returns (LogoutResponse) {
-    option (google.api.http) = {
-      post: "/v1/auth/logout"
-      body: "*"
-    };
-  }
-
-  // --- Email Verification RPCs ---
-
-  // Request sending a verification email to the authenticated user.
-  rpc RequestEmailVerification(RequestEmailVerificationRequest) returns (RequestEmailVerificationResponse) {
-    option (google.api.http) = {
-      post: "/v1/auth/request-verification-email"
-      body: "*"
-    };
-    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      summary: "Request Email Verification"
-      description: "Initiates the process to send a verification email to the authenticated user's registered email address."
-      tags: ["Auth"]
-      security: {
-        security_requirement: {
-          key: "bearer" value: {}
-        }
-      }
-    };
-  }
-
-  // Verify the user's email address using a verification code.
-  rpc VerifyEmail(VerifyEmailRequest) returns (VerifyEmailResponse) {
-    option (google.api.http) = {
-      post: "/v1/auth/verify-email"
-      body: "*"
-    };
-    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      summary: "Verify Email"
-      description: "Verifies the user's email address using the provided verification code."
-      tags: ["Auth"]
-      // No explicit security requirement here, as the code itself implies user action.
-      // However, the backend service MUST validate the code properly.
-    };
-  }
-
-  // --- End Email Verification RPCs ---
-
-  // --- Password Reset RPCs (Email/Token Based) ---
-
-  // Initiate password reset by sending an email token.
-  rpc RequestPasswordReset(RequestPasswordResetRequest) returns (RequestPasswordResetResponse) {
-    option (google.api.http) = {
-      post: "/v1/auth/request-password-reset"
-      body: "*"
-    };
-    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      summary: "Request Password Reset (Email)"
-      description: "Initiates the password reset process by sending an email with a reset link/token to the user's registered email address."
-      tags: ["Auth"]
-    };
-  }
-
-  // Reset the user's password using the email token.
-  rpc ResetPassword(ResetPasswordRequest) returns (ResetPasswordResponse) {
-    option (google.api.http) = {
-      post: "/v1/auth/reset-password"
-      body: "*"
-    };
-    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      summary: "Reset Password (Email Token)"
-      description: "Resets the user's password after verifying the email and the reset token received via email."
-      tags: ["Auth"]
-    };
-  }
-
-  // Verify password reset code (6-digit OTP)
-  rpc VerifyPasswordResetCode(VerifyPasswordResetCodeRequest) returns (VerifyPasswordResetCodeResponse) {
-    option (google.api.http) = {
-      post: "/v1/auth/verify-password-reset-code"
-      body: "*"
-    };
-    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      summary: "Verify Password Reset Code"
-      description: "Verifies the 6-digit OTP code received via email/SMS and returns a temporary reset token."
-      tags: ["Auth"]
-    };
-  }
-
-  // --- End Password Reset RPCs ---
-
-  // --- Facial Recognition RPCs ---
-
-  // Login with facial recognition
-  rpc LoginWithFace(LoginWithFaceRequest) returns (LoginWithFaceResponse) {
-    option (google.api.http) = {
-      post: "/v1/auth/login-face"
-      body: "*"
-    };
-    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      summary: "Login with Face Recognition"
-      description: "Authenticates a user using facial recognition."
-      tags: ["Auth"]
-    };
-  }
-
-  // Check if user has facial recognition enabled
-  rpc CheckFaceRegistration(CheckFaceRegistrationRequest) returns (CheckFaceRegistrationResponse) {
-    option (google.api.http) = {
-      post: "/v1/auth/check-face-registration"
-      body: "*"
-    };
-    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      summary: "Check Face Registration Status"
-      description: "Checks if the authenticated user has facial recognition enabled."
-      tags: ["Auth"]
-      security: {
-        security_requirement: {
-          key: "bearer" value: {}
-        }
-      }
-    };
-  }
-
-  // --- End Facial Recognition RPCs ---
-
-  // --- Social Sign-In RPCs ---
-  rpc SignInWithGoogle(SignInWithGoogleRequest) returns (LoginResponse) {
-     option (google.api.http) = {
-       post: "/v1/auth/google/signin"
-       body: "*"
-     };
-     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-       summary: "Sign In/Up with Google"
-       description: "Authenticates a user using a Google ID token. Creates an account if one doesn't exist for the Google user."
-       tags: ["Auth"]
-     };
-  }
-
-  rpc SignInWithApple(SignInWithAppleRequest) returns (LoginResponse) {
-     option (google.api.http) = {
-       post: "/v1/auth/apple/signin"
-       body: "*"
-     };
-     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-       summary: "Sign In/Up with Apple"
-       description: "Authenticates a user using Apple credentials. Creates an account if one doesn't exist for the Apple user."
-       tags: ["Auth"]
-     };
-  }
-  // --- End Social Sign-In RPCs ---
-
-  // --- Email Availability Check RPC ---
-  rpc CheckEmailAvailability(CheckEmailAvailabilityRequest) returns (CheckEmailAvailabilityResponse) {
-    option (google.api.http) = {
-      post: "/v1/auth/check-email-availability"
-      body: "*"
-    };
-    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      summary: "Check Email Availability"
-      description: "Checks if an email address is available for registration or already in use."
-      tags: ["Auth"]
-    };
-  }
-  // --- End Email Availability Check RPC ---
-
-  // Verify the user's transaction PIN.
-  rpc VerifyPin(VerifyPinRequest) returns (VerifyPinResponse) {
-    option (google.api.http) = {
-      post: "/v1/auth/verify-pin"
-      body: "*"
-    };
-    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      summary: "Verify Transaction PIN"
-      description: "Verifies the authenticated user's transaction PIN."
-      tags: ["Auth"]
-      security: { // Requires authentication
-        security_requirement: {
-          key: "bearer" value: {}
-        }
-      }
-    };
-  }
-
-  // --- User Profile RPCs ---
-
-  // Get authenticated user's profile
-  rpc GetMe(GetMeRequest) returns (GetMeResponse) {
-    option (google.api.http) = {
-      get: "/v1/auth/me"
-    };
-    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      summary: "Get Current User"
-      description: "Gets the profile of the currently authenticated user."
-      tags: ["User"]
-      security: {
-        security_requirement: {
-          key: "bearer" value: {}
-        }
-      }
-    };
-  }
-
-  // Update authenticated user's profile
-  rpc UpdateProfile(UpdateProfileRequest) returns (UpdateProfileResponse) {
-    option (google.api.http) = {
-      put: "/v1/auth/profile"
-      body: "*"
-    };
-    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      summary: "Update Profile"
-      description: "Updates the profile of the currently authenticated user."
-      tags: ["User"]
-      security: {
-        security_requirement: {
-          key: "bearer" value: {}
-        }
-      }
-    };
-  }
-
-  // --- User Lookup RPCs ---
-
-  // Lookup user by username (LazerTag)
-  rpc LookupUserByUsername(LookupUserByUsernameRequest) returns (LookupUserByUsernameResponse) {
-    option (google.api.http) = {
-      get: "/v1/users/lookup/username/{username}"
-    };
-    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      summary: "Lookup User by Username"
-      description: "Finds a user by their LazerTag username for transfers."
-      tags: ["User"]
-      security: {
-        security_requirement: {
-          key: "bearer" value: {}
-        }
-      }
-    };
-  }
-
-  // Search users by name, username, email, or phone number
-  rpc SearchUsers(UserSearchRequest) returns (UserSearchResponse) {
-    option (google.api.http) = {
-      get: "/v1/auth/search/users"
-    };
-    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      summary: "Search Users"
-      description: "Search for users by name, username, email, or phone number. Supports multi-field search with optional search_type filter."
-      tags: ["User Lookup"]
-      security: {
-        security_requirement: {
-          key: "bearer" value: {}
-        }
-      }
-    };
-  }
-
-  // --- KYC Phase 2 RPCs ---
-
-  rpc GetKYCStatus(GetKYCStatusRequest) returns (GetKYCStatusResponse) {
-    option (google.api.http) = { get: "/api/v1/kyc/status" };
-  }
-
-  rpc GetCountryRequirements(GetCountryRequirementsRequest) returns (GetCountryRequirementsResponse) {
-    option (google.api.http) = { get: "/api/v1/kyc/requirements/{country_code}" };
-  }
-
-  rpc CreateVerificationSession(CreateVerificationSessionRequest) returns (CreateVerificationSessionResponse) {
-    option (google.api.http) = { post: "/api/v1/kyc/verify" body: "*" };
-  }
-
-  rpc ConfirmVerification(ConfirmVerificationRequest) returns (ConfirmVerificationResponse) {
-    option (google.api.http) = { post: "/api/v1/kyc/confirm" body: "*" };
-  }
-
-  rpc GetDocumentUploadURL(GetDocumentUploadURLRequest) returns (GetDocumentUploadURLResponse) {
-    option (google.api.http) = { post: "/api/v1/kyc/upload-url" body: "*" };
-  }
-
-  rpc SubmitDocumentsForReview(SubmitDocumentsForReviewRequest) returns (SubmitDocumentsForReviewResponse) {
-    option (google.api.http) = { post: "/api/v1/kyc/submit-documents" body: "*" };
-  }
-
-  rpc ConfirmBVNName(ConfirmBVNNameRequest) returns (ConfirmBVNNameResponse) {
-    option (google.api.http) = { post: "/api/v1/kyc/confirm-bvn-name" body: "*" };
-  }
-}
-
-// --- User Profile Messages ---
-// AuthUser mirrors the auth-service's User message field layout exactly.
-// The auth-service uses different field numbers/types than common.proto User,
-// so we define this separate type for wire compatibility with the auth-service.
-message AuthUser {
+// ===== User Model =====
+message User {
   string id = 1;
   string email = 2;
   string first_name = 3;
@@ -873,87 +1507,373 @@ message AuthUser {
   string profile_picture = 11;
   string created_at = 12;
   string updated_at = 13;
-  string signup_status = 14;
-  string current_signup_step = 15;
-  string username = 16;
-  bool identity_verified = 17;
-  string identity_type = 18;
-  string identity_verified_at = 19;
-  string date_of_birth = 20;
+  string signup_status = 14;         // Signup completion status
+  string current_signup_step = 15;   // Current step in signup flow
+  string username = 16;              // LazerTag username
+  bool identity_verified = 17;       // BVN/NIN verified
+  string identity_type = 18;         // "bvn" or "nin"
+  string identity_verified_at = 19;  // ISO 8601 timestamp
+  string date_of_birth = 20;         // YYYY-MM-DD format
+  int32 kyc_tier = 21;               // KYC tier level (1, 2, 3)
+  string kyc_status = 22;            // KYC verification status
+  repeated string roles = 23;       // All roles (matches JWT "roles")
+  string role = 24;                 // Primary role for UI (matches JWT "role")
 }
 
-message GetMeRequest {
-  string user_id = 1; // User ID (from JWT context in proxy)
+// ===== Signup Progress Tracking =====
+
+// Signup status values
+enum SignupStatus {
+  SIGNUP_STATUS_UNSPECIFIED = 0;
+  SIGNUP_STATUS_CREATED = 1;           // Account created, no verifications done
+  SIGNUP_STATUS_EMAIL_VERIFIED = 2;    // Email has been verified
+  SIGNUP_STATUS_PHONE_VERIFIED = 3;    // Phone has been verified
+  SIGNUP_STATUS_IDENTITY_VERIFIED = 4; // BVN/NIN has been verified
+  SIGNUP_STATUS_PASSCODE_SET = 5;      // Passcode has been registered
+  SIGNUP_STATUS_COMPLETE = 6;          // All signup steps completed
 }
 
-message GetMeResponse {
-  AuthUser user = 1;
+// Step status values
+enum StepStatus {
+  STEP_STATUS_UNSPECIFIED = 0;
+  STEP_STATUS_PENDING = 1;           // Step not started
+  STEP_STATUS_IN_PROGRESS = 2;       // Step started but not completed
+  STEP_STATUS_COMPLETED = 3;         // Step completed successfully
+  STEP_STATUS_SKIPPED = 4;           // Step was skipped by user
 }
 
-message UpdateProfileRequest {
-  string user_id = 1;          // User ID (from JWT context)
-  string first_name = 2;       // New first name (optional)
-  string last_name = 3;        // New last name (optional)
-  string username = 4;         // New username/LazerTag (optional)
-  string phone = 5;            // New phone number (optional)
-  string profile_picture = 6;  // New profile picture URL (optional)
+// Individual signup step progress
+message SignupStepProgress {
+  string step_name = 1;              // e.g., "form_page_0", "email_verify", "passcode_setup"
+  StepStatus status = 2;
+  string step_data = 3;              // JSON string with step-specific data
+  string completed_at = 4;           // ISO 8601 timestamp
+  string created_at = 5;
+  string updated_at = 6;
 }
 
-message UpdateProfileResponse {
+// Overall signup progress
+message SignupProgress {
+  string user_id = 1;
+  SignupStatus status = 2;
+  string current_step = 3;
+  repeated SignupStepProgress steps = 4;
+  string signup_completed_at = 5;    // ISO 8601 timestamp when signup was fully completed
+  string created_at = 6;
+  string updated_at = 7;
+}
+
+// Get signup progress request
+message GetSignupProgressRequest {
+  // User ID is extracted from the JWT token
+}
+
+// Get signup progress response
+message GetSignupProgressResponse {
   bool success = 1;
   string msg = 2;
-  AuthUser user = 3;
+  SignupProgress progress = 3;
+  string next_step = 4;              // Suggested next step to navigate to
+  bool is_complete = 5;              // True if signup is fully complete
 }
 
-// --- User Lookup Messages ---
+// Update signup step request
+message UpdateSignupStepRequest {
+  string step_name = 1;              // Step being updated
+  StepStatus status = 2;             // New status for the step
+  string step_data = 3;              // Optional JSON data for the step
+}
 
+// Update signup step response
+message UpdateSignupStepResponse {
+  bool success = 1;
+  string msg = 2;
+  SignupProgress progress = 3;       // Updated progress
+  string next_step = 4;              // Suggested next step
+}
+
+// Complete signup request
+message CompleteSignupRequest {
+  // Marks the entire signup flow as complete
+}
+
+// Complete signup response
+message CompleteSignupResponse {
+  bool success = 1;
+  string msg = 2;
+  SignupProgress progress = 3;
+}
+
+// ===== Identity Verification =====
+
+// Identity type enum
+enum IdentityType {
+  IDENTITY_TYPE_UNSPECIFIED = 0;
+  IDENTITY_TYPE_BVN = 1;   // Bank Verification Number (Nigeria)
+  IDENTITY_TYPE_NIN = 2;   // National Identification Number (Nigeria)
+  IDENTITY_TYPE_GHANA_CARD = 3;          // Ghana Card
+  IDENTITY_TYPE_KENYA_NATIONAL_ID = 4;   // Kenya National ID
+  IDENTITY_TYPE_KRA_PIN = 5;             // Kenya Revenue Authority PIN
+  IDENTITY_TYPE_SA_ID = 6;               // South African Smart ID Card
+  IDENTITY_TYPE_SA_PASSPORT = 7;         // South African Passport
+  IDENTITY_TYPE_UK_PASSPORT = 8;         // UK Passport
+  IDENTITY_TYPE_UK_DRIVING_LICENSE = 9;  // UK Driving Licence
+  IDENTITY_TYPE_US_SSN = 10;             // US Social Security Number
+  IDENTITY_TYPE_US_STATE_ID = 11;        // US State-issued ID
+  IDENTITY_TYPE_US_PASSPORT = 12;        // US Passport
+  IDENTITY_TYPE_DRIVERS_LICENSE = 13;    // Generic Driver's License
+  IDENTITY_TYPE_INTERNATIONAL_PASSPORT = 14; // International Passport
+}
+
+// Verify identity request
+message VerifyIdentityRequest {
+  IdentityType identity_type = 1;     // Type of identity document
+  string identity_number = 2;         // ID number (BVN, NIN, SSN, Ghana Card, etc.)
+  string date_of_birth = 3;           // YYYY-MM-DD format, required for verification
+  string country_code = 4;            // ISO 3166-1 alpha-2 country code (NG, GH, KE, ZA, GB, US)
+  string first_name = 5;              // Required for non-Nigerian verifications
+  string last_name = 6;               // Required for non-Nigerian verifications
+  string phone_number = 7;            // Phone number for verification
+}
+
+// Verified identity details returned from provider
+message VerifiedIdentity {
+  string first_name = 1;
+  string last_name = 2;
+  string middle_name = 3;
+  string phone_number = 4;
+  string date_of_birth = 5;
+  string gender = 6;
+  string photo_url = 7;               // Base64 encoded photo from BVN/NIN
+  string address = 8;
+  string state_of_origin = 9;
+  string lga_of_origin = 10;
+}
+
+// Verify identity response
+message VerifyIdentityResponse {
+  bool success = 1;
+  bool verified = 2;                  // True if identity was verified (sync only)
+  string error_code = 3;              // Error code if verification failed
+  string error_message = 4;           // Human-readable error message
+  VerifiedIdentity identity = 5;      // Verified identity details (sync only)
+  VirtualAccountInfo virtual_account = 6; // Created virtual account (on success)
+  // Async verification fields (Onfido/Persona - UK/US)
+  string verification_id = 7;         // Provider verification ID for status polling
+  string status = 8;                  // "verified", "pending", "failed"
+  string session_url = 9;             // SDK/WebView URL for async verification
+  string session_token = 10;          // SDK token for native Onfido/Persona integration
+  // BVN data reconciliation (populated when name/DOB mismatch detected)
+  DataReconciliation reconciliation = 11;
+}
+
+// BVN data reconciliation result
+message DataReconciliation {
+  string name_action = 1;       // "none" (auto-accepted), "confirm" (user must choose), "reject" (mismatch too large)
+  double name_match_score = 2;  // 0.0-1.0 similarity score
+  string verified_name = 3;     // Name from BVN provider
+  string profile_name = 4;      // Name from user profile
+  bool dob_mismatch = 5;        // True if BVN DOB differs from profile DOB
+  string verified_dob = 6;      // DOB from BVN provider
+  string profile_dob = 7;       // DOB from user profile
+  bool phone_mismatch = 8;      // True if BVN phone differs
+}
+
+// Confirm BVN name after reconciliation
+message ConfirmBVNNameRequest {
+  string action = 1;            // "use_bvn_name" or "keep_profile_name"
+  string verification_id = 2;   // Verification session ID from VerifyIdentity
+}
+
+// Confirm BVN name response
+message ConfirmBVNNameResponse {
+  bool success = 1;
+  string message = 2;
+  KYCVerificationStatus status = 3;
+  KYCTier current_tier = 4;
+}
+
+// Virtual account info (returned after identity verification)
+message VirtualAccountInfo {
+  string account_number = 1;
+  string bank_name = 2;
+  string bank_code = 3;
+  string account_name = 4;
+  string currency = 5;
+  string provider = 6;
+}
+
+// Get identity verification status request
+message GetIdentityVerificationStatusRequest {
+  // User ID extracted from JWT
+}
+
+// Get identity verification status response
+message GetIdentityVerificationStatusResponse {
+  bool success = 1;
+  string msg = 2;
+  bool identity_verified = 3;
+  IdentityType identity_type = 4;
+  string identity_verified_at = 5;
+  string masked_identity_number = 6;  // e.g., "****567890" for privacy
+}
+
+// ===== User Lookup for Transfers =====
+
+// Lookup user by username request
 message LookupUserByUsernameRequest {
-  string username = 1;
+  string username = 1;                // Username without @ prefix
 }
 
-// UserLookupResponse - common response for username and phone lookups
-message LookupUserByUsernameResponse {
+// Lookup user by phone request
+message LookupUserByPhoneRequest {
+  string phone = 1;                   // Phone number in E.164 format
+}
+
+// User lookup response (common for both username and phone lookup)
+message UserLookupResponse {
   bool success = 1;
   string msg = 2;
   bool found = 3;
-  AuthUserLookupResult user = 4;
+  UserLookupResult user = 4;
 }
 
-message UserSearchRequest {
-  string query = 1;
-  int32 limit = 2;
-  string search_type = 3;
-  string country_code = 4;            // Optional: filter results to only users in this country/locale
-}
-
-message UserSearchResponse {
-  bool success = 1;
-  string msg = 2;
-  repeated AuthUserLookupResult users = 3;
-}
-
-message AuthUserLookupResult {
+// User lookup result - minimal info for transfers
+message UserLookupResult {
   string user_id = 1;
-  string username = 2;
+  string username = 2;                // LazerTag username
   string first_name = 3;
   string last_name = 4;
   string profile_picture = 5;
-  bool is_lazervault_user = 6;
-  string phone_number = 7;
-  string email = 8;
-  string primary_account_id = 9;
+  bool is_lazervault_user = 6;        // Always true for internal users
+  string phone_number = 7;            // Phone number (masked for privacy)
+  string email = 8;                   // Email (masked for privacy)
+  string primary_account_id = 9;      // Primary account ID (UUID) for transfers
   string country_code = 10;           // User's country code (e.g., "NG", "US")
+  // SearchUsers only: server-side exact match vs the request query (clients must not compare masked email/phone strings).
+  bool email_matches_search_query = 11;
+  bool phone_matches_search_query_exact = 12;
 }
 
-// ===== KYC Phase 2 Messages =====
+// Search users by multiple fields request
+message UserSearchRequest {
+  string query = 1;                   // Search text; unified mode matches substring on username (optional leading @), name, email, phone (digits)
+  int32 limit = 2;                    // Maximum number of results (default 10, max 50)
+  string search_type = 3;             // Optional: "username", "name", "phone", "email", or "" for unified search across all fields
+  string country_code = 4;            // Optional: filter results to only users in this country/locale
+}
 
+// Search users response
+message UserSearchResponse {
+  bool success = 1;
+  string msg = 2;
+  repeated UserLookupResult users = 3;
+}
+
+// ===== KYC Progressive Onboarding =====
+
+// KYC Tier enum
 enum KYCTier {
   KYC_TIER_UNKNOWN = 0;
-  KYC_TIER_1 = 1;
-  KYC_TIER_2 = 2;
-  KYC_TIER_3 = 3;
+  KYC_TIER_1 = 1;   // Basic - Phone/Email verified
+  KYC_TIER_2 = 2;   // Standard - ID verified (BVN/NIN)
+  KYC_TIER_3 = 3;   // Enhanced - Full KYC with address proof
 }
 
+// Document type enum for KYC
+enum DocumentType {
+  DOCUMENT_TYPE_UNKNOWN = 0;
+  DOCUMENT_TYPE_BVN = 1;                    // Bank Verification Number (Nigeria)
+  DOCUMENT_TYPE_NIN = 2;                    // National ID (Nigeria)
+  DOCUMENT_TYPE_DRIVERS_LICENSE = 3;        // Driver's License
+  DOCUMENT_TYPE_PASSPORT = 4;               // International Passport
+  DOCUMENT_TYPE_VOTERS_CARD = 5;            // Voter's Card
+  DOCUMENT_TYPE_PROOF_OF_ADDRESS = 6;       // Utility Bill, Bank Statement
+  DOCUMENT_TYPE_SELFIE = 7;                 // Selfie photo for liveness
+}
+
+// Document status enum
+enum DocumentStatus {
+  DOCUMENT_STATUS_UNKNOWN = 0;
+  DOCUMENT_STATUS_PENDING_UPLOAD = 1;
+  DOCUMENT_STATUS_UPLOADED = 2;
+  DOCUMENT_STATUS_UNDER_REVIEW = 3;
+  DOCUMENT_STATUS_APPROVED = 4;
+  DOCUMENT_STATUS_REJECTED = 5;
+}
+
+// Initiate KYC request
+message InitiateKYCRequest {
+  KYCTier target_tier = 1;                  // Target tier to upgrade to
+  string country_code = 2;                  // ISO country code (optional, defaults to NG)
+}
+
+// Initiate KYC response
+message InitiateKYCResponse {
+  bool success = 1;
+  string session_id = 2;                    // Unique session ID for this KYC flow
+  repeated string required_documents = 3;    // List of required document types
+  repeated string required_fields = 4;       // List of required form fields
+  string redirect_url = 5;                   // Optional redirect URL for external verification
+  string error_message = 6;                  // Error message if success = false
+}
+
+// Upload document request
+message UploadDocumentRequest {
+  DocumentType document_type = 1;           // Type of document being uploaded
+  string document_front_url = 2;            // URL to front of ID document
+  string document_back_url = 3;             // URL to back of ID document (if applicable)
+  string selfie_url = 4;                    // URL to selfie photo
+  string proof_of_address_url = 5;          // URL to proof of address document
+}
+
+// Upload document response
+message UploadDocumentResponse {
+  bool success = 1;
+  string message = 2;
+  string document_id = 3;                   // ID of uploaded document
+  DocumentStatus status = 4;                // Status of the uploaded document
+}
+
+// Skip KYC upgrade request
+message SkipKYCUpgradeRequest {
+  bool skip_tier_2 = 1;                     // Skip Tier 2 and stay at Tier 1
+  bool skip_tier_3 = 2;                     // Skip Tier 3 and stay at Tier 2
+}
+
+// Skip KYC upgrade response
+message SkipKYCUpgradeResponse {
+  bool success = 1;
+  KYCTier assigned_tier = 2;                // The tier user is assigned to
+  string message = 3;
+  repeated string next_steps = 4;            // Recommended next steps
+}
+
+// Get user documents request
+message GetUserDocumentsRequest {
+  // User ID extracted from JWT
+}
+
+// Verification document info
+message VerificationDocument {
+  string id = 1;
+  DocumentType document_type = 2;
+  string document_url = 3;
+  DocumentStatus status = 4;
+  string uploaded_at = 5;                   // ISO 8601 timestamp
+  string verified_at = 6;                   // ISO 8601 timestamp
+  string rejection_reason = 7;
+}
+
+// Get user documents response
+message GetUserDocumentsResponse {
+  bool success = 1;
+  repeated VerificationDocument documents = 2;
+}
+
+// ===== KYC Phase 2: Async Verification & Document Upload =====
+
+// KYC status enum
 enum KYCVerificationStatus {
   KYC_STATUS_UNKNOWN = 0;
   KYC_STATUS_NOT_STARTED = 1;
@@ -964,6 +1884,7 @@ enum KYCVerificationStatus {
   KYC_STATUS_EXPIRED = 6;
 }
 
+// KYC Tier info with limits and benefits
 message KYCTierInfo {
   KYCTier tier = 1;
   KYCVerificationStatus status = 2;
@@ -979,8 +1900,12 @@ message KYCTierInfo {
   bool is_locked = 12;
 }
 
-message GetKYCStatusRequest {}
+// Get KYC status request
+message GetKYCStatusRequest {
+  // User ID extracted from JWT
+}
 
+// Get KYC status response
 message GetKYCStatusResponse {
   bool success = 1;
   KYCVerificationStatus status = 2;
@@ -990,6 +1915,7 @@ message GetKYCStatusResponse {
   string rejection_reason = 6;
 }
 
+// Country KYC requirements
 message CountryKYCRequirements {
   string country_code = 1;
   repeated IdentityType accepted_id_types = 2;
@@ -1001,15 +1927,18 @@ message CountryKYCRequirements {
   int64 tier_3_daily_limit = 8;
 }
 
+// Get country requirements request
 message GetCountryRequirementsRequest {
   string country_code = 1;
 }
 
+// Get country requirements response
 message GetCountryRequirementsResponse {
   bool success = 1;
   CountryKYCRequirements requirements = 2;
 }
 
+// Create verification session request (async provider flow)
 message CreateVerificationSessionRequest {
   KYCTier target_tier = 1;
   string country_code = 2;
@@ -1021,6 +1950,7 @@ message CreateVerificationSessionRequest {
   string phone_number = 8;
 }
 
+// Create verification session response
 message CreateVerificationSessionResponse {
   bool success = 1;
   string verification_id = 2;
@@ -1031,6 +1961,7 @@ message CreateVerificationSessionResponse {
   string error_message = 7;
 }
 
+// Confirm verification request (after SDK/WebView completion)
 message ConfirmVerificationRequest {
   string verification_id = 1;
   string provider = 2;
@@ -1038,18 +1969,30 @@ message ConfirmVerificationRequest {
   map<string, string> metadata = 4;
 }
 
+// BVN / profile name reconciliation after Mono verify (optional)
+message BVNNameReconciliation {
+  string name_action = 1; // confirm | reject | none
+  double name_match_score = 2;
+  string verified_name = 3;
+  string profile_name = 4;
+}
+
+// Confirm verification response
 message ConfirmVerificationResponse {
   bool success = 1;
   KYCVerificationStatus status = 2;
   KYCTier current_tier = 3;
   string message = 4;
+  BVNNameReconciliation bvn_name_reconciliation = 5;
 }
 
+// Get presigned document upload URL request (Tier 3)
 message GetDocumentUploadURLRequest {
-  string document_type = 1;
-  string content_type = 2;
+  string document_type = 1;   // gov_id_front, gov_id_back, selfie, proof_of_address
+  string content_type = 2;    // image/jpeg, image/png, application/pdf
 }
 
+// Get presigned document upload URL response
 message GetDocumentUploadURLResponse {
   bool success = 1;
   string upload_url = 2;
@@ -1057,41 +2000,108 @@ message GetDocumentUploadURLResponse {
   int64 expires_at = 4;
 }
 
+// Document submission item for batch review
 message DocumentSubmissionItem {
   string storage_key = 1;
   string document_type = 2;
   string content_type = 3;
 }
 
+// Submit documents for review request (Tier 3)
 message SubmitDocumentsForReviewRequest {
   repeated DocumentSubmissionItem documents = 1;
 }
 
+// Submit documents for review response
 message SubmitDocumentsForReviewResponse {
   bool success = 1;
   string message = 2;
   KYCVerificationStatus status = 3;
 }
 
-message DataReconciliation {
-  string name_action = 1;
-  double name_match_score = 2;
-  string verified_name = 3;
-  string profile_name = 4;
-  bool dob_mismatch = 5;
-  string verified_dob = 6;
-  string profile_dob = 7;
-  bool phone_mismatch = 8;
+// ============================================
+// Channel Authentication Messages (SMS/WhatsApp/Phone Banking)
+// ============================================
+
+// Channel login request - authenticate via phone number
+message ChannelLoginRequest {
+  string phone_number = 1;                   // E.164 format phone number
+  string channel_type = 2;                   // "telephony" (SMS/Phone) or "whatsapp"
 }
 
-message ConfirmBVNNameRequest {
-  string action = 1;
-  string verification_id = 2;
-}
-
-message ConfirmBVNNameResponse {
+// Channel login response - returns access token for channel operations
+message ChannelLoginResponse {
   bool success = 1;
   string message = 2;
-  KYCVerificationStatus status = 3;
-  KYCTier current_tier = 4;
+  string access_token = 3;                   // JWT access token for channel operations
+  string refresh_token = 4;                  // Refresh token
+  string user_id = 5;                        // User ID
+  string account_id = 6;                     // Primary account ID
+  string currency = 7;                       // Default currency (NGN)
+  string user_country = 8;                   // User country code (NG)
+  int32 expires_in = 9;                     // Token expiry in seconds
+}
+
+// Channel register request - register new user via phone channel
+message ChannelRegisterRequest {
+  string phone_number = 1;                   // E.164 format phone number
+  string first_name = 2;                     // User's first name
+  string last_name = 3;                      // User's last name
+  string email = 4;                          // User's email address (for OTP)
+  string channel_type = 5;                   // "telephony" or "whatsapp"
+  string country_code = 6;                   // ISO country code (default: NG)
+}
+
+// Channel register response - sends OTP to email
+message ChannelRegisterResponse {
+  bool success = 1;
+  string message = 2;
+  string user_id = 3;                        // Newly created user ID
+  bool otp_sent = 4;                         // Whether OTP was sent successfully
+  string masked_email = 5;                   // Masked email for display
+  int32 otp_expires_in_seconds = 6;          // OTP expiry time
+}
+
+// Channel verify registration request - verify OTP for new account
+message ChannelVerifyRegistrationRequest {
+  string phone_number = 1;                   // E.164 format phone number
+  string otp_code = 2;                       // OTP code sent to email
+  string channel_type = 3;                   // "telephony" or "whatsapp"
+}
+
+// Channel verify registration response - activates account and returns tokens
+message ChannelVerifyRegistrationResponse {
+  bool success = 1;
+  string message = 2;
+  string access_token = 3;                   // JWT access token
+  string refresh_token = 4;                  // Refresh token
+  string user_id = 5;                        // User ID
+  string account_id = 6;                     // Primary account ID
+  string currency = 7;                       // Default currency
+  string user_country = 8;                   // User country code
+  int32 expires_in = 9;                     // Token expiry in seconds
+}
+
+// ===== Telephony Voice Agent Authentication =====
+
+// Admin: Generate token for user by phone number (for telephony voice agents)
+message AdminGenerateTokenByPhoneRequest {
+  string phone_number = 1;    // E.164 format phone number (e.g., +234XXXXXXXX)
+  string admin_secret = 2;    // ADMIN_SECRET_KEY environment variable for security
+  string channel_type = 3;    // "telephony" or "whatsapp" - for logging/tracking
+}
+
+message AdminGenerateTokenByPhoneResponse {
+  bool success = 1;
+  string message = 2;
+  string access_token = 3;    // JWT access token for voice agent
+  string refresh_token = 4;   // Refresh token
+  string user_id = 5;         // User ID (UUID)
+  string account_id = 6;      // Primary account ID (UUID)
+  string currency = 7;        // Default currency (NGN, USD, etc.)
+  string user_country = 8;    // User country code (NG, US, etc.)
+  int32 expires_in = 9;       // Token expiry in seconds
+  bool user_found = 10;       // False if phone not found in system
+  string first_name = 11;     // User's first name for personalized greeting
+  string last_name = 12;      // User's last name
 }

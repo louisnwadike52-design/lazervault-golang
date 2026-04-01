@@ -693,9 +693,10 @@ service GroupAccountService {
     };
   }
 
+  // Namespaced path: avoids duplicate GET with pb.UserService.SearchUserByUsername (/v1/users/search).
   rpc SearchUsers(SearchUsersRequest) returns (SearchUsersResponse) {
     option (google.api.http) = {
-      get: "/v1/users/search"
+      get: "/v1/groups/users/search"
     };
   }
 

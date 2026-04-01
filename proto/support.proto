@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package lazervault;
+package pb;
 
 option go_package = "lazervaultGo/pb";
 

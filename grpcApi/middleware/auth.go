@@ -2,12 +2,13 @@ package middleware
 
 import (
 	"context"
-	"fmt"
+	"net/http"
 	"strings"
 	"time"
 
-	authinterceptor "github.com/lazervault/shared/auth-interceptor"
 	"github.com/gin-gonic/gin"
+	authinterceptor "github.com/lazervault/shared/auth-interceptor"
+	"github.com/rs/zerolog/log"
 
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -192,58 +193,62 @@ func authorize(ctx context.Context) (*AuthPayload, string, error) {
 	return authPayload, accessToken, nil
 }
 
-// JWTAuthMiddleware validates JWT tokens for protected endpoints
-// This middleware is used for HTTP API routes (grpc-gateway path)
+// JWTAuthMiddleware validates JWT tokens for protected HTTP endpoints.
+// On success it injects X-User-Id for gRPC-gateway forwarding.
 func JWTAuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		path := c.Request.URL.Path
-		// Debug logging to check path matching
-		fmt.Printf("[JWTAuthMiddleware] Request path: %s, isPublic: %v\n", path, isPublicHTTPPath(path))
 
-		// Skip auth for public endpoints
 		if isPublicHTTPPath(path) {
 			c.Next()
 			return
 		}
 
-		// Get Authorization header
-		authHeader := c.GetHeader("Authorization")
-		if authHeader == "" {
-			c.JSON(401, gin.H{"error": "authorization token not provided"})
+		if jwtVerifier == nil {
+			log.Error().Str("path", path).Msg("JWT verifier not initialized — rejecting HTTP request")
+			c.JSON(http.StatusServiceUnavailable, gin.H{"error": "authentication service unavailable"})
 			c.Abort()
 			return
 		}
 
-		// Parse "Bearer <token>"
+		authHeader := c.GetHeader("Authorization")
+		if authHeader == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "authorization token not provided"})
+			c.Abort()
+			return
+		}
+
 		fields := strings.Fields(authHeader)
 		if len(fields) < 2 || strings.ToLower(fields[0]) != "bearer" {
-			c.JSON(401, gin.H{"error": "invalid authorization format"})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid authorization format"})
 			c.Abort()
 			return
 		}
 
 		token := fields[1]
 
-		// Verify JWT using JWKS
 		payload, err := jwtVerifier.VerifyToken(c.Request.Context(), token)
 		if err != nil {
-			c.JSON(401, gin.H{"error": "invalid token"})
+			log.Warn().Err(err).Str("path", path).Msg("JWT verification failed")
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid or expired token"})
 			c.Abort()
 			return
 		}
 
-		// Set user ID in context for downstream use
 		c.Set("user_id", payload.UserID)
 		c.Set("auth_payload", payload)
 
-		// Also set x-user-id header for grpc-gateway to pass to microservices
-		c.Request.Header.Set("x-user-id", payload.UserID)
+		// Remove any client-supplied X-User-Id to prevent spoofing,
+		// then inject the authenticated identity.
+		c.Request.Header.Del("X-User-Id")
+		c.Request.Header.Set("X-User-Id", payload.UserID)
 
 		c.Next()
 	}
 }
 
-// isPublicHTTPPath determines if an HTTP path is public (doesn't require authentication)
+// isPublicHTTPPath determines if an HTTP path is public.
+// The apiGroup strips "/api" so these paths appear as received by the middleware.
 func isPublicHTTPPath(path string) bool {
 	publicPaths := []string{
 		"/api/v1/auth/login",

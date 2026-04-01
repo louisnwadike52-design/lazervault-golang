@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package qr_pay;
+package pb;
 option go_package = "lazervaultGo/pb";
 
 import "google/protobuf/timestamp.proto";

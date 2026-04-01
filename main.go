@@ -27,15 +27,16 @@ import (
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/reflection"
 
-	shareddegradation "github.com/lazervault/shared/degradation"
-	sharederrors "github.com/lazervault/shared/errors"
 	"lazervaultGo/grpcApi/middleware"
 	tlsutil "lazervaultGo/pkg/tls"
 
+	shareddegradation "github.com/lazervault/shared/degradation"
+	sharederrors "github.com/lazervault/shared/errors"
+
 	// Import microservice proto packages
 	accountspb "accounts-service/proto"
-	whatsapppb "whatsapp-service/proto"
 	notificationspb "notifications-service/proto"
+	whatsapppb "whatsapp-service/proto"
 
 	// Import gateway proto packages (includes auth service definitions)
 	pb "lazervaultGo/pb"
