@@ -73,7 +73,7 @@ service VoiceSessionService {
     // generating a token for the client, and dispatching an agent.
     rpc StartVoiceSession(StartVoiceSessionRequest) returns (StartVoiceSessionResponse) {
         option (google.api.http) = {
-            post: "/v1/voice/session/start" // POST request to start a session
+            post: "/api/v1/voice/session/start" // POST request to start a session
             body: "*"
         };
         option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
@@ -91,7 +91,7 @@ service VoiceSessionService {
     // Processes a voice note and returns AI response with transcription
     rpc ProcessVoiceNote(ProcessVoiceNoteRequest) returns (ProcessVoiceNoteResponse) {
         option (google.api.http) = {
-            post: "/v1/voice/note/upload"
+            post: "/api/v1/voice/note/upload"
             body: "*"
         };
         option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {

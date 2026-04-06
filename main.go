@@ -1164,17 +1164,11 @@ func interceptVerifyTransactionPin(client pb.TransactionPinServiceClient) gin.Ha
 }
 
 // wrapGrpcGateway wraps grpc-gateway mux as a Gin handler.
-// The Gin router group adds "/api" prefix, but grpc-gateway patterns use "/v1/..."
-// so we strip the "/api" prefix before passing to the grpc-gateway mux.
+// Proto HTTP annotations use full "/api/v1/..." paths, so we pass the request
+// as-is without stripping the /api prefix.
 func wrapGrpcGateway(mux *runtime.ServeMux) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Strip /api prefix so grpc-gateway patterns (/v1/...) match
-		req := c.Request.Clone(c.Request.Context())
-		if strings.HasPrefix(req.URL.Path, "/api/") {
-			req.URL.Path = strings.TrimPrefix(req.URL.Path, "/api")
-			req.URL.RawPath = strings.TrimPrefix(req.URL.RawPath, "/api")
-		}
-		mux.ServeHTTP(c.Writer, req)
+		mux.ServeHTTP(c.Writer, c.Request)
 	}
 }
 
