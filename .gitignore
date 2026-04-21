@@ -49,3 +49,7 @@ golang.log
 *.env
 # Generated proto files
 **/pb/
+
+# build artifacts
+/core-gateway
+/lazervaultGo
