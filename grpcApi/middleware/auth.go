@@ -131,11 +131,6 @@ func requiresAuth(method string) bool {
 		"/pb.StockService/GetTopGainers":        false,
 		"/pb.StockService/GetTopLosers":         false,
 
-		// Electricity Bill Service public endpoints (for testing)
-		"/pb.ElectricityBillService/GetProviders":        false,
-		"/pb.ElectricityBillService/SyncProviders":       false,
-		"/pb.ElectricityBillService/ValidateMeterNumber": false,
-
 		// Referral Service public endpoints
 		"/pb.ReferralService/ValidateReferralCode": false, // Public - validate during signup
 		"/pb.ReferralService/GetPointsConfig":      false, // Public - show earn rules
