@@ -1166,8 +1166,14 @@ func interceptVerifyTransactionPin(client pb.TransactionPinServiceClient) gin.Ha
 // wrapGrpcGateway wraps grpc-gateway mux as a Gin handler.
 // Proto HTTP annotations use full "/api/v1/..." paths, so we pass the request
 // as-is without stripping the /api prefix.
+//
+// Gin pre-sets status 404 on NoRoute handlers; grpc-gateway's success path
+// doesn't call WriteHeader(200), so the first Write flushes the pre-set 404
+// with a valid body. Pin the status to 200 — error paths in grpc-gateway
+// explicitly call WriteHeader(4xx/5xx) and still override correctly.
 func wrapGrpcGateway(mux *runtime.ServeMux) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		c.Status(http.StatusOK)
 		mux.ServeHTTP(c.Writer, c.Request)
 	}
 }
