@@ -178,6 +178,16 @@ service AuthService {
     };
   }
 
+  // GetMyInsurancePrefill returns the AUTHENTICATED caller's OWN verified KYC
+  // identity (name/email/phone/DOB + nin/bvn) for the insurance create-policy
+  // form to prefill the customer-info section (editable). user_id comes from
+  // the JWT context, never the request — a user can only read their own data.
+  rpc GetMyInsurancePrefill(GetMyInsurancePrefillRequest) returns (GetMyInsurancePrefillResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/auth/me/insurance-prefill"
+    };
+  }
+
   // Update user profile
   rpc UpdateProfile(UpdateProfileRequest) returns (UpdateProfileResponse) {
     option (google.api.http) = {
@@ -1180,6 +1190,20 @@ message GetMeRequest {
 
 message GetMeResponse {
   User user = 1;
+}
+
+message GetMyInsurancePrefillRequest {}
+
+message GetMyInsurancePrefillResponse {
+  string first_name = 1;
+  string last_name = 2;
+  string email = 3;
+  string phone = 4;
+  string date_of_birth = 5;
+  string nin = 6;
+  string bvn = 7;
+  string identity_type = 8;
+  bool identity_verified = 9;
 }
 
 // ===== Update Profile =====
