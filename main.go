@@ -523,10 +523,25 @@ func main() {
 		log.Info().Msg("✅ Transaction PIN + Channel Management HTTP endpoints registered")
 	}
 
+	// Storage proxy — gives the Flutter app a JWT-protected route to
+	// obtain a scoped upload URL from storage-service. The Flutter app
+	// then PUTs the bytes directly to the returned upload_url and saves
+	// the returned public_url via UpdateProfile. We hide the
+	// X-Service-Name handshake inside this proxy so the client never
+	// needs to be on storage-service's allow-list.
+	storageBaseURL := getEnv("STORAGE_SERVICE_URL", "http://localhost:8094")
+	storageProxy := proxy.NewStorageProxy(storageBaseURL, "core-gateway")
+	log.Info().Str("storage_base_url", storageBaseURL).Msg("✅ Storage proxy registered (POST /api/v1/profile-picture/upload-url, POST /api/v1/bank-scan/upload-url, POST /api/v1/chat-media/upload-url)")
+
 	// API group with JWT authentication (applies to all /api/* routes except auth public endpoints)
 	apiGroup := router.Group("/api")
 	apiGroup.Use(middleware.JWTAuthMiddleware())
 	apiGroup.Use(interceptVerifyTransactionPin(txPinClient))
+	// Storage proxy is intercepted in the same middleware-style as the
+	// transaction-pin handlers — registering it as a POST route would
+	// conflict with the Any("/*path") wildcard below (gin panics on
+	// overlap).
+	apiGroup.Use(interceptProfilePictureUploadURL(storageProxy))
 	apiGroup.Any("/*path", wrapGrpcGateway(mux))
 
 	// Note: Auth service routes (/api/v1/auth/*) are registered via grpc-gateway mux
@@ -1159,6 +1174,39 @@ func interceptVerifyTransactionPin(client pb.TransactionPinServiceClient) gin.Ha
 			}
 		}
 
+		c.Next()
+	}
+}
+
+// interceptProfilePictureUploadURL intercepts the storage-proxy endpoints
+// (profile-picture + bank-scan upload-url) and dispatches to the
+// StorageProxy handler. Same pattern as interceptVerifyTransactionPin —
+// we need it because Any("/*path") below already claims every path
+// under /api, so adding these as POST routes would panic on overlap.
+func interceptProfilePictureUploadURL(p *proxy.StorageProxy) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if p == nil {
+			c.Next()
+			return
+		}
+		path := c.Param("path")
+		method := c.Request.Method
+		if method == http.MethodPost {
+			switch path {
+			case "/v1/profile-picture/upload-url":
+				p.HandleProfilePictureUploadURL(c)
+				c.Abort()
+				return
+			case "/v1/bank-scan/upload-url":
+				p.HandleBankScanUploadURL(c)
+				c.Abort()
+				return
+			case "/v1/chat-media/upload-url":
+				p.HandleChatMediaUploadURL(c)
+				c.Abort()
+				return
+			}
+		}
 		c.Next()
 	}
 }
