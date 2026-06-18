@@ -57,6 +57,14 @@ func (p *FamilyAccountsServiceProxy) GetPendingInvitations(ctx context.Context, 
 	return p.client.GetPendingInvitations(forwardContext(ctx), req)
 }
 
+func (p *FamilyAccountsServiceProxy) GetMyInvitationHistory(ctx context.Context, req *accountspb.GetMyInvitationHistoryRequest) (*accountspb.GetMyInvitationHistoryResponse, error) {
+	return p.client.GetMyInvitationHistory(forwardContext(ctx), req)
+}
+
+func (p *FamilyAccountsServiceProxy) GetSentInvitations(ctx context.Context, req *accountspb.GetSentInvitationsRequest) (*accountspb.GetSentInvitationsResponse, error) {
+	return p.client.GetSentInvitations(forwardContext(ctx), req)
+}
+
 func (p *FamilyAccountsServiceProxy) GetFamilyTransactions(ctx context.Context, req *accountspb.GetFamilyTransactionsRequest) (*accountspb.GetFamilyTransactionsResponse, error) {
 	return p.client.GetFamilyTransactions(forwardContext(ctx), req)
 }
@@ -91,4 +99,42 @@ func (p *FamilyAccountsServiceProxy) SetupFamilyAccount(ctx context.Context, req
 
 func (p *FamilyAccountsServiceProxy) UpdateFundDistributionMode(ctx context.Context, req *accountspb.UpdateFundDistributionModeRequest) (*accountspb.UpdateFundDistributionModeResponse, error) {
 	return p.client.UpdateFundDistributionMode(forwardContext(ctx), req)
+}
+
+// =============================================================================
+// Admin proxy methods — forward admin-only RPCs to the upstream microservice.
+// The admin role check is performed by the gateway's HTTP middleware before
+// any of these are reached.
+// =============================================================================
+
+func (p *FamilyAccountsServiceProxy) AdminListFamilyAccounts(ctx context.Context, req *accountspb.AdminListFamilyAccountsRequest) (*accountspb.AdminListFamilyAccountsResponse, error) {
+	return p.client.AdminListFamilyAccounts(forwardContext(ctx), req)
+}
+
+func (p *FamilyAccountsServiceProxy) AdminGetFamilyAccount(ctx context.Context, req *accountspb.AdminGetFamilyAccountRequest) (*accountspb.AdminGetFamilyAccountResponse, error) {
+	return p.client.AdminGetFamilyAccount(forwardContext(ctx), req)
+}
+
+func (p *FamilyAccountsServiceProxy) AdminFreezeFamilyAccount(ctx context.Context, req *accountspb.AdminFreezeFamilyAccountRequest) (*accountspb.AdminFreezeFamilyAccountResponse, error) {
+	return p.client.AdminFreezeFamilyAccount(forwardContext(ctx), req)
+}
+
+func (p *FamilyAccountsServiceProxy) AdminUnfreezeFamilyAccount(ctx context.Context, req *accountspb.AdminUnfreezeFamilyAccountRequest) (*accountspb.AdminUnfreezeFamilyAccountResponse, error) {
+	return p.client.AdminUnfreezeFamilyAccount(forwardContext(ctx), req)
+}
+
+func (p *FamilyAccountsServiceProxy) AdminDeleteFamilyAccount(ctx context.Context, req *accountspb.AdminDeleteFamilyAccountRequest) (*accountspb.AdminDeleteFamilyAccountResponse, error) {
+	return p.client.AdminDeleteFamilyAccount(forwardContext(ctx), req)
+}
+
+func (p *FamilyAccountsServiceProxy) AdminForceAllocateFunds(ctx context.Context, req *accountspb.AdminForceAllocateFundsRequest) (*accountspb.AdminForceAllocateFundsResponse, error) {
+	return p.client.AdminForceAllocateFunds(forwardContext(ctx), req)
+}
+
+func (p *FamilyAccountsServiceProxy) AdminRemoveFamilyMember(ctx context.Context, req *accountspb.AdminRemoveFamilyMemberRequest) (*accountspb.AdminRemoveFamilyMemberResponse, error) {
+	return p.client.AdminRemoveFamilyMember(forwardContext(ctx), req)
+}
+
+func (p *FamilyAccountsServiceProxy) AdminUpdateFamilyAccountNotes(ctx context.Context, req *accountspb.AdminUpdateFamilyAccountNotesRequest) (*accountspb.AdminUpdateFamilyAccountNotesResponse, error) {
+	return p.client.AdminUpdateFamilyAccountNotes(forwardContext(ctx), req)
 }

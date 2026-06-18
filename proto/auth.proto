@@ -1785,6 +1785,7 @@ message UserSearchRequest {
   int32 limit = 2;                    // Maximum number of results (default 10, max 50)
   string search_type = 3;             // Optional: "username", "name", "phone", "email", or "" for unified search across all fields
   string country_code = 4;            // Optional: filter results to only users in this country/locale
+  int32 offset = 5;                   // Optional: pagination offset (number of results to skip); pairs with limit for load-more
 }
 
 // Search users response
