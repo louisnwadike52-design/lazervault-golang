@@ -35,6 +35,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	neturl "net/url"
+	"os"
 	"path"
 	"strings"
 	"time"
@@ -47,7 +49,14 @@ import (
 type StorageProxy struct {
 	storageBaseURL string
 	serviceName    string
-	httpClient     *http.Client
+	// publicBaseURL is the externally-reachable storage origin (e.g.
+	// "https://dev.lazervault.app"). The storage-service stamps INTERNAL urls
+	// (http://localhost:8094/...) into upload/public URLs — fine for server-side
+	// callers, but a phone uploading via the tunnel cannot reach localhost. When set
+	// (STORAGE_PUBLIC_URL), we rewrite the scheme+host of the client-facing upload_url
+	// / public_url to this origin so device uploads work. Empty = no rewrite.
+	publicBaseURL string
+	httpClient    *http.Client
 }
 
 // NewStorageProxy builds the proxy. `storageBaseURL` must be the storage-
@@ -57,6 +66,7 @@ func NewStorageProxy(storageBaseURL, serviceName string) *StorageProxy {
 	return &StorageProxy{
 		storageBaseURL: strings.TrimRight(storageBaseURL, "/"),
 		serviceName:    serviceName,
+		publicBaseURL:  strings.TrimRight(os.Getenv("STORAGE_PUBLIC_URL"), "/"),
 		httpClient: &http.Client{
 			Timeout: 10 * time.Second,
 		},
@@ -282,12 +292,34 @@ func (p *StorageProxy) handleScopedUploadURL(c *gin.Context, keyspace string) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"success":      true,
-		"upload_url":   parsed.UploadURL,
-		"public_url":   parsed.PublicURL,
+		"upload_url":   p.toPublicURL(parsed.UploadURL),
+		"public_url":   p.toPublicURL(parsed.PublicURL),
 		"key":          parsed.Key,
 		"expires_at":   parsed.ExpiresAt,
 		"content_type": contentType,
 	})
+}
+
+// toPublicURL rewrites an internal storage URL's scheme+host to the externally
+// reachable origin (STORAGE_PUBLIC_URL), so a phone uploading via the tunnel can
+// actually reach it. The path (/v1/storage/objects/...) is preserved — the tunnel
+// routes that to the storage-service. No-op when STORAGE_PUBLIC_URL is unset or the
+// input is unparseable.
+func (p *StorageProxy) toPublicURL(u string) string {
+	if p.publicBaseURL == "" || u == "" {
+		return u
+	}
+	parsed, err := neturl.Parse(u)
+	if err != nil {
+		return u
+	}
+	pub, err := neturl.Parse(p.publicBaseURL)
+	if err != nil || pub.Host == "" {
+		return u
+	}
+	parsed.Scheme = pub.Scheme
+	parsed.Host = pub.Host
+	return parsed.String()
 }
 
 // buildScopedKey returns the storage key + default filename for a given
