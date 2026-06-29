@@ -531,7 +531,7 @@ func main() {
 	// needs to be on storage-service's allow-list.
 	storageBaseURL := getEnv("STORAGE_SERVICE_URL", "http://localhost:8094")
 	storageProxy := proxy.NewStorageProxy(storageBaseURL, "core-gateway")
-	log.Info().Str("storage_base_url", storageBaseURL).Msg("✅ Storage proxy registered (POST /api/v1/profile-picture/upload-url, POST /api/v1/bank-scan/upload-url, POST /api/v1/chat-media/upload-url)")
+	log.Info().Str("storage_base_url", storageBaseURL).Msg("✅ Storage proxy registered (POST /api/v1/profile-picture/upload-url, POST /api/v1/bank-scan/upload-url, POST /api/v1/chat-media/upload-url, POST /api/v1/invoice/upload-url)")
 
 	// API group with JWT authentication (applies to all /api/* routes except auth public endpoints)
 	apiGroup := router.Group("/api")
@@ -1203,6 +1203,10 @@ func interceptProfilePictureUploadURL(p *proxy.StorageProxy) gin.HandlerFunc {
 				return
 			case "/v1/chat-media/upload-url":
 				p.HandleChatMediaUploadURL(c)
+				c.Abort()
+				return
+			case "/v1/invoice/upload-url":
+				p.HandleInvoiceUploadURL(c)
 				c.Abort()
 				return
 			}

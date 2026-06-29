@@ -171,6 +171,13 @@ func (p *StorageProxy) HandleChatMediaUploadURL(c *gin.Context) {
 	p.handleScopedUploadURL(c, "chat-media")
 }
 
+// HandleInvoiceUploadURL handles POST /api/v1/invoice/upload-url. Same
+// JWT-scoped shape as profile-picture; the invoice keyspace holds the issuer /
+// customer logos shown on an invoice so they can be scoped/audited separately.
+func (p *StorageProxy) HandleInvoiceUploadURL(c *gin.Context) {
+	p.handleScopedUploadURL(c, "invoice")
+}
+
 // handleScopedUploadURL is the shared implementation for every per-user
 // image-upload endpoint we proxy. `keyspace` selects which sub-prefix
 // inside `users/<user_id>/` the generated object key lives under.
@@ -336,6 +343,9 @@ func buildScopedKey(keyspace, userID, ext string) (string, string, error) {
 	case "chat-media":
 		return fmt.Sprintf("users/%s/chat-media/%s.%s", userID, uuid.NewString(), ext),
 			"chat-media." + ext, nil
+	case "invoice":
+		return fmt.Sprintf("users/%s/invoices/%s.%s", userID, uuid.NewString(), ext),
+			"invoice." + ext, nil
 	default:
 		return "", "", errors.New("unknown keyspace: " + keyspace)
 	}
