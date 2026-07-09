@@ -30,11 +30,13 @@ import (
 	"lazervaultGo/grpcApi/middleware"
 	tlsutil "lazervaultGo/pkg/tls"
 
+	"github.com/lazervault/shared/auth-interceptor/appcheck"
 	shareddegradation "github.com/lazervault/shared/degradation"
 	sharederrors "github.com/lazervault/shared/errors"
 
 	// Import microservice proto packages
 	accountspb "accounts-service/proto"
+	groupaccountspb "group-accounts-service/proto"
 	notificationspb "notifications-service/proto"
 	whatsapppb "whatsapp-service/proto"
 
@@ -87,8 +89,9 @@ func main() {
 	// Get microservice addresses from environment
 	authServiceAddr := getEnv("AUTH_SERVICE_GRPC_ADDR", "127.0.0.1:50051")
 	accountsServiceAddr := getEnv("ACCOUNTS_SERVICE_GRPC_ADDR", "127.0.0.1:50052")
+	groupAccountsServiceAddr := getEnv("GROUP_ACCOUNTS_SERVICE_GRPC_ADDR", "127.0.0.1:50066")
 	whatsappServiceAddr := getEnv("WHATSAPP_SERVICE_GRPC_ADDR", "127.0.0.1:50062")
-	notificationsServiceAddr := getEnv("NOTIFICATIONS_SERVICE_GRPC_ADDR", "127.0.0.1:50061")
+	notificationsServiceAddr := getEnv("NOTIFICATIONS_SERVICE_GRPC_ADDR", "127.0.0.1:50059")
 	referralServiceAddr := getEnv("REFERRAL_SERVICE_GRPC_ADDR", "127.0.0.1:50084")
 
 	// Get Redis configuration
@@ -241,6 +244,32 @@ func main() {
 		log.Fatal().Err(err).Msg("Failed to initialize JWT verifier")
 	}
 	log.Info().Msg("✅ JWT verifier initialized (JWKS-based, zero network calls)")
+
+	// Initialize Firebase App Check verification (device attestation: App Attest
+	// on iOS, Play Integrity on Android). Verifies the X-Firebase-AppCheck token
+	// minted by the genuine app. Mode (off/report/enforce) is admin-tunable via
+	// system_settings key auth_appcheck_mode (60s cache), defaulting to the
+	// AUTH_APPCHECK_MODE env (report) — so an operator can flip to enforce
+	// without a redeploy. The verifier is always initialised so a dynamic flip
+	// to enforce works immediately.
+	appCheckFallbackMode := interceptors.ParseAppCheckMode(getEnv("AUTH_APPCHECK_MODE", "report"))
+	appCheckModeProvider := interceptors.NewAppCheckModeProvider(appCheckFallbackMode, zapLogger)
+	var appCheckVerifier *appcheck.Verifier
+	{
+		log.Info().Str("fallback_mode", string(appCheckFallbackMode)).Msg("🛡️  Initializing Firebase App Check verification...")
+		acv, err := appcheck.NewVerifier(appcheck.Config{
+			ProjectNumber: getEnv("APPCHECK_PROJECT_NUMBER", "815870072849"),
+			ProjectID:     getEnv("APPCHECK_PROJECT_ID", "lazervault-28875"),
+			Logger:        zapLogger,
+		})
+		if err != nil {
+			// Non-fatal: App Check must not block gateway boot. Fall back to off.
+			log.Error().Err(err).Msg("App Check verifier init failed; disabling App Check (fail-open)")
+		} else {
+			appCheckVerifier = acv
+			log.Info().Msg("✅ App Check verifier initialized")
+		}
+	}
 
 	// Create gRPC-Gateway mux
 	ctx := context.Background()
@@ -533,6 +562,34 @@ func main() {
 	storageProxy := proxy.NewStorageProxy(storageBaseURL, "core-gateway")
 	log.Info().Str("storage_base_url", storageBaseURL).Msg("✅ Storage proxy registered (POST /api/v1/profile-picture/upload-url, POST /api/v1/bank-scan/upload-url, POST /api/v1/chat-media/upload-url, POST /api/v1/invoice/upload-url)")
 
+	// Unified user search (local saved recipients incl. alias → global users).
+	// Dialed here (its own clients) so the route can be registered BEFORE the
+	// Any("/*path") wildcard below — the manual recipient/auth proxies are
+	// constructed later in the file, after this route group is wired.
+	var unifiedSearchProxy *proxy.UnifiedSearchProxy
+	if uniAcctConn, e1 := grpc.Dial(accountsServiceAddr, opts...); e1 == nil {
+		if uniAuthConn, e2 := grpc.Dial(authServiceAddr, opts...); e2 == nil {
+			// Org/group users are an OPTIONAL third source — a nil client (dial
+			// failed) degrades gracefully to local + global directory search.
+			var grpAcctClient groupaccountspb.GroupAccountServiceClient
+			if grpConn, e3 := grpc.Dial(groupAccountsServiceAddr, opts...); e3 == nil {
+				grpAcctClient = groupaccountspb.NewGroupAccountServiceClient(grpConn)
+			} else {
+				log.Warn().Err(e3).Msg("Unified search: group-accounts dial failed - org users unavailable")
+			}
+			unifiedSearchProxy = proxy.NewUnifiedSearchProxy(
+				accountspb.NewRecipientServiceClient(uniAcctConn),
+				pb.NewAuthServiceClient(uniAuthConn),
+				grpAcctClient,
+			)
+			log.Info().Msg("✅ Unified user search registered (GET /api/v1/users/search-unified) — saved + directory + org")
+		} else {
+			log.Warn().Err(e2).Msg("Unified search: auth dial failed - route unavailable")
+		}
+	} else {
+		log.Warn().Err(e1).Msg("Unified search: accounts dial failed - route unavailable")
+	}
+
 	// API group with JWT authentication (applies to all /api/* routes except auth public endpoints)
 	apiGroup := router.Group("/api")
 	apiGroup.Use(middleware.JWTAuthMiddleware())
@@ -542,6 +599,10 @@ func main() {
 	// conflict with the Any("/*path") wildcard below (gin panics on
 	// overlap).
 	apiGroup.Use(interceptProfilePictureUploadURL(storageProxy))
+	// Unified user search — composed (saved-recipients + global) BFF route.
+	// Intercepted in the same middleware style as the storage/PIN handlers
+	// because the Any("/*path") wildcard below would otherwise claim it.
+	apiGroup.Use(interceptUnifiedSearch(unifiedSearchProxy))
 	apiGroup.Any("/*path", wrapGrpcGateway(mux))
 
 	// Note: Auth service routes (/api/v1/auth/*) are registered via grpc-gateway mux
@@ -637,6 +698,7 @@ func main() {
 		grpc.ChainUnaryInterceptor(
 			interceptors.PanicRecoveryInterceptor(zapLogger),
 			interceptors.RequestLoggingInterceptor(zapLogger),
+			interceptors.AppCheckInterceptor(appCheckVerifier, appCheckModeProvider.Mode, zapLogger),
 			interceptors.JWTAuthInterceptor(middleware.GetJWTVerifier()),
 			interceptors.RateLimitInterceptor(redisClient),
 		),
@@ -1209,7 +1271,25 @@ func interceptProfilePictureUploadURL(p *proxy.StorageProxy) gin.HandlerFunc {
 				p.HandleInvoiceUploadURL(c)
 				c.Abort()
 				return
+			case "/v1/escrow/upload-url":
+				p.HandleEscrowUploadURL(c)
+				c.Abort()
+				return
 			}
+		}
+		c.Next()
+	}
+}
+
+// interceptUnifiedSearch dispatches GET /api/v1/users/search-unified to the
+// composed UnifiedSearchProxy (saved recipients incl. alias → global users).
+// Same intercept-before-wildcard pattern as interceptProfilePictureUploadURL.
+func interceptUnifiedSearch(p *proxy.UnifiedSearchProxy) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if p != nil && c.Request.Method == http.MethodGet && c.Param("path") == "/v1/users/search-unified" {
+			p.HandleUnifiedSearch(c)
+			c.Abort()
+			return
 		}
 		c.Next()
 	}
@@ -1234,7 +1314,10 @@ func wrapGrpcGateway(mux *runtime.ServeMux) gin.HandlerFunc {
 // Includes all headers needed for proper request routing and context propagation
 func customHeaderMatcher(key string) (string, bool) {
 	switch key {
-	case "Authorization", "X-User-Id", "X-Username", "X-Account-Id", "X-Currency", "X-User-Country", "X-Locale", "X-Service-Name":
+	case "Authorization", "X-User-Id", "X-Username", "X-Account-Id", "X-Currency", "X-User-Country", "X-Locale", "X-Service-Name",
+		// Forward the Firebase App Check token (device attestation) from the HTTP
+		// path to gRPC metadata so the App Check interceptor can verify it.
+		"X-Firebase-Appcheck":
 		return key, true
 	default:
 		return runtime.DefaultHeaderMatcher(key)
