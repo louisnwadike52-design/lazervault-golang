@@ -60,13 +60,13 @@ func loadEnvFiles() {
 	var envFile string
 	switch env {
 	case "production":
-		envFile = ".env.production"
+		envFile = ".env"
 	default:
-		envFile = ".env.local"
+		envFile = ".env"
 	}
 
 	// Try to load environment-specific file
-	if err := gotenv.Load(envFile); err != nil {
+	if err := gotenv.OverLoad(envFile); err != nil {
 		// Not an error if file doesn't exist in production (uses real env vars)
 		if env != "production" {
 			log.Warn().Str("file", envFile).Msg("⚠️  Could not load env file, using system environment")
@@ -562,6 +562,21 @@ func main() {
 	storageProxy := proxy.NewStorageProxy(storageBaseURL, "core-gateway")
 	log.Info().Str("storage_base_url", storageBaseURL).Msg("✅ Storage proxy registered (POST /api/v1/profile-picture/upload-url, POST /api/v1/bank-scan/upload-url, POST /api/v1/chat-media/upload-url, POST /api/v1/invoice/upload-url)")
 
+	// Support proxy — user-facing "Contact support" surface. Gives the Flutter
+	// app a JWT-protected route to support-service's chat + tickets API so it
+	// never touches the raw :8030 microservice port directly (which isn't
+	// publicly exposed). support-service re-validates the forwarded JWT.
+	supportBaseURL := getEnv("SUPPORT_SERVICE_HTTP_URL", "http://127.0.0.1:8030")
+	supportProxy := proxy.NewSupportProxy(supportBaseURL)
+	log.Info().Str("support_base_url", supportBaseURL).Msg("✅ Support proxy registered (/api/v1/support/*)")
+
+	// Client-logs ingest — Flutter devices ship structured logs to our internal
+	// Loki through this proxy (POST /api/v1/client-logs). Registered BEFORE the
+	// JWT middleware below so the pre-login biometric lock screen can log too;
+	// the payload's user_id is a label-only field, never an auth decision.
+	clientLogsProxy := proxy.NewClientLogsProxy()
+	log.Info().Str("loki_push_url", getEnv("LOKI_PUSH_URL", "http://loki:3100/loki/api/v1/push")).Msg("✅ Client-logs proxy registered (POST /api/v1/client-logs → Loki)")
+
 	// Unified user search (local saved recipients incl. alias → global users).
 	// Dialed here (its own clients) so the route can be registered BEFORE the
 	// Any("/*path") wildcard below — the manual recipient/auth proxies are
@@ -592,6 +607,9 @@ func main() {
 
 	// API group with JWT authentication (applies to all /api/* routes except auth public endpoints)
 	apiGroup := router.Group("/api")
+	// Client-logs FIRST — before JWT — so pre-login (biometric lock) logs are
+	// accepted anonymously; authenticated logs simply carry a user_id in-body.
+	apiGroup.Use(interceptClientLogs(clientLogsProxy))
 	apiGroup.Use(middleware.JWTAuthMiddleware())
 	apiGroup.Use(interceptVerifyTransactionPin(txPinClient))
 	// Storage proxy is intercepted in the same middleware-style as the
@@ -603,6 +621,13 @@ func main() {
 	// Intercepted in the same middleware style as the storage/PIN handlers
 	// because the Any("/*path") wildcard below would otherwise claim it.
 	apiGroup.Use(interceptUnifiedSearch(unifiedSearchProxy))
+	// User-facing support (chat + tickets) → support-service. Intercepted in the
+	// same middleware style because the Any("/*path") wildcard below would
+	// otherwise claim /api/v1/support/*.
+	apiGroup.Use(interceptSupport(supportProxy))
+	// Recipient routes are generated WITHOUT the /api prefix — rewrite
+	// /api/v1/recipients/* → /v1/recipients/* onto the same mux.
+	apiGroup.Use(interceptRecipients(mux))
 	apiGroup.Any("/*path", wrapGrpcGateway(mux))
 
 	// Note: Auth service routes (/api/v1/auth/*) are registered via grpc-gateway mux
@@ -1281,6 +1306,22 @@ func interceptProfilePictureUploadURL(p *proxy.StorageProxy) gin.HandlerFunc {
 	}
 }
 
+// interceptClientLogs dispatches POST /api/v1/client-logs to the ClientLogsProxy
+// (Flutter → Loki). Registered as the FIRST apiGroup middleware, so it runs
+// BEFORE JWTAuthMiddleware — pre-login logs are accepted without a token. Same
+// intercept-before-wildcard pattern as the storage/support proxies (a POST route
+// would collide with the Any("/*path") wildcard and panic Gin).
+func interceptClientLogs(p *proxy.ClientLogsProxy) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if p != nil && c.Request.Method == http.MethodPost && c.Param("path") == "/v1/client-logs" {
+			p.Handle(c)
+			c.Abort()
+			return
+		}
+		c.Next()
+	}
+}
+
 // interceptUnifiedSearch dispatches GET /api/v1/users/search-unified to the
 // composed UnifiedSearchProxy (saved recipients incl. alias → global users).
 // Same intercept-before-wildcard pattern as interceptProfilePictureUploadURL.
@@ -1288,6 +1329,45 @@ func interceptUnifiedSearch(p *proxy.UnifiedSearchProxy) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if p != nil && c.Request.Method == http.MethodGet && c.Param("path") == "/v1/users/search-unified" {
 			p.HandleUnifiedSearch(c)
+			c.Abort()
+			return
+		}
+		c.Next()
+	}
+}
+
+// interceptRecipients bridges /api/v1/recipients/* onto the grpc-gateway mux,
+// whose generated RecipientService routes are rooted at /v1/recipients/* (the
+// proto's http rules carry no /api prefix, unlike most other services on this
+// mux). Without this rewrite every recipient HTTP call 404s — the Flutter app
+// talks gRPC so it never noticed, but HTTP consumers (chat agents' saved
+// recipient search/list/auto-save) silently failed. Same
+// intercept-before-wildcard pattern as interceptUnifiedSearch; JWT middleware
+// has already run on the apiGroup.
+func interceptRecipients(mux *runtime.ServeMux) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if strings.HasPrefix(c.Param("path"), "/v1/recipients") {
+			c.Request.URL.Path = strings.TrimPrefix(c.Request.URL.Path, "/api")
+			c.Request.URL.RawPath = ""
+			c.Status(http.StatusOK)
+			mux.ServeHTTP(c.Writer, c.Request)
+			c.Abort()
+			return
+		}
+		c.Next()
+	}
+}
+
+// interceptSupport dispatches the user-facing support surface
+// (/api/v1/support/...) to support-service via SupportProxy. Any method under
+// the /v1/support/ prefix is forwarded. Same intercept-before-wildcard pattern
+// as interceptUnifiedSearch — the Any("/*path") wildcard would otherwise claim
+// these paths. JWTAuthMiddleware has already run on the apiGroup, so the caller
+// is authenticated before we forward the token to support-service.
+func interceptSupport(p *proxy.SupportProxy) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if p != nil && strings.HasPrefix(c.Param("path"), "/v1/support/") {
+			p.Handle(c)
 			c.Abort()
 			return
 		}
