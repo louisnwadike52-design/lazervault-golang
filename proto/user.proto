@@ -245,6 +245,10 @@ message VerifyPasscodeResponse {
   bool success = 1;
   string message = 2;
   bool is_valid = 3;
+  // Brute-force feedback: wrong tries left before lockout, and seconds to wait
+  // when currently locked (retry_after_seconds > 0 => locked).
+  int32 attempts_remaining = 4;
+  int32 retry_after_seconds = 5;
 }
 
 message RemovePasscodeRequest {

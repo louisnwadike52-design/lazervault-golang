@@ -5,6 +5,9 @@ package pb;
 
 import "google/api/annotations.proto";
 import "protoc-gen-openapiv2/options/annotations.proto";
+// VerifyPasscodeRequest/Response are defined in user.proto (same `pb` package);
+// reused here for the AuthService.VerifyPasscode RPC the gateway proxies to.
+import "user.proto";
 
 option go_package = "lazervaultGo/pb";
 
@@ -486,6 +489,14 @@ service AuthService {
     };
   }
 
+  // Public: complete an adaptive step-up login by verifying the login OTP.
+  rpc VerifyLoginOtp(VerifyLoginOtpRequest) returns (LoginResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/verify-login-otp"
+      body: "*"
+    };
+  }
+
   // Register passcode
   rpc RegisterPasscode(RegisterPasscodeRequest) returns (RegisterPasscodeResponse) {
     option (google.api.http) = {
@@ -513,6 +524,28 @@ service AuthService {
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "Change Passcode";
       description: "Change user passcode";
+      tags: ["Authentication"];
+      security: {
+        security_requirement: {
+          key: "bearer";
+        }
+      };
+    };
+  }
+
+  // Device permissions audit — mirrors auth-service.
+  rpc UpdateDevicePermissions(AuthUpdateDevicePermissionsRequest) returns (AuthUpdateDevicePermissionsResponse);
+  rpc GetDevicePermissions(AuthGetDevicePermissionsRequest) returns (AuthGetDevicePermissionsResponse);
+
+  // Verify passcode (read-only; no session change). Mirrors auth-service.
+  rpc VerifyPasscode(VerifyPasscodeRequest) returns (VerifyPasscodeResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/verify-passcode"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Verify Passcode";
+      description: "Verify the current login passcode without minting a session";
       tags: ["Authentication"];
       security: {
         security_requirement: {
@@ -982,6 +1015,258 @@ service AuthService {
       };
     };
   }
+
+  // ===== Configurable Auth Mode: Phone + Passcode flow ===== (PUBLIC)
+  rpc GetAuthenticationConfig(GetAuthenticationConfigRequest) returns (GetAuthenticationConfigResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/auth/config"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Get Authentication Config";
+      description: "Returns the active platform authentication mode (email_password | phone_passcode).";
+      tags: ["Authentication"];
+    };
+  }
+
+  rpc RequestSignupPhoneOTP(RequestSignupPhoneOTPRequest) returns (RequestSignupPhoneOTPResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/phone/request-otp"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Request Signup Phone OTP";
+      description: "Send a 6-digit SMS OTP to verify phone ownership at the start of phone+passcode signup.";
+      tags: ["Authentication"];
+    };
+  }
+
+  rpc VerifySignupPhoneOTP(VerifySignupPhoneOTPRequest) returns (VerifySignupPhoneOTPResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/phone/verify-otp"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Verify Signup Phone OTP";
+      description: "Verify the signup phone OTP and receive a single-use signup token.";
+      tags: ["Authentication"];
+    };
+  }
+
+  rpc SignupWithPhone(SignupWithPhoneRequest) returns (LoginResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/phone/signup"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Signup with Phone + Passcode";
+      description: "Create a phone-primary account (email optional) and return a session.";
+      tags: ["Authentication"];
+    };
+  }
+
+  rpc LoginWithPhonePasscode(LoginWithPhonePasscodeRequest) returns (LoginResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/phone/login"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Login with Phone + Passcode";
+      description: "Authenticate a phone-primary user with phone number and passcode.";
+      tags: ["Authentication"];
+    };
+  }
+
+  // Public: start a passcode reset for a phone-primary (passwordless) account by
+  // sending a 6-digit SMS OTP. Never reveals whether the phone is registered.
+  rpc RequestPasscodeReset(RequestPasscodeResetRequest) returns (RequestPasscodeResetResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/passcode-reset/request"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Request Passcode Reset (Phone OTP)";
+      description: "Send a 6-digit SMS OTP to a phone-primary account to begin a passcode reset.";
+      tags: ["Authentication"];
+    };
+  }
+
+  // Public: verify the passcode-reset OTP WITHOUT consuming it (immediate
+  // 6-digit validation before setting a new passcode).
+  rpc VerifyPasscodeResetOTP(VerifyPasscodeResetOTPRequest) returns (VerifyPasscodeResetOTPResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/passcode-reset/verify"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Verify Passcode Reset OTP";
+      description: "Validate the SMS reset OTP without consuming it.";
+      tags: ["Authentication"];
+    };
+  }
+
+  // Public: verify the passcode-reset OTP and set a new login passcode.
+  rpc ResetPasscodeWithOTP(ResetPasscodeWithOTPRequest) returns (ResetPasscodeWithOTPResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/passcode-reset/confirm"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Reset Passcode with OTP";
+      description: "Verify the SMS OTP and set a new 6-digit login passcode for a phone-primary account.";
+      tags: ["Authentication"];
+    };
+  }
+
+  // Authenticated: set the calling user's preferred login method.
+  rpc SetPreferredLoginMethod(SetPreferredLoginMethodRequest) returns (SetPreferredLoginMethodResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/preferred-login-method"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Set Preferred Login Method";
+      description: "Set the calling user's preferred login method (email_password | phone_passcode).";
+      tags: ["Authentication"];
+    };
+  }
+
+  // Authenticated: set an INITIAL password for a passwordless account.
+  rpc SetPassword(SetPasswordRequest) returns (SetPasswordResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/set-password"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Set Initial Password";
+      description: "Set a first password for a passwordless account.";
+      tags: ["Authentication"];
+    };
+  }
+
+  // Admin: set a specific user's preferred login method (dashboard override).
+  rpc AdminSetPreferredLoginMethod(AdminSetPreferredLoginMethodRequest) returns (SetPreferredLoginMethodResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/admin/preferred-login-method"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Admin: Set User Preferred Login Method";
+      description: "Admin override of a specific user's preferred login method.";
+      tags: ["Authentication"];
+    };
+  }
+
+  // Authenticated: begin changing the calling user's phone to a brand-new one.
+  rpc RequestPhoneChange(RequestPhoneChangeRequest) returns (RequestPhoneChangeResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/profile/phone-change/request"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Request Phone Change";
+      description: "Send an SMS OTP to a new phone number to begin changing the account's phone.";
+      tags: ["Authentication"];
+    };
+  }
+
+  // Authenticated: verify the OTP for the new number and apply the change.
+  rpc VerifyPhoneChange(VerifyPhoneChangeRequest) returns (VerifyPhoneChangeResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/profile/phone-change/verify"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Verify Phone Change";
+      description: "Verify the SMS OTP for a new phone number and apply the change.";
+      tags: ["Authentication"];
+    };
+  }
+
+  // ===== Device registry (trusted devices / security center) =====
+  rpc RegisterDevice(RegisterDeviceRequest) returns (RegisterDeviceResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/devices/register"
+      body: "*"
+    };
+  }
+  rpc ListDevices(ListDevicesRequest) returns (ListDevicesResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/auth/devices"
+    };
+  }
+  rpc RevokeDevice(RevokeDeviceRequest) returns (RevokeDeviceResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/devices/revoke"
+      body: "*"
+    };
+  }
+  rpc GetLoginHistory(GetLoginHistoryRequest) returns (GetLoginHistoryResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/auth/login-activity"
+    };
+  }
+
+  // ===== Account deletion (in-app self-service — required by both app stores) =====
+  // Initiate deletion of the CALLING user's account (JWT-identified). Blocked
+  // when the user still holds funds/active holds (error_code = FUNDS_PRESENT).
+  // Otherwise starts a cancellable grace period and revokes the user's sessions.
+  rpc RequestAccountDeletion(RequestAccountDeletionRequest) returns (RequestAccountDeletionResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/account/delete"
+      body: "*"
+    };
+  }
+
+  // Cancel a pending account deletion within the grace window (JWT-identified).
+  rpc CancelAccountDeletion(CancelAccountDeletionRequest) returns (CancelAccountDeletionResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/account/delete/cancel"
+      body: "*"
+    };
+  }
+
+  // ===== Account self-lock (Settings → Security) =====
+  // Arm a user-initiated login + transaction lock for a timeframe (JWT-identified).
+  // No early unlock — it elapses. Blocks login (after creds, before 2FA) AND
+  // money movement (accounts-service gates debits/holds on the same window).
+  rpc RequestAccountLock(RequestAccountLockRequest) returns (RequestAccountLockResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/account/lock"
+      body: "*"
+    };
+  }
+}
+
+// ===== Account self-lock =====
+message RequestAccountLockRequest {
+  int32 duration_seconds = 1;  // clamped server-side to 1h..30d
+  string reason = 2;           // optional
+}
+message RequestAccountLockResponse {
+  bool success = 1;
+  string locked_until = 2;     // ISO 8601 — when the lock elapses
+  string message = 3;
+}
+
+// ===== Account deletion =====
+message RequestAccountDeletionRequest {
+  // User is identified via the JWT; no user_id in the body. Optional free-text
+  // reason captured for the deletion audit log.
+  string reason = 1;
+}
+message RequestAccountDeletionResponse {
+  bool success = 1;
+  string status = 2;             // "pending_deletion" on success
+  string scheduled_at = 3;       // ISO 8601 — when the account is finalized
+  int32 grace_period_days = 4;   // cancellable window
+  string message = 5;
+  string error_code = 6;         // "FUNDS_PRESENT" when blocked by a balance/hold
+}
+message CancelAccountDeletionRequest {}
+message CancelAccountDeletionResponse {
+  bool success = 1;
+  string status = 2;             // "none" once restored
+  string message = 3;
 }
 
 // ===== Signup =====
@@ -1046,6 +1331,11 @@ message LoginResponse {
   LoginData data = 6;
   bool two_factor_required = 7;
   string two_factor_token = 8; // Temporary token for 2FA flow
+  bool step_up_required = 9;
+  string step_up_token = 10;
+  string step_up_method = 11;
+  string step_up_destination = 12;
+  string two_factor_method = 13;
 }
 
 message LoginData {
@@ -1053,6 +1343,7 @@ message LoginData {
   Session session = 2;
   bool has_passcode = 3;
   bool has_transaction_pin = 4;
+  bool has_password = 5;
 }
 
 message Session {
@@ -1060,6 +1351,147 @@ message Session {
   string refresh_token = 2;
   int64 expires_in = 3;
   string user_id = 4;
+}
+
+// ===== Configurable Auth Mode: Phone + Passcode =====
+
+message GetAuthenticationConfigRequest {}
+
+message GetAuthenticationConfigResponse {
+  string authentication_mode = 1;        // "email_password" | "phone_passcode"
+  bool email_verification_required = 2;  // admin toggle: require email verification in onboarding
+  bool phone_verification_required = 3;  // admin toggle: require phone verification in onboarding
+}
+
+message RequestSignupPhoneOTPRequest {
+  string phone = 1;        // E.164 (e.g. +2348012345678)
+  string country_code = 2; // ISO country (e.g. "NG")
+}
+
+message RequestSignupPhoneOTPResponse {
+  bool success = 1;
+  string msg = 2;
+  int64 expires_in = 3;
+  int32 resend_after_seconds = 4;
+}
+
+message VerifySignupPhoneOTPRequest {
+  string phone = 1;
+  string code = 2;
+}
+
+message VerifySignupPhoneOTPResponse {
+  bool success = 1;
+  string msg = 2;
+  string signup_token = 3;
+  int64 expires_in = 4;
+}
+
+message SignupWithPhoneRequest {
+  string phone = 1;
+  string signup_token = 2;
+  string passcode = 3;
+  string first_name = 4;
+  string last_name = 5;
+  string email = 6;           // OPTIONAL
+  string country_code = 7;
+  string locale = 8;          // OPTIONAL
+  string username = 9;        // OPTIONAL
+  string referral_code = 10;  // OPTIONAL
+  string device_id = 11;
+  string device_name = 12;
+  string date_of_birth = 13;  // OPTIONAL ISO 8601 date (YYYY-MM-DD)
+}
+
+message LoginWithPhonePasscodeRequest {
+  string phone = 1;
+  string passcode = 2;
+  string device_id = 3;
+  string device_name = 4;
+}
+
+message RequestPasscodeResetRequest {
+  string phone = 1;        // E.164 (e.g. +2348012345678)
+  string country_code = 2; // ISO country (e.g. "NG")
+}
+
+message RequestPasscodeResetResponse {
+  bool success = 1;
+  string msg = 2;
+  int64 expires_in = 3;
+  int32 resend_after_seconds = 4;
+}
+
+message ResetPasscodeWithOTPRequest {
+  string phone = 1;
+  string code = 2;
+  string new_passcode = 3;
+}
+
+message ResetPasscodeWithOTPResponse {
+  bool success = 1;
+  string msg = 2;
+}
+
+message VerifyPasscodeResetOTPRequest {
+  string phone = 1;        // E.164
+  string code = 2;         // 6-digit OTP
+  string country_code = 3; // ISO country (e.g. "NG")
+}
+
+message VerifyPasscodeResetOTPResponse {
+  bool success = 1;
+  string msg = 2;
+}
+
+message RequestPhoneChangeRequest {
+  string new_phone = 1;    // E.164 (e.g. +2348012345678)
+  string country_code = 2; // ISO country (e.g. "NG")
+}
+
+message RequestPhoneChangeResponse {
+  bool success = 1;
+  string msg = 2;
+  int64 expires_in = 3;           // seconds until the OTP expires
+  int32 resend_after_seconds = 4; // cooldown before another OTP may be requested
+}
+
+message VerifyPhoneChangeRequest {
+  string new_phone = 1;    // E.164 — must match the number the OTP was sent to
+  string code = 2;         // 6-digit OTP
+  string country_code = 3; // ISO country (e.g. "NG")
+}
+
+message VerifyPhoneChangeResponse {
+  bool success = 1;
+  string msg = 2;
+  string phone = 3; // the newly-applied phone number
+}
+
+message SetPreferredLoginMethodRequest {
+  string user_id = 1;  // from JWT context (ignored if server-derived)
+  string method = 2;   // "email_password" | "phone_passcode"
+}
+
+message SetPreferredLoginMethodResponse {
+  bool success = 1;
+  string msg = 2;
+  string preferred_login_method = 3;
+}
+
+message AdminSetPreferredLoginMethodRequest {
+  string target_user_id = 1;
+  string method = 2;
+}
+
+message SetPasswordRequest {
+  string user_id = 1;
+  string new_password = 2;
+}
+
+message SetPasswordResponse {
+  bool success = 1;
+  string msg = 2;
 }
 
 // ===== Refresh Token =====
@@ -1190,6 +1622,101 @@ message GetMeRequest {
 
 message GetMeResponse {
   User user = 1;
+  bool has_passcode = 2;
+  bool has_password = 3;
+  string preferred_login_method = 4;
+}
+
+message AuthDevicePermission {
+  string permission_type = 1;
+  bool is_granted = 2;
+  string granted_at = 3;
+}
+
+message AuthUpdateDevicePermissionsRequest {
+  repeated AuthDevicePermission permissions = 1;
+}
+
+message AuthUpdateDevicePermissionsResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message AuthGetDevicePermissionsRequest {}
+
+message AuthGetDevicePermissionsResponse {
+  bool success = 1;
+  string message = 2;
+  repeated AuthDevicePermission permissions = 3;
+}
+
+// ===== Device registry (trusted devices) =====
+message RegisterDeviceRequest {
+  string device_uuid = 1;
+  reserved 2;            // was public_key (removed — App Check covers device assurance)
+  reserved "public_key";
+  string platform = 3;
+  string model = 4;
+  string os_version = 5;
+  string app_version = 6;
+  string fcm_token = 7;
+}
+message RegisterDeviceResponse {
+  bool success = 1;
+  string message = 2;
+  string device_uuid = 3;
+  string trust_status = 4;
+}
+message DeviceInfo {
+  string device_uuid = 1;
+  string platform = 2;
+  string model = 3;
+  string os_version = 4;
+  string app_version = 5;
+  string trust_status = 6;
+  string last_ip = 7;
+  string last_location = 8;
+  int64 first_seen_at = 9;
+  int64 last_login_at = 10;
+  bool current = 11;
+}
+message ListDevicesRequest {}
+message ListDevicesResponse {
+  bool success = 1;
+  string message = 2;
+  repeated DeviceInfo devices = 3;
+}
+message RevokeDeviceRequest {
+  string device_uuid = 1;
+}
+message RevokeDeviceResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message GetLoginHistoryRequest {
+  int32 limit = 1;
+  int32 offset = 2;
+}
+message LoginActivityEntry {
+  bool success = 1;
+  string ip_address = 2;
+  string device_name = 3;
+  string user_agent = 4;
+  string fail_reason = 5;
+  int64 created_at = 6;
+}
+message GetLoginHistoryResponse {
+  bool success = 1;
+  string message = 2;
+  repeated LoginActivityEntry entries = 3;
+}
+
+message VerifyLoginOtpRequest {
+  string step_up_token = 1;
+  string code = 2;
+  string device_id = 3;
+  string device_name = 4;
 }
 
 message GetMyInsurancePrefillRequest {}
@@ -1352,6 +1879,10 @@ message VerifyTwoFactorResponse {
   string refresh_token = 2;
   int64 expires_in = 3;
   User user = 4;
+  // Passcode / transaction-PIN presence — parity with LoginData so post-2FA
+  // login routes like a non-2FA login (see auth-service copy for rationale).
+  bool has_passcode = 5;
+  bool has_transaction_pin = 6;
 }
 
 message CompleteTwoFactorSetupRequest {
@@ -1542,6 +2073,9 @@ message User {
   string kyc_status = 22;            // KYC verification status
   repeated string roles = 23;       // All roles (matches JWT "roles")
   string role = 24;                 // Primary role for UI (matches JWT "role")
+  string auth_type = 25;            // EMAIL_PASSWORD | PHONE_PASSCODE — pins the user's login method
+  string preferred_login_method = 26; // user-selectable: "email_password" | "phone_passcode" | ""
+  bool has_password = 27;             // password_hash != ""
 }
 
 // ===== Signup Progress Tracking =====

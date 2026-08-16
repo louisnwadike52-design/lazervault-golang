@@ -170,8 +170,8 @@ func (p *UnifiedSearchProxy) HandleUnifiedSearch(c *gin.Context) {
 		}
 	}
 
-	// ---- Phase 2: GLOBAL users (paginated, deduped against local + self) ----
-	global := []unifiedResultItem{}
+	// ---- Phase 2: DIRECTORY users (auth-service, paginated, deduped vs local+self)
+	directory := []unifiedResultItem{}
 	hasMore := false
 	gr, gerr := p.authClient.SearchUsers(outCtx, &pb.UserSearchRequest{
 		Query: query, Limit: int32(limit), Offset: int32(offset),
@@ -189,21 +189,20 @@ func (p *UnifiedSearchProxy) HandleUnifiedSearch(c *gin.Context) {
 			if localUserIDs[u.GetUserId()] {
 				continue // already shown as a saved contact above
 			}
-			global = append(global, userToItem(u))
+			directory = append(directory, userToItem(u))
 		}
 	}
 
-	// ---- Phase 3: ORG/GROUP users (group-accounts-service, deduped) ----
-	// Members of organization/group accounts that aren't already in the local
-	// saved set or the global directory results. Best-effort: an org-search
-	// failure must never blank the whole result.
-	if p.groupAcctClient != nil {
-		globalSeen := make(map[string]bool, len(global))
-		for _, g := range global {
-			if g.UserID != "" {
-				globalSeen[g.UserID] = true
-			}
-		}
+	// ---- Phase 3: FINANCIAL CONNECTIONS (org/group members) ----
+	// Ranked ABOVE the general directory — a group/org connection is a stronger
+	// relationship than a stranger, so the search order is:
+	//   saved recipients (alias-first) → financial connections → general users.
+	// FIRST PAGE ONLY: org search isn't paginated, so fetching it per-page would
+	// duplicate members across load-more pages. Best-effort: a failure here must
+	// never blank the whole result.
+	orgItems := []unifiedResultItem{}
+	orgSeen := make(map[string]bool)
+	if offset == 0 && p.groupAcctClient != nil {
 		if or, oerr := p.groupAcctClient.SearchUsers(outCtx, &groupaccountspb.SearchUsersRequest{
 			Query: query, Limit: int32(limit),
 		}); oerr != nil {
@@ -211,19 +210,30 @@ func (p *UnifiedSearchProxy) HandleUnifiedSearch(c *gin.Context) {
 		} else if or != nil {
 			for _, m := range or.GetUsers() {
 				uid := m.GetUserId()
-				if uid == "" {
+				if uid == "" || orgSeen[uid] {
 					continue
 				}
 				if callerID != "" && uid == callerID {
 					continue // never the caller themselves
 				}
-				if localUserIDs[uid] || globalSeen[uid] {
-					continue // already shown as saved or in the global directory
+				if localUserIDs[uid] {
+					continue // already shown as a saved contact above
 				}
-				globalSeen[uid] = true
-				global = append(global, groupMemberToItem(m))
+				orgSeen[uid] = true
+				orgItems = append(orgItems, groupMemberToItem(m))
 			}
 		}
+	}
+
+	// Assemble global = financial connections FIRST, then the general directory
+	// with anyone already shown as a connection removed (the connection wins).
+	global := make([]unifiedResultItem, 0, len(orgItems)+len(directory))
+	global = append(global, orgItems...)
+	for _, d := range directory {
+		if d.UserID != "" && orgSeen[d.UserID] {
+			continue
+		}
+		global = append(global, d)
 	}
 
 	// Don't mask a real failure as "no matches": if the directory search errored
@@ -289,6 +299,18 @@ func (p *UnifiedSearchProxy) outgoingCtx(c *gin.Context) context.Context {
 	md := metadata.New(map[string]string{})
 	if auth := c.GetHeader("Authorization"); auth != "" {
 		md.Set("authorization", auth)
+	}
+	// CRITICAL: downstream services (auth-service.SearchUsers,
+	// accounts-service.ListRecipients) authenticate via the x-user-id METADATA,
+	// not by parsing the JWT. This BFF calls them directly over gRPC, bypassing
+	// grpc-gateway's incoming-header→metadata mapping that normally injects
+	// x-user-id — so we must set it explicitly from the JWT-verified caller
+	// (JWTAuthMiddleware put it in the gin context). Without this,
+	// extractUserIDFromContext fails, SearchUsers returns "Authentication
+	// required" with an empty list, and the WHOLE unified search silently
+	// returns nothing.
+	if uid := strings.TrimSpace(c.GetString("user_id")); uid != "" {
+		md.Set("x-user-id", uid)
 	}
 	if rid := c.GetHeader("X-Request-Id"); rid != "" {
 		md.Set("x-request-id", rid)

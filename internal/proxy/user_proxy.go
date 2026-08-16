@@ -55,10 +55,28 @@ func (p *UserServiceProxy) GetUserProfile(ctx context.Context, req *pb.GetUserPr
 	// Map AuthUser (auth-service format) to common.User (client format)
 	commonUser := authUserToCommonUser(authResp.User)
 
+	// Load the user's real notification/display preferences so the app reflects
+	// persisted state (push/email/sms/dark mode) instead of client defaults.
+	prefs := &pb.UserPreferences{
+		UserId:        userID,
+		Country:       authResp.User.GetCountryCode(),
+		ActiveCountry: authResp.User.GetCountryCode(),
+	}
+	if p.notificationsClient != nil {
+		if np, nerr := p.notificationsClient.GetNotificationPreferences(forwardContext(ctx),
+			&notificationspb.GetNotificationPreferencesRequest{UserId: userID}); nerr == nil && np.GetPreferences() != nil {
+			prefs.PushNotifications = np.GetPreferences().GetPushEnabled()
+			prefs.EmailNotifications = np.GetPreferences().GetEmailEnabled()
+			prefs.SmsNotifications = np.GetPreferences().GetSmsEnabled()
+			prefs.DarkMode = np.GetPreferences().GetDarkMode()
+		}
+	}
+
 	return &pb.GetUserProfileResponse{
-		Success: true,
-		Message: "Profile retrieved successfully",
-		User:    commonUser,
+		Success:     true,
+		Message:     "Profile retrieved successfully",
+		User:        commonUser,
+		Preferences: prefs,
 	}, nil
 }
 
@@ -117,7 +135,9 @@ func authUserToCommonUser(au *pb.User) *pb.CommonUser {
 		Email:           au.Email,
 		PhoneNumber:     au.Phone,
 		Username:        au.Username,
-		Verified:        au.EmailVerified,
+		// `Verified` is the phone-verified flag on the client model — map it from
+		// PhoneVerified (was incorrectly mirrored from EmailVerified).
+		Verified:        au.PhoneVerified,
 		IsEmailVerified: au.EmailVerified,
 		Country:         au.CountryCode,
 		ProfilePicture:  au.ProfilePicture,
@@ -173,32 +193,42 @@ func (p *UserServiceProxy) UpdatePreferences(ctx context.Context, req *pb.Update
 		return nil, status.Error(codes.Unavailable, "notifications service not available")
 	}
 
-	// Proxy notification preferences to notifications-service
+	// Start from the user's CURRENT preferences so we don't clobber the granular
+	// per-type flags (transfers/payments/…) — the app only sets the 3 global
+	// channel master switches + dark mode.
+	base := &notificationspb.NotificationPreferences{}
+	if cur, cerr := p.notificationsClient.GetNotificationPreferences(forwardContext(ctx),
+		&notificationspb.GetNotificationPreferencesRequest{UserId: userID}); cerr == nil && cur.GetPreferences() != nil {
+		base = cur.GetPreferences()
+	}
+	base.PushEnabled = req.PushNotifications
+	base.EmailEnabled = req.EmailNotifications
+	base.SmsEnabled = req.SmsNotifications
+	base.DarkMode = req.DarkMode
+
 	notifResp, err := p.notificationsClient.UpdateNotificationPreferences(forwardContext(ctx), &notificationspb.UpdateNotificationPreferencesRequest{
-		UserId: userID,
-		Preferences: &notificationspb.NotificationPreferences{
-			TransfersEnabled:      req.PushNotifications,
-			PaymentsEnabled:       req.PushNotifications,
-			DepositsEnabled:       req.PushNotifications,
-			WithdrawalsEnabled:    req.PushNotifications,
-			AccountUpdatesEnabled: req.EmailNotifications,
-			SecurityAlertsEnabled: req.SmsNotifications,
-		},
+		UserId:      userID,
+		Preferences: base,
 	})
 	if err != nil {
 		log.Printf("[UserProxy] Failed to update notification preferences: %v", err)
 		return nil, err
 	}
 
+	// Return the PERSISTED channel/display values (not echoes of the request).
+	saved := notifResp.GetPreferences()
+	if saved == nil {
+		saved = base
+	}
 	return &pb.UpdatePreferencesResponse{
 		Success: true,
 		Message: notifResp.Message,
 		Preferences: &pb.UserPreferences{
 			UserId:             userID,
-			PushNotifications:  req.PushNotifications,
-			EmailNotifications: req.EmailNotifications,
-			SmsNotifications:   req.SmsNotifications,
-			DarkMode:           req.DarkMode,
+			PushNotifications:  saved.GetPushEnabled(),
+			EmailNotifications: saved.GetEmailEnabled(),
+			SmsNotifications:   saved.GetSmsEnabled(),
+			DarkMode:           saved.GetDarkMode(),
 			Language:           req.Language,
 			Currency:           req.Currency,
 			Country:            req.ActiveCountry,
@@ -237,7 +267,27 @@ func (p *UserServiceProxy) SetPasscode(ctx context.Context, req *pb.SetPasscodeR
 }
 
 func (p *UserServiceProxy) VerifyPasscode(ctx context.Context, req *pb.VerifyPasscodeRequest) (*pb.VerifyPasscodeResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "not implemented")
+	// Authenticated, read-only check of the current login passcode (no session
+	// change). The user identity is carried in the forwarded JWT metadata, which
+	// auth-service reads as x-user-id.
+	if _, err := authinterceptor.GetUserID(ctx); err != nil {
+		return nil, status.Error(codes.Unauthenticated, "authentication required")
+	}
+
+	authResp, err := p.authClient.VerifyPasscode(forwardContext(ctx), &pb.VerifyPasscodeRequest{
+		Passcode: req.Passcode,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &pb.VerifyPasscodeResponse{
+		Success:           authResp.Success,
+		Message:           authResp.Message,
+		IsValid:           authResp.IsValid,
+		AttemptsRemaining: authResp.AttemptsRemaining,
+		RetryAfterSeconds: authResp.RetryAfterSeconds,
+	}, nil
 }
 
 func (p *UserServiceProxy) RemovePasscode(ctx context.Context, req *pb.RemovePasscodeRequest) (*pb.RemovePasscodeResponse, error) {
@@ -261,20 +311,65 @@ func (p *UserServiceProxy) CheckPasscodeExists(ctx context.Context, req *pb.Chec
 		return nil, status.Error(codes.NotFound, "user not found")
 	}
 
-	// Passcode is set if signup_status indicates passcode_set or complete
-	hasPasscode := authResp.User.SignupStatus == "passcode_set" ||
-		authResp.User.SignupStatus == "complete"
-
+	// Authoritative: GetMe reports has_passcode from login_passcode_hash != "".
+	// (signup_status is unreliable — a user can have a passcode while still at
+	// an earlier signup stage, e.g. "created".)
 	return &pb.CheckPasscodeExistsResponse{
 		Success:     true,
-		HasPasscode: hasPasscode,
+		HasPasscode: authResp.HasPasscode,
 	}, nil
 }
 
 func (p *UserServiceProxy) UpdateDevicePermissions(ctx context.Context, req *pb.UpdateDevicePermissionsRequest) (*pb.UpdateDevicePermissionsResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "not implemented")
+	if _, err := authinterceptor.GetUserID(ctx); err != nil {
+		return nil, status.Error(codes.Unauthenticated, "authentication required")
+	}
+	authReq := &pb.AuthUpdateDevicePermissionsRequest{}
+	for _, perm := range req.Permissions {
+		grantedAt := ""
+		if perm.GrantedAt != nil {
+			grantedAt = perm.GrantedAt.AsTime().Format(time.RFC3339)
+		}
+		authReq.Permissions = append(authReq.Permissions, &pb.AuthDevicePermission{
+			PermissionType: perm.PermissionType.String(),
+			IsGranted:      perm.IsGranted,
+			GrantedAt:      grantedAt,
+		})
+	}
+	authResp, err := p.authClient.UpdateDevicePermissions(forwardContext(ctx), authReq)
+	if err != nil {
+		return nil, err
+	}
+	return &pb.UpdateDevicePermissionsResponse{
+		Success: authResp.Success,
+		Message: authResp.Message,
+	}, nil
 }
 
 func (p *UserServiceProxy) GetDevicePermissions(ctx context.Context, req *pb.GetDevicePermissionsRequest) (*pb.GetDevicePermissionsResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "not implemented")
+	if _, err := authinterceptor.GetUserID(ctx); err != nil {
+		return nil, status.Error(codes.Unauthenticated, "authentication required")
+	}
+	authResp, err := p.authClient.GetDevicePermissions(forwardContext(ctx), &pb.AuthGetDevicePermissionsRequest{})
+	if err != nil {
+		return nil, err
+	}
+	out := &pb.GetDevicePermissionsResponse{
+		Success: authResp.Success,
+		Message: authResp.Message,
+	}
+	for _, e := range authResp.Permissions {
+		var ts *timestamppb.Timestamp
+		if e.GrantedAt != "" {
+			if t, perr := time.Parse(time.RFC3339, e.GrantedAt); perr == nil {
+				ts = timestamppb.New(t)
+			}
+		}
+		out.Permissions = append(out.Permissions, &pb.DevicePermission{
+			PermissionType: pb.PermissionType(pb.PermissionType_value[e.PermissionType]),
+			IsGranted:      e.IsGranted,
+			GrantedAt:      ts,
+		})
+	}
+	return out, nil
 }

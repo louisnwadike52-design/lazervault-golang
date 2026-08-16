@@ -110,6 +110,10 @@ func (p *AccountsServiceProxy) UpdateSpendingLimits(ctx context.Context, req *ac
 	return p.client.UpdateSpendingLimits(forwardContext(ctx), req)
 }
 
+func (p *AccountsServiceProxy) GetSpendingUsage(ctx context.Context, req *accountspb.GetSpendingUsageRequest) (*accountspb.GetSpendingUsageResponse, error) {
+	return p.client.GetSpendingUsage(forwardContext(ctx), req)
+}
+
 func (p *AccountsServiceProxy) RevealPIN(ctx context.Context, req *accountspb.RevealPINRequest) (*accountspb.RevealPINResponse, error) {
 	return p.client.RevealPIN(forwardContext(ctx), req)
 }

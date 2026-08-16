@@ -124,6 +124,42 @@ var allowedChatMediaExts = map[string]string{
 	"mp3":  "audio/mpeg",
 }
 
+// allowedEscrowMediaContentTypes extends the image allow-list with the short-clip
+// video MIME types escrow deals accept as evidence (product photo/video, delivery
+// proof, dispute/refund evidence). Video is capped small (see escrowVideoMaxBytes)
+// so a one-minute clip never fills storage.
+var allowedEscrowMediaContentTypes = map[string]string{
+	"image/jpeg":      "jpg",
+	"image/jpg":       "jpg",
+	"image/png":       "png",
+	"image/webp":      "webp",
+	"image/heic":      "heic",
+	"image/gif":       "gif",
+	"video/mp4":       "mp4",
+	"video/quicktime": "mov",
+	"video/webm":      "webm",
+}
+
+// allowedEscrowMediaExts is the parallel filename-based allow-list for escrow media.
+var allowedEscrowMediaExts = map[string]string{
+	"jpg":  "image/jpeg",
+	"jpeg": "image/jpeg",
+	"png":  "image/png",
+	"webp": "image/webp",
+	"heic": "image/heic",
+	"gif":  "image/gif",
+	"mp4":  "video/mp4",
+	"mov":  "video/quicktime",
+	"webm": "video/webm",
+}
+
+// Escrow evidence size caps (client enforces + asks to compress first; these are
+// surfaced to the client and kept in sync with escrow-service + storage-service).
+const (
+	escrowImageMaxBytes = 8 * 1024 * 1024  // 8 MB
+	escrowVideoMaxBytes = 10 * 1024 * 1024 // 10 MB
+)
+
 type uploadURLClientRequest struct {
 	Filename    string `json:"filename"`
 	ContentType string `json:"content_type"`
@@ -178,6 +214,13 @@ func (p *StorageProxy) HandleInvoiceUploadURL(c *gin.Context) {
 	p.handleScopedUploadURL(c, "invoice")
 }
 
+// HandleEscrowUploadURL handles POST /api/v1/escrow/upload-url. Holds the
+// buyer's product/service image and the seller's proof-of-delivery image for
+// an escrow deal, scoped to the uploading user.
+func (p *StorageProxy) HandleEscrowUploadURL(c *gin.Context) {
+	p.handleScopedUploadURL(c, "escrow")
+}
+
 // handleScopedUploadURL is the shared implementation for every per-user
 // image-upload endpoint we proxy. `keyspace` selects which sub-prefix
 // inside `users/<user_id>/` the generated object key lives under.
@@ -211,9 +254,12 @@ func (p *StorageProxy) handleScopedUploadURL(c *gin.Context, keyspace string) {
 		contentType string
 		typeErr     error
 	)
-	if keyspace == "chat-media" {
+	switch keyspace {
+	case "chat-media":
 		ext, contentType, typeErr = resolveChatMediaTypeAndExt(req.Filename, req.ContentType)
-	} else {
+	case "escrow":
+		ext, contentType, typeErr = resolveEscrowMediaTypeAndExt(req.Filename, req.ContentType)
+	default:
 		ext, contentType, typeErr = resolveImageTypeAndExt(req.Filename, req.ContentType)
 	}
 	if typeErr != nil {
@@ -297,6 +343,12 @@ func (p *StorageProxy) handleScopedUploadURL(c *gin.Context, keyspace string) {
 		return
 	}
 
+	mediaKind := "image"
+	maxBytes := escrowImageMaxBytes
+	if strings.HasPrefix(contentType, "video/") {
+		mediaKind = "video"
+		maxBytes = escrowVideoMaxBytes
+	}
 	c.JSON(http.StatusOK, gin.H{
 		"success":      true,
 		"upload_url":   p.toPublicURL(parsed.UploadURL),
@@ -304,7 +356,27 @@ func (p *StorageProxy) handleScopedUploadURL(c *gin.Context, keyspace string) {
 		"key":          parsed.Key,
 		"expires_at":   parsed.ExpiresAt,
 		"content_type": contentType,
+		"media_kind":   mediaKind,
+		"max_bytes":    maxBytes,
 	})
+}
+
+// resolveEscrowMediaTypeAndExt is the escrow counterpart of resolveImageTypeAndExt —
+// it accepts images AND the short-clip video MIME types escrow deals allow.
+func resolveEscrowMediaTypeAndExt(filename, contentType string) (string, string, error) {
+	ct := strings.ToLower(strings.TrimSpace(contentType))
+	if ct != "" {
+		if ext, ok := allowedEscrowMediaContentTypes[ct]; ok {
+			return ext, ct, nil
+		}
+	}
+	if filename != "" {
+		ext := strings.TrimPrefix(strings.ToLower(path.Ext(filename)), ".")
+		if mt, ok := allowedEscrowMediaExts[ext]; ok {
+			return ext, mt, nil
+		}
+	}
+	return "", "", errors.New("filename or content_type must identify a supported image (jpg, png, webp, heic, gif) or video (mp4, mov, webm)")
 }
 
 // toPublicURL rewrites an internal storage URL's scheme+host to the externally
@@ -346,6 +418,9 @@ func buildScopedKey(keyspace, userID, ext string) (string, string, error) {
 	case "invoice":
 		return fmt.Sprintf("users/%s/invoices/%s.%s", userID, uuid.NewString(), ext),
 			"invoice." + ext, nil
+	case "escrow":
+		return fmt.Sprintf("users/%s/escrow/%s.%s", userID, uuid.NewString(), ext),
+			"escrow." + ext, nil
 	default:
 		return "", "", errors.New("unknown keyspace: " + keyspace)
 	}

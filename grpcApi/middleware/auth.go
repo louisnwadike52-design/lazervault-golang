@@ -92,6 +92,7 @@ func requiresAuth(method string) bool {
 		// Auth Service public endpoints
 		"/pb.AuthService/Login":                  false,
 		"/pb.AuthService/LoginWithPasscode":      false, // Public - login with passcode
+		"/pb.AuthService/VerifyLoginOtp":         false, // Public - completes an adaptive step-up login
 		"/pb.AuthService/Logout":                 true,  // Should be true, logout needs auth
 		"/pb.AuthService/RefreshToken":           false,
 		"/pb.AuthService/Register":               false,
@@ -100,6 +101,14 @@ func requiresAuth(method string) bool {
 		"/pb.AuthService/CheckEmailAvailability": false, // Public - check before signup
 		"/pb.AuthService/RequestPasswordReset":   false, // Public - initiate password reset
 		"/pb.AuthService/ResetPassword":          false, // Public - reset with token
+		// Configurable auth mode: phone+passcode flow (public)
+		"/pb.AuthService/GetAuthenticationConfig": false,
+		"/pb.AuthService/RequestSignupPhoneOTP":   false,
+		"/pb.AuthService/VerifySignupPhoneOTP":    false,
+		"/pb.AuthService/SignupWithPhone":         false,
+		"/pb.AuthService/LoginWithPhonePasscode":  false,
+		"/pb.AuthService/RequestPasscodeReset":    false, // Public - forgot passcode (phone OTP)
+		"/pb.AuthService/ResetPasscodeWithOTP":    false, // Public - set new passcode via OTP
 
 		// User Service public endpoints
 		"/pb.UserService/CreateUser": false,
@@ -249,14 +258,23 @@ func isPublicHTTPPath(path string) bool {
 		"/api/v1/auth/login",
 		"/api/v1/auth/signup",
 		"/api/v1/auth/login-passcode",
+		"/api/v1/auth/verify-login-otp",
 		"/api/v1/auth/refresh",
 		"/api/v1/auth/verify-email",
 		"/api/v1/auth/forgot-password",
+		"/api/v1/auth/verify-password-reset-code",
 		"/api/v1/auth/reset-password",
 		"/api/v1/auth/resend-verification",
 		"/api/v1/auth/check-email-availability",
 		"/api/v1/auth/request-email-verification",
 		"/api/v1/auth/request-phone-verification",
+		// Configurable auth mode: phone+passcode flow (public — read config,
+		// register, login). The /phone/ prefix covers request-otp, verify-otp,
+		// signup and login.
+		"/api/v1/auth/config",
+		"/api/v1/auth/phone/",
+		// Forgot-passcode (phone+passcode): request OTP + confirm new passcode.
+		"/api/v1/auth/passcode-reset/",
 		"/api/v1/referral/validate",
 		"/api/v1/referral/points-config",
 		"/.well-known/jwks.json",

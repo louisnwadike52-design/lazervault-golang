@@ -59,12 +59,23 @@ func isPublicEndpoint(method string) bool {
 		"/pb.AuthService/Login":                   true,
 		"/pb.AuthService/Signup":                  true,
 		"/pb.AuthService/LoginWithPasscode":       true, // Public - login with passcode
+		"/pb.AuthService/VerifyLoginOtp":          true, // Public - completes an adaptive step-up login
 		"/pb.AuthService/RefreshToken":            true,
 		"/pb.AuthService/VerifyEmail":             true,
 		"/pb.AuthService/ForgotPassword":          true,
+		"/pb.AuthService/VerifyPasswordResetCode": true, // Public - verify reset code/OTP (user is logged out)
 		"/pb.AuthService/ResetPassword":           true,
 		"/pb.AuthService/ResendVerificationEmail": true,
 		"/pb.AuthService/CheckEmailAvailability":  true,
+		// Configurable auth mode: phone + passcode flow (public — registration/login)
+		"/pb.AuthService/GetAuthenticationConfig": true, // Public - read active auth mode
+		"/pb.AuthService/RequestSignupPhoneOTP":   true, // Public - send signup phone OTP
+		"/pb.AuthService/VerifySignupPhoneOTP":    true, // Public - verify signup phone OTP
+		"/pb.AuthService/SignupWithPhone":         true, // Public - phone+passcode signup
+		"/pb.AuthService/LoginWithPhonePasscode":  true, // Public - phone+passcode login
+		"/pb.AuthService/RequestPasscodeReset":    true, // Public - forgot passcode (phone OTP)
+		"/pb.AuthService/VerifyPasscodeResetOTP":  true, // Public - validate reset OTP (logged out)
+		"/pb.AuthService/ResetPasscodeWithOTP":    true, // Public - set new passcode via OTP
 
 		// Crypto Service public endpoints (if needed)
 		"/crypto.CryptoService/GetCryptos":     true,
