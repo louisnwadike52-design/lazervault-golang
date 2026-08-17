@@ -53,3 +53,7 @@ golang.log
 # build artifacts
 /core-gateway
 /lazervaultGo
+
+# prod/staging env secrets
+app.env.*
+!app.env.example
