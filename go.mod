@@ -6,7 +6,6 @@ go 1.25.4
 replace (
 	accounts-service => ../../microservices/accounts-service/accounts-microservice
 	auth-service => ../../microservices/auth-service/auth-microservice
-	github.com/lazervault/kafka-client => ../../infrastructure/shared-libs/kafka-client
 	github.com/lazervault/shared/auth-interceptor => ../../microservices/shared/auth-interceptor
 	github.com/lazervault/shared/degradation => ../../microservices/shared/degradation
 	github.com/lazervault/shared/errors => ../../microservices/shared/errors
