@@ -98,6 +98,15 @@ func (p *UnifiedSearchProxy) HandleUnifiedSearch(c *gin.Context) {
 		offset = 0
 	}
 
+	// internal_only scopes results to LazerVault USERS — the "find a person"
+	// mode used by the split-bill participant picker and the send-funds person
+	// search. When true we drop saved EXTERNAL bank recipients (a Kuda/GTB
+	// account is not a LazerVault user and can't be a split participant / tagged
+	// / paid in-app), keeping only saved internal recipients + the directory.
+	// Default false preserves the existing behavior for the external-bank
+	// send-funds flow, which legitimately searches saved external recipients.
+	internalOnly := c.Query("internal_only") == "true" || c.Query("lazervault_only") == "true"
+
 	if len([]rune(query)) < minQueryRunes {
 		c.JSON(http.StatusOK, gin.H{
 			"local": []unifiedResultItem{}, "global": []unifiedResultItem{},
@@ -141,6 +150,12 @@ func (p *UnifiedSearchProxy) HandleUnifiedSearch(c *gin.Context) {
 			for _, r := range lr.GetRecipients() {
 				if callerID != "" && r.GetInternalUserId() == callerID {
 					continue // never the caller themselves
+				}
+				// Person-search mode: keep only saved recipients that ARE LazerVault
+				// users (internal type / linked internal user id). External bank
+				// recipients have no user identity to resolve against.
+				if internalOnly && r.GetType() != "internal" && r.GetInternalUserId() == "" {
+					continue
 				}
 				field := matchRecipient(r, q, digits)
 				if field == "" {
