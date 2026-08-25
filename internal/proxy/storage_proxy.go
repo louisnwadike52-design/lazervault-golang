@@ -221,6 +221,15 @@ func (p *StorageProxy) HandleEscrowUploadURL(c *gin.Context) {
 	p.handleScopedUploadURL(c, "escrow")
 }
 
+// HandleFCYDocumentUploadURL handles POST /api/v1/fcy-document/upload-url.
+// Holds the KYC documents a foreign-currency virtual-account request
+// requires (government ID, utility bill / bank statement) — images or PDF,
+// scoped to the uploading user; the resulting public URL is what the
+// accounts-service FCY request forwards to Fincra for compliance review.
+func (p *StorageProxy) HandleFCYDocumentUploadURL(c *gin.Context) {
+	p.handleScopedUploadURL(c, "fcy-document")
+}
+
 // handleScopedUploadURL is the shared implementation for every per-user
 // image-upload endpoint we proxy. `keyspace` selects which sub-prefix
 // inside `users/<user_id>/` the generated object key lives under.
@@ -259,6 +268,8 @@ func (p *StorageProxy) handleScopedUploadURL(c *gin.Context, keyspace string) {
 		ext, contentType, typeErr = resolveChatMediaTypeAndExt(req.Filename, req.ContentType)
 	case "escrow":
 		ext, contentType, typeErr = resolveEscrowMediaTypeAndExt(req.Filename, req.ContentType)
+	case "fcy-document":
+		ext, contentType, typeErr = resolveFCYDocumentTypeAndExt(req.Filename, req.ContentType)
 	default:
 		ext, contentType, typeErr = resolveImageTypeAndExt(req.Filename, req.ContentType)
 	}
@@ -421,9 +432,26 @@ func buildScopedKey(keyspace, userID, ext string) (string, string, error) {
 	case "escrow":
 		return fmt.Sprintf("users/%s/escrow/%s.%s", userID, uuid.NewString(), ext),
 			"escrow." + ext, nil
+	case "fcy-document":
+		return fmt.Sprintf("users/%s/fcy-documents/%s.%s", userID, uuid.NewString(), ext),
+			"fcy-document." + ext, nil
 	default:
 		return "", "", errors.New("unknown keyspace: " + keyspace)
 	}
+}
+
+// resolveFCYDocumentTypeAndExt allows the document formats Fincra's FCY
+// compliance review accepts as URLs (their examples are PDFs; scans/photos
+// of IDs and utility bills are images): images + application/pdf.
+func resolveFCYDocumentTypeAndExt(filename, contentType string) (string, string, error) {
+	ct := strings.ToLower(strings.TrimSpace(contentType))
+	if ct == "application/pdf" {
+		return "pdf", "application/pdf", nil
+	}
+	if strings.HasSuffix(strings.ToLower(filename), ".pdf") {
+		return "pdf", "application/pdf", nil
+	}
+	return resolveImageTypeAndExt(filename, contentType)
 }
 
 // resolveImageTypeAndExt decides on the canonical Content-Type + file

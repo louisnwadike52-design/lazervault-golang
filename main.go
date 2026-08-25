@@ -1300,6 +1300,10 @@ func interceptProfilePictureUploadURL(p *proxy.StorageProxy) gin.HandlerFunc {
 				p.HandleEscrowUploadURL(c)
 				c.Abort()
 				return
+			case "/v1/fcy-document/upload-url":
+				p.HandleFCYDocumentUploadURL(c)
+				c.Abort()
+				return
 			}
 		}
 		c.Next()
