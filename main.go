@@ -438,7 +438,9 @@ func main() {
 	router.Use(middleware.SecurityHeaders())
 
 	// Health check endpoint with detailed status
-	router.GET("/health", middleware.HealthCheckMiddleware(map[string]func() error{
+	// Backend health, checked against the real dependencies (auth, accounts,
+	// redis) rather than just "the process is up".
+	healthHandler := middleware.HealthCheckMiddleware(map[string]func() error{
 		"auth_service": func() error {
 			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 			defer cancel()
@@ -473,7 +475,13 @@ func main() {
 			defer cancel()
 			return redisClient.Ping(ctx).Err()
 		},
-	}))
+	})
+
+	router.GET("/health", healthHandler)
+	// The same handler is ALSO served at /api/v1/health — see
+	// interceptHealthCheck, which is where it has to live: a plain
+	// router.GET("/api/v1/health") would overlap apiGroup's Any("/*path")
+	// wildcard and panic Gin at startup.
 
 	// Readiness check endpoint
 	router.GET("/ready", middleware.ReadinessCheckMiddleware(func() bool {
@@ -607,7 +615,11 @@ func main() {
 
 	// API group with JWT authentication (applies to all /api/* routes except auth public endpoints)
 	apiGroup := router.Group("/api")
-	// Client-logs FIRST — before JWT — so pre-login (biometric lock) logs are
+	// Health FIRST — before JWT — the probe runs on the pre-login screen and on
+	// a dead/expired session, so requiring a token would report the backend as
+	// DOWN to exactly the users who most need to reach it.
+	apiGroup.Use(interceptHealthCheck(healthHandler))
+	// Client-logs next — also before JWT — so pre-login (biometric lock) logs are
 	// accepted anonymously; authenticated logs simply carry a user_id in-body.
 	apiGroup.Use(interceptClientLogs(clientLogsProxy))
 	apiGroup.Use(middleware.JWTAuthMiddleware())
@@ -1315,6 +1327,35 @@ func interceptProfilePictureUploadURL(p *proxy.StorageProxy) gin.HandlerFunc {
 // BEFORE JWTAuthMiddleware — pre-login logs are accepted without a token. Same
 // intercept-before-wildcard pattern as the storage/support proxies (a POST route
 // would collide with the Any("/*path") wildcard and panic Gin).
+// interceptHealthCheck serves GET /api/v1/health with the SAME dependency-
+// checking handler bound to the origin-root /health.
+//
+// It exists as an interceptor rather than a route because apiGroup registers
+// Any("/*path"), and Gin panics at startup on an overlapping concrete route —
+// the same reason the storage / unified-search / support handlers are wired
+// this way.
+//
+// Why /api/v1 at all: the Cloudflare tunnel only routes `^/api/v1/...`, so the
+// root /health is unreachable from outside the origin. That is what pushed the
+// mobile app into probing `/api/v1/internal/voice-agents/settings` to decide
+// whether the backend was up — tying "is the platform alive" to one unrelated
+// feature's endpoint, where a routing change would have shown every user the
+// maintenance screen while everything was fine.
+//
+// Deliberately registered BEFORE JWTAuthMiddleware: this is probed from the
+// pre-login screen and from sessions whose token has expired, so gating it
+// would report DOWN precisely when the app needs the truth.
+func interceptHealthCheck(handler gin.HandlerFunc) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if handler != nil && c.Request.Method == http.MethodGet && c.Param("path") == "/v1/health" {
+			handler(c)
+			c.Abort()
+			return
+		}
+		c.Next()
+	}
+}
+
 func interceptClientLogs(p *proxy.ClientLogsProxy) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if p != nil && c.Request.Method == http.MethodPost && c.Param("path") == "/v1/client-logs" {
