@@ -23,6 +23,14 @@ message CommonUser {
     string country = 14;
     string profile_picture = 15;
     repeated string roles = 16;
+    // The REAL user id. `id` above is a uint64 dating from numeric user ids,
+    // but this platform's user ids are UUIDs, so every ParseUint on the way out
+    // fails and `id` is silently 0 for EVERY user — the client's profile model
+    // does `id.toString()` and gets "0". Changing field 1's type would break
+    // the wire format for installed clients (varint vs length-delimited), so
+    // the real value is carried here and `id` is left as the dead field it
+    // already was.
+    string user_id = 17;
   }
 
 

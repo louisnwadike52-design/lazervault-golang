@@ -117,19 +117,20 @@ func authUserToCommonUser(au *pb.User) *pb.CommonUser {
 		return nil
 	}
 
-	// Parse string ID to uint64
+	// CommonUser.id is a uint64 left over from numeric user ids; this platform
+	// uses UUIDs, so this parse ALWAYS fails and the field is always 0. It used
+	// to log a warning on every profile fetch — several times a minute, per
+	// signed-in user — which is noise, not a signal, because there is no input
+	// that would ever make it succeed. The real id now travels in `user_id`
+	// (field 17); `id` stays 0 for wire compatibility with installed clients.
 	var userID uint64
-	if au.Id != "" {
-		parsed, err := strconv.ParseUint(au.Id, 10, 64)
-		if err != nil {
-			log.Printf("[UserProxy] Warning: failed to parse user ID %q: %v", au.Id, err)
-		} else {
-			userID = parsed
-		}
+	if parsed, err := strconv.ParseUint(au.Id, 10, 64); err == nil {
+		userID = parsed
 	}
 
 	return &pb.CommonUser{
 		Id:              userID,
+		UserId:          au.Id,
 		FirstName:       au.FirstName,
 		LastName:        au.LastName,
 		Email:           au.Email,
