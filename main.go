@@ -1392,19 +1392,35 @@ func interceptHealthCheck(handler gin.HandlerFunc) gin.HandlerFunc {
 // 404 rather than 403: an authorization error would confirm that a reference
 // exists, which is itself the leak.
 func interceptInternalOnlyRoutes() gin.HandlerFunc {
-	blocked := []string{
+	// Prefixes, for routes whose path continues with a parameter.
+	blockedPrefixes := []string{
 		"/v1/transactions/by-reference/",
-		"/v1/transactions/ledger-entries",
+	}
+	// Exact paths. Matched exactly rather than by prefix so the blocklist
+	// cannot swallow a future sibling — a prefix match on "ledger-entries"
+	// would also silently 404 a "/ledger-entries-summary" added later, and a
+	// route that disappears without a code change is a bad way to find out.
+	// Query strings never appear in c.Param("path"), so this still covers
+	// "/v1/transactions/ledger-entries?reference=X".
+	blockedExact := map[string]bool{
+		"/v1/transactions/ledger-entries": true,
+	}
+	block := func(c *gin.Context) {
+		log.Warn().
+			Str("path", c.Request.URL.Path).
+			Str("user_id", c.GetString("user_id")).
+			Msg("blocked public call to an internal-only reference probe")
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "not found"})
 	}
 	return func(c *gin.Context) {
 		p := c.Param("path")
-		for _, prefix := range blocked {
+		if blockedExact[p] {
+			block(c)
+			return
+		}
+		for _, prefix := range blockedPrefixes {
 			if strings.HasPrefix(p, prefix) {
-				log.Warn().
-					Str("path", c.Request.URL.Path).
-					Str("user_id", c.GetString("user_id")).
-					Msg("blocked public call to an internal-only reference probe")
-				c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "not found"})
+				block(c)
 				return
 			}
 		}
