@@ -623,6 +623,11 @@ func main() {
 	// accepted anonymously; authenticated logs simply carry a user_id in-body.
 	apiGroup.Use(interceptClientLogs(clientLogsProxy))
 	apiGroup.Use(middleware.JWTAuthMiddleware())
+	// Immediately after the JWT gate: these routes must not be reachable by a
+	// signed-in user at all, and the log line is more useful with a user_id on
+	// it. See interceptInternalOnlyRoutes for why they are exposed in the first
+	// place.
+	apiGroup.Use(interceptInternalOnlyRoutes())
 	apiGroup.Use(interceptVerifyTransactionPin(txPinClient))
 	// Storage proxy is intercepted in the same middleware-style as the
 	// transaction-pin handlers — registering it as a POST route would
@@ -1351,6 +1356,57 @@ func interceptHealthCheck(handler gin.HandlerFunc) gin.HandlerFunc {
 			handler(c)
 			c.Abort()
 			return
+		}
+		c.Next()
+	}
+}
+
+// interceptInternalOnlyRoutes blocks accounts-service's reference-probe RPCs
+// from the public API surface.
+//
+// `LookupTransactionByReference` and `GetLedgerEntriesByReference` exist for
+// background reconcilers to ask "did this debit actually commit?" before
+// retrying. Both are explicitly JWT-exempt at accounts-service (see the
+// allowlist in accounts-microservice/cmd/main.go) precisely because the callers
+// are workers with no user token.
+//
+// They also carry `google.api.http` GET annotations, which put them on the
+// grpc-gateway mux this gateway registers — so they became reachable at
+//
+//	GET /api/v1/transactions/by-reference/{reference}
+//	GET /api/v1/transactions/ledger-entries
+//
+// behind nothing but JWTAuthMiddleware. Neither the handler nor the service
+// filters by owner (`FindByReference(reference)` takes no user id), so ANY
+// signed-in user could read ANY other user's transaction — amount, currency,
+// description, status, balance_after, account id — by supplying its reference.
+// References travel in receipts, shared payment links and counterparty
+// notifications, so they are not a secret.
+//
+// Blocking here rather than in the proto keeps the fix deployable on its own:
+// removing the HTTP annotations is the real repair, but that needs a regen of
+// accounts.pb.gw.go and a coordinated release. Nothing in the app or the admin
+// dashboard calls these routes — the reconcilers all use gRPC directly, which
+// this does not touch.
+//
+// 404 rather than 403: an authorization error would confirm that a reference
+// exists, which is itself the leak.
+func interceptInternalOnlyRoutes() gin.HandlerFunc {
+	blocked := []string{
+		"/v1/transactions/by-reference/",
+		"/v1/transactions/ledger-entries",
+	}
+	return func(c *gin.Context) {
+		p := c.Param("path")
+		for _, prefix := range blocked {
+			if strings.HasPrefix(p, prefix) {
+				log.Warn().
+					Str("path", c.Request.URL.Path).
+					Str("user_id", c.GetString("user_id")).
+					Msg("blocked public call to an internal-only reference probe")
+				c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "not found"})
+				return
+			}
 		}
 		c.Next()
 	}
