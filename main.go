@@ -566,9 +566,22 @@ func main() {
 	// the returned public_url via UpdateProfile. We hide the
 	// X-Service-Name handshake inside this proxy so the client never
 	// needs to be on storage-service's allow-list.
-	storageBaseURL := getEnv("STORAGE_SERVICE_URL", "http://localhost:8094")
+	const storageDevDefault = "http://localhost:8094"
+	storageBaseURL := getEnv("STORAGE_SERVICE_URL", storageDevDefault)
 	storageProxy := proxy.NewStorageProxy(storageBaseURL, "core-gateway")
-	log.Info().Str("storage_base_url", storageBaseURL).Msg("✅ Storage proxy registered (POST /api/v1/profile-picture/upload-url, POST /api/v1/bank-scan/upload-url, POST /api/v1/chat-media/upload-url, POST /api/v1/invoice/upload-url)")
+	// Same trap as the support proxy: an unset upstream silently falls back to
+	// the DEV port, every upload-url request hits a dead socket, and the only
+	// symptom is "uploads do not work" across EVERY feature that stores a file
+	// (escrow media, invoice logos, chat media, profile pictures) with nothing
+	// in this log saying why. Say it out loud at boot.
+	if strings.EqualFold(os.Getenv("ENVIRONMENT"), "production") && storageBaseURL == storageDevDefault {
+		log.Error().
+			Str("storage_base_url", storageBaseURL).
+			Msg("❌ STORAGE_SERVICE_URL is UNSET in production — falling back to the DEV port. " +
+				"ALL file uploads (escrow, invoice, chat media, profile pictures) will fail. " +
+				"Set it to the prod upstream (1xxxx offset).")
+	}
+	log.Info().Str("storage_base_url", storageBaseURL).Msg("✅ Storage proxy registered (POST /api/v1/profile-picture/upload-url, POST /api/v1/bank-scan/upload-url, POST /api/v1/chat-media/upload-url, POST /api/v1/invoice/upload-url, POST /api/v1/escrow/upload-url)")
 
 	// Support proxy — user-facing "Contact support" surface. Gives the Flutter
 	// app a JWT-protected route to support-service's chat + tickets API so it
