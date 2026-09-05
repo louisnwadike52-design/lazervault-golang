@@ -574,8 +574,21 @@ func main() {
 	// app a JWT-protected route to support-service's chat + tickets API so it
 	// never touches the raw :8030 microservice port directly (which isn't
 	// publicly exposed). support-service re-validates the forwarded JWT.
-	supportBaseURL := getEnv("SUPPORT_SERVICE_HTTP_URL", "http://127.0.0.1:8030")
+	const supportDevDefault = "http://127.0.0.1:8030"
+	supportBaseURL := getEnv("SUPPORT_SERVICE_HTTP_URL", supportDevDefault)
 	supportProxy := proxy.NewSupportProxy(supportBaseURL)
+	// A gateway that defaults to a DEV port in production fails the worst way
+	// available: the proxy registers, every request 502s or hangs, and the only
+	// symptom is a feature that "doesn't load" — with nothing in this service's
+	// log saying why. That is exactly how support tickets were dead in prod
+	// (this default, :8030, against a service listening on :18030). Say it out
+	// loud at boot instead, where it is one line to find.
+	if strings.EqualFold(os.Getenv("ENVIRONMENT"), "production") && supportBaseURL == supportDevDefault {
+		log.Error().
+			Str("support_base_url", supportBaseURL).
+			Msg("❌ SUPPORT_SERVICE_HTTP_URL is UNSET in production — falling back to the DEV port. " +
+				"Support chat and tickets will not load. Set it to the prod upstream (1xxxx offset).")
+	}
 	log.Info().Str("support_base_url", supportBaseURL).Msg("✅ Support proxy registered (/api/v1/support/*)")
 
 	// Client-logs ingest — Flutter devices ship structured logs to our internal
