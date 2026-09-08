@@ -105,6 +105,11 @@ message LazerVaultUserMatch {
   string profile_photo_url = 5;                     // Profile photo
   bool is_verified = 6;                             // Verification status
   string matched_by = 7;                            // What matched: "phone" or "email"
+  // The EXACT identifier from the request that matched (phone as the caller
+  // sent it, or lowercased email). This is what lets the client correlate a
+  // match back to the device contact — correlating by display name never
+  // worked ("Mum" != the profile name).
+  string matched_value = 8;
 }
 
 // Request to get synced contacts

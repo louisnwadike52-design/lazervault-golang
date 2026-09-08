@@ -737,6 +737,9 @@ func main() {
 
 	// Create proxy services
 	authProxy := proxy.NewAuthServiceProxy(pb.NewAuthServiceClient(authConn))
+	// Contact discovery lives in auth-service (it owns the users table); this
+	// service previously existed only as stubs, so every call was Unimplemented.
+	contactSyncProxy := proxy.NewContactSyncServiceProxy(pb.NewContactSyncServiceClient(authConn))
 	transactionPinProxy := proxy.NewTransactionPinServiceProxy(pb.NewTransactionPinServiceClient(authConn))
 	accountsProxy := proxy.NewAccountsServiceProxy(accountspb.NewAccountsServiceClient(accountsConn))
 	familyAccountsProxy := proxy.NewFamilyAccountsServiceProxy(accountspb.NewFamilyAccountsServiceClient(accountsConn))
@@ -792,6 +795,7 @@ func main() {
 
 	// Register services
 	pb.RegisterAuthServiceServer(grpcServer, authProxy)
+	pb.RegisterContactSyncServiceServer(grpcServer, contactSyncProxy)
 	pb.RegisterTransactionPinServiceServer(grpcServer, transactionPinProxy)
 	accountspb.RegisterAccountsServiceServer(grpcServer, accountsProxy)
 	accountspb.RegisterFamilyAccountsServiceServer(grpcServer, familyAccountsProxy)
