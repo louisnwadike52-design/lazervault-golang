@@ -489,6 +489,16 @@ service AuthService {
     };
   }
 
+  // Public: issue a fresh step-up code for an in-flight challenge. The code
+  // is replaced in place (same step_up_token, one live code per session);
+  // rate limited by cooldown + resend cap, both admin-tunable.
+  rpc ResendLoginOtp(ResendLoginOtpRequest) returns (LoginResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/resend-login-otp"
+      body: "*"
+    };
+  }
+
   // Public: complete an adaptive step-up login by verifying the login OTP.
   rpc VerifyLoginOtp(VerifyLoginOtpRequest) returns (LoginResponse) {
     option (google.api.http) = {
@@ -1710,6 +1720,10 @@ message GetLoginHistoryResponse {
   bool success = 1;
   string message = 2;
   repeated LoginActivityEntry entries = 3;
+}
+
+message ResendLoginOtpRequest {
+  string step_up_token = 1; // from LoginResponse.step_up_token
 }
 
 message VerifyLoginOtpRequest {

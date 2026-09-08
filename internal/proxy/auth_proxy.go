@@ -84,6 +84,10 @@ func (p *AuthServiceProxy) Login(ctx context.Context, req *pb.LoginRequest) (*pb
 	return p.client.Login(forwardContext(ctx), req)
 }
 
+func (p *AuthServiceProxy) ResendLoginOtp(ctx context.Context, req *pb.ResendLoginOtpRequest) (*pb.LoginResponse, error) {
+	return p.client.ResendLoginOtp(forwardContext(ctx), req)
+}
+
 func (p *AuthServiceProxy) RefreshToken(ctx context.Context, req *pb.RefreshTokenRequest) (*pb.RefreshTokenResponse, error) {
 	return p.client.RefreshToken(forwardContext(ctx), req)
 }
