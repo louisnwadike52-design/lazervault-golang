@@ -1371,6 +1371,9 @@ message GetAuthenticationConfigResponse {
   string authentication_mode = 1;        // "email_password" | "phone_passcode"
   bool email_verification_required = 2;  // admin toggle: require email verification in onboarding
   bool phone_verification_required = 3;  // admin toggle: require phone verification in onboarding
+  bool social_login_enabled = 4;         // admin toggle (default true): show social sign-in
+  bool google_login_enabled = 5;
+  bool apple_login_enabled = 6;
 }
 
 message RequestSignupPhoneOTPRequest {
@@ -1805,6 +1808,9 @@ message SocialLoginResponse {
   string step_up_method = 11;
   string step_up_destination = 12;
   int64 step_up_expires_in = 13;
+  bool has_passcode = 14;
+  bool has_transaction_pin = 15;
+  bool has_password = 16;
 }
 
 // ===== Social Account Linking =====
