@@ -1374,6 +1374,7 @@ message GetAuthenticationConfigResponse {
   bool social_login_enabled = 4;         // admin toggle (default true): show social sign-in
   bool google_login_enabled = 5;
   bool apple_login_enabled = 6;
+  bool voice_login_enabled = 7;          // admin toggle (default false): show voice sign-in
 }
 
 message RequestSignupPhoneOTPRequest {
