@@ -76,6 +76,7 @@ func isPublicEndpoint(method string) bool {
 		"/pb.AuthService/RequestPasscodeReset":    true, // Public - forgot passcode (phone OTP)
 		"/pb.AuthService/VerifyPasscodeResetOTP":  true, // Public - validate reset OTP (logged out)
 		"/pb.AuthService/ResetPasscodeWithOTP":    true, // Public - set new passcode via OTP
+		"/pb.AuthService/SocialLogin":             true, // Public - Google/Apple sign-in (no session yet; token verified in auth-service)
 
 		// Crypto Service public endpoints (if needed)
 		"/crypto.CryptoService/GetCryptos":     true,

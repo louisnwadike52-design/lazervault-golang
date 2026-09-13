@@ -88,6 +88,16 @@ func (p *AuthServiceProxy) ResendLoginOtp(ctx context.Context, req *pb.ResendLog
 	return p.client.ResendLoginOtp(forwardContext(ctx), req)
 }
 
+// SocialLogin (Google/Apple) must be forwarded and is public in the interceptor:
+// the user has no session yet, so the native-gRPC client path
+// (app → core-gateway gRPC → auth-service) hits it without a JWT. Without this
+// forwarder the embedded UnimplementedAuthServiceServer answers Unimplemented
+// and Google/Apple sign-in fails for every user. auth-service verifies the
+// provider token against the provider JWKS before issuing anything.
+func (p *AuthServiceProxy) SocialLogin(ctx context.Context, req *pb.SocialLoginRequest) (*pb.SocialLoginResponse, error) {
+	return p.client.SocialLogin(forwardContext(ctx), req)
+}
+
 func (p *AuthServiceProxy) RefreshToken(ctx context.Context, req *pb.RefreshTokenRequest) (*pb.RefreshTokenResponse, error) {
 	return p.client.RefreshToken(forwardContext(ctx), req)
 }

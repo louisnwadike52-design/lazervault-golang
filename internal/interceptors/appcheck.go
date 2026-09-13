@@ -47,6 +47,10 @@ var authTokenIssuingMethods = map[string]bool{
 	"/pb.AuthService/SignupWithPhone":        true,
 	"/pb.AuthService/RequestSignupPhoneOTP":  true,
 	"/pb.AuthService/VerifySignupPhoneOTP":   true,
+	// Google/Apple sign-in issues a session too, and the Flutter client
+	// attaches x-firebase-appcheck on it (withAppCheck), so it is attested
+	// like the other token-issuing entry points.
+	"/pb.AuthService/SocialLogin":            true,
 }
 
 // ParseAppCheckMode normalises a config string into an AppCheckMode (defaults to

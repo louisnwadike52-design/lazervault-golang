@@ -1778,12 +1778,14 @@ message FacialLoginResponse {
 
 // ===== Social Login =====
 message SocialLoginRequest {
-  string provider = 1; // "google", "facebook", "apple"
-  string provider_token = 2;
+  string provider = 1; // "google" | "apple"
+  string provider_token = 2; // verified server-side against the provider JWKS
   string email = 3;
   string first_name = 4;
   string last_name = 5;
   string provider_user_id = 6;
+  string device_id = 7;
+  string device_name = 8;
 }
 
 message SocialLoginResponse {
@@ -1792,6 +1794,17 @@ message SocialLoginResponse {
   int64 expires_in = 3;
   User user = 4;
   bool is_new_user = 5;
+  // OAuth proves the first factor only — 2FA / step-up ride the same fields as
+  // LoginResponse so the client reuses those continuation flows. Keep in sync
+  // with auth-service/proto/auth.proto or the gateway silently drops them.
+  bool two_factor_required = 6;
+  string two_factor_token = 7;
+  string two_factor_method = 8;
+  bool step_up_required = 9;
+  string step_up_token = 10;
+  string step_up_method = 11;
+  string step_up_destination = 12;
+  int64 step_up_expires_in = 13;
 }
 
 // ===== Social Account Linking =====

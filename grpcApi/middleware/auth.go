@@ -109,6 +109,7 @@ func requiresAuth(method string) bool {
 		"/pb.AuthService/LoginWithPhonePasscode":  false,
 		"/pb.AuthService/RequestPasscodeReset":    false, // Public - forgot passcode (phone OTP)
 		"/pb.AuthService/ResetPasscodeWithOTP":    false, // Public - set new passcode via OTP
+		"/pb.AuthService/SocialLogin":             false, // Public - Google/Apple sign-in (token verified in auth-service)
 
 		// User Service public endpoints
 		"/pb.UserService/CreateUser": false,
@@ -257,6 +258,7 @@ func isPublicHTTPPath(path string) bool {
 	publicPaths := []string{
 		"/api/v1/auth/login",
 		"/api/v1/auth/signup",
+		"/api/v1/auth/social-login", // Google/Apple sign-in (token verified in auth-service)
 		"/api/v1/auth/login-passcode",
 		"/api/v1/auth/verify-login-otp",
 		"/api/v1/auth/refresh",
