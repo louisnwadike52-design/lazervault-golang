@@ -29,6 +29,16 @@ func (p *AccountsServiceProxy) GetAccounts(ctx context.Context, req *accountspb.
 	return p.client.GetAccounts(forwardContext(ctx), req)
 }
 
+// GetMyAccountHolds explains the gap between available and total balance.
+//
+// Needs an explicit forward: the proxy embeds UnimplementedAccountsServiceServer,
+// so an RPC that exists in the proto but is missing here COMPILES and then
+// returns Unimplemented at runtime. The only symptom is the feature quietly
+// not working against a service that implements it correctly.
+func (p *AccountsServiceProxy) GetMyAccountHolds(ctx context.Context, req *accountspb.GetMyAccountHoldsRequest) (*accountspb.GetMyAccountHoldsResponse, error) {
+	return p.client.GetMyAccountHolds(forwardContext(ctx), req)
+}
+
 func (p *AccountsServiceProxy) GetAccount(ctx context.Context, req *accountspb.GetAccountRequest) (*accountspb.GetAccountResponse, error) {
 	return p.client.GetAccount(forwardContext(ctx), req)
 }

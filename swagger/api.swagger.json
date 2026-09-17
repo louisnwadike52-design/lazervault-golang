@@ -11,22 +11,28 @@
   },
   "tags": [
     {
-      "name": "AccountService"
+      "name": "AccountService",
+      "description": "The AccountService provides methods for managing user accounts."
     },
     {
-      "name": "AIChatService"
+      "name": "AIChatService",
+      "description": "Service definition for AI chat interactions"
     },
     {
-      "name": "AiScanService"
+      "name": "AiScanService",
+      "description": "AI Scan Service for extracting data from images"
     },
     {
-      "name": "AuthService"
+      "name": "AuthService",
+      "description": "Auth Service - Complete authentication and authorization"
     },
     {
-      "name": "ChatService"
+      "name": "ChatService",
+      "description": "Service definition for chat operations"
     },
     {
-      "name": "ContactSyncService"
+      "name": "ContactSyncService",
+      "description": "ContactSyncService handles syncing device contacts with the backend\nand converting them to recipients"
     },
     {
       "name": "CrowdfundService"
@@ -39,32 +45,38 @@
       "description": "Handles asynchronous fund deposits into user accounts."
     },
     {
-      "name": "ExchangeService"
+      "name": "ExchangeService",
+      "description": "--- Service Definition ---"
     },
     {
       "name": "FacialRecognitionService",
       "description": "AI-powered facial recognition service for user authentication and verification."
     },
     {
-      "name": "GenerateTxDataService"
+      "name": "GenerateTxDataService",
+      "description": "Service definition"
     },
     {
       "name": "GiftCardService"
     },
     {
-      "name": "InvoicePaymentService"
+      "name": "InvoicePaymentService",
+      "description": "Invoice Payment Service Definition"
     },
     {
-      "name": "InvoiceService"
+      "name": "InvoiceService",
+      "description": "InvoiceService provides methods for managing invoices"
     },
     {
-      "name": "LockFundsService"
+      "name": "LockFundsService",
+      "description": "Lock funds service"
     },
     {
       "name": "QRPayService"
     },
     {
-      "name": "ReferralService"
+      "name": "ReferralService",
+      "description": "ReferralService service definition"
     },
     {
       "name": "StatisticsService"
@@ -73,28 +85,31 @@
       "name": "StockService"
     },
     {
-      "name": "SupportService"
-    },
-    {
-      "name": "TagPayService"
+      "name": "SupportService",
+      "description": "Support Ticket Service"
     },
     {
       "name": "TaggedInvoiceService"
     },
     {
-      "name": "TransactionHistoryService"
+      "name": "TransactionHistoryService",
+      "description": "Transaction History Service"
     },
     {
-      "name": "TransactionPinService"
+      "name": "TransactionPinService",
+      "description": "TransactionPinService handles transaction PIN operations\nProxied from core-gateway to auth-service"
     },
     {
-      "name": "TransactionService"
+      "name": "TransactionService",
+      "description": "The TransactionService provides methods for managing transactions."
     },
     {
-      "name": "TransferService"
+      "name": "TransferService",
+      "description": "Service definition for transfers"
     },
     {
-      "name": "TxFileService"
+      "name": "TxFileService",
+      "description": "Defines the service for getting transaction file URLs/Paths."
     },
     {
       "name": "UserService"
@@ -103,7 +118,8 @@
       "name": "VoiceSessionService"
     },
     {
-      "name": "WithdrawService"
+      "name": "WithdrawService",
+      "description": "Service for handling withdrawals"
     }
   ],
   "consumes": [
@@ -395,6 +411,139 @@
         ]
       }
     },
+    "/api/v1/auth/account/delete": {
+      "post": {
+        "summary": "===== Account deletion (in-app self-service — required by both app stores) =====\nInitiate deletion of the CALLING user's account (JWT-identified). Blocked\nwhen the user still holds funds/active holds (error_code = FUNDS_PRESENT).\nOtherwise starts a cancellable grace period and revokes the user's sessions.",
+        "operationId": "AuthService_RequestAccountDeletion",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbRequestAccountDeletionResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/pbRequestAccountDeletionRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthService"
+        ]
+      }
+    },
+    "/api/v1/auth/account/delete/cancel": {
+      "post": {
+        "summary": "Cancel a pending account deletion within the grace window (JWT-identified).",
+        "operationId": "AuthService_CancelAccountDeletion",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbCancelAccountDeletionResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/pbCancelAccountDeletionRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthService"
+        ]
+      }
+    },
+    "/api/v1/auth/account/lock": {
+      "post": {
+        "summary": "===== Account self-lock (Settings → Security) =====\nArm a user-initiated login + transaction lock for a timeframe (JWT-identified).\nNo early unlock — it elapses. Blocks login (after creds, before 2FA) AND\nmoney movement (accounts-service gates debits/holds on the same window).",
+        "operationId": "AuthService_RequestAccountLock",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbRequestAccountLockResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/pbRequestAccountLockRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthService"
+        ]
+      }
+    },
+    "/api/v1/auth/admin/preferred-login-method": {
+      "post": {
+        "summary": "Admin: Set User Preferred Login Method",
+        "description": "Admin override of a specific user's preferred login method.",
+        "operationId": "AuthService_AdminSetPreferredLoginMethod",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbSetPreferredLoginMethodResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/pbAdminSetPreferredLoginMethodRequest"
+            }
+          }
+        ],
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
     "/api/v1/auth/admin/token-by-phone": {
       "post": {
         "summary": "Admin Generate Token by Phone",
@@ -668,6 +817,93 @@
         ]
       }
     },
+    "/api/v1/auth/devices": {
+      "get": {
+        "operationId": "AuthService_ListDevices",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbListDevicesResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "AuthService"
+        ]
+      }
+    },
+    "/api/v1/auth/devices/register": {
+      "post": {
+        "summary": "===== Device registry (trusted devices / security center) =====",
+        "operationId": "AuthService_RegisterDevice",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbRegisterDeviceResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/pbRegisterDeviceRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthService"
+        ]
+      }
+    },
+    "/api/v1/auth/devices/revoke": {
+      "post": {
+        "operationId": "AuthService_RevokeDevice",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbRevokeDeviceResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/pbRevokeDeviceRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthService"
+        ]
+      }
+    },
     "/api/v1/auth/facial-login": {
       "post": {
         "summary": "Facial Login",
@@ -796,6 +1032,44 @@
         ],
         "tags": [
           "Authentication"
+        ]
+      }
+    },
+    "/api/v1/auth/login-activity": {
+      "get": {
+        "operationId": "AuthService_GetLoginHistory",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbGetLoginHistoryResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "tags": [
+          "AuthService"
         ]
       }
     },
@@ -1008,6 +1282,108 @@
         ]
       }
     },
+    "/api/v1/auth/passcode-reset/confirm": {
+      "post": {
+        "summary": "Reset Passcode with OTP",
+        "description": "Verify the SMS OTP and set a new 6-digit login passcode for a phone-primary account.",
+        "operationId": "AuthService_ResetPasscodeWithOTP",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbResetPasscodeWithOTPResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/pbResetPasscodeWithOTPRequest"
+            }
+          }
+        ],
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
+    "/api/v1/auth/passcode-reset/request": {
+      "post": {
+        "summary": "Request Passcode Reset (Phone OTP)",
+        "description": "Send a 6-digit SMS OTP to a phone-primary account to begin a passcode reset.",
+        "operationId": "AuthService_RequestPasscodeReset",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbRequestPasscodeResetResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/pbRequestPasscodeResetRequest"
+            }
+          }
+        ],
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
+    "/api/v1/auth/passcode-reset/verify": {
+      "post": {
+        "summary": "Verify Passcode Reset OTP",
+        "description": "Validate the SMS reset OTP without consuming it.",
+        "operationId": "AuthService_VerifyPasscodeResetOTP",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbVerifyPasscodeResetOTPResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/pbVerifyPasscodeResetOTPRequest"
+            }
+          }
+        ],
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
     "/api/v1/auth/phone/login": {
       "post": {
         "summary": "Login with Phone + Passcode",
@@ -1144,6 +1520,40 @@
         ]
       }
     },
+    "/api/v1/auth/preferred-login-method": {
+      "post": {
+        "summary": "Set Preferred Login Method",
+        "description": "Set the calling user's preferred login method (email_password | phone_passcode).",
+        "operationId": "AuthService_SetPreferredLoginMethod",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbSetPreferredLoginMethodResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/pbSetPreferredLoginMethodRequest"
+            }
+          }
+        ],
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
     "/api/v1/auth/profile": {
       "put": {
         "summary": "Update User Profile",
@@ -1180,6 +1590,74 @@
           {
             "bearer": []
           }
+        ]
+      }
+    },
+    "/api/v1/auth/profile/phone-change/request": {
+      "post": {
+        "summary": "Request Phone Change",
+        "description": "Send an SMS OTP to a new phone number to begin changing the account's phone.",
+        "operationId": "AuthService_RequestPhoneChange",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbRequestPhoneChangeResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/pbRequestPhoneChangeRequest"
+            }
+          }
+        ],
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
+    "/api/v1/auth/profile/phone-change/verify": {
+      "post": {
+        "summary": "Verify Phone Change",
+        "description": "Verify the SMS OTP for a new phone number and apply the change.",
+        "operationId": "AuthService_VerifyPhoneChange",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbVerifyPhoneChangeResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/pbVerifyPhoneChangeRequest"
+            }
+          }
+        ],
+        "tags": [
+          "Authentication"
         ]
       }
     },
@@ -1358,6 +1836,39 @@
         ]
       }
     },
+    "/api/v1/auth/resend-login-otp": {
+      "post": {
+        "summary": "Public: issue a fresh step-up code for an in-flight challenge. The code\nis replaced in place (same step_up_token, one live code per session);\nrate limited by cooldown + resend cap, both admin-tunable.",
+        "operationId": "AuthService_ResendLoginOtp",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbLoginResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/pbResendLoginOtpRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthService"
+        ]
+      }
+    },
     "/api/v1/auth/resend-phone-verification": {
       "post": {
         "summary": "Resend Phone Verification",
@@ -1525,6 +2036,40 @@
           {
             "bearer": []
           }
+        ]
+      }
+    },
+    "/api/v1/auth/set-password": {
+      "post": {
+        "summary": "Set Initial Password",
+        "description": "Set a first password for a passwordless account.",
+        "operationId": "AuthService_SetPassword",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbSetPasswordResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/pbSetPasswordRequest"
+            }
+          }
+        ],
+        "tags": [
+          "Authentication"
         ]
       }
     },
@@ -2003,6 +2548,39 @@
           {
             "bearer": []
           }
+        ]
+      }
+    },
+    "/api/v1/auth/verify-login-otp": {
+      "post": {
+        "summary": "Public: complete an adaptive step-up login by verifying the login OTP.",
+        "operationId": "AuthService_VerifyLoginOtp",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbLoginResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/pbVerifyLoginOtpRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthService"
         ]
       }
     },
@@ -10579,6 +11157,17 @@
         }
       }
     },
+    "pbAdminSetPreferredLoginMethodRequest": {
+      "type": "object",
+      "properties": {
+        "targetUserId": {
+          "type": "string"
+        },
+        "method": {
+          "type": "string"
+        }
+      }
+    },
     "pbAlertType": {
       "type": "string",
       "enum": [
@@ -10589,7 +11178,7 @@
         "ALERT_TYPE_RECURRING_EXPENSE_DUE"
       ],
       "default": "ALERT_TYPE_UNSPECIFIED",
-      "title": "- ALERT_TYPE_THRESHOLD_REACHED: e.g., 80% reached\n - ALERT_TYPE_APPROACHING_LIMIT: e.g., 90% reached"
+      "description": "- ALERT_TYPE_THRESHOLD_REACHED: e.g., 80% reached\n - ALERT_TYPE_APPROACHING_LIMIT: e.g., 90% reached"
     },
     "pbAnomalyDetection": {
       "type": "object",
@@ -10698,7 +11287,7 @@
         "BILL_STATUS_CANCELLED"
       ],
       "default": "BILL_STATUS_UNSPECIFIED",
-      "title": "Recurring Bills / Upcoming Bills Messages"
+      "description": "Recurring Bills / Upcoming Bills Messages"
     },
     "pbBudgetAlertMessage": {
       "type": "object",
@@ -10992,6 +11581,24 @@
         }
       },
       "title": "Calculate interest response"
+    },
+    "pbCancelAccountDeletionRequest": {
+      "type": "object"
+    },
+    "pbCancelAccountDeletionResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "status": {
+          "type": "string",
+          "title": "\"none\" once restored"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
     },
     "pbCancelLockFundResponse": {
       "type": "object",
@@ -11490,6 +12097,10 @@
           "items": {
             "type": "string"
           }
+        },
+        "userId": {
+          "type": "string",
+          "description": "The REAL user id. `id` above is a uint64 dating from numeric user ids,\nbut this platform's user ids are UUIDs, so every ParseUint on the way out\nfails and `id` is silently 0 for EVERY user — the client's profile model\ndoes `id.toString()` and gets \"0\". Changing field 1's type would break\nthe wire format for installed clients (varint vs length-delimited), so\nthe real value is carried here and `id` is left as the dead field it\nalready was."
         }
       },
       "title": "Common user type (for gateway-internal use, distinct from auth.proto User)"
@@ -13349,6 +13960,46 @@
       "description": "- DEPOSIT_STATUS_FAILED: Note: This represents final failure *after* processing attempt",
       "title": "Represents the status of a deposit transaction"
     },
+    "pbDeviceInfo": {
+      "type": "object",
+      "properties": {
+        "deviceUuid": {
+          "type": "string"
+        },
+        "platform": {
+          "type": "string"
+        },
+        "model": {
+          "type": "string"
+        },
+        "osVersion": {
+          "type": "string"
+        },
+        "appVersion": {
+          "type": "string"
+        },
+        "trustStatus": {
+          "type": "string"
+        },
+        "lastIp": {
+          "type": "string"
+        },
+        "lastLocation": {
+          "type": "string"
+        },
+        "firstSeenAt": {
+          "type": "string",
+          "format": "int64"
+        },
+        "lastLoginAt": {
+          "type": "string",
+          "format": "int64"
+        },
+        "current": {
+          "type": "boolean"
+        }
+      }
+    },
     "pbDevicePermission": {
       "type": "object",
       "properties": {
@@ -13395,7 +14046,7 @@
         "DOCUMENT_STATUS_REJECTED"
       ],
       "default": "DOCUMENT_STATUS_UNKNOWN",
-      "title": "Document status enum"
+      "description": "Document status enum"
     },
     "pbDocumentSubmissionItem": {
       "type": "object",
@@ -13623,7 +14274,7 @@
         "INTERNATIONAL"
       ],
       "default": "EXCHANGE_TYPE_UNSPECIFIED",
-      "title": "- CONVERSION: Wallet-to-wallet conversion\n - INTERNATIONAL: International transfer with FX"
+      "description": "- CONVERSION: Wallet-to-wallet conversion\n - INTERNATIONAL: International transfer with FX"
     },
     "pbExpenseCategory": {
       "type": "string",
@@ -14344,6 +14995,28 @@
         "authenticationMode": {
           "type": "string",
           "title": "\"email_password\" | \"phone_passcode\""
+        },
+        "emailVerificationRequired": {
+          "type": "boolean",
+          "title": "admin toggle: require email verification in onboarding"
+        },
+        "phoneVerificationRequired": {
+          "type": "boolean",
+          "title": "admin toggle: require phone verification in onboarding"
+        },
+        "socialLoginEnabled": {
+          "type": "boolean",
+          "title": "admin toggle (default true): show social sign-in"
+        },
+        "googleLoginEnabled": {
+          "type": "boolean"
+        },
+        "appleLoginEnabled": {
+          "type": "boolean"
+        },
+        "voiceLoginEnabled": {
+          "type": "boolean",
+          "title": "admin toggle (default false): show voice sign-in"
         }
       }
     },
@@ -15224,6 +15897,24 @@
       },
       "title": "Get lock transactions response"
     },
+    "pbGetLoginHistoryResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "message": {
+          "type": "string"
+        },
+        "entries": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbLoginActivityEntry"
+          }
+        }
+      }
+    },
     "pbGetMarketChartResponse": {
       "type": "object",
       "properties": {
@@ -15270,6 +15961,12 @@
         },
         "hasPasscode": {
           "type": "boolean"
+        },
+        "hasPassword": {
+          "type": "boolean"
+        },
+        "preferredLoginMethod": {
+          "type": "string"
         }
       }
     },
@@ -16497,7 +17194,7 @@
         "GOAL_STATUS_PAUSED"
       ],
       "default": "GOAL_STATUS_UNSPECIFIED",
-      "title": "Financial Goals Messages"
+      "description": "Financial Goals Messages"
     },
     "pbGoalType": {
       "type": "string",
@@ -16644,7 +17341,7 @@
         "INCOME_CATEGORY_OTHER"
       ],
       "default": "INCOME_CATEGORY_UNSPECIFIED",
-      "title": "Income Source Messages"
+      "description": "Income Source Messages"
     },
     "pbIncomeCategoryData": {
       "type": "object",
@@ -17153,7 +17850,7 @@
         "INVESTMENT_TYPE_OTHER"
       ],
       "default": "INVESTMENT_TYPE_UNSPECIFIED",
-      "title": "Investment Portfolio Messages"
+      "description": "Investment Portfolio Messages"
     },
     "pbInvestmentTypeData": {
       "type": "object",
@@ -17390,7 +18087,7 @@
         "KYC_STATUS_EXPIRED"
       ],
       "default": "KYC_STATUS_UNKNOWN",
-      "title": "KYC status enum"
+      "description": "KYC status enum"
     },
     "pbLazerVaultUserMatch": {
       "type": "object",
@@ -17422,6 +18119,10 @@
         "matchedBy": {
           "type": "string",
           "title": "What matched: \"phone\" or \"email\""
+        },
+        "matchedValue": {
+          "type": "string",
+          "description": "The EXACT identifier from the request that matched (phone as the caller\nsent it, or lowercased email). This is what lets the client correlate a\nmatch back to the device contact — correlating by display name never\nworked (\"Mum\" != the profile name)."
         }
       },
       "title": "Matched LazerVault user from contacts"
@@ -17584,6 +18285,24 @@
       },
       "title": "Response message for listing deposits"
     },
+    "pbListDevicesResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "message": {
+          "type": "string"
+        },
+        "devices": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbDeviceInfo"
+          }
+        }
+      }
+    },
     "pbListTransfersResponse": {
       "type": "object",
       "properties": {
@@ -17700,7 +18419,7 @@
         "LOCK_STATUS_CANCELLED"
       ],
       "default": "LOCK_STATUS_UNSPECIFIED",
-      "title": "Lock status enumeration"
+      "description": "Lock status enumeration"
     },
     "pbLockTransaction": {
       "type": "object",
@@ -17752,7 +18471,31 @@
         "LOCK_TYPE_GOAL_BASED"
       ],
       "default": "LOCK_TYPE_UNSPECIFIED",
-      "title": "Lock type enumeration"
+      "description": "Lock type enumeration"
+    },
+    "pbLoginActivityEntry": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "ipAddress": {
+          "type": "string"
+        },
+        "deviceName": {
+          "type": "string"
+        },
+        "userAgent": {
+          "type": "string"
+        },
+        "failReason": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "int64"
+        }
+      }
     },
     "pbLoginData": {
       "type": "object",
@@ -17767,6 +18510,9 @@
           "type": "boolean"
         },
         "hasTransactionPin": {
+          "type": "boolean"
+        },
+        "hasPassword": {
           "type": "boolean"
         }
       }
@@ -17822,6 +18568,21 @@
         "twoFactorToken": {
           "type": "string",
           "title": "Temporary token for 2FA flow"
+        },
+        "stepUpRequired": {
+          "type": "boolean"
+        },
+        "stepUpToken": {
+          "type": "string"
+        },
+        "stepUpMethod": {
+          "type": "string"
+        },
+        "stepUpDestination": {
+          "type": "string"
+        },
+        "twoFactorMethod": {
+          "type": "string"
         }
       }
     },
@@ -18144,7 +18905,7 @@
         "PAYMENT_METHOD_TYPE_BANK_TRANSFER"
       ],
       "default": "PAYMENT_METHOD_TYPE_ACCOUNT_BALANCE",
-      "title": "Payment Method Type Enum"
+      "description": "Payment Method Type Enum"
     },
     "pbPermissionType": {
       "type": "string",
@@ -18157,7 +18918,7 @@
         "PERMISSION_TYPE_BIOMETRIC"
       ],
       "default": "PERMISSION_TYPE_CAMERA",
-      "title": "Device Permissions Messages"
+      "description": "Device Permissions Messages"
     },
     "pbPlaceOrderRequest": {
       "type": "object",
@@ -18211,7 +18972,7 @@
         "POINT_SOURCE_REDEMPTION"
       ],
       "default": "POINT_SOURCE_REFERRAL",
-      "title": "Point source types"
+      "description": "Point source types"
     },
     "pbPointTransaction": {
       "type": "object",
@@ -18901,7 +19662,7 @@
         "REFERRAL_STATUS_CANCELLED"
       ],
       "default": "REFERRAL_STATUS_PENDING",
-      "title": "Referral status enum"
+      "description": "Referral status enum"
     },
     "pbReferralTransaction": {
       "type": "object",
@@ -19034,6 +19795,47 @@
         }
       }
     },
+    "pbRegisterDeviceRequest": {
+      "type": "object",
+      "properties": {
+        "deviceUuid": {
+          "type": "string"
+        },
+        "platform": {
+          "type": "string"
+        },
+        "model": {
+          "type": "string"
+        },
+        "osVersion": {
+          "type": "string"
+        },
+        "appVersion": {
+          "type": "string"
+        },
+        "fcmToken": {
+          "type": "string"
+        }
+      },
+      "title": "===== Device registry (trusted devices) ====="
+    },
+    "pbRegisterDeviceResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "message": {
+          "type": "string"
+        },
+        "deviceUuid": {
+          "type": "string"
+        },
+        "trustStatus": {
+          "type": "string"
+        }
+      }
+    },
     "pbRegisterFaceRequest": {
       "type": "object",
       "properties": {
@@ -19158,6 +19960,74 @@
       },
       "title": "Renew lock fund response"
     },
+    "pbRequestAccountDeletionRequest": {
+      "type": "object",
+      "properties": {
+        "reason": {
+          "type": "string",
+          "description": "User is identified via the JWT; no user_id in the body. Optional free-text\nreason captured for the deletion audit log."
+        }
+      },
+      "title": "===== Account deletion ====="
+    },
+    "pbRequestAccountDeletionResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "status": {
+          "type": "string",
+          "title": "\"pending_deletion\" on success"
+        },
+        "scheduledAt": {
+          "type": "string",
+          "title": "ISO 8601 — when the account is finalized"
+        },
+        "gracePeriodDays": {
+          "type": "integer",
+          "format": "int32",
+          "title": "cancellable window"
+        },
+        "message": {
+          "type": "string"
+        },
+        "errorCode": {
+          "type": "string",
+          "title": "\"FUNDS_PRESENT\" when blocked by a balance/hold"
+        }
+      }
+    },
+    "pbRequestAccountLockRequest": {
+      "type": "object",
+      "properties": {
+        "durationSeconds": {
+          "type": "integer",
+          "format": "int32",
+          "title": "clamped server-side to 1h..30d"
+        },
+        "reason": {
+          "type": "string",
+          "title": "optional"
+        }
+      },
+      "title": "===== Account self-lock ====="
+    },
+    "pbRequestAccountLockResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "lockedUntil": {
+          "type": "string",
+          "title": "ISO 8601 — when the lock elapses"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
     "pbRequestEmailVerificationRequest": {
       "type": "object",
       "properties": {
@@ -19178,6 +20048,38 @@
         }
       }
     },
+    "pbRequestPasscodeResetRequest": {
+      "type": "object",
+      "properties": {
+        "phone": {
+          "type": "string",
+          "title": "E.164 (e.g. +2348012345678)"
+        },
+        "countryCode": {
+          "type": "string",
+          "title": "ISO country (e.g. \"NG\")"
+        }
+      }
+    },
+    "pbRequestPasscodeResetResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "msg": {
+          "type": "string"
+        },
+        "expiresIn": {
+          "type": "string",
+          "format": "int64"
+        },
+        "resendAfterSeconds": {
+          "type": "integer",
+          "format": "int32"
+        }
+      }
+    },
     "pbRequestPasswordResetRequest": {
       "type": "object",
       "properties": {
@@ -19195,6 +20097,40 @@
         },
         "msg": {
           "type": "string"
+        }
+      }
+    },
+    "pbRequestPhoneChangeRequest": {
+      "type": "object",
+      "properties": {
+        "newPhone": {
+          "type": "string",
+          "title": "E.164 (e.g. +2348012345678)"
+        },
+        "countryCode": {
+          "type": "string",
+          "title": "ISO country (e.g. \"NG\")"
+        }
+      }
+    },
+    "pbRequestPhoneChangeResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "msg": {
+          "type": "string"
+        },
+        "expiresIn": {
+          "type": "string",
+          "format": "int64",
+          "title": "seconds until the OTP expires"
+        },
+        "resendAfterSeconds": {
+          "type": "integer",
+          "format": "int32",
+          "title": "cooldown before another OTP may be requested"
         }
       }
     },
@@ -19260,6 +20196,15 @@
         }
       }
     },
+    "pbResendLoginOtpRequest": {
+      "type": "object",
+      "properties": {
+        "stepUpToken": {
+          "type": "string",
+          "title": "from LoginResponse.step_up_token"
+        }
+      }
+    },
     "pbResendPhoneVerificationRequest": {
       "type": "object",
       "properties": {
@@ -19308,6 +20253,31 @@
         }
       }
     },
+    "pbResetPasscodeWithOTPRequest": {
+      "type": "object",
+      "properties": {
+        "phone": {
+          "type": "string"
+        },
+        "code": {
+          "type": "string"
+        },
+        "newPasscode": {
+          "type": "string"
+        }
+      }
+    },
+    "pbResetPasscodeWithOTPResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "msg": {
+          "type": "string"
+        }
+      }
+    },
     "pbResetPasswordRequest": {
       "type": "object",
       "properties": {
@@ -19328,6 +20298,25 @@
         },
         "success": {
           "type": "boolean"
+        }
+      }
+    },
+    "pbRevokeDeviceRequest": {
+      "type": "object",
+      "properties": {
+        "deviceUuid": {
+          "type": "string"
+        }
+      }
+    },
+    "pbRevokeDeviceResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "message": {
+          "type": "string"
         }
       }
     },
@@ -19441,7 +20430,7 @@
         "SCAN_STATUS_FAILED"
       ],
       "default": "SCAN_STATUS_UNSPECIFIED",
-      "title": "Scan status enum (value names must be unique across package pb — no bare PENDING, etc.)"
+      "description": "Scan status enum (value names must be unique across package pb — no bare PENDING, etc.)"
     },
     "pbScanType": {
       "type": "string",
@@ -19457,7 +20446,7 @@
         "BANK_DETAILS"
       ],
       "default": "SCAN_TYPE_UNSPECIFIED",
-      "title": "Scan types enum"
+      "description": "Scan types enum"
     },
     "pbSearchCrowdfundsResponse": {
       "type": "object",
@@ -19748,6 +20737,55 @@
         }
       }
     },
+    "pbSetPasswordRequest": {
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string"
+        },
+        "newPassword": {
+          "type": "string"
+        }
+      }
+    },
+    "pbSetPasswordResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "msg": {
+          "type": "string"
+        }
+      }
+    },
+    "pbSetPreferredLoginMethodRequest": {
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "title": "from JWT context (ignored if server-derived)"
+        },
+        "method": {
+          "type": "string",
+          "title": "\"email_password\" | \"phone_passcode\""
+        }
+      }
+    },
+    "pbSetPreferredLoginMethodResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "msg": {
+          "type": "string"
+        },
+        "preferredLoginMethod": {
+          "type": "string"
+        }
+      }
+    },
     "pbSetPrimarySocialAccountResponse": {
       "type": "object",
       "properties": {
@@ -19989,6 +21027,10 @@
         },
         "deviceName": {
           "type": "string"
+        },
+        "dateOfBirth": {
+          "type": "string",
+          "title": "OPTIONAL ISO 8601 date (YYYY-MM-DD)"
         }
       }
     },
@@ -20034,10 +21076,11 @@
       "properties": {
         "provider": {
           "type": "string",
-          "title": "\"google\", \"facebook\", \"apple\""
+          "title": "\"google\" | \"apple\""
         },
         "providerToken": {
-          "type": "string"
+          "type": "string",
+          "title": "verified server-side against the provider JWKS"
         },
         "email": {
           "type": "string"
@@ -20049,6 +21092,12 @@
           "type": "string"
         },
         "providerUserId": {
+          "type": "string"
+        },
+        "deviceId": {
+          "type": "string"
+        },
+        "deviceName": {
           "type": "string"
         }
       },
@@ -20071,6 +21120,41 @@
           "$ref": "#/definitions/pbUser"
         },
         "isNewUser": {
+          "type": "boolean"
+        },
+        "twoFactorRequired": {
+          "type": "boolean",
+          "description": "OAuth proves the first factor only — 2FA / step-up ride the same fields as\nLoginResponse so the client reuses those continuation flows. Keep in sync\nwith auth-service/proto/auth.proto or the gateway silently drops them."
+        },
+        "twoFactorToken": {
+          "type": "string"
+        },
+        "twoFactorMethod": {
+          "type": "string"
+        },
+        "stepUpRequired": {
+          "type": "boolean"
+        },
+        "stepUpToken": {
+          "type": "string"
+        },
+        "stepUpMethod": {
+          "type": "string"
+        },
+        "stepUpDestination": {
+          "type": "string"
+        },
+        "stepUpExpiresIn": {
+          "type": "string",
+          "format": "int64"
+        },
+        "hasPasscode": {
+          "type": "boolean"
+        },
+        "hasTransactionPin": {
+          "type": "boolean"
+        },
+        "hasPassword": {
           "type": "boolean"
         }
       }
@@ -21015,7 +22099,7 @@
         "TRANSACTION_FLOW_NEUTRAL"
       ],
       "default": "TRANSACTION_FLOW_UNKNOWN",
-      "title": "Transaction Flow Direction"
+      "description": "Transaction Flow Direction"
     },
     "pbTransactionHistoryItem": {
       "type": "object",
@@ -21088,7 +22172,7 @@
         "TRANSACTION_SERVICE_TYPE_WITHDRAWAL"
       ],
       "default": "TRANSACTION_SERVICE_TYPE_UNKNOWN",
-      "title": "Transaction Service Types - comprehensive service types enumeration"
+      "description": "Transaction Service Types - comprehensive service types enumeration"
     },
     "pbTransactionStatus": {
       "type": "string",
@@ -21103,7 +22187,7 @@
         "TRANSACTION_STATUS_EXPIRED"
       ],
       "default": "TRANSACTION_STATUS_UNKNOWN",
-      "title": "Transaction Status - comprehensive status tracking"
+      "description": "Transaction Status - comprehensive status tracking"
     },
     "pbTransferPaginationInfo": {
       "type": "object",
@@ -21713,6 +22797,14 @@
         "authType": {
           "type": "string",
           "title": "EMAIL_PASSWORD | PHONE_PASSCODE — pins the user's login method"
+        },
+        "preferredLoginMethod": {
+          "type": "string",
+          "title": "user-selectable: \"email_password\" | \"phone_passcode\" | \"\""
+        },
+        "hasPassword": {
+          "type": "boolean",
+          "title": "password_hash != \"\""
         }
       },
       "title": "===== User Model ====="
@@ -21726,7 +22818,7 @@
         "USER_DOCUMENT_TYPE_RESIDENCE_PERMIT"
       ],
       "default": "USER_DOCUMENT_TYPE_PASSPORT",
-      "title": "Identity Verification Messages\nNote: Enum values are prefixed with USER_ to avoid conflict with auth.proto DocumentType"
+      "description": "Identity Verification Messages\nNote: Enum values are prefixed with USER_ to avoid conflict with auth.proto DocumentType"
     },
     "pbUserLookupResponse": {
       "type": "object",
@@ -22283,10 +23375,55 @@
       },
       "title": "Verify identity response"
     },
+    "pbVerifyLoginOtpRequest": {
+      "type": "object",
+      "properties": {
+        "stepUpToken": {
+          "type": "string"
+        },
+        "code": {
+          "type": "string"
+        },
+        "deviceId": {
+          "type": "string"
+        },
+        "deviceName": {
+          "type": "string"
+        }
+      }
+    },
     "pbVerifyPasscodeRequest": {
       "type": "object",
       "properties": {
         "passcode": {
+          "type": "string"
+        }
+      }
+    },
+    "pbVerifyPasscodeResetOTPRequest": {
+      "type": "object",
+      "properties": {
+        "phone": {
+          "type": "string",
+          "title": "E.164"
+        },
+        "code": {
+          "type": "string",
+          "title": "6-digit OTP"
+        },
+        "countryCode": {
+          "type": "string",
+          "title": "ISO country (e.g. \"NG\")"
+        }
+      }
+    },
+    "pbVerifyPasscodeResetOTPResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "msg": {
           "type": "string"
         }
       }
@@ -22348,6 +23485,38 @@
           "type": "string",
           "format": "int64",
           "title": "When the reset token expires (in seconds)"
+        }
+      }
+    },
+    "pbVerifyPhoneChangeRequest": {
+      "type": "object",
+      "properties": {
+        "newPhone": {
+          "type": "string",
+          "title": "E.164 — must match the number the OTP was sent to"
+        },
+        "code": {
+          "type": "string",
+          "title": "6-digit OTP"
+        },
+        "countryCode": {
+          "type": "string",
+          "title": "ISO country (e.g. \"NG\")"
+        }
+      }
+    },
+    "pbVerifyPhoneChangeResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "msg": {
+          "type": "string"
+        },
+        "phone": {
+          "type": "string",
+          "title": "the newly-applied phone number"
         }
       }
     },
@@ -22468,6 +23637,13 @@
         },
         "user": {
           "$ref": "#/definitions/pbUser"
+        },
+        "hasPasscode": {
+          "type": "boolean",
+          "description": "Passcode / transaction-PIN presence — parity with LoginData so post-2FA\nlogin routes like a non-2FA login (see auth-service copy for rationale)."
+        },
+        "hasTransactionPin": {
+          "type": "boolean"
         }
       }
     },
