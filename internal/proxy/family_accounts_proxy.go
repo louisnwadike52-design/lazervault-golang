@@ -138,3 +138,45 @@ func (p *FamilyAccountsServiceProxy) AdminRemoveFamilyMember(ctx context.Context
 func (p *FamilyAccountsServiceProxy) AdminUpdateFamilyAccountNotes(ctx context.Context, req *accountspb.AdminUpdateFamilyAccountNotesRequest) (*accountspb.AdminUpdateFamilyAccountNotesResponse, error) {
 	return p.client.AdminUpdateFamilyAccountNotes(forwardContext(ctx), req)
 }
+
+// LeaveFamilyAccount was missing here while the app called it over gRPC and
+// accounts-service implemented it — so "Leave family account" returned
+// Unimplemented to every user who tapped it.
+func (p *FamilyAccountsServiceProxy) LeaveFamilyAccount(ctx context.Context, req *accountspb.LeaveFamilyAccountRequest) (*accountspb.LeaveFamilyAccountResponse, error) {
+	return p.client.LeaveFamilyAccount(forwardContext(ctx), req)
+}
+
+// Paid family slots.
+//
+// This proxy embeds UnimplementedFamilyAccountsServiceServer, so an RPC missing
+// from here does NOT fail the build — it returns Unimplemented to the app while
+// the microservice behind it works perfectly. Every RPC added to the proto needs
+// a line here.
+
+func (p *FamilyAccountsServiceProxy) GetFamilyCapacity(ctx context.Context, req *accountspb.GetFamilyCapacityRequest) (*accountspb.GetFamilyCapacityResponse, error) {
+	return p.client.GetFamilyCapacity(forwardContext(ctx), req)
+}
+
+func (p *FamilyAccountsServiceProxy) RequestExtraFamilySlot(ctx context.Context, req *accountspb.RequestExtraFamilySlotRequest) (*accountspb.RequestExtraFamilySlotResponse, error) {
+	return p.client.RequestExtraFamilySlot(forwardContext(ctx), req)
+}
+
+func (p *FamilyAccountsServiceProxy) ListFamilySlots(ctx context.Context, req *accountspb.ListFamilySlotsRequest) (*accountspb.ListFamilySlotsResponse, error) {
+	return p.client.ListFamilySlots(forwardContext(ctx), req)
+}
+
+func (p *FamilyAccountsServiceProxy) CancelFamilySlot(ctx context.Context, req *accountspb.CancelFamilySlotRequest) (*accountspb.CancelFamilySlotResponse, error) {
+	return p.client.CancelFamilySlot(forwardContext(ctx), req)
+}
+
+func (p *FamilyAccountsServiceProxy) GetFamilySlotCharges(ctx context.Context, req *accountspb.GetFamilySlotChargesRequest) (*accountspb.GetFamilySlotChargesResponse, error) {
+	return p.client.GetFamilySlotCharges(forwardContext(ctx), req)
+}
+
+func (p *FamilyAccountsServiceProxy) AdminListFamilySlots(ctx context.Context, req *accountspb.AdminListFamilySlotsRequest) (*accountspb.AdminListFamilySlotsResponse, error) {
+	return p.client.AdminListFamilySlots(forwardContext(ctx), req)
+}
+
+func (p *FamilyAccountsServiceProxy) AdminListFamilySlotCharges(ctx context.Context, req *accountspb.AdminListFamilySlotChargesRequest) (*accountspb.AdminListFamilySlotChargesResponse, error) {
+	return p.client.AdminListFamilySlotCharges(forwardContext(ctx), req)
+}
