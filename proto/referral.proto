@@ -331,4 +331,59 @@ service ReferralService {
       get: "/v1/referral/points/config"
     };
   }
+
+  // Points -> cash. Present on the SERVICE but absent from this gateway copy,
+  // so every client call was answered Unimplemented before it reached
+  // referral-service, and the app rendered that as "Network error".
+  //
+  // AwardTransactionPoints / ReverseTransactionPoints are deliberately NOT
+  // mirrored here: they MINT and CLAW BACK points and are called
+  // service-to-service on the internal port. Exposing them on the public
+  // gateway would let a client award itself points.
+  rpc GetRedemptionQuote(GetRedemptionQuoteRequest) returns (GetRedemptionQuoteResponse) {
+    option (google.api.http) = {
+      get: "/v1/referral/points/redeem/quote"
+    };
+  }
+  rpc RedeemPoints(RedeemPointsRequest) returns (RedeemPointsResponse) {
+    option (google.api.http) = {
+      post: "/v1/referral/points/redeem"
+      body: "*"
+    };
+  }
+}
+
+
+message GetRedemptionQuoteRequest {
+  // 0 quotes the caller's WHOLE balance, which is what the screen opens on.
+  int32 points = 1;
+}
+
+message GetRedemptionQuoteResponse {
+  int32 points = 1;
+  int64 cash_minor = 2;
+  string currency = 3;
+  // How many points buy one major unit. Shown so the rate is visible rather
+  // than implied by a number the user has to reverse-engineer.
+  int32 points_per_major_unit = 4;
+  int32 min_redeem_points = 5;
+  // False when the balance is under the minimum or the rate is unset. Carries
+  // the reason so the button can explain itself instead of being inert.
+  bool can_redeem = 6;
+  string reason = 7;
+}
+
+message RedeemPointsRequest {
+  int32 points = 1;
+  // Caller-generated, stable across retries of the SAME attempt.
+  string idempotency_key = 2;
+}
+
+message RedeemPointsResponse {
+  int32 points_redeemed = 1;
+  // Kobo, like every amount crossing a service boundary here.
+  int64 cash_minor = 2;
+  string currency = 3;
+  int32 new_balance = 4;
+  string reference = 5;
 }

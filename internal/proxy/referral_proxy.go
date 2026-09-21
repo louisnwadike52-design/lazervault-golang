@@ -62,3 +62,19 @@ func (p *ReferralServiceProxy) GetMyPointsHistory(ctx context.Context, req *pb.G
 func (p *ReferralServiceProxy) GetPointsConfig(ctx context.Context, req *pb.GetPointsConfigRequest) (*pb.GetPointsConfigResponse, error) {
 	return p.client.GetPointsConfig(forwardContext(ctx), req)
 }
+
+// GetRedemptionQuote and RedeemPoints move MONEY (points -> wallet cash), so
+// both forward the caller's context rather than dialling with the gateway's own
+// identity — referral-service resolves the user from the forwarded token and
+// must never take the redeeming user from the request body.
+//
+// Note what is NOT here: AwardTransactionPoints / ReverseTransactionPoints.
+// Those mint and claw back points and are called service-to-service on the
+// internal port. They stay off the public gateway.
+func (p *ReferralServiceProxy) GetRedemptionQuote(ctx context.Context, req *pb.GetRedemptionQuoteRequest) (*pb.GetRedemptionQuoteResponse, error) {
+	return p.client.GetRedemptionQuote(forwardContext(ctx), req)
+}
+
+func (p *ReferralServiceProxy) RedeemPoints(ctx context.Context, req *pb.RedeemPointsRequest) (*pb.RedeemPointsResponse, error) {
+	return p.client.RedeemPoints(forwardContext(ctx), req)
+}
