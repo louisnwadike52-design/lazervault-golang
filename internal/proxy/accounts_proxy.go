@@ -83,6 +83,13 @@ func (p *AccountsServiceProxy) GetForeignVirtualAccountStatus(ctx context.Contex
 	return p.client.GetForeignVirtualAccountStatus(forwardContext(ctx), req)
 }
 
+// Client-facing: the KYC form calls this once on open to learn which of its 24
+// fields it must NOT ask for. Identity is taken from the token on the far side, so
+// this cannot be pointed at another user.
+func (p *AccountsServiceProxy) GetForeignVirtualAccountPrefill(ctx context.Context, req *accountspb.GetForeignVirtualAccountPrefillRequest) (*accountspb.GetForeignVirtualAccountPrefillResponse, error) {
+	return p.client.GetForeignVirtualAccountPrefill(forwardContext(ctx), req)
+}
+
 // === Transaction History Proxies ===
 
 func (p *AccountsServiceProxy) CreateTransaction(ctx context.Context, req *accountspb.CreateTransactionRequest) (*accountspb.CreateTransactionResponse, error) {
