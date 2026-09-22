@@ -68,6 +68,21 @@ func (p *AccountsServiceProxy) GetUserAccounts(ctx context.Context, req *account
 	return p.client.GetUserAccounts(forwardContext(ctx), req)
 }
 
+// === Foreign-currency virtual accounts (Fincra) ===
+//
+// Both RPCs existed in the proto and were implemented in accounts-service, and
+// neither was forwarded here — so any client calling them got Unimplemented.
+// That is the standing hazard of embedding UnimplementedAccountsServiceServer:
+// it compiles, deploys, and fails only at runtime. Same class of bug as
+// LeaveFamilyAccount and the Lazerpoints award path.
+func (p *AccountsServiceProxy) RequestForeignVirtualAccount(ctx context.Context, req *accountspb.RequestForeignVirtualAccountRequest) (*accountspb.RequestForeignVirtualAccountResponse, error) {
+	return p.client.RequestForeignVirtualAccount(forwardContext(ctx), req)
+}
+
+func (p *AccountsServiceProxy) GetForeignVirtualAccountStatus(ctx context.Context, req *accountspb.GetForeignVirtualAccountStatusRequest) (*accountspb.GetForeignVirtualAccountStatusResponse, error) {
+	return p.client.GetForeignVirtualAccountStatus(forwardContext(ctx), req)
+}
+
 // === Transaction History Proxies ===
 
 func (p *AccountsServiceProxy) CreateTransaction(ctx context.Context, req *accountspb.CreateTransactionRequest) (*accountspb.CreateTransactionResponse, error) {
