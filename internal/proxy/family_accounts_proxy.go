@@ -101,6 +101,13 @@ func (p *FamilyAccountsServiceProxy) UpdateFundDistributionMode(ctx context.Cont
 	return p.client.UpdateFundDistributionMode(forwardContext(ctx), req)
 }
 
+// UpdateFamilySettings MUST be forwarded here or the RPC answers UNIMPLEMENTED
+// at the gateway however complete the microservice implementation is — the
+// proxy is the real control over what the app can reach.
+func (p *FamilyAccountsServiceProxy) UpdateFamilySettings(ctx context.Context, req *accountspb.UpdateFamilySettingsRequest) (*accountspb.UpdateFamilySettingsResponse, error) {
+	return p.client.UpdateFamilySettings(forwardContext(ctx), req)
+}
+
 // =============================================================================
 // Admin proxy methods — forward admin-only RPCs to the upstream microservice.
 // The admin role check is performed by the gateway's HTTP middleware before
