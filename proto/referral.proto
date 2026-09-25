@@ -377,6 +377,13 @@ message RedeemPointsRequest {
   int32 points = 1;
   // Caller-generated, stable across retries of the SAME attempt.
   string idempotency_key = 2;
+  // Raw transaction PIN.
+  //
+  // Converting points takes real money out of the rewards wallet, and this was
+  // the only cash-out in the product that asked for nothing. Verified
+  // server-side against auth-service BEFORE any debit: a client-side check is
+  // advice, not a gate, because the client can be modified.
+  string pin = 3;
 }
 
 message RedeemPointsResponse {

@@ -630,8 +630,12 @@ func main() {
 				accountspb.NewRecipientServiceClient(uniAcctConn),
 				pb.NewAuthServiceClient(uniAuthConn),
 				grpAcctClient,
-			)
-			log.Info().Msg("✅ Unified user search registered (GET /api/v1/users/search-unified) — saved + directory + org")
+			).
+				// Same connection, second stub: hides directory users who have no
+				// personal account, so a picker never offers someone the transfer
+				// could only fail on.
+				WithAccountsClient(accountspb.NewAccountsServiceClient(uniAcctConn))
+			log.Info().Msg("✅ Unified user search registered (GET /api/v1/users/search-unified) — saved + directory + org, payable-filtered")
 		} else {
 			log.Warn().Err(e2).Msg("Unified search: auth dial failed - route unavailable")
 		}

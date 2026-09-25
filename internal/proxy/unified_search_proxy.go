@@ -39,6 +39,9 @@ type UnifiedSearchProxy struct {
 	// groupAcctClient is optional — when nil (dial failed at boot) org users are
 	// simply omitted and the local + global search still works.
 	groupAcctClient groupaccountspb.GroupAccountServiceClient
+	// accountsClient answers "can this person actually be paid". Optional: when
+	// nil the search behaves exactly as it did before the filter existed.
+	accountsClient accountspb.AccountsServiceClient
 }
 
 // NewUnifiedSearchProxy builds the proxy from the same gRPC clients the
@@ -46,6 +49,74 @@ type UnifiedSearchProxy struct {
 // then degrades gracefully).
 func NewUnifiedSearchProxy(rc accountspb.RecipientServiceClient, ac pb.AuthServiceClient, gac groupaccountspb.GroupAccountServiceClient) *UnifiedSearchProxy {
 	return &UnifiedSearchProxy{recipientClient: rc, authClient: ac, groupAcctClient: gac}
+}
+
+// WithAccountsClient enables the payable filter.
+//
+// Separate from the constructor so every existing caller keeps compiling and so
+// the filter is explicitly opt-in at the wiring site rather than an invisible
+// behaviour change.
+func (p *UnifiedSearchProxy) WithAccountsClient(ac accountspb.AccountsServiceClient) *UnifiedSearchProxy {
+	p.accountsClient = ac
+	return p
+}
+
+// keepPayable drops directory users who cannot receive money.
+//
+// The directory finds PEOPLE; it does not know who has a wallet. A user who
+// never finished KYC has no personal account, so picking them could only ever
+// end in an error — after the sender had chosen them, typed an amount and
+// entered their PIN. Filtering here fixes every recipient picker at once
+// (Send Funds, split-bill, request, tag-pay) instead of each one separately.
+//
+// SAVED recipients are deliberately NOT filtered. The user put them there, they
+// may be external bank accounts with no LazerVault user at all, and silently
+// removing someone's own saved contact is worse than letting the transfer fail
+// with a message.
+//
+// Degrades OPEN on any failure: if accounts-service is unreachable or errors,
+// the unfiltered list is returned. An over-inclusive search that occasionally
+// errors later beats a search that mysteriously finds nobody.
+func (p *UnifiedSearchProxy) keepPayable(
+	ctx context.Context, items []unifiedResultItem, currency string,
+) []unifiedResultItem {
+	if p.accountsClient == nil || len(items) == 0 {
+		return items
+	}
+
+	ids := make([]string, 0, len(items))
+	for _, it := range items {
+		if it.UserID != "" {
+			ids = append(ids, it.UserID)
+		}
+	}
+	if len(ids) == 0 {
+		return items
+	}
+
+	resp, err := p.accountsClient.FilterPayableUsers(ctx, &accountspb.FilterPayableUsersRequest{
+		UserIds:  ids,
+		Currency: currency,
+	})
+	if err != nil || resp == nil {
+		log.Error().Err(err).Msg("unified-search: payable filter failed; returning unfiltered results")
+		return items
+	}
+
+	payable := make(map[string]bool, len(resp.GetPayableUserIds()))
+	for _, id := range resp.GetPayableUserIds() {
+		payable[id] = true
+	}
+
+	kept := make([]unifiedResultItem, 0, len(items))
+	for _, it := range items {
+		// An item with no user id is not a directory person (it is an external
+		// or group entry) and is left alone.
+		if it.UserID == "" || payable[it.UserID] {
+			kept = append(kept, it)
+		}
+	}
+	return kept
 }
 
 // localRecipientCap bounds the saved-recipient set we pull for in-gateway
@@ -250,6 +321,21 @@ func (p *UnifiedSearchProxy) HandleUnifiedSearch(c *gin.Context) {
 		}
 		global = append(global, d)
 	}
+
+	// Drop anyone who cannot actually be paid.
+	//
+	// Applied to `global` only — directory people and org members, who are
+	// offered BY the platform. Saved recipients are the user's own list and are
+	// left untouched.
+	//
+	// Filtered after the merge so one call covers both sources, and after dedupe
+	// so the same person is not asked about twice.
+	//
+	// No currency is passed: this endpoint has no amount or source wallet yet,
+	// so the question here is the weaker "has a personal account at all". The
+	// currency-specific check belongs at the point the transfer is priced, where
+	// the sending wallet is known.
+	global = p.keepPayable(outCtx, global, "")
 
 	// Don't mask a real failure as "no matches": if the directory search errored
 	// and we have nothing local to fall back on, surface it so the app shows an
