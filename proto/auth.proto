@@ -1759,6 +1759,23 @@ message UpdateProfileRequest {
   string username = 4;         // New username/LazerTag (optional)
   string phone = 5;            // New phone number (optional)
   string profile_picture = 6;  // New profile picture URL (optional)
+
+  // Postal address. An account statement is only accepted as proof of
+  // residence when it carries one, which is the main reason anyone exports
+  // one. Replaced as a BLOCK, never merged field-by-field: the client sends
+  // a whole form, so an emptied line must clear rather than silently keep
+  // the old value.
+  string address_line1 = 7;
+  string address_line2 = 8;
+  string address_city = 9;
+  string address_state = 10;
+  string address_postal_code = 11;
+  string address_country = 12;
+  // Must be true for the six fields above to be applied. Without it an
+  // all-empty address block is indistinguishable from a request that simply
+  // did not touch the address — and every existing caller (which sends none
+  // of these) would wipe the stored address on its next profile edit.
+  bool update_address = 13;
 }
 
 message UpdateProfileResponse {
@@ -2110,6 +2127,16 @@ message User {
   string auth_type = 25;            // EMAIL_PASSWORD | PHONE_PASSCODE — pins the user's login method
   string preferred_login_method = 26; // user-selectable: "email_password" | "phone_passcode" | ""
   bool has_password = 27;             // password_hash != ""
+
+  // Postal address, for statements and the confirmation / proof-of-funds
+  // letters. May be filled from KYC when a provider returns one; never
+  // overwrites what the user typed.
+  string address_line1 = 28;
+  string address_line2 = 29;
+  string address_city = 30;
+  string address_state = 31;
+  string address_postal_code = 32;
+  string address_country = 33;
 }
 
 // ===== Signup Progress Tracking =====
