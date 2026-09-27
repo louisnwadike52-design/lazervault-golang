@@ -70,6 +70,22 @@ message UpdateUserProfileRequest {
   string currency = 6;
   string country = 7;
   string profile_picture = 8; // Base64 encoded image or URL
+
+  // Postal address. Needed on account statements, confirmation letters and
+  // proof-of-funds letters — without it none of those is accepted as proof of
+  // residence, which is why most people export one.
+  //
+  // Applied as a BLOCK, and only when update_address is true: proto3 cannot
+  // tell an all-empty address from an absent one, so without the flag every
+  // profile edit that does not touch the address (a name change, a new
+  // profile picture) would clear it.
+  string address_line1 = 9;
+  string address_line2 = 10;
+  string address_city = 11;
+  string address_state = 12;
+  string address_postal_code = 13;
+  string address_country = 14;
+  bool update_address = 15;
 }
 
 message UpdateUserProfileResponse {

@@ -95,6 +95,16 @@ func (p *UserServiceProxy) UpdateUserProfile(ctx context.Context, req *pb.Update
 		Username:       req.Username,
 		Phone:          req.PhoneNumber,
 		ProfilePicture: req.ProfilePicture,
+		// Forwarded verbatim, flag included. auth-service applies the six
+		// fields only when UpdateAddress is set, so a client that knows
+		// nothing about addresses cannot clear one by saving a new name.
+		AddressLine1:      req.AddressLine1,
+		AddressLine2:      req.AddressLine2,
+		AddressCity:       req.AddressCity,
+		AddressState:      req.AddressState,
+		AddressPostalCode: req.AddressPostalCode,
+		AddressCountry:    req.AddressCountry,
+		UpdateAddress:     req.UpdateAddress,
 	})
 	if err != nil {
 		return nil, err
@@ -129,13 +139,13 @@ func authUserToCommonUser(au *pb.User) *pb.CommonUser {
 	}
 
 	return &pb.CommonUser{
-		Id:              userID,
-		UserId:          au.Id,
-		FirstName:       au.FirstName,
-		LastName:        au.LastName,
-		Email:           au.Email,
-		PhoneNumber:     au.Phone,
-		Username:        au.Username,
+		Id:          userID,
+		UserId:      au.Id,
+		FirstName:   au.FirstName,
+		LastName:    au.LastName,
+		Email:       au.Email,
+		PhoneNumber: au.Phone,
+		Username:    au.Username,
 		// `Verified` is the phone-verified flag on the client model — map it from
 		// PhoneVerified (was incorrectly mirrored from EmailVerified).
 		Verified:        au.PhoneVerified,
@@ -146,6 +156,14 @@ func authUserToCommonUser(au *pb.User) *pb.CommonUser {
 		UpdatedAt:       parseISO8601Timestamp(au.UpdatedAt),
 		Roles:           au.Roles,
 		Role:            au.Role,
+		// Address travels back out too, so the profile form renders what is
+		// stored instead of presenting an empty form over a saved address.
+		AddressLine1:      au.AddressLine1,
+		AddressLine2:      au.AddressLine2,
+		AddressCity:       au.AddressCity,
+		AddressState:      au.AddressState,
+		AddressPostalCode: au.AddressPostalCode,
+		AddressCountry:    au.AddressCountry,
 	}
 }
 

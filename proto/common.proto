@@ -31,6 +31,15 @@ message CommonUser {
     // the real value is carried here and `id` is left as the dead field it
     // already was.
     string user_id = 17;
+
+    // Postal address, as stored on the user record. Read back so the edit
+    // form can render what is saved rather than starting empty every time.
+    string address_line1 = 18;
+    string address_line2 = 19;
+    string address_city = 20;
+    string address_state = 21;
+    string address_postal_code = 22;
+    string address_country = 23;
   }
 
 
