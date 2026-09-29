@@ -93,6 +93,7 @@ func requiresAuth(method string) bool {
 		"/pb.AuthService/Login":                  false,
 		"/pb.AuthService/LoginWithPasscode":      false, // Public - login with passcode
 		"/pb.AuthService/VerifyLoginOtp":         false, // Public - completes an adaptive step-up login
+		"/pb.AuthService/SkipLoginOtp":           false, // Public - the caller has a step-up token and NO session yet
 		"/pb.AuthService/Logout":                 true,  // Should be true, logout needs auth
 		"/pb.AuthService/RefreshToken":           false,
 		"/pb.AuthService/Register":               false,
@@ -261,6 +262,7 @@ func isPublicHTTPPath(path string) bool {
 		"/api/v1/auth/social-login", // Google/Apple sign-in (token verified in auth-service)
 		"/api/v1/auth/login-passcode",
 		"/api/v1/auth/verify-login-otp",
+		"/api/v1/auth/skip-login-otp",
 		"/api/v1/auth/refresh",
 		"/api/v1/auth/verify-email",
 		"/api/v1/auth/forgot-password",

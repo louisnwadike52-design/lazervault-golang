@@ -60,6 +60,7 @@ func isPublicEndpoint(method string) bool {
 		"/pb.AuthService/Signup":                  true,
 		"/pb.AuthService/LoginWithPasscode":       true, // Public - login with passcode
 		"/pb.AuthService/VerifyLoginOtp":          true, // Public - completes an adaptive step-up login
+		"/pb.AuthService/SkipLoginOtp":            true, // Public - the caller has a step-up token and NO session yet
 		"/pb.AuthService/RefreshToken":            true,
 		"/pb.AuthService/VerifyEmail":             true,
 		"/pb.AuthService/ForgotPassword":          true,

@@ -186,6 +186,13 @@ func (p *AuthServiceProxy) VerifyPhoneChange(ctx context.Context, req *pb.Verify
 	return p.client.VerifyPhoneChange(forwardContext(ctx), req)
 }
 
+// SkipLoginOtp completes an adaptive step-up login WITHOUT the code, when the
+// operator allows it (public passthrough — the caller holds a step-up token and
+// no session, exactly like VerifyLoginOtp below).
+func (p *AuthServiceProxy) SkipLoginOtp(ctx context.Context, req *pb.SkipLoginOtpRequest) (*pb.LoginResponse, error) {
+	return p.client.SkipLoginOtp(forwardContext(ctx), req)
+}
+
 // VerifyLoginOtp completes an adaptive step-up login (public passthrough).
 func (p *AuthServiceProxy) VerifyLoginOtp(ctx context.Context, req *pb.VerifyLoginOtpRequest) (*pb.LoginResponse, error) {
 	return p.client.VerifyLoginOtp(forwardContext(ctx), req)

@@ -500,6 +500,17 @@ service AuthService {
   }
 
   // Public: complete an adaptive step-up login by verifying the login OTP.
+  // Complete sign-in WITHOUT the code, when the operator has enabled the
+  // escape hatch. Public like VerifyLoginOtp: the caller holds a step-up token
+  // and no session. Leaves the device unverified so the next login
+  // re-challenges — a deferral, not a bypass.
+  rpc SkipLoginOtp(SkipLoginOtpRequest) returns (LoginResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/auth/skip-login-otp"
+      body: "*"
+    };
+  }
+
   rpc VerifyLoginOtp(VerifyLoginOtpRequest) returns (LoginResponse) {
     option (google.api.http) = {
       post: "/api/v1/auth/verify-login-otp"
@@ -1728,6 +1739,12 @@ message GetLoginHistoryResponse {
 
 message ResendLoginOtpRequest {
   string step_up_token = 1; // from LoginResponse.step_up_token
+}
+
+message SkipLoginOtpRequest {
+  string step_up_token = 1;
+  string device_id = 2;
+  string device_name = 3;
 }
 
 message VerifyLoginOtpRequest {
