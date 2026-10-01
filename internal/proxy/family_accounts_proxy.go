@@ -146,6 +146,10 @@ func (p *FamilyAccountsServiceProxy) AdminRepairFamilyReservation(ctx context.Co
 	return p.client.AdminRepairFamilyReservation(forwardContext(ctx), req)
 }
 
+func (p *FamilyAccountsServiceProxy) ReturnAllocationsToPool(ctx context.Context, req *accountspb.ReturnAllocationsToPoolRequest) (*accountspb.ReturnAllocationsToPoolResponse, error) {
+	return p.client.ReturnAllocationsToPool(forwardContext(ctx), req)
+}
+
 func (p *FamilyAccountsServiceProxy) AdminUpdateFamilyAccountNotes(ctx context.Context, req *accountspb.AdminUpdateFamilyAccountNotesRequest) (*accountspb.AdminUpdateFamilyAccountNotesResponse, error) {
 	return p.client.AdminUpdateFamilyAccountNotes(forwardContext(ctx), req)
 }
