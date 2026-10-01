@@ -403,6 +403,28 @@ func (p *StorageProxy) toPublicURL(u string) string {
 	if err != nil {
 		return u
 	}
+	// NEVER rewrite a URL that already points somewhere else.
+	//
+	// This exists for the LOCAL storage backend, whose URLs come back pointing
+	// at the storage service's internal address — unreachable from a phone — and
+	// have to be swapped to the public origin.
+	//
+	// A cloud backend returns a PRESIGNED url instead, and its signature is
+	// computed over the host. Rewriting that host both invalidates the signature
+	// and sends the request to an origin that does not serve the path.
+	//
+	// Production, measured 2026-10-01 with STORAGE_PROVIDER=r2: R2 returned
+	//   https://lazervault-media.<account>.r2.cloudflarestorage.com/users/<id>/fcy-documents/<uuid>.pdf?X-Amz-...
+	// and this turned it into
+	//   https://api.lazervault.app/users/<id>/fcy-documents/<uuid>.pdf?X-Amz-...
+	// — note the path is not even under /v1/storage/objects/, so the tunnel
+	// served nothing and every upload in the app died with HTTP 404: FCY
+	// documents, profile pictures, bank scans, chat media (images and voice
+	// notes), invoice attachments and escrow evidence. A PUT straight to the
+	// untouched presigned URL succeeds, which is what proved it.
+	if !p.pointsAtOurStorage(parsed) {
+		return u
+	}
 	pub, err := neturl.Parse(p.publicBaseURL)
 	if err != nil || pub.Host == "" {
 		return u
@@ -410,6 +432,30 @@ func (p *StorageProxy) toPublicURL(u string) string {
 	parsed.Scheme = pub.Scheme
 	parsed.Host = pub.Host
 	return parsed.String()
+}
+
+// pointsAtOurStorage reports whether a URL addresses OUR storage service, and
+// is therefore ours to re-host.
+//
+// Two independent signals, either of which is sufficient, because the local
+// backend can be configured with a hostname or a bare address:
+//
+//   - the host matches the storage service we proxy to, or is loopback;
+//   - the path is under the storage service's own object route.
+//
+// Anything else is a third party's URL and is returned untouched.
+func (p *StorageProxy) pointsAtOurStorage(u *neturl.URL) bool {
+	if strings.HasPrefix(u.Path, "/v1/storage/objects/") {
+		return true
+	}
+	host := u.Hostname()
+	if host == "localhost" || host == "127.0.0.1" || host == "::1" {
+		return true
+	}
+	if upstream, err := neturl.Parse(p.storageBaseURL); err == nil && upstream.Hostname() != "" {
+		return strings.EqualFold(host, upstream.Hostname())
+	}
+	return false
 }
 
 // buildScopedKey returns the storage key + default filename for a given

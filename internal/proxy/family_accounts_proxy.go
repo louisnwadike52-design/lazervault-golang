@@ -142,6 +142,10 @@ func (p *FamilyAccountsServiceProxy) AdminRemoveFamilyMember(ctx context.Context
 	return p.client.AdminRemoveFamilyMember(forwardContext(ctx), req)
 }
 
+func (p *FamilyAccountsServiceProxy) AdminRepairFamilyReservation(ctx context.Context, req *accountspb.AdminRepairFamilyReservationRequest) (*accountspb.AdminRepairFamilyReservationResponse, error) {
+	return p.client.AdminRepairFamilyReservation(forwardContext(ctx), req)
+}
+
 func (p *FamilyAccountsServiceProxy) AdminUpdateFamilyAccountNotes(ctx context.Context, req *accountspb.AdminUpdateFamilyAccountNotesRequest) (*accountspb.AdminUpdateFamilyAccountNotesResponse, error) {
 	return p.client.AdminUpdateFamilyAccountNotes(forwardContext(ctx), req)
 }

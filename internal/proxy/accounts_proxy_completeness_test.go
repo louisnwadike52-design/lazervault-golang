@@ -134,6 +134,13 @@ var internalMoneyRPCs = map[string]bool{
 	// braces. A client reaching it could not move money, but could pump provider
 	// reads and race the approval worker.
 	"PromoteForeignVirtualAccount": true,
+	// FilterPayableUsers answers which of a set of OTHER people's user ids can
+	// receive money — i.e. hold an active personal account. It carries no
+	// google.api.http annotation for exactly that reason: it is a yes/no about
+	// third parties' accounts, and exposing it on the customer edge would turn
+	// it into an enumeration oracle over the user base. Callers are services
+	// (batch transfer, split bill) resolving recipients they already hold.
+	"FilterPayableUsers": true,
 }
 
 // otherGatewayRPCs are client-facing but served by a DIFFERENT gateway.
