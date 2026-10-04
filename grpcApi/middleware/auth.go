@@ -75,6 +75,14 @@ func AuthInterceptor() grpc.UnaryServerInterceptor {
 			return nil, err
 		}
 
+		// A read-only "view as user" session may not call a mutating RPC, and a
+		// session the admin has exited may not call anything. Runs AFTER
+		// authorize so it only ever sees a token whose signature is already
+		// verified. See impersonation.go.
+		if err := CheckImpersonationGRPC(ctx, info.FullMethod); err != nil {
+			return nil, err
+		}
+
 		// Add user info to context using the exported key
 		ctx = context.WithValue(ctx, AuthorizationPayloadKey, payload)
 		// Store the raw access token string in the context

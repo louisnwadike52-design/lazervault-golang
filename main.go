@@ -652,7 +652,7 @@ func main() {
 	// Client-logs next — also before JWT — so pre-login (biometric lock) logs are
 	// accepted anonymously; authenticated logs simply carry a user_id in-body.
 	apiGroup.Use(interceptClientLogs(clientLogsProxy))
-	apiGroup.Use(middleware.JWTAuthMiddleware())
+	apiGroup.Use(middleware.JWTAuthMiddleware(), middleware.ImpersonationHTTPGuard())
 	// Immediately after the JWT gate: these routes must not be reachable by a
 	// signed-in user at all, and the log line is more useful with a user_id on
 	// it. See interceptInternalOnlyRoutes for why they are exposed in the first
