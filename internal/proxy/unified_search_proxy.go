@@ -77,8 +77,22 @@ func (p *UnifiedSearchProxy) WithAccountsClient(ac accountspb.AccountsServiceCli
 // Degrades OPEN on any failure: if accounts-service is unreachable or errors,
 // the unfiltered list is returned. An over-inclusive search that occasionally
 // errors later beats a search that mysteriously finds nobody.
+// keepPayable drops people who cannot receive, and FILLS IN the account each
+// of the survivors should be paid into.
+//
+// The second half is why this is not just a filter. auth-service's user search
+// returns primary_account_id as "" with the comment "Populated by calling
+// service via accounts-service lookup" — and no calling service ever did it,
+// so every directory hit in every surface carried an empty account id. The
+// chat and voice agents then used the USER id as the destination, which is how
+// "send to praiz" (2026-10-06) resolved the right person and still could not
+// pay them.
+//
+// The id costs nothing extra: this call already finds the account in order to
+// decide payability, and now returns it instead of discarding it.
 func (p *UnifiedSearchProxy) keepPayable(
 	ctx context.Context, items []unifiedResultItem, currency string,
+	preferredCurrency string,
 ) []unifiedResultItem {
 	if p.accountsClient == nil || len(items) == 0 {
 		return items
@@ -97,6 +111,11 @@ func (p *UnifiedSearchProxy) keepPayable(
 	resp, err := p.accountsClient.FilterPayableUsers(ctx, &accountspb.FilterPayableUsersRequest{
 		UserIds:  ids,
 		Currency: currency,
+		// Orders WHICH account is named; never narrows who is offered. Without
+		// it a caller who sends NGN could be handed someone's GBP wallet as
+		// the destination, because this endpoint deliberately does not filter
+		// by currency (see the call site).
+		PreferredCurrency: preferredCurrency,
 	})
 	if err != nil || resp == nil {
 		log.Error().Err(err).Msg("unified-search: payable filter failed; returning unfiltered results")
@@ -107,12 +126,22 @@ func (p *UnifiedSearchProxy) keepPayable(
 	for _, id := range resp.GetPayableUserIds() {
 		payable[id] = true
 	}
+	accounts := resp.GetPrimaryAccountIds()
 
 	kept := make([]unifiedResultItem, 0, len(items))
 	for _, it := range items {
 		// An item with no user id is not a directory person (it is an external
 		// or group entry) and is left alone.
 		if it.UserID == "" || payable[it.UserID] {
+			// Fill the destination account, but never overwrite one a SAVED
+			// recipient already pinned: a saved payee may be tied to a family
+			// or business account deliberately, and the "primary" account is
+			// not where that money should go.
+			if it.PrimaryAccountID == "" && it.InternalAccountID == "" {
+				if acct := accounts[it.UserID]; acct != "" {
+					it.PrimaryAccountID = acct
+				}
+			}
 			kept = append(kept, it)
 		}
 	}
@@ -343,7 +372,10 @@ func (p *UnifiedSearchProxy) HandleUnifiedSearch(c *gin.Context) {
 	// so the question here is the weaker "has a personal account at all". The
 	// currency-specific check belongs at the point the transfer is priced, where
 	// the sending wallet is known.
-	global = p.keepPayable(outCtx, global, "")
+	// The caller's own currency, from the header the app already sends. Used
+	// only to PICK the destination account, not to filter — see keepPayable.
+	// Empty is fine and means "no preference", i.e. exactly today's ordering.
+	global = p.keepPayable(outCtx, global, "", strings.ToUpper(strings.TrimSpace(c.GetHeader("X-Currency"))))
 
 	// Don't mask a real failure as "no matches": if the directory search errored
 	// and we have nothing local to fall back on, surface it so the app shows an
