@@ -143,11 +143,19 @@ type unifiedResultItem struct {
 	BankName         string `json:"bank_name"`
 	ProfilePicture   string `json:"profile_picture"`
 	PrimaryAccountID string `json:"primary_account_id"`
-	IsLazervault     bool   `json:"is_lazervault_user"`
-	IsSaved          bool   `json:"is_saved"`
-	IsFavorite       bool   `json:"is_favorite"`
-	MatchedField     string `json:"matched_field"` // alias|name|email|phone|account|username|""
-	Type             string `json:"type"`          // internal|external
+	// InternalAccountID is the saved recipient's DESTINATION account — the
+	// account id the payee was pinned to, which is not necessarily their
+	// primary one (a saved number often belongs to a family or business
+	// account). Set for saved internal rows only; for a directory row the
+	// caller has not chosen an account yet, so PrimaryAccountID is the right
+	// default there.
+	InternalAccountID string `json:"internal_account_id"`
+	AccountHolderName string `json:"account_holder_name"`
+	IsLazervault      bool   `json:"is_lazervault_user"`
+	IsSaved           bool   `json:"is_saved"`
+	IsFavorite        bool   `json:"is_favorite"`
+	MatchedField      string `json:"matched_field"` // alias|name|email|phone|account|username|""
+	Type              string `json:"type"`          // internal|external
 }
 
 // HandleUnifiedSearch serves GET /api/v1/users/search-unified?q=&limit=&offset=
@@ -458,11 +466,17 @@ func recipientToItem(r *accountspb.Recipient, field string) unifiedResultItem {
 		PhoneNumber:   r.GetPhoneNumber(),
 		AccountNumber: r.GetAccountNumber(),
 		BankName:      r.GetBankName(),
-		IsLazervault:  r.GetType() == "internal",
-		IsSaved:       true,
-		IsFavorite:    r.GetIsFavorite(),
-		MatchedField:  field,
-		Type:          r.GetType(),
+		// Carried through so a payee picked from search keeps the identity the
+		// recipients service resolved, rather than being re-derived from an
+		// account number that belongs to whichever provider was active when it
+		// was captured.
+		InternalAccountID: r.GetInternalAccountUuid(),
+		AccountHolderName: r.GetAccountHolderName(),
+		IsLazervault:      r.GetType() == "internal",
+		IsSaved:           true,
+		IsFavorite:        r.GetIsFavorite(),
+		MatchedField:      field,
+		Type:              r.GetType(),
 	}
 }
 
