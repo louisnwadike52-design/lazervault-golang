@@ -221,6 +221,16 @@ func (p *StorageProxy) HandleEscrowUploadURL(c *gin.Context) {
 	p.handleScopedUploadURL(c, "escrow")
 }
 
+// HandleGroupAvatarUploadURL handles POST /api/v1/group-avatar/upload-url.
+// Holds the avatar shown for a joint-funds group or one of its
+// contributions. Images only (the profile-picture allow-list), scoped to
+// the uploading user — the group/contribution it ends up on is decided by
+// group-accounts when the resulting public URL is submitted, so an upload
+// alone grants nothing.
+func (p *StorageProxy) HandleGroupAvatarUploadURL(c *gin.Context) {
+	p.handleScopedUploadURL(c, "group-avatar")
+}
+
 // HandleFCYDocumentUploadURL handles POST /api/v1/fcy-document/upload-url.
 // Holds the KYC documents a foreign-currency virtual-account request
 // requires (government ID, utility bill / bank statement) — images or PDF,
@@ -481,6 +491,9 @@ func buildScopedKey(keyspace, userID, ext string) (string, string, error) {
 	case "fcy-document":
 		return fmt.Sprintf("users/%s/fcy-documents/%s.%s", userID, uuid.NewString(), ext),
 			"fcy-document." + ext, nil
+	case "group-avatar":
+		return fmt.Sprintf("users/%s/group-avatars/%s.%s", userID, uuid.NewString(), ext),
+			"group-avatar." + ext, nil
 	default:
 		return "", "", errors.New("unknown keyspace: " + keyspace)
 	}

@@ -581,7 +581,7 @@ func main() {
 				"ALL file uploads (escrow, invoice, chat media, profile pictures) will fail. " +
 				"Set it to the prod upstream (1xxxx offset).")
 	}
-	log.Info().Str("storage_base_url", storageBaseURL).Msg("✅ Storage proxy registered (POST /api/v1/profile-picture/upload-url, POST /api/v1/bank-scan/upload-url, POST /api/v1/chat-media/upload-url, POST /api/v1/invoice/upload-url, POST /api/v1/escrow/upload-url)")
+	log.Info().Str("storage_base_url", storageBaseURL).Msg("✅ Storage proxy registered (POST /api/v1/profile-picture/upload-url, POST /api/v1/bank-scan/upload-url, POST /api/v1/chat-media/upload-url, POST /api/v1/invoice/upload-url, POST /api/v1/escrow/upload-url, POST /api/v1/fcy-document/upload-url, POST /api/v1/group-avatar/upload-url)")
 
 	// Support proxy — user-facing "Contact support" surface. Gives the Flutter
 	// app a JWT-protected route to support-service's chat + tickets API so it
@@ -1353,6 +1353,10 @@ func interceptProfilePictureUploadURL(p *proxy.StorageProxy) gin.HandlerFunc {
 				return
 			case "/v1/fcy-document/upload-url":
 				p.HandleFCYDocumentUploadURL(c)
+				c.Abort()
+				return
+			case "/v1/group-avatar/upload-url":
+				p.HandleGroupAvatarUploadURL(c)
 				c.Abort()
 				return
 			}
