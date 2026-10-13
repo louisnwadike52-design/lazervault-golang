@@ -408,7 +408,7 @@ func resolveEscrowMediaTypeAndExt(filename, contentType string) (string, string,
 			return ext, mt, nil
 		}
 	}
-	return "", "", errors.New("filename or content_type must identify a supported image (jpg, png, webp, heic, gif), video (mp4, mov, webm) or voice note (m4a, aac, mp3)")
+	return "", "", errors.New("that file type is not supported here. Share a photo, a video, or a voice note")
 }
 
 // toPublicURL rewrites an internal storage URL's scheme+host to the externally
@@ -540,7 +540,7 @@ func resolveImageTypeAndExt(filename, contentType string) (string, string, error
 			return ext, mt, nil
 		}
 	}
-	return "", "", errors.New("filename or content_type must identify a supported image (jpg, png, webp, heic, gif)")
+	return "", "", errors.New("that file type is not supported here. Share a photo")
 }
 
 // resolveChatMediaTypeAndExt is the chat-media counterpart of
@@ -558,7 +558,7 @@ func resolveChatMediaTypeAndExt(filename, contentType string) (string, string, e
 			return ext, mt, nil
 		}
 	}
-	return "", "", errors.New("filename or content_type must identify a supported image or audio file")
+	return "", "", errors.New("that file type is not supported here. Share a photo or an audio file")
 }
 
 // safeFilenameWithDefault returns a sanitised filename for the upstream
