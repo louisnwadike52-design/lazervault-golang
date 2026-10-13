@@ -138,6 +138,14 @@ var allowedEscrowMediaContentTypes = map[string]string{
 	"video/mp4":       "mp4",
 	"video/quicktime": "mov",
 	"video/webm":      "webm",
+	// Voice notes in the deal chat. AAC in an m4a container is what
+	// kVoiceNoteRecordConfig produces on both platforms; the rest are what
+	// other recorders and a few Android OEMs label the same bytes.
+	"audio/mp4":   "m4a",
+	"audio/m4a":   "m4a",
+	"audio/x-m4a": "m4a",
+	"audio/aac":   "aac",
+	"audio/mpeg":  "mp3",
 }
 
 // allowedEscrowMediaExts is the parallel filename-based allow-list for escrow media.
@@ -151,6 +159,9 @@ var allowedEscrowMediaExts = map[string]string{
 	"mp4":  "video/mp4",
 	"mov":  "video/quicktime",
 	"webm": "video/webm",
+	"m4a":  "audio/mp4",
+	"aac":  "audio/aac",
+	"mp3":  "audio/mpeg",
 }
 
 // Escrow evidence size caps (client enforces + asks to compress first; these are
@@ -397,7 +408,7 @@ func resolveEscrowMediaTypeAndExt(filename, contentType string) (string, string,
 			return ext, mt, nil
 		}
 	}
-	return "", "", errors.New("filename or content_type must identify a supported image (jpg, png, webp, heic, gif) or video (mp4, mov, webm)")
+	return "", "", errors.New("filename or content_type must identify a supported image (jpg, png, webp, heic, gif), video (mp4, mov, webm) or voice note (m4a, aac, mp3)")
 }
 
 // toPublicURL rewrites an internal storage URL's scheme+host to the externally
