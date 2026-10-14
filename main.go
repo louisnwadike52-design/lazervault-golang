@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"lazervault-app-platform/microservices/shared/featuregate"
 	"net"
 	"net/http"
 	"os"
@@ -769,6 +770,11 @@ func main() {
 
 	// Create gRPC server with interceptor chain
 	// Configured for low-network regions (Nigeria) with compression and lenient keepalive
+	// Feature-gate snapshot, polled in the background. Nothing blocks on it:
+	// until the first poll lands every gate resolves to ALLOWED, so a slow or
+	// dead admin-gateway delays enforcement rather than refusing traffic.
+	featureGateCache := newFeatureGateCache(context.Background())
+
 	grpcServer := grpc.NewServer(
 		grpc.ChainUnaryInterceptor(
 			interceptors.PanicRecoveryInterceptor(zapLogger),
@@ -776,6 +782,13 @@ func main() {
 			interceptors.AppCheckInterceptor(appCheckVerifier, appCheckModeProvider.Mode, zapLogger),
 			interceptors.JWTAuthInterceptor(middleware.GetJWTVerifier()),
 			interceptors.RateLimitInterceptor(redisClient),
+			// AFTER auth, deliberately: the whitelist override matches on the
+			// caller's email, which only exists in the context once the JWT
+			// interceptor has put the auth payload there. Placed before it,
+			// every gate would fall back to its switch and no whitelisted
+			// tester would ever be let through.
+			featuregate.UnaryInterceptor(
+				featureGateCache, featureGateRules(), emailFromContext),
 		),
 		grpc.ChainStreamInterceptor(
 			interceptors.StreamPanicRecoveryInterceptor(zapLogger),

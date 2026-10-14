@@ -12,6 +12,7 @@ replace (
 	github.com/lazervault/shared/retry => ../../microservices/shared/retry
 	github.com/lazervault/shared/transaction-pin-client => ../../microservices/shared/transaction-pin-client
 	group-accounts-service => ../../microservices/group-accounts-service/group-accounts-microservice
+	lazervault-app-platform/microservices/shared => ../../microservices/shared
 	notifications-service => ../../microservices/notifications-service/notifications-microservice
 	whatsapp-service => ../../microservices/whatsapp-service/whatsapp-microservice
 )
@@ -20,6 +21,7 @@ require (
 	accounts-service/proto v0.0.0-00010101000000-000000000000
 	github.com/gin-contrib/cors v1.7.6
 	github.com/go-redis/redis/v8 v8.11.5
+	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.27.4
 	github.com/hibiken/asynq v0.25.1
 	github.com/lazervault/shared/auth-interceptor v0.0.0
@@ -32,9 +34,10 @@ require (
 	github.com/spf13/viper v1.20.1
 	go.uber.org/zap v1.27.1
 	golang.org/x/time v0.15.0
-	google.golang.org/genproto/googleapis/api v0.0.0-20260401024825-9d38bb4040a9
+	google.golang.org/genproto/googleapis/api v0.0.0-20260706201446-f0a921348800
 	google.golang.org/protobuf v1.36.11
 	group-accounts-service v0.0.0-00010101000000-000000000000
+	lazervault-app-platform/microservices/shared v0.0.0-00010101000000-000000000000
 	notifications-service v0.0.0
 	whatsapp-service v0.0.0
 )
@@ -53,7 +56,6 @@ require (
 	github.com/go-playground/validator/v10 v10.27.0 // indirect
 	github.com/goccy/go-json v0.10.5 // indirect
 	github.com/goccy/go-yaml v1.18.0 // indirect
-	github.com/golang-jwt/jwt/v5 v5.3.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/compress v1.18.0 // indirect
 	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
@@ -77,10 +79,10 @@ require (
 	github.com/ugorji/go/codec v1.3.0 // indirect
 	go.uber.org/mock v0.5.0 // indirect
 	golang.org/x/arch v0.20.0 // indirect
-	golang.org/x/mod v0.33.0 // indirect
-	golang.org/x/net v0.52.0 // indirect
-	golang.org/x/tools v0.42.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20260401024825-9d38bb4040a9 // indirect
+	golang.org/x/mod v0.37.0 // indirect
+	golang.org/x/net v0.57.0 // indirect
+	golang.org/x/tools v0.47.0 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20260706201446-f0a921348800 // indirect
 )
 
 require (
@@ -98,11 +100,11 @@ require (
 	github.com/spf13/pflag v1.0.6 // indirect
 	github.com/subosito/gotenv v1.6.0
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/crypto v0.49.0
-	golang.org/x/sync v0.20.0 // indirect
-	golang.org/x/sys v0.42.0 // indirect
-	golang.org/x/text v0.35.0 // indirect
-	google.golang.org/grpc v1.80.0
+	golang.org/x/crypto v0.54.0
+	golang.org/x/sync v0.22.0 // indirect
+	golang.org/x/sys v0.47.0 // indirect
+	golang.org/x/text v0.40.0 // indirect
+	google.golang.org/grpc v1.84.0
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	gorm.io/gorm v1.31.1
 )
