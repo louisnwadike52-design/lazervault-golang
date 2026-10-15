@@ -43,6 +43,13 @@ service TransactionPinService {
   // GetPinOTPChannels returns available OTP delivery channels for the user
   rpc GetPinOTPChannels(GetPinOTPChannelsRequest) returns (GetPinOTPChannelsResponse);
 
+  // CheckPinOTP validates a PIN-operation code WITHOUT consuming it, so the
+  // UI can reject a wrong code on the screen where it was typed instead of
+  // walking the user through choosing a new PIN first. Failures still count
+  // against the OTP's attempt budget — otherwise this would be a free oracle
+  // for guessing the code.
+  rpc CheckPinOTP(CheckPinOTPRequest) returns (CheckPinOTPResponse);
+
   // CompleteForgotPin verifies OTP and resets the PIN (forgot PIN flow)
   rpc CompleteForgotPin(CompleteForgotPinRequest) returns (CompleteForgotPinResponse);
 
@@ -283,6 +290,23 @@ message CreateChannelRegistrationResponse {
 }
 
 // VerifyChannelOTP
+// CheckPinOTP — validate only, never consume.
+message CheckPinOTPRequest {
+  string user_id = 1;
+  // "create" | "change" | "reset" — the same operation_type the code was
+  // issued for. A code issued for one operation must not validate another.
+  string operation_type = 2;
+  string otp_code = 3;
+}
+
+message CheckPinOTPResponse {
+  bool valid = 1;
+  string message = 2;
+  // Attempts left on the OTP row after a failure, so the screen can say how
+  // many tries remain rather than only that the code was wrong.
+  int32 remaining_attempts = 3;
+}
+
 message VerifyChannelOTPRequest {
   string user_id = 1;
   string channel_type = 2;

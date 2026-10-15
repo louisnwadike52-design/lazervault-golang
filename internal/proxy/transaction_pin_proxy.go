@@ -69,6 +69,12 @@ func (p *TransactionPinServiceProxy) CompleteForgotPin(ctx context.Context, req 
 	return p.client.CompleteForgotPin(forwardContext(ctx), req)
 }
 
+// CheckPinOTP validates a PIN-operation code without consuming it, so the UI
+// can reject a wrong code on the screen where it was typed.
+func (p *TransactionPinServiceProxy) CheckPinOTP(ctx context.Context, req *pb.CheckPinOTPRequest) (*pb.CheckPinOTPResponse, error) {
+	return p.client.CheckPinOTP(forwardContext(ctx), req)
+}
+
 // GetUserChannelPins returns PIN setup status for all channels
 func (p *TransactionPinServiceProxy) GetUserChannelPins(ctx context.Context, req *pb.GetUserChannelPinsRequest) (*pb.GetUserChannelPinsResponse, error) {
 	return p.client.GetUserChannelPins(forwardContext(ctx), req)
