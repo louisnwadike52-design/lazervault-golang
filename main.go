@@ -88,12 +88,12 @@ func main() {
 	log.Info().Msg("🚀 Starting Core Gateway (gRPC-based)")
 
 	// Get microservice addresses from environment
-	authServiceAddr := getEnv("AUTH_SERVICE_GRPC_ADDR", "127.0.0.1:50051")
-	accountsServiceAddr := getEnv("ACCOUNTS_SERVICE_GRPC_ADDR", "127.0.0.1:50052")
-	groupAccountsServiceAddr := getEnv("GROUP_ACCOUNTS_SERVICE_GRPC_ADDR", "127.0.0.1:50066")
-	whatsappServiceAddr := getEnv("WHATSAPP_SERVICE_GRPC_ADDR", "127.0.0.1:50062")
-	notificationsServiceAddr := getEnv("NOTIFICATIONS_SERVICE_GRPC_ADDR", "127.0.0.1:50059")
-	referralServiceAddr := getEnv("REFERRAL_SERVICE_GRPC_ADDR", "127.0.0.1:50084")
+	authServiceAddr := getServiceAddr("AUTH_SERVICE_GRPC_ADDR", "127.0.0.1:50051")
+	accountsServiceAddr := getServiceAddr("ACCOUNTS_SERVICE_GRPC_ADDR", "127.0.0.1:50052")
+	groupAccountsServiceAddr := getServiceAddr("GROUP_ACCOUNTS_SERVICE_GRPC_ADDR", "127.0.0.1:50066")
+	whatsappServiceAddr := getServiceAddr("WHATSAPP_SERVICE_GRPC_ADDR", "127.0.0.1:50062")
+	notificationsServiceAddr := getServiceAddr("NOTIFICATIONS_SERVICE_GRPC_ADDR", "127.0.0.1:50059")
+	referralServiceAddr := getServiceAddr("REFERRAL_SERVICE_GRPC_ADDR", "127.0.0.1:50084")
 
 	// Get Redis configuration
 	redisURL := getEnv("REDIS_URL", "redis://localhost:6379")
@@ -150,7 +150,7 @@ func main() {
 	defer zapLogger.Sync()
 
 	// Initialize Kafka-based balance cache invalidator (if Redis is available)
-	kafkaBrokers := getEnv("KAFKA_BROKERS", "127.0.0.1:9092")
+	kafkaBrokers := getServiceAddr("KAFKA_BROKERS", "127.0.0.1:9092")
 	balanceChangedTopic := getEnv("KAFKA_BALANCE_CHANGED_TOPIC", "accounts.balance-changed")
 	kafkaGroupID := getEnv("KAFKA_CONSUMER_GROUP_ID", "core-gateway-cache-invalidator")
 
@@ -1653,5 +1653,32 @@ func getEnvDuration(key string, defaultValue time.Duration) time.Duration {
 			return duration
 		}
 	}
+	return defaultValue
+}
+
+// getServiceAddr is getEnv for an UPSTREAM ADDRESS, and says so when it falls
+// back.
+//
+// The defaults in this file are DEV ports. In production every one of them is
+// wrong — prod listens on dev + 10000 — and nothing is listening on the dev
+// port, so a missing variable produces "connection refused" on every call to
+// that service while the gateway itself reports perfect health. The failure
+// surfaces as a feature that "will not load", several layers from its cause:
+// this gateway logged 94 refused invoice dials with nothing at startup to say
+// INVOICE_SERVICE_GRPC_ADDR had never been set.
+func getServiceAddr(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	// Kafka is SHARED INFRASTRUCTURE on one port in both environments, not a
+	// dev/prod pair, so its default is correct unset and warning about it
+	// would teach the reader to ignore this line — which is exactly what a
+	// warning must not do.
+	if key == "KAFKA_BROKERS" {
+		return defaultValue
+	}
+	log.Printf("⚠️  %s is not set — falling back to %s. In production this is "+
+		"a DEV port and nothing listens on it, so every call to this service "+
+		"will fail with 'connection refused'.", key, defaultValue)
 	return defaultValue
 }
