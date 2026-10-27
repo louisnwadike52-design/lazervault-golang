@@ -11,6 +11,8 @@ import (
 	"github.com/rs/zerolog/log"
 	kafka "github.com/segmentio/kafka-go"
 	"go.uber.org/zap"
+
+	"lazervaultGo/grpcApi/middleware"
 )
 
 // BalanceChangedEvent represents a balance change event from accounts-service
@@ -153,27 +155,47 @@ func (b *BalanceCacheInvalidator) handleBalanceChanged(ctx context.Context, data
 	return nil
 }
 
-// getInvalidationPatterns returns cache key patterns to invalidate for a balance change
+// getInvalidationPatterns returns cache key patterns to invalidate for a balance
+// change.
+//
+// THE PREFIX HAS TO COME FROM THE MIDDLEWARE. These patterns were hardcoded to
+// "cache:gateway:GET", the namespace the response cache used before it became
+// per-principal on 2026-10-27; the cache now writes under
+// middleware.CacheKeyPrefix ("cache:core-gateway:GET"), so every SCAN here
+// matched nothing and the consumer went on logging a successful run. This was
+// the ONE mechanism that cleared a cached balance after a credit nobody asked
+// for over HTTP — an inbound NIP transfer, a provider settlement webhook,
+// interest accrual — because all of those arrive over gRPC or Kafka and never
+// pass the gin InvalidateCacheMiddleware. Built from the constant now, so the
+// two cannot drift again.
+//
+// Two of the old patterns could never have matched either: "user-accounts" is
+// not a route (the list is /api/v1/accounts and /api/v1/accounts/summary), and
+// /api/v1/transactions/history carries no account id to match on. The patterns
+// below are written against the real paths, with the key's scope segment
+// covered by the leading wildcard.
 func (b *BalanceCacheInvalidator) getInvalidationPatterns(event BalanceChangedEvent) []string {
+	prefix := middleware.CacheKeyPrefix
 	patterns := []string{
-		// Account-specific patterns
-		fmt.Sprintf("cache:gateway:GET:*accounts*%s*", event.AccountID),
+		// Anything under this account: :balance, :holds, :transactions,
+		// :spending-usage, and the account record itself.
+		fmt.Sprintf("%s:*:api:v1:accounts:%s*", prefix, event.AccountID),
 
-		// User-specific patterns (for GetUserAccounts which returns all accounts)
-		fmt.Sprintf("cache:gateway:GET:*user-accounts*%s*", event.UserID),
-		fmt.Sprintf("cache:gateway:GET:*users*%s*accounts*", event.UserID),
+		// The account LIST and the summary carry aggregated balances and name
+		// no account in the path, so they can only be cleared wholesale.
+		fmt.Sprintf("%s:*:api:v1:accounts", prefix),
+		fmt.Sprintf("%s:*:api:v1:accounts:*", prefix),
 
-		// General account list patterns (may contain aggregated balances)
-		"cache:gateway:GET:*:api:v1:accounts:user-accounts*",
-
-		// Transaction-related patterns
-		fmt.Sprintf("cache:gateway:GET:*transactions*%s*", event.AccountID),
+		// Transaction history / statistics / analytics are derived from the
+		// rows this event just added.
+		fmt.Sprintf("%s:*:api:v1:transactions*", prefix),
 	}
 
-	// Add account number pattern if available
+	// Account-number-addressed lookup (/api/v1/accounts/number/{n}).
 	if event.AccountNumber != "" {
 		sanitizedNum := strings.ReplaceAll(event.AccountNumber, "-", "")
-		patterns = append(patterns, fmt.Sprintf("cache:gateway:GET:*accounts*%s*", sanitizedNum))
+		patterns = append(patterns,
+			fmt.Sprintf("%s:*:api:v1:accounts:number:%s*", prefix, sanitizedNum))
 	}
 
 	return patterns

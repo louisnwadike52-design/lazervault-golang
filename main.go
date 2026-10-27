@@ -98,7 +98,12 @@ func main() {
 	// Get Redis configuration
 	redisURL := getEnv("REDIS_URL", "redis://localhost:6379")
 	enableCache := getEnv("ENABLE_CACHE", "true") == "true"
-	cacheTTL := getEnvDuration("CACHE_TTL", 5*time.Minute)
+	// A minute, not five. What bounds the staleness of everything this cache
+	// still cannot invalidate — a write through another gateway, over direct
+	// gRPC, from a worker, from a provider webhook, or by a counterparty — is
+	// the TTL, and five minutes of a wrong list on a money screen is not worth
+	// the hit rate on a provider catalogue. CACHE_TTL still overrides.
+	cacheTTL := getEnvDuration("CACHE_TTL", 60*time.Second)
 
 	// Check if mTLS is enabled
 	enableMTLS := getEnv("ENABLE_MTLS", "false") == "true"
