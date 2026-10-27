@@ -1,8 +1,26 @@
 package middleware
 
+// Per-principal HTTP response cache.
+//
+// This file is the SAME in every gateway (copied from business-gateway, which
+// got it right first). The version it replaces keyed entries by method+path+
+// query only — no user — so one person's authenticated GET could be served to
+// the next person who asked for the same path, and because the middleware
+// runs before JWT auth, a HIT answered without authenticating at all. It also
+// stored the body wrapped in {"data": …} while a MISS returned the flat body,
+// so clients broke on the first HIT. None of that could happen through gRPC
+// (the app's main transport), but every HTTP route was exposed.
+//
+// Now: the key is scoped to a hash of the Authorization header (+ the active
+// account), unauthenticated responses are never cached or served, the body
+// is stored verbatim, any mutation by a principal drops that principal's
+// cached reads, and a request carrying Cache-Control: no-cache bypasses the
+// HIT path so a deliberate refresh always reaches the origin.
+
 import (
 	"context"
-	"encoding/json"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"net/http"
 	"strings"
@@ -12,150 +30,144 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-// CacheMiddleware creates a Redis-based caching middleware for GET requests
+// Cache design (business-gateway)
+// --------------------------------
+// GET responses for the business APIs are cached in Redis, but the cache is
+// scoped PER PRINCIPAL — the key embeds a hash of the Authorization bearer token
+// (+ the active account id). This is critical:
+//   * Business A's cached list can never be served to Business B (no cross-tenant
+//     leak) — the previous key was method:path:query only, shared across users.
+//   * A forged/expired token produces a different key → cache MISS → the request
+//     falls through to the JWT auth middleware and is rejected, so a cache HIT can
+//     never bypass auth.
+// On any successful mutation by a principal, ALL of that principal's cached GETs
+// are invalidated, so a create/edit reflects immediately (no ≤5-min lag) without
+// per-entity bookkeeping.
+
+const cacheKeyPrefix = "cache:core-gateway:GET"
+
+// principalScope derives a stable, per-caller cache scope from the request.
+// Returns "" when the request is unauthenticated (→ do not cache).
+func principalScope(c *gin.Context) string {
+	auth := c.GetHeader("Authorization")
+	if auth == "" {
+		return ""
+	}
+	sum := sha256.Sum256([]byte(auth))
+	scope := hex.EncodeToString(sum[:])[:16]
+	// Active business account also scopes the data (a user can switch accounts).
+	if acct := c.GetHeader("X-Account-Id"); acct != "" {
+		scope = scope + "-" + acct
+	}
+	return scope
+}
+
+// CacheMiddleware caches successful GET JSON responses per principal.
 func CacheMiddleware(redisClient *redis.Client, defaultTTL time.Duration) gin.HandlerFunc {
 	if redisClient == nil {
-		// If Redis is not available, return a no-op middleware
-		return func(c *gin.Context) {
-			c.Next()
-		}
+		return func(c *gin.Context) { c.Next() }
 	}
 
 	return func(c *gin.Context) {
-		// Only cache GET requests
-		if c.Request.Method != "GET" {
+		if c.Request.Method != http.MethodGet || shouldSkipCache(c.Request.URL.Path) {
 			c.Next()
 			return
 		}
 
-		// Skip caching for authenticated endpoints or specific routes
-		if shouldSkipCache(c.Request.URL.Path) {
+		scope := principalScope(c)
+		if scope == "" {
+			// Never cache unauthenticated responses (and never serve cache to
+			// an unauthenticated caller).
 			c.Next()
 			return
 		}
 
-		// Generate cache key
-		cacheKey := generateCacheKey(c)
-
-		// Try to get from cache
+		cacheKey := generateCacheKey(scope, c)
 		ctx := context.Background()
-		cachedData, err := redisClient.Get(ctx, cacheKey).Result()
-		if err == nil {
-			// Cache hit - return cached response
-			var responseData interface{}
-			if err := json.Unmarshal([]byte(cachedData), &responseData); err == nil {
-				c.Header("X-Cache", "HIT")
-				c.JSON(http.StatusOK, responseData)
-				c.Abort()
-				return
-			}
+
+		// A client that is deliberately refreshing (the app's background
+		// revalidation sends Cache-Control: no-cache) must reach the origin;
+		// the fresh response still refills the entry for everyone else.
+		wantsFresh := strings.Contains(strings.ToLower(c.GetHeader("Cache-Control")), "no-cache")
+		if cached, err := redisClient.Get(ctx, cacheKey).Result(); !wantsFresh && err == nil && cached != "" {
+			// Return the cached body VERBATIM (same shape as a live response).
+			c.Header("X-Cache", "HIT")
+			c.Data(http.StatusOK, "application/json; charset=utf-8", []byte(cached))
+			c.Abort()
+			return
 		}
 
-		// Cache miss - proceed with request
 		c.Header("X-Cache", "MISS")
-
-		// Use a custom writer to capture response
 		w := &responseWriter{ResponseWriter: c.Writer, status: http.StatusOK}
 		c.Writer = w
-
 		c.Next()
 
-		// Cache the response if successful
-		if w.status == http.StatusOK && len(c.Errors) == 0 {
-			// Store response in cache
-			responseData := gin.H{}
-			if w.body != "" {
-				json.Unmarshal([]byte(w.body), &responseData)
-			}
-
-			if data, err := json.Marshal(gin.H{
-				"data": responseData,
-			}); err == nil {
-				redisClient.Set(ctx, cacheKey, data, defaultTTL)
-			}
+		// Cache only clean 200 JSON responses.
+		if w.status == http.StatusOK && len(c.Errors) == 0 && w.body != "" {
+			redisClient.Set(ctx, cacheKey, w.body, defaultTTL)
 		}
 	}
 }
 
-// InvalidateCacheMiddleware invalidates cache for specific patterns after mutations
+// InvalidateCacheMiddleware clears the caller's cached GETs after any successful
+// mutation, so their next read reflects the change immediately.
 func InvalidateCacheMiddleware(redisClient *redis.Client) gin.HandlerFunc {
 	if redisClient == nil {
-		return func(c *gin.Context) {
-			c.Next()
-		}
+		return func(c *gin.Context) { c.Next() }
 	}
 
 	return func(c *gin.Context) {
 		c.Next()
 
-		// Only invalidate cache for successful mutations
-		if c.Request.Method != "GET" && c.Writer.Status() < 300 {
-			ctx := context.Background()
-			patterns := getInvalidationPatterns(c.Request.URL.Path, c.Request.Method)
-
-			for _, pattern := range patterns {
-				iter := redisClient.Scan(ctx, 0, pattern, 0).Iterator()
-				for iter.Next(ctx) {
-					redisClient.Del(ctx, iter.Val())
-				}
-			}
+		if c.Request.Method == http.MethodGet || c.Writer.Status() >= 300 {
+			return
+		}
+		scope := principalScope(c)
+		if scope == "" {
+			return
+		}
+		ctx := context.Background()
+		// Coarse but correct: a mutation typically affects the entity list AND
+		// the cross-derived overview/tax dashboard, so drop all of this
+		// principal's cached reads.
+		pattern := fmt.Sprintf("%s:%s:*", cacheKeyPrefix, scope)
+		iter := redisClient.Scan(ctx, 0, pattern, 200).Iterator()
+		for iter.Next(ctx) {
+			redisClient.Del(ctx, iter.Val())
 		}
 	}
 }
 
-// shouldSkipCache determines if a path should skip caching
+// shouldSkipCache determines if a path should never be cached.
 func shouldSkipCache(path string) bool {
 	skipPatterns := []string{
 		"/api/v1/auth/",
 		"/api/v1/accounts/verify",
 		"/api/v1/accounts/balance",
+		"/api/v1/payroll/process",
+		"/api/v1/payroll/approve",
 		"/health",
 		"/metrics",
 	}
-
 	for _, pattern := range skipPatterns {
 		if strings.Contains(path, pattern) {
 			return true
 		}
 	}
-
 	return false
 }
 
-// generateCacheKey creates a unique cache key for the request
-func generateCacheKey(c *gin.Context) string {
-	// Format: cache:gateway:method:path:query
+// generateCacheKey builds a per-principal cache key.
+func generateCacheKey(scope string, c *gin.Context) string {
 	path := strings.ReplaceAll(c.Request.URL.Path, "/", ":")
 	query := c.Request.URL.Query().Encode()
-
 	if query != "" {
-		return fmt.Sprintf("cache:gateway:%s:%s:%s", c.Request.Method, path, query)
+		return fmt.Sprintf("%s:%s:%s:%s", cacheKeyPrefix, scope, path, query)
 	}
-
-	return fmt.Sprintf("cache:gateway:%s:%s", c.Request.Method, path)
+	return fmt.Sprintf("%s:%s:%s", cacheKeyPrefix, scope, path)
 }
 
-// getInvalidationPatterns returns cache key patterns to invalidate
-func getInvalidationPatterns(path, method string) []string {
-	patterns := []string{}
-
-	// Invalidate user-specific caches
-	if strings.Contains(path, "/accounts/") || strings.Contains(path, "/users/") {
-		patterns = append(patterns, "cache:gateway:GET:*accounts*")
-		patterns = append(patterns, "cache:gateway:GET:*users*")
-	}
-
-	// Invalidate transaction caches
-	if strings.Contains(path, "/transfers/") || strings.Contains(path, "/payments/") {
-		patterns = append(patterns, "cache:gateway:GET:*transfers*")
-		patterns = append(patterns, "cache:gateway:GET:*payments*")
-		patterns = append(patterns, "cache:gateway:GET:*balance*")
-	}
-
-	return patterns
-}
-
-// responseWriter captures response status and body
+// responseWriter captures response status and body.
 type responseWriter struct {
 	gin.ResponseWriter
 	status int
